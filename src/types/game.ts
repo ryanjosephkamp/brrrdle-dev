@@ -1,10 +1,12 @@
-export interface TileState {
+export type LetterState = 'empty' | 'tbd' | 'correct' | 'present' | 'absent';
+
+export interface TileData {
   letter: string;
-  status: 'empty' | 'tbd' | 'absent' | 'present' | 'correct';
+  state: LetterState;
 }
 
 export interface GameRow {
-  tiles: TileState[];
+  tiles: TileData[];
 }
 
 export type GameStatus = 'playing' | 'won' | 'lost';
@@ -13,8 +15,9 @@ export interface GameState {
   wordLength: number;
   maxGuesses: number;
   currentRow: number;
-  grid: GameRow[];
+  board: GameRow[];
+  currentGuess: string;
   status: GameStatus;
-  targetWord: string;
+  solution: string;
   hardMode: boolean;
 }
