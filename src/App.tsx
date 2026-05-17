@@ -1,38 +1,65 @@
-import { useState } from 'react'
+import { useState } from 'react';
+import Grid from './components/common/Grid';
+import Keyboard from './components/common/Keyboard';
+import { getTileStates } from './core/game/Coloring';
 
 function App() {
-  const [mode, setMode] = useState<'og' | 'go'>('og')
+  const [mode, setMode] = useState<'og' | 'go'>('og');
+  const [solution] = useState('CRANE'); // demo word
+  const [currentGuess, setCurrentGuess] = useState('');
+  const [board, setBoard] = useState(Array(6).fill(null).map(() => ({
+    tiles: Array(5).fill({ letter: '', state: 'empty' as const })
+  })));
+
+  const handleKeyPress = (key: string) => {
+    if (key === 'ENTER') {
+      if (currentGuess.length === 5) {
+        const newRow = {
+          tiles: currentGuess.split('').map((letter, i) => ({
+            letter,
+            state: getTileStates(currentGuess, solution)[i]
+          }))
+        };
+        setBoard(prev => {
+          const newBoard = [...prev];
+          newBoard[0] = newRow;
+          return newBoard;
+        });
+        setCurrentGuess('');
+      }
+    } else if (key === '⌫') {
+      setCurrentGuess(prev => prev.slice(0, -1));
+    } else if (currentGuess.length < 5) {
+      setCurrentGuess(prev => prev + key);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      <header className="border-b border-zinc-800 p-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <h1 className="text-4xl font-bold tracking-tighter">brrrdle</h1>
-          <div className="flex gap-2 bg-zinc-900 p-1 rounded-xl">
-            <button
-              onClick={() => setMode('og')}
-              className={`px-6 py-2 rounded-xl font-medium transition-colors ${mode === 'og' ? 'bg-white text-black' : 'hover:bg-zinc-800'}`}
-            >
-              og
-            </button>
-            <button
-              onClick={() => setMode('go')}
-              className={`px-6 py-2 rounded-xl font-medium transition-colors ${mode === 'go' ? 'bg-white text-black' : 'hover:bg-zinc-800'}`}
-            >
-              go
-            </button>
-          </div>
-        </div>
-      </header>
-      <main className="flex-1 flex items-center justify-center p-4">
-        <div className="text-center">
-          <h2 className="text-2xl mb-2">{mode === 'og' ? 'og Mode' : 'go Mode'}</h2>
-          <p className="text-zinc-400">Core game engine ready for Phase 1</p>
-          <p className="text-emerald-400 mt-8 text-sm">✅ Grid + Keyboard + Coloring ready</p>
-        </div>
-      </main>
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center py-8">
+      <h1 className="text-5xl font-bold mb-8 tracking-widest">brrrdle</h1>
+      
+      <div className="flex gap-4 mb-8">
+        <button
+          onClick={() => setMode('og')}
+          className={`px-6 py-3 rounded-full text-lg font-medium ${mode === 'og' ? 'bg-green-600' : 'bg-gray-800'}`}
+        >
+          og
+        </button>
+        <button
+          onClick={() => setMode('go')}
+          className={`px-6 py-3 rounded-full text-lg font-medium ${mode === 'go' ? 'bg-green-600' : 'bg-gray-800'}`}
+        >
+          go
+        </button>
+      </div>
+
+      <div className="mb-8">
+        <Grid rows={board} currentRow={0} wordLength={5} />
+      </div>
+
+      <Keyboard onKeyPress={handleKeyPress} />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
