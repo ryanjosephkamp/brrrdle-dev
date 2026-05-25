@@ -1,9 +1,9 @@
 # AGENT-IMPLEMENTATION-PLAN.md
 
 **Project**: brrrdle  
-**Plan Version**: 1.1  
+**Plan Version**: 1.1
 **Date**: 2026-05-25  
-**Status**: Draft for user review — amended with progress logging and tracking requirements  
+**Status**: Draft for user review — amended with progress logging and tracking requirements
 **Authority**: Must follow `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, and the approved v2.6 plan in `BRRRDLE-OVERVIEW.md`.
 
 ---
