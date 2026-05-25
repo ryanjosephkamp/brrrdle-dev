@@ -1,8 +1,8 @@
 # brrrdle Constitution
 
-**Version**: 3.0
+**Version**: 3.1
 **Date**: 2026-05-25
-**Status**: Final upgraded project constitution — binding until revised with explicit user approval.
+**Status**: Final upgraded project constitution with progress tracking amendment — binding until revised with explicit user approval.
 
 ---
 
@@ -10,7 +10,7 @@
 
 This constitution governs all autonomous development of `brrrdle`. It binds implementation to the approved product specification, the approved v2.6 project plan, and the approved `AGENT-IMPLEMENTATION-PLAN.md`.
 
-The goal is to build a polished, production-ready Wordle + Hurdle hybrid while preventing scope creep, preserving implementation fidelity, enforcing phase-by-phase verification, and requiring human review at every gate.
+The goal is to build a polished, production-ready Wordle + Hurdle hybrid while preventing scope creep, preserving implementation fidelity, enforcing phase-by-phase verification, maintaining durable progress records, and requiring human review at every gate.
 
 If this constitution, `BRRRDLE-SPEC.md`, `BRRRDLE-OVERVIEW.md`, or `AGENT-IMPLEMENTATION-PLAN.md` conflict, stop immediately and ask the user for clarification. Do not guess.
 
@@ -93,7 +93,8 @@ At each review gate, provide:
 1. What changed.
 2. What verification was run.
 3. Any known limitations, risks, or skipped checks.
-4. The exact approval needed to continue.
+4. The relevant `PROGRESS.csv` and progress markdown updates.
+5. The exact approval needed to continue.
 
 Then stop. Do not continue into the next phase, scaffold, or implement additional code until approved.
 
@@ -140,8 +141,24 @@ Every phase must end with:
 - Phase-specific automated tests and manual checks completed.
 - Security review appropriate to the change.
 - Known limitations documented.
+- Progress tracking updated in `progress/PROGRESS.csv` and the relevant `progress/PROGRESS-STEP-N.md` report once Phase 0 has created the `progress/` folder.
 - Commit/push completed through the approved workflow.
 - A halt for explicit user approval.
+
+---
+
+### 5.4 Progress Logging and Tracking
+
+The project must maintain progress artifacts for user transparency, session resumability, and agent coordination.
+
+- Before Phase 0 scaffolding, `PROGRESS.csv` and `PROGRESS-TEMPLATE.md` must exist at the repository root.
+- During Phase 0 scaffolding/setup, the agent must create a root-level `progress/` folder and move `PROGRESS.csv` and `PROGRESS-TEMPLATE.md` into it.
+- `PROGRESS.csv` must contain one row for every major phase in `AGENT-IMPLEMENTATION-PLAN.md`.
+- Before beginning each phase, the agent must read the CSV and, if needed, existing `progress/PROGRESS-STEP-N.md` files to identify the next incomplete phase, blockers, and required user actions.
+- After each phase, the agent must update the corresponding CSV row and generate or update `progress/PROGRESS-STEP-N.md` from the template.
+- Each progress markdown report must summarize the phase changes, verification, known blockers or critical errors, required user action, and whether the user is safe/authorized to proceed to the next phase.
+- If a blocker or critical error arises during a phase, the relevant progress markdown report must be annotated before halting.
+- Progress artifacts must never contain secrets, credentials, or private deployment data.
 
 ---
 
@@ -479,7 +496,7 @@ Implementation and tests must explicitly consider:
 
 ## 17. Constitution Evolution
 
-This is the second and final planned constitution upgrade. Future revisions require explicit user approval and must preserve:
+This constitution includes the approved second upgrade plus a progress tracking amendment. Future revisions require explicit user approval and must preserve:
 
 - Scope fidelity.
 - Mandatory review gates.
@@ -489,6 +506,7 @@ This is the second and final planned constitution upgrade. Future revisions requ
 - Supabase and admin security requirements.
 - Accessibility and performance standards.
 - Minimal-change conduct.
+- Progress logging for transparency, resumability, and coordination.
 
 ---
 

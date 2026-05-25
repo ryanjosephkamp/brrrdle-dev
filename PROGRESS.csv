@@ -1,0 +1,13 @@
+phase_id,major_step,title,status,progress_markdown,prompt_gate,next_step,started_at,completed_at,verification_status,blocker_status,notes
+0,Phase 0,"Governance, Scaffolding, and Baseline Tooling",Not Started,progress/PROGRESS-STEP-0.md,After Phase 0,Phase 1,,,,,
+1,Phase 1,Core Game Engine and Shared Domain Model,Not Started,progress/PROGRESS-STEP-1.md,After Phase 1,Phase 2,,,,,
+2,Phase 2,Data Layer and Hybrid Word List Consumption,Not Started,progress/PROGRESS-STEP-2.md,After Phase 2,Phase 3,,,,,
+3,Phase 3,"Application Shell, Routing, and UI Foundation",Not Started,progress/PROGRESS-STEP-3.md,After Phase 3,Phase 4,,,,,
+4,Phase 4,og Mode Gameplay,Not Started,progress/PROGRESS-STEP-4.md,After Phase 4,Phase 5,,,,,
+5,Phase 5,go Mode Gameplay,Not Started,progress/PROGRESS-STEP-5.md,After Phase 5,Phase 6,,,,,
+6,Phase 6,Definitions System,Not Started,progress/PROGRESS-STEP-6.md,After Phase 6,Phase 7,,,,,
+7,Phase 7,"Persistence, Progression, Economy, and Statistics",Not Started,progress/PROGRESS-STEP-7.md,After Phase 7,Phase 8,,,,,
+8,Phase 8,"Supabase Accounts, Sync, and Admin Route",Not Started,progress/PROGRESS-STEP-8.md,After Phase 8,Phase 9,,,,,
+9,Phase 9,"Sharing, PWA, Polish, and Accessibility",Not Started,progress/PROGRESS-STEP-9.md,After Phase 9,Phase 10,,,,,
+10,Phase 10,Blog / Docs on GitHub Pages + Jekyll,Not Started,progress/PROGRESS-STEP-10.md,After Phase 10,Phase 11,,,,,
+11,Phase 11,"Final Integration, Release Readiness, and Deployment Verification",Not Started,progress/PROGRESS-STEP-11.md,After Phase 11,Production release review,,,,,

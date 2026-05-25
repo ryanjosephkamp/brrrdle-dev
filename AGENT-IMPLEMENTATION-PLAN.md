@@ -1,9 +1,9 @@
 # AGENT-IMPLEMENTATION-PLAN.md
 
 **Project**: brrrdle  
-**Plan Version**: 1.0  
+**Plan Version**: 1.1  
 **Date**: 2026-05-25  
-**Status**: Draft for user review  
+**Status**: Draft for user review — amended with progress logging and tracking requirements  
 **Authority**: Must follow `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, and the approved v2.6 plan in `BRRRDLE-OVERVIEW.md`.
 
 ---
@@ -23,6 +23,7 @@ This plan is the working implementation guide for building `brrrdle`. It is not 
 - Target Vercel for the game and GitHub Pages + Jekyll for blog/docs.
 - Make small, reviewable changes and verify after every meaningful step.
 - End every phase with a commit, changelog update, verification summary, and explicit pause for user approval.
+- Maintain progress tracking through `PROGRESS.csv` and per-phase markdown reports before and after every major phase gate.
 
 ### 1.2 Repository Starting Point
 
@@ -36,9 +37,23 @@ Every phase must finish with:
 2. Changelog updated.
 3. Existing lint/build/test commands run where available.
 4. Phase-specific verification completed.
-5. Known limitations documented.
-6. Changes committed and pushed through the approved workflow.
-7. Explicit halt for user approval before continuing.
+5. `PROGRESS.csv` read before work begins for the phase, then updated with the phase result.
+6. A `progress/PROGRESS-STEP-N.md` report created or updated from `progress/PROGRESS-TEMPLATE.md`, where `N` is the completed phase number.
+7. Known limitations documented.
+8. Changes committed and pushed through the approved workflow.
+9. Explicit halt for user approval before continuing.
+
+### 1.4 Progress Logging and Tracking Protocol
+
+Progress tracking is mandatory for transparency, resumability, and agent coordination.
+
+- The repository root starts with `PROGRESS.csv` and `PROGRESS-TEMPLATE.md`.
+- Phase 0 scaffolding must create a root-level `progress/` folder and move both files into that folder.
+- `PROGRESS.csv` must contain one row for every major implementation phase in this plan.
+- Before beginning each phase, the agent must read `progress/PROGRESS.csv` and, if needed, any existing `progress/PROGRESS-STEP-N.md` files to determine the next incomplete phase and any blockers.
+- After each phase, before halting at the prompt gate, the agent must update the relevant CSV row with status, verification, blockers, completion notes, and the next required action.
+- After each phase, the agent must create or update `progress/PROGRESS-STEP-N.md` from the template. The report must concisely summarize what changed, record verification, note blockers or critical errors, and explicitly state whether the user is safe/authorized to proceed to the next phase.
+- If a critical error or blocker arises during a phase, the relevant progress markdown file must be updated or annotated before halting.
 
 ---
 
@@ -50,6 +65,7 @@ Every phase must finish with:
 
 **Build / modify**:
 - Confirm `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, `BRRRDLE-OVERVIEW.md`, and this plan are present and aligned.
+- Confirm `PROGRESS.csv` and `PROGRESS-TEMPLATE.md` are present at the repository root before scaffolding moves them into `progress/`.
 - Create or initialize `CHANGELOG.md` if it does not exist.
 
 **Key files**:
@@ -57,10 +73,13 @@ Every phase must finish with:
 - `BRRRDLE-SPEC.md`
 - `BRRRDLE-OVERVIEW.md`
 - `AGENT-IMPLEMENTATION-PLAN.md`
+- `PROGRESS.csv`
+- `PROGRESS-TEMPLATE.md`
 - `CHANGELOG.md`
 
 **Verification**:
 - Re-read the governance documents before changes.
+- Confirm the progress tracking skeleton and template exist.
 - Confirm no implementation code has been added before plan approval.
 
 ### Step 0.2 — Scaffold React/Vite Application
@@ -94,6 +113,7 @@ Every phase must finish with:
 **Build / modify**:
 - Create a minimal directory structure for future phases without implementing features prematurely.
 - Add placeholder architecture only where needed to keep imports clean.
+- Create `progress/` at the repository root and move `PROGRESS.csv` and `PROGRESS-TEMPLATE.md` into it.
 
 **Key files / directories**:
 - `src/app/`
@@ -108,10 +128,13 @@ Every phase must finish with:
 - `src/lib/`
 - `src/types/`
 - `src/test/` or project-appropriate test location
+- `progress/PROGRESS.csv`
+- `progress/PROGRESS-TEMPLATE.md`
 
 **Verification**:
 - Build succeeds with the scaffolded structure.
 - No unused placeholder complexity that causes lint failures.
+- Confirm progress tracking files were moved, not duplicated or lost.
 
 ### Step 0.4 — Configure Deployment Foundations
 
