@@ -1,236 +1,495 @@
 # brrrdle Constitution
 
-**Version**: 2.0  
-**Date**: 2026-05-25  
-**Status**: Upgraded project constitution — binding until revised with explicit user approval.
+**Version**: 3.0
+**Date**: 2026-05-25
+**Status**: Final upgraded project constitution — binding until revised with explicit user approval.
 
 ---
 
 ## 1. Purpose
 
-This constitution governs all autonomous development of `brrrdle`. It converts the approved specification and v2.6 project plan into binding execution rules for agents and contributors.
+This constitution governs all autonomous development of `brrrdle`. It binds implementation to the approved product specification, the approved v2.6 project plan, and the approved `AGENT-IMPLEMENTATION-PLAN.md`.
 
-The objective is to build a polished, production-ready Wordle + Hurdle hybrid while preventing scope creep, preserving implementation fidelity, and maintaining strict review gates. When this constitution, `BRRRDLE-SPEC.md`, and the approved plan disagree, stop and ask the user for clarification before proceeding.
+The goal is to build a polished, production-ready Wordle + Hurdle hybrid while preventing scope creep, preserving implementation fidelity, enforcing phase-by-phase verification, and requiring human review at every gate.
+
+If this constitution, `BRRRDLE-SPEC.md`, `BRRRDLE-OVERVIEW.md`, or `AGENT-IMPLEMENTATION-PLAN.md` conflict, stop immediately and ask the user for clarification. Do not guess.
 
 ---
 
 ## 2. Authoritative Sources
 
-The agent must treat these documents as the source of truth, in this order:
+Treat these sources as authoritative in this order:
 
 1. Explicit user instructions in the current task.
 2. This `CONSTITUTION.md`.
 3. `BRRRDLE-SPEC.md`.
-4. The approved v2.6 project plan in `BRRRDLE-OVERVIEW.md` or any later explicitly approved plan document.
-5. The future agent-authored `AGENT-IMPLEMENTATION-PLAN.md`, only after it is reviewed and approved.
+4. The approved v2.6 project plan in `BRRRDLE-OVERVIEW.md`, or any later explicitly approved replacement.
+5. The approved `AGENT-IMPLEMENTATION-PLAN.md`.
+6. Existing implementation, only when it does not conflict with the above.
 
-No feature, dependency, architecture decision, or UX behavior may be added merely because it seems useful. If it is not supported by the authoritative sources, it is out of scope unless the user approves it.
-
----
-
-## 3. Non-Negotiable Rules
-
-### 3.1 Fidelity to Scope
-
-- Implement only the approved `brrrdle` scope.
-- The game name is always spelled `brrrdle`.
-- Initial launch daily `og` and `go` modes are fixed at 5 letters.
-- Practice mode supports word lengths 2 through 35.
-- Variable daily lengths, multiplayer, leaderboards, themes, sound effects, and advanced AI hints are out of scope for v1.
-
-### 3.2 Review Gates Are Mandatory
-
-The agent must halt and wait for explicit user approval:
-
-- After upgrading this constitution.
-- After creating `AGENT-IMPLEMENTATION-PLAN.md`.
-- After scaffolding.
-- After every major phase or review gate defined in the approved implementation plan.
-- Whenever requirements conflict or a decision requires human judgment.
-- Whenever verification reveals a critical issue that cannot be resolved with a small, clearly scoped fix.
-
-Acceptable user signals include explicit instructions such as “APPROVE”, “Start next step”, or “REVISE”. Silence is not approval.
-
-### 3.3 Verification First
-
-Never claim completion without verification appropriate to the phase. Verification must include the commands and manual checks specified in the approved implementation plan once it exists, and must always include checks for:
-
-- Exact Wordle-style tile coloring, including duplicate-letter cases.
-- Daily modes locked to 5 letters.
-- Practice mode functioning across lengths 2 through 35.
-- Definition fallback behavior and dynamic Google search button.
-- Protected admin refresh route authorization.
-- Absence of critical console errors.
-- Build, lint, and test health where project tooling exists.
-
-If verification cannot be run, document why and halt for review.
-
-### 3.4 Exact Coloring Logic
-
-`getTileStates` or its approved equivalent must be the single source of truth for tile states. It must match original Wordle behavior exactly, including duplicate-letter accounting. Any UI keyboard state, share output, validation feedback, or statistics derived from guesses must rely on this canonical logic rather than duplicating rules.
-
-### 3.5 Data Layer Discipline
-
-The word list and definition system must follow the approved hybrid strategy:
-
-- Primary word list source: pre-processed English OpenList JSON files, `words_length_{N}.json` for N = 2 through 35.
-- Production builds bundle the selected JSON assets at build time.
-- Runtime update checks occur on production deploys.
-- A protected admin route supports manual refresh override.
-- The implementation must degrade gracefully when updates or definition sources are unavailable.
-
-No client-side code may contain secrets, private tokens, service-role keys, or privileged Supabase credentials.
-
-### 3.6 Definitions System Priority
-
-Definitions are displayed after a game ends. The lookup order is mandatory:
-
-1. Pre-processed English OpenList JSON definition, when available.
-2. Dictionary API.
-3. Wiktionary fallback.
-4. Google search button, always available.
-
-If definition sources fail, show a clear, non-intrusive fallback message and a dynamic button labeled like `Search Google for ‘apple’`. The button must open a new tab searching Google for `define [WORD]`.
-
-### 3.7 Supabase and Admin Requirements
-
-Supabase is required for account and cloud-sync functionality. Guest mode must work without an account, but the account system must be designed for Supabase from day one.
-
-The manual word list refresh override must be protected by a Supabase authenticated user with an `admin` role. Manual admin role assignment through the Supabase dashboard is acceptable for v1. RLS policies must be enforced for cloud data, and authorization checks must never rely only on client-side UI hiding.
-
-### 3.8 Hosting and Deployment
-
-The game targets Vercel as the primary hosting platform. Blog and documentation content target GitHub Pages with Jekyll. Implementation choices must not undermine those hosting decisions without explicit user approval.
+No feature, dependency, architecture choice, route, data model, UX behavior, monetization behavior, or deployment change may be added simply because it seems useful. If it is not supported by the authoritative sources, it is out of scope unless explicitly approved by the user.
 
 ---
 
-## 4. Product Requirements to Preserve
+## 3. Non-Negotiable Product Scope
 
-Every implementation phase must preserve these required capabilities:
+### 3.1 Name and Modes
 
-- `og` mode: classic single-puzzle Wordle-style play.
-- `go` mode: chained 5-puzzle Hurdle-style play with carry-over pre-fills.
-- Daily and practice variants for both modes within the approved length rules.
-- Hard Mode in both modes and both daily/practice contexts.
-- Guest play with local progress, coins, levels, stats, and history.
-- Optional Supabase account creation with email verification and cloud sync.
-- Guest-to-account data transfer prompt.
-- Experience, levels, coins, consumables, and Pay-to-Continue as specified.
-- Per-mode statistics from day one, with a foundation for future per-length stats.
-- Emoji sharing in classic Wordle format.
+- The product name is always `brrrdle`.
+- `og` mode is classic single-puzzle Wordle-style play.
+- `go` mode is chained 5-puzzle Hurdle-style play with carry-over pre-fills.
+- Daily `og` and daily `go` are fixed at 5 letters for initial launch.
+- Practice `og` and practice `go` support lengths 2 through 35.
+- In practice `go`, all five puzzles in one session use the same selected length.
+
+### 3.2 Required v1 Capabilities
+
+Implementation must preserve:
+
+- Exact Wordle-style tile coloring, including duplicate-letter accounting.
+- Hard Mode in daily/practice `og` and daily/practice `go`.
+- Guest play with local progress, coins, levels, stats, settings, and history.
+- Optional Supabase accounts with email verification and cloud sync.
+- Guest-to-account transfer prompt.
+- XP, levels, coins, consumables, and Pay-to-Continue.
+- Per-mode statistics for `og` and `go` from day one.
+- A foundation for future per-length stats without enabling variable daily lengths in v1.
+- Definitions shown after game end.
+- Classic Wordle-style emoji sharing.
 - PWA behavior where reasonable.
 - Mobile-first, accessible, polished UI.
 
----
+### 3.3 Out of Scope for v1
 
-## 5. Architecture and Quality Standards
+Do not implement without explicit approval:
 
-### 5.1 Technical Stack
-
-Use the approved stack unless the user explicitly changes it:
-
-- React 19
-- TypeScript in strict mode
-- Vite
-- Tailwind CSS
-- Zustand
-- Supabase
-- Vercel deployment
-- GitHub Pages + Jekyll for blog/docs
-
-### 5.2 Separation of Concerns
-
-Keep these concerns cleanly separated:
-
-- Game engine and validation logic.
-- Word list loading and update checks.
-- Definition lookup and fallback handling.
-- Local guest persistence.
-- Supabase account sync.
-- Admin authorization and refresh actions.
-- UI components, animations, and accessibility behavior.
-
-Core logic should be testable without rendering the full UI.
-
-### 5.3 Accessibility and UX
-
-The app must meet WCAG AA minimums. It must support keyboard input, on-screen keyboard input, touch-friendly mobile use, readable focus states, semantic controls, and understandable loading/error/empty states. Animations must be smooth and should not block interaction.
-
-### 5.4 Performance
-
-Prioritize fast initial load, responsive interactions, and smooth 60 fps animations. Avoid wasteful client-side processing of large word lists when build-time or indexed access is available. Practice support for lengths 2 through 35 must not make the default daily experience slow.
-
-### 5.5 Security
-
-- Never commit secrets.
-- Never expose Supabase service-role privileges to the browser.
-- Enforce RLS for user data.
-- Validate authorization server-side for admin actions.
-- Treat imported word and definition data as untrusted input for rendering.
-- Use safe external-link behavior for new tabs.
+- Variable daily word lengths.
+- Multiplayer.
+- Leaderboards or social graph features.
+- Themes or sound effects.
+- Advanced AI hints.
+- Additional game modes.
+- Additional monetization mechanics beyond the approved coin/consumable/Pay-to-Continue economy.
 
 ---
 
-## 6. Implementation Conduct
+## 4. Mandatory Review Gates
 
-Before changing code, the agent must understand the relevant files and existing tooling. Changes should be small, cohesive, and directly tied to the approved phase.
+The agent must halt and wait for explicit user approval:
+
+- After this final constitution upgrade.
+- Before beginning Phase 0 scaffolding.
+- After Phase 0 and after every later phase in `AGENT-IMPLEMENTATION-PLAN.md`.
+- Whenever a phase's pause point says to halt.
+- Whenever requirements conflict.
+- Whenever verification cannot be completed.
+- Whenever a critical issue cannot be fixed with a small, clearly scoped change.
+- Before any production release action.
+
+Acceptable approval must be explicit, such as “APPROVE”, “Start Phase 0”, “Continue”, or “Proceed”. Silence, ambiguous feedback, or unrelated comments are not approval.
+
+At each review gate, provide:
+
+1. What changed.
+2. What verification was run.
+3. Any known limitations, risks, or skipped checks.
+4. The exact approval needed to continue.
+
+Then stop. Do not continue into the next phase, scaffold, or implement additional code until approved.
+
+---
+
+## 5. Phase Execution Rules
+
+The approved implementation plan defines Phases 0 through 11. Work must proceed in order unless the user explicitly approves a change.
+
+### 5.1 Phase Discipline
+
+For each phase:
+
+- Re-read the relevant section of `AGENT-IMPLEMENTATION-PLAN.md` before editing.
+- Make only changes directly tied to the current phase.
+- Prefer small, cohesive, reviewable changes.
+- Do not perform future-phase work early unless required to keep the current phase functional and approved by the user.
+- Do not add placeholder complexity that causes lint, build, or test failures.
+- Update `CHANGELOG.md` when the phase requires it.
+- Commit and push only through the approved progress-reporting workflow.
+
+### 5.2 Phase Order
+
+1. Phase 0 — Governance, scaffolding, baseline tooling, Vercel foundation, docs foundation.
+2. Phase 1 — Core game engine and shared domain model.
+3. Phase 2 — Data layer and hybrid word-list consumption.
+4. Phase 3 — Application shell, routing, and UI foundation.
+5. Phase 4 — `og` mode gameplay.
+6. Phase 5 — `go` mode gameplay.
+7. Phase 6 — Definitions system.
+8. Phase 7 — Persistence, progression, economy, and statistics.
+9. Phase 8 — Supabase accounts, sync, and protected admin route.
+10. Phase 9 — Sharing, PWA, polish, accessibility, and performance.
+11. Phase 10 — GitHub Pages + Jekyll blog/docs.
+12. Phase 11 — Final integration, release readiness, and deployment verification.
+
+### 5.3 Phase Exit Checklist
+
+Every phase must end with:
+
+- Relevant files created or updated.
+- Changelog update where required.
+- Existing lint, typecheck, test, and build commands run where project tooling exists.
+- Phase-specific automated tests and manual checks completed.
+- Security review appropriate to the change.
+- Known limitations documented.
+- Commit/push completed through the approved workflow.
+- A halt for explicit user approval.
+
+---
+
+## 6. Verification-First Standard
+
+Never claim a phase or feature is complete without verification appropriate to that phase.
+
+### 6.1 Required Verification Themes
+
+Verification must cover, when relevant:
+
+- Exact tile coloring with duplicate-letter edge cases.
+- Hard Mode green/yellow/gray constraints.
+- Daily modes locked to 5 letters.
+- Practice support for lengths 2 and 35, plus a representative 5-letter case.
+- `go` five-puzzle flow and carry-over pre-fills.
+- Definitions priority and fallback behavior.
+- Google search button label and URL generation.
+- Word-list loading, update failure, and stale/fallback behavior.
+- Guest persistence and corrupted local data recovery.
+- Supabase account sync and guest transfer paths.
+- Unauthorized, non-admin, and admin paths for protected refresh.
+- Pay-to-Continue with enough and insufficient coins.
+- Per-mode statistics separation.
+- Keyboard and on-screen input.
+- Mobile viewport behavior.
+- Accessibility, focus order, semantics, and contrast.
+- Absence of critical console errors.
+- Production build health.
+- No committed secrets.
+
+### 6.2 If Verification Cannot Run
+
+If a check cannot be run because tooling, credentials, browser access, Supabase access, deployment access, or external services are unavailable:
+
+- Document exactly what could not be run.
+- Explain why.
+- State what was verified instead.
+- Halt at the review gate if the missing check is phase-critical.
+
+---
+
+## 7. Core Engine and Game Logic Rules
+
+### 7.1 Canonical Tile State Logic
+
+`getTileStates` or its approved equivalent must be the single source of truth for tile coloring. It must match original Wordle behavior exactly, including duplicate-letter accounting.
+
+Do not duplicate tile-state rules in UI, keyboard state, share output, stats, validation messages, or animations. Those systems must consume canonical results.
+
+### 7.2 Hard Mode
+
+Hard Mode must enforce:
+
+- Green letters remain in the same positions in later guesses.
+- Yellow letters appear somewhere in later guesses.
+- Gray letters cannot be reused, subject to the canonical duplicate-letter interpretation.
+
+Hard Mode must work in `og`, `go`, daily, and practice contexts.
+
+### 7.3 Session State
+
+Game state transitions must be testable without rendering the UI. Core state must handle:
+
+- Letter entry.
+- Delete.
+- Submit.
+- Invalid guess.
+- Win.
+- Loss.
+- Continue after Pay-to-Continue.
+- Reset/new practice puzzle.
+- Daily completion persistence.
+- `go` puzzle advancement.
+
+---
+
+## 8. Data Layer Rules
+
+### 8.1 Word Source
+
+Primary word data must use pre-processed English OpenList JSON files named `words_length_{N}.json` for N = 2 through 35.
+
+The data layer must define and validate the expected JSON shape, including optional definition data when present.
+
+### 8.2 Hybrid Consumption
+
+The implementation must follow the approved hybrid strategy:
+
+- Bundle selected JSON assets at production build time.
+- Use length-indexed loading APIs for answer candidates, valid guesses, and definition metadata.
+- Keep daily mode loading optimized for length 5.
+- Support practice mode lengths 2 through 35 without making default daily play slow.
+- Check for word-list updates on production deploys where supported.
+- Support a protected manual refresh override.
+- Degrade gracefully when remote metadata, update checks, or refresh attempts fail.
+
+### 8.3 Data Safety
+
+Treat imported word and definition data as untrusted for rendering. Do not render unescaped HTML from imported or external definition sources.
+
+No client-side code may contain secrets, private tokens, service-role keys, or privileged credentials.
+
+---
+
+## 9. Definitions System Rules
+
+Definitions must be shown after a game ends, win or loss.
+
+### 9.1 Mandatory Lookup Order
+
+The lookup order is:
+
+1. Pre-processed English OpenList definition data bundled with word data.
+2. Dictionary API (`https://api.dictionaryapi.dev/`).
+3. Wiktionary fallback.
+4. Google search button, always available.
+
+### 9.2 Failure Behavior
+
+If no definition source returns a usable result:
+
+- Show a clear, non-intrusive fallback message.
+- Recommend using the Google search button.
+- Do not block post-game completion, stats, sharing, or navigation.
+- Do not crash on network errors, empty responses, malformed responses, or timeouts.
+
+### 9.3 Google Button Requirements
+
+The Google search button must:
+
+- Always be available in the definition panel.
+- Use dynamic text like `Search Google for ‘apple’`.
+- Search for `define [WORD]`.
+- Open in a new tab.
+- Use safe external-link behavior.
+- Have tests for label and URL generation.
+
+---
+
+## 10. Supabase, Accounts, Sync, and Admin Rules
+
+### 10.1 Supabase Account System
+
+Supabase is required for optional account creation and cloud sync. Guest mode must remain fully playable without an account.
+
+Use only public browser-safe Supabase configuration in client code. Never expose service-role privileges to the browser.
+
+### 10.2 Guest Data and Sync
+
+The system must support:
+
+- Local guest progress.
+- Guest-to-account transfer prompt after signup or login.
+- Sync of progress, coins, levels, stats, settings, and history.
+- Export data.
+- Reset progress.
+- Delete account flow.
+- Change email/password paths as supported by Supabase.
+- Graceful offline, conflict, and partial-failure handling.
+
+### 10.3 RLS and Data Ownership
+
+Supabase tables must use RLS so users can access only their own cloud data unless an explicitly approved admin policy applies.
+
+Migration or setup documentation must make manual admin role assignment clear for v1.
+
+### 10.4 Protected Admin Refresh Route
+
+Manual word-list refresh override must be protected by:
+
+- Supabase-authenticated user identity.
+- An `admin` role.
+- Server-side or protected Vercel function/API route authorization.
+
+It is not sufficient to hide admin UI on the client. Verification must cover unauthenticated, authenticated non-admin, and authenticated admin behavior.
+
+---
+
+## 11. Progression, Economy, Stats, and Sharing Rules
+
+### 11.1 Progression and Economy
+
+XP, levels, coins, consumables, and Pay-to-Continue must be deterministic and testable.
+
+Consumables for v1 are:
+
+- Reveal One Letter.
+- Remove Incorrect Letters.
+
+Pay-to-Continue must be available in daily and practice modes for both `og` and `go`. Its cost must scale based on word length and completion percentage, including lower costs for shorter lengths as specified.
+
+### 11.2 Statistics
+
+Statistics must be separated by mode (`og` vs `go`) from day one. The data model may prepare for future per-length stats, but it must not expose variable daily lengths in v1.
+
+### 11.3 Sharing
+
+Emoji sharing must use canonical tile states and classic Wordle-style output. Sharing must not recompute coloring rules independently.
+
+---
+
+## 12. UI, Accessibility, PWA, and Performance Rules
+
+### 12.1 UI and Interaction
+
+The UI must be mobile-first, dark-first, touch-friendly, keyboard-accessible, and polished with icy `brrr` accents.
+
+It must support:
+
+- Physical keyboard input.
+- On-screen keyboard input.
+- Clear loading, empty, error, and invalid-guess states.
+- Responsive layouts for mobile and desktop.
+- Post-game definition and share flows.
+
+### 12.2 Accessibility
+
+Target WCAG AA minimums. Preserve:
+
+- Semantic controls.
+- Visible focus states.
+- Keyboard-only navigation.
+- Dialog accessibility.
+- Status announcements where needed.
+- Readable contrast.
+- Reduced-motion support.
+
+### 12.3 Animations
+
+Tile pop-in, flip reveal, and row shake may be implemented, but animations must not block input, harm accessibility, or cause critical console errors.
+
+### 12.4 PWA and Performance
+
+PWA behavior should be implemented where reasonable. The app must prioritize fast initial load, responsive interactions, and smooth gameplay. Word-list handling must not make daily mode slow.
+
+---
+
+## 13. Hosting and Documentation Rules
+
+### 13.1 Vercel
+
+The game targets Vercel as the primary hosting platform. Configuration must support the production build and any required protected API/function routes.
+
+Environment documentation must use placeholders only and must never include real secrets.
+
+### 13.2 GitHub Pages + Jekyll
+
+Blog and documentation content target GitHub Pages with Jekyll, preferably under `docs/` unless the user approves another structure.
+
+Jekyll docs must not interfere with the Vite app or Vercel build.
+
+### 13.3 Documentation
+
+Documentation must stay aligned with the implemented system, especially:
+
+- Setup.
+- Available scripts.
+- Environment variables.
+- Supabase configuration.
+- Admin role assignment.
+- Deployment.
+- Verification procedures.
+- Known limitations.
+
+---
+
+## 14. Security Rules
 
 The agent must:
 
-- Prefer established project tooling over manual workarounds.
+- Never commit secrets.
+- Never expose Supabase service-role privileges to browser code.
+- Use RLS for user data.
+- Validate admin authorization server-side or in protected serverless routes.
+- Treat imported word and definition data as untrusted.
+- Use safe external-link behavior for new tabs.
+- Avoid dependencies unless justified by approved scope.
+- Check dependency advisories before adding supported-ecosystem dependencies.
+- Run available security review tools before finalizing code changes.
+
+If a security issue is found in changed lines, fix it before proceeding unless the user explicitly decides otherwise.
+
+---
+
+## 15. Minimal-Change Implementation Conduct
+
+Before changing files, understand the relevant code and tooling. After scaffolding, run existing checks before and after meaningful changes when practical.
+
+The agent must:
+
+- Use standard ecosystem tools for scaffolding and dependency management.
 - Avoid unrelated refactors.
-- Avoid adding dependencies unless justified by the approved scope.
-- Update documentation and changelog entries when a phase requires it.
-- Keep commits aligned to reviewable units of work.
-- Preserve user data migration and backward compatibility where relevant.
+- Avoid speculative architecture.
+- Avoid implementing future features early.
+- Keep core logic testable outside React rendering.
+- Prefer clear boundaries between game engine, data, definitions, persistence, Supabase, admin, UI, and deployment concerns.
+- Preserve existing user data and migration paths once persistence exists.
 - Stop instead of guessing when requirements are ambiguous.
 
 The agent must not:
 
-- Invent new game modes or monetization mechanics.
-- Skip edge cases for very short or very long practice words.
-- Duplicate game rules in multiple places.
+- Remove or weaken tests to make a phase pass.
 - Hide broken functionality behind UI conditions.
-- Treat local success as production readiness without deployment-aware verification.
+- Duplicate canonical game logic.
+- Treat local success as production readiness when deployment-aware checks are required.
+- Use real external credentials in committed files.
 
 ---
 
-## 7. Required Edge Cases
+## 16. Required Edge Cases
 
 Implementation and tests must explicitly consider:
 
 - Duplicate letters in guesses and answers.
 - Word lengths 2 and 35.
-- Hard Mode constraints after mixed green/yellow/gray feedback.
-- `go` mode carry-over pre-fills between puzzles.
-- Losing with and without enough coins for Pay-to-Continue.
+- Daily modes fixed to length 5.
+- Practice mode rejecting unsupported lengths.
+- Hard Mode after mixed green/yellow/gray feedback.
+- `go` carry-over pre-fills between all five puzzles.
+- Losing with enough coins for Pay-to-Continue.
+- Losing without enough coins for Pay-to-Continue.
+- Consumable effects and invalid consumable use.
 - Guest data transfer into a Supabase account.
-- Offline or failed word list update checks.
+- Corrupted or missing local storage.
+- Offline or failed word-list update checks.
 - Missing definitions from every source except Google search.
-- Unauthorized, non-admin, and admin access to the manual refresh route.
+- Unauthorized, non-admin, and admin access to manual refresh.
+- External definition API failures and malformed responses.
 - Mobile viewport constraints and virtual keyboard behavior.
+- Clipboard/share fallback behavior.
+- Reduced-motion users.
 
 ---
 
-## 8. Review Gate Protocol
+## 17. Constitution Evolution
 
-At each review gate, the agent must provide a concise status update with:
+This is the second and final planned constitution upgrade. Future revisions require explicit user approval and must preserve:
 
-1. What changed.
-2. What verification was run.
-3. Any known limitations or risks.
-4. The exact approval needed to continue.
-
-The agent must then halt. It may not proceed to the next phase, scaffold additional systems, or write implementation code until the user explicitly approves.
-
----
-
-## 9. Constitution Evolution
-
-This constitution may be revised only with explicit user approval. Future revisions must preserve the core principles of scope fidelity, mandatory verification, data-layer discipline, security, accessibility, and review gates.
-
-After the agent creates and receives approval for `AGENT-IMPLEMENTATION-PLAN.md`, a second constitution upgrade may be performed if the approved plan reveals additional project-specific governance needs.
+- Scope fidelity.
+- Mandatory review gates.
+- Verification-first execution.
+- Hybrid data-layer discipline.
+- Definitions fallback requirements.
+- Supabase and admin security requirements.
+- Accessibility and performance standards.
+- Minimal-change conduct.
 
 ---
 
-**This constitution is binding for all work on the `brrrdle` project until revised with explicit user approval.**
+**This Constitution is binding for all future `brrrdle` development until explicitly revised with user approval.**
