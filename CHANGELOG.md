@@ -5,6 +5,10 @@ All notable changes to `brrrdle` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Added Phase 2 bundled word-list data layer with schema validation and seed data.
+- Added length-indexed repository APIs for answers, valid guesses, and bundled definitions.
+- Added remote metadata update checks plus data status and cache/fallback helpers.
+- Added Phase 2 data-layer unit tests.
 - Added Phase 1 UI-independent core game engine domain types and constants.
 - Added canonical Wordle-style tile coloring with duplicate-letter accounting.
 - Added guess validation, hard-mode constraints, and puzzle session state transitions.
