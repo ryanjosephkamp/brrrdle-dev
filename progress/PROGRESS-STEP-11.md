@@ -50,6 +50,7 @@
   - Release readiness static validation for scripts, `vercel.json`, docs frontmatter, Pay-to-Continue docs, and `/api/admin-refresh` docs.
   - Static secret/config review; matches are public placeholder Supabase env names/values or explicit warnings, not committed secrets.
   - Progress CSV validation.
+  - CodeQL/security review after Phase 11 changes: 0 alerts.
 - **Checks not run**:
   - Lighthouse score target.
   - Live Vercel deployment.
