@@ -83,13 +83,59 @@ The v1 data strategy is hybrid:
 - Bundled word-list seed data ships with the Vite production build.
 - Runtime update-check helpers can compare bundled metadata with newer production metadata.
 - Protected manual refresh is exposed through `/api/admin-refresh` and must remain limited to authenticated Supabase users with the `admin` role.
+- A scheduled refresh job (`/api/cron/refresh-word-lists`) runs once daily to sync the served dictionaries with the authoritative upstream Hugging Face dataset.
 
-Production verification checklist:
+### Upstream source
 
-1. Confirm the deployed bundle contains the expected launch seed lengths.
-2. Confirm non-admin users cannot trigger `/api/admin-refresh`.
-3. Confirm authenticated admin users can call `/api/admin-refresh` with `POST` where Supabase auth is configured.
-4. Confirm failed update checks leave bundled data available so gameplay is not blocked.
+The authoritative upstream word-list source is the Hugging Face dataset:
+
+- Dataset: <https://huggingface.co/datasets/ryanjosephkamp/english-openlist>
+- Folder: `latest/brrrdle/`
+- Contents: exactly 34 length-indexed JSON dictionaries, one per word length from 2 through 35 inclusive.
+
+The upstream dataset is regenerated nightly at approximately 11 PM. The dataset is public, so no Hugging Face credentials are required or committed; anonymous read access is sufficient.
+
+The bundled snapshot revision and folder are recorded in `src/data/bundled/source.json` and surfaced as `BUNDLED_SOURCE` for verification.
+
+### Scheduled refresh (Vercel Cron)
+
+`vercel.json` configures Vercel Cron to invoke `POST /api/cron/refresh-word-lists` on the schedule `0 0 * * *` (every day at **00:00 UTC**). This is intentionally a default chosen for predictability: the upstream regeneration finishes around 11 PM in its publishing timezone and the brrrdle refresh runs shortly afterward.
+
+If the upstream "around 11 PM" cadence is anchored to a specific non-UTC timezone, the brrrdle schedule should be moved to match. Vercel Cron schedules are always evaluated in UTC, so a different local target (for example, midnight US/Pacific = 08:00 UTC) is expressed by changing the cron expression in `vercel.json`. After changing the schedule, re-deploy so Vercel picks up the new cron configuration.
+
+The cron route:
+
+1. Verifies the `Authorization: Bearer <CRON_SECRET>` header attached by Vercel Cron to scheduled requests. Missing or mismatched secrets return `401 Unauthorized`, so the route is not invokable by anonymous clients.
+2. Fetches the current dataset revision from `https://huggingface.co/api/datasets/ryanjosephkamp/english-openlist`.
+3. Runs the shared atomic `refreshWordListsFromHuggingFace` pipeline against `latest/brrrdle/`, fetching all 34 length-indexed JSON dictionaries and validating each against the brrrdle schema.
+4. Returns the validated dictionaries plus per-length counts on success (`200`), or per-length failure detail on partial failure (`502`). The previous served set remains in place on any failure so gameplay is never blocked by a bad upstream revision.
+
+### Persisting the refreshed dictionaries
+
+The refresh route deliberately stops at "validated dictionaries returned to the caller." Persisting the refreshed dictionaries into the live serving layer is environment-specific and must be wired by the deployment owner. Recommended options:
+
+- **Vercel Blob or Vercel KV**: write each validated length file under a versioned key (for example, `word-lists/<revision>/words_length_<n>.json`) and atomically update a pointer key (for example, `word-lists/current-revision`) only after all 34 lengths land. The runtime data layer reads through the pointer so the swap is atomic from the client's perspective.
+- **Supabase Storage**: write to a private bucket under a per-revision prefix and atomically move the `current` pointer. Use a service-role key configured as a server-only environment variable; never expose it to the browser bundle.
+- **Re-deploy with refreshed seeds**: have the cron post the validated payload to a Git-backed pipeline that updates `src/data/bundled/` and triggers a new Vercel build. This option re-uses the existing bundled-asset path but adds deployment latency.
+
+Whichever option is selected, do not introduce service-role credentials into `VITE_*` variables or commit them to the repository.
+
+### Environment variables for refresh
+
+- `CRON_SECRET`: shared secret authorizing scheduled invocations of `/api/cron/refresh-word-lists`. Generate a long random value and configure it identically in the Vercel project environment so Vercel Cron and the function agree.
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`: server-side aliases used by `/api/admin-refresh` for Supabase user/role lookup. Already documented above.
+- No Hugging Face credentials are needed — the dataset is public.
+
+### Production verification checklist
+
+1. Confirm the deployed bundle contains the expected launch seed lengths and that `src/data/bundled/source.json` reflects the intended revision.
+2. Confirm `CRON_SECRET` is set in the Vercel project environment for the relevant deployment.
+3. Confirm a manual `POST /api/cron/refresh-word-lists` without the correct `Authorization: Bearer <CRON_SECRET>` header returns `401`.
+4. Confirm Vercel Cron is configured with the schedule in `vercel.json` (default: `0 0 * * *`).
+5. Confirm non-admin users cannot trigger `/api/admin-refresh`.
+6. Confirm authenticated admin users can call `/api/admin-refresh` with `POST` where Supabase auth is configured.
+7. Confirm a partial failure (any single length malformed or unreachable) does not corrupt the live serving layer.
+8. Confirm failed update checks leave bundled data available so gameplay is not blocked.
 
 ## PWA manifest and service worker
 

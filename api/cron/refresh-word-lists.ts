@@ -5,10 +5,9 @@ import {
   fetchHuggingFaceRemoteMetadata,
   refreshWordListsFromHuggingFace,
   type RefreshSourceInfo,
-} from '../src/data'
+} from '../../src/data'
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+const CRON_SECRET = process.env.CRON_SECRET
 
 interface JsonResponseInit {
   readonly status: number
@@ -29,31 +28,28 @@ async function fetchJson(url: string, init?: { readonly signal?: AbortSignal }):
   return response.json()
 }
 
+/**
+ * Scheduled Hugging Face word-list refresh.
+ *
+ * Triggered daily by the Vercel Cron schedule declared in `vercel.json`.
+ * Vercel attaches `Authorization: Bearer <CRON_SECRET>` to scheduled
+ * requests, which this handler verifies before doing any work, so the route
+ * is not invokable by anonymous clients.
+ *
+ * The handler fetches the current upstream revision of the
+ * `ryanjosephkamp/english-openlist` dataset, then runs the shared atomic
+ * `refreshWordListsFromHuggingFace` pipeline against `latest/brrrdle/`. If
+ * every length file validates, the validated payload is reported in the
+ * response so the deployment environment can atomically swap the served
+ * dictionaries via its persisted storage of choice (Vercel Blob/KV, Supabase
+ * Storage, etc.). If any single length fails, the previous served
+ * dictionaries remain in place and the failure detail is logged and
+ * returned.
+ */
 export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, { status: 405 })
-  }
-
   const authorization = request.headers.get('authorization')
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !authorization?.startsWith('Bearer ')) {
+  if (!CRON_SECRET || authorization !== `Bearer ${CRON_SECRET}`) {
     return jsonResponse({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      authorization,
-    },
-  })
-
-  if (!userResponse.ok) {
-    return jsonResponse({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const user = await userResponse.json() as { readonly app_metadata?: { readonly role?: string; readonly roles?: readonly string[] } }
-  const roles = Array.isArray(user.app_metadata?.roles) ? user.app_metadata.roles : user.app_metadata?.role ? [user.app_metadata.role] : []
-  if (!roles.includes('admin')) {
-    return jsonResponse({ error: 'Forbidden' }, { status: 403 })
   }
 
   let remote
@@ -61,7 +57,7 @@ export default async function handler(request: Request): Promise<Response> {
     remote = await fetchHuggingFaceRemoteMetadata(fetchJson, { apiBase: HUGGING_FACE_API_BASE })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error fetching dataset info.'
-    console.error('admin-refresh: dataset info fetch failed', { message })
+    console.error('cron/refresh-word-lists: dataset info fetch failed', { message })
     return jsonResponse(
       { ok: false, stage: 'dataset-info', message },
       { status: 502 },
@@ -86,7 +82,7 @@ export default async function handler(request: Request): Promise<Response> {
       reason: failure.reason,
       message: failure.message,
     }))
-    console.error('admin-refresh: refresh aborted', {
+    console.error('cron/refresh-word-lists: refresh aborted', {
       revision: result.source.revision,
       failures: failureSummary,
     })
@@ -109,7 +105,7 @@ export default async function handler(request: Request): Promise<Response> {
     answers: file.file.answers.length,
     validGuesses: file.file.validGuesses.length,
   }))
-  console.log('admin-refresh: refresh succeeded', {
+  console.log('cron/refresh-word-lists: refresh succeeded', {
     revision: result.source.revision,
     fetchedAt: result.fetchedAt,
     lengthCount: result.files.length,
@@ -122,8 +118,8 @@ export default async function handler(request: Request): Promise<Response> {
       generatedAt: result.source.generatedAt,
       fetchedAt: result.fetchedAt,
       lengths: successSummary,
-      note: 'Validated dictionaries returned to the admin caller. The deployment environment is responsible for persisting them to the production storage layer via an atomic swap.',
+      note: 'Validated dictionaries returned to the cron caller. The deployment environment is responsible for persisting them to the production storage layer via an atomic swap.',
     },
-    { status: 202 },
+    { status: 200 },
   )
 }
