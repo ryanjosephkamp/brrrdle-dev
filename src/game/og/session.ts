@@ -1,0 +1,100 @@
+import { BUNDLED_WORD_LIST_LENGTHS, getWordRepository } from '../../data'
+import type { WordEntry } from '../../data'
+import { getDailyOgPuzzle } from '../../data/daily'
+import { DAILY_WORD_LENGTH } from '../constants'
+import { createPuzzleSession, type PuzzleSessionState } from '../session'
+import { getGuessResult } from '../tileStates'
+
+export interface OgPuzzleSetup {
+  readonly answer: string
+  readonly dateKey?: string
+  readonly validGuesses: ReadonlySet<string>
+  readonly wordLength: number
+}
+
+export interface SerializedOgSession {
+  readonly answer: string
+  readonly continuationCount: number
+  readonly currentGuess: string
+  readonly guesses: readonly string[]
+  readonly hardMode: boolean
+  readonly maxAttempts: number
+}
+
+function selectPracticeAnswer(answers: readonly WordEntry[], seed: number): string {
+  if (answers.length < 1) {
+    throw new Error('At least one answer candidate is required for practice.')
+  }
+
+  return answers[Math.abs(Math.trunc(seed)) % answers.length].word
+}
+
+export function getAvailableOgPracticeLengths(): readonly number[] {
+  return BUNDLED_WORD_LIST_LENGTHS.filter((length) => length >= 2 && length <= 35)
+}
+
+export function createDailyOgSetup(date = new Date()): OgPuzzleSetup {
+  const puzzle = getDailyOgPuzzle(date)
+  const repository = getWordRepository({ mode: 'og', scope: 'daily', length: DAILY_WORD_LENGTH })
+  if (!repository.ok) {
+    throw new Error(repository.message)
+  }
+
+  return {
+    answer: puzzle.answer,
+    dateKey: puzzle.dateKey,
+    validGuesses: repository.validGuesses,
+    wordLength: DAILY_WORD_LENGTH,
+  }
+}
+
+export function createPracticeOgSetup(length: number, seed = Date.now()): OgPuzzleSetup {
+  const repository = getWordRepository({ mode: 'og', scope: 'practice', length })
+  if (!repository.ok) {
+    throw new Error(repository.message)
+  }
+
+  return {
+    answer: selectPracticeAnswer(repository.answers, seed),
+    validGuesses: repository.validGuesses,
+    wordLength: repository.wordList.metadata.length,
+  }
+}
+
+export function createOgSession(setup: OgPuzzleSetup, hardMode = false): PuzzleSessionState {
+  return createPuzzleSession({
+    answer: setup.answer,
+    hardMode,
+    validGuesses: setup.validGuesses,
+  })
+}
+
+export function serializeOgSession(state: PuzzleSessionState): SerializedOgSession {
+  return {
+    answer: state.answer,
+    continuationCount: state.continuationCount,
+    currentGuess: state.currentGuess,
+    guesses: state.guesses.map((guess) => guess.guess),
+    hardMode: state.hardMode,
+    maxAttempts: state.maxAttempts,
+  }
+}
+
+export function restoreOgSession(serialized: SerializedOgSession, validGuesses: ReadonlySet<string>): PuzzleSessionState {
+  const guesses = serialized.guesses.map((guess) => getGuessResult(guess, serialized.answer))
+  const solved = guesses.some((guess) => guess.tiles.every((tile) => tile.state === 'correct'))
+  const status = solved ? 'won' : guesses.length >= serialized.maxAttempts ? 'lost' : 'playing'
+
+  return {
+    answer: serialized.answer,
+    continuationCount: serialized.continuationCount,
+    currentGuess: serialized.currentGuess,
+    guesses,
+    hardMode: serialized.hardMode,
+    lastValidation: undefined,
+    maxAttempts: serialized.maxAttempts,
+    status,
+    validGuesses,
+    wordLength: serialized.answer.length,
+  }
+}
