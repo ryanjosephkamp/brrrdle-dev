@@ -1,0 +1,12 @@
+title: brrrdle docs
+description: Documentation for the brrrdle Wordle + Hurdle hybrid game.
+markdown: kramdown
+theme: minima
+header_pages:
+  - index.md
+  - deployment.md
+  - supabase.md
+exclude:
+  - node_modules
+  - package.json
+  - package-lock.json

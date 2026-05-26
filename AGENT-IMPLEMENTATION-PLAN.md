@@ -1,0 +1,917 @@
+# AGENT-IMPLEMENTATION-PLAN.md
+
+**Project**: brrrdle  
+**Plan Version**: 1.1
+**Date**: 2026-05-25  
+**Status**: Draft for user review — amended with progress logging and tracking requirements
+**Authority**: Must follow `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, and the approved v2.6 plan in `BRRRDLE-OVERVIEW.md`.
+
+---
+
+## 1. Operating Rules
+
+This plan is the working implementation guide for building `brrrdle`. It is not approved until the user explicitly approves it. No implementation work may begin before that approval.
+
+### 1.1 Binding Principles
+
+- Build only the approved v1 scope.
+- Keep daily `og` and `go` modes fixed at 5 letters for initial launch.
+- Support practice mode lengths 2 through 35.
+- Use the hybrid word-list strategy: bundled pre-processed JSON at build time plus production update checks and protected manual admin refresh.
+- Prefer pre-processed definitions, then Dictionary API, then Wiktionary, then an always-available dynamic Google search button.
+- Protect admin functionality with Supabase authentication and an `admin` role.
+- Target Vercel for the game and GitHub Pages + Jekyll for blog/docs.
+- Make small, reviewable changes and verify after every meaningful step.
+- End every phase with a commit, changelog update, verification summary, and explicit pause for user approval.
+- Maintain progress tracking through `PROGRESS.csv` and per-phase markdown reports before and after every major phase gate.
+
+### 1.2 Repository Starting Point
+
+The repository is currently minimal and contains only governance/specification documents. Phase 0 will scaffold the application and establish tooling before feature implementation.
+
+### 1.3 Standard Phase Exit Checklist
+
+Every phase must finish with:
+
+1. Relevant files created or updated.
+2. Changelog updated.
+3. Existing lint/build/test commands run where available.
+4. Phase-specific verification completed.
+5. `PROGRESS.csv` read before work begins for the phase, then updated with the phase result.
+6. A `progress/PROGRESS-STEP-N.md` report created or updated from `progress/PROGRESS-TEMPLATE.md`, where `N` is the completed phase number.
+7. Known limitations documented.
+8. Changes committed and pushed through the approved workflow.
+9. Explicit halt for user approval before continuing.
+
+### 1.4 Progress Logging and Tracking Protocol
+
+Progress tracking is mandatory for transparency, resumability, and agent coordination.
+
+- The repository root starts with `PROGRESS.csv` and `PROGRESS-TEMPLATE.md`.
+- Phase 0 scaffolding must create a root-level `progress/` folder and move both files into that folder.
+- `PROGRESS.csv` must contain one row for every major implementation phase in this plan.
+- Before beginning each phase, the agent must read `progress/PROGRESS.csv` and, if needed, any existing `progress/PROGRESS-STEP-N.md` files to determine the next incomplete phase and any blockers.
+- After each phase, before halting at the prompt gate, the agent must update the relevant CSV row with status, verification, blockers, completion notes, and the next required action.
+- After each phase, the agent must create or update `progress/PROGRESS-STEP-N.md` from the template. The report must concisely summarize what changed, record verification, note blockers or critical errors, and explicitly state whether the user is safe/authorized to proceed to the next phase.
+- If a critical error or blocker arises during a phase, the relevant progress markdown file must be updated or annotated before halting.
+
+---
+
+## 2. Phase 0 — Governance, Scaffolding, and Baseline Tooling
+
+**Goal**: Establish the project foundation without implementing game-specific behavior beyond minimal scaffold placeholders.
+
+### Step 0.1 — Confirm Governance Baseline
+
+**Build / modify**:
+- Confirm `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, `BRRRDLE-OVERVIEW.md`, and this plan are present and aligned.
+- Confirm `PROGRESS.csv` and `PROGRESS-TEMPLATE.md` are present at the repository root before scaffolding moves them into `progress/`.
+- Create or initialize `CHANGELOG.md` if it does not exist.
+
+**Key files**:
+- `CONSTITUTION.md`
+- `BRRRDLE-SPEC.md`
+- `BRRRDLE-OVERVIEW.md`
+- `AGENT-IMPLEMENTATION-PLAN.md`
+- `PROGRESS.csv`
+- `PROGRESS-TEMPLATE.md`
+- `CHANGELOG.md`
+
+**Verification**:
+- Re-read the governance documents before changes.
+- Confirm the progress tracking skeleton and template exist.
+- Confirm no implementation code has been added before plan approval.
+
+### Step 0.2 — Scaffold React/Vite Application
+
+**Build / modify**:
+- Use the ecosystem scaffold tool to create a React 19 + TypeScript + Vite app in the repository root.
+- Add Tailwind CSS using supported setup commands.
+- Add Zustand only when application state is introduced.
+- Preserve existing governance docs.
+
+**Key files**:
+- `package.json`
+- `package-lock.json` or selected lockfile
+- `index.html`
+- `vite.config.ts`
+- `tsconfig*.json`
+- `src/main.tsx`
+- `src/App.tsx`
+- `src/index.css`
+- Tailwind configuration files if required by the installed version
+
+**Verification**:
+- Install dependencies with the selected package manager.
+- Run the generated build command.
+- Run generated lint/test commands if present.
+- Start the dev server locally only as needed for browser verification.
+- Confirm governance docs remain intact.
+
+### Step 0.3 — Establish Project Structure
+
+**Build / modify**:
+- Create a minimal directory structure for future phases without implementing features prematurely.
+- Add placeholder architecture only where needed to keep imports clean.
+- Create `progress/` at the repository root and move `PROGRESS.csv` and `PROGRESS-TEMPLATE.md` into it.
+
+**Key files / directories**:
+- `src/app/`
+- `src/game/`
+- `src/data/`
+- `src/definitions/`
+- `src/account/`
+- `src/admin/`
+- `src/stats/`
+- `src/progression/`
+- `src/ui/`
+- `src/lib/`
+- `src/types/`
+- `src/test/` or project-appropriate test location
+- `progress/PROGRESS.csv`
+- `progress/PROGRESS-TEMPLATE.md`
+
+**Verification**:
+- Build succeeds with the scaffolded structure.
+- No unused placeholder complexity that causes lint failures.
+- Confirm progress tracking files were moved, not duplicated or lost.
+
+### Step 0.4 — Configure Deployment Foundations
+
+**Build / modify**:
+- Add Vercel-ready configuration only where needed.
+- Add environment variable documentation without secrets.
+- Add GitHub Pages + Jekyll blog/docs foundation.
+
+**Key files**:
+- `vercel.json` if needed
+- `.env.example`
+- `docs/`
+- `docs/_config.yml`
+- `docs/index.md`
+- `README.md`
+
+**Verification**:
+- Production build succeeds locally.
+- Environment documentation contains no secrets.
+- Jekyll docs files are static and do not interfere with Vite.
+
+**Pause point**: Commit Phase 0, update changelog, report verification, and halt for user approval before core implementation.
+
+---
+
+## 3. Phase 1 — Core Game Engine and Shared Domain Model
+
+**Goal**: Build the testable, UI-independent game rules that every mode will use.
+
+### Step 1.1 — Domain Types and Constants
+
+**Build / modify**:
+- Define mode types, puzzle types, tile states, guess results, word lengths, daily/practice scope rules, and game status.
+- Centralize constants for supported practice lengths 2–35 and daily length 5.
+
+**Key files**:
+- `src/game/types.ts`
+- `src/game/constants.ts`
+- `src/types/`
+
+**Verification**:
+- TypeScript build/typecheck passes.
+- Unit tests cover supported length boundaries.
+
+### Step 1.2 — Exact Tile Coloring Logic
+
+**Build / modify**:
+- Implement the canonical `getTileStates` equivalent as the only source of truth for Wordle-style coloring.
+- Account for duplicate letters exactly like Wordle.
+
+**Key files**:
+- `src/game/tileStates.ts`
+- `src/game/tileStates.test.ts`
+
+**Verification**:
+- Unit tests for duplicate letters, all-green, all-gray, mixed states, repeated guess letters, repeated answer letters, and lengths 2 and 35.
+- Confirm no other code duplicates tile-state rules.
+
+### Step 1.3 — Guess Validation and Hard Mode Rules
+
+**Build / modify**:
+- Implement word validation hooks against loaded word lists.
+- Implement Hard Mode constraints: fixed green positions, required yellow letters, and no gray-letter reuse.
+
+**Key files**:
+- `src/game/validation.ts`
+- `src/game/hardMode.ts`
+- Tests for both files
+
+**Verification**:
+- Unit tests cover valid/invalid guesses, boundary lengths, and Hard Mode edge cases after mixed feedback.
+
+### Step 1.4 — Puzzle Session State Machine
+
+**Build / modify**:
+- Implement reusable state transitions for entering letters, deleting, submitting, win/loss, continuing, and resetting.
+- Keep UI concerns out of the engine.
+
+**Key files**:
+- `src/game/session.ts`
+- `src/game/session.test.ts`
+
+**Verification**:
+- Unit tests cover normal play, win, loss, invalid guesses, and continuation hooks.
+- Build and test commands pass.
+
+**Pause point**: Commit Phase 1, update changelog, report verification, and halt for user approval.
+
+---
+
+## 4. Phase 2 — Data Layer and Hybrid Word List Consumption
+
+**Goal**: Load length-indexed word data reliably using bundled pre-processed files, production update checks, and an admin-triggered refresh path.
+
+### Step 2.1 — Word Data Shape and Local Bundled Assets
+
+**Build / modify**:
+- Define the expected schema for `words_length_{N}.json` files.
+- Add a minimal development-safe seed data strategy if full assets are not yet available.
+- Ensure data supports optional definitions when present.
+
+**Key files**:
+- `src/data/types.ts`
+- `src/data/wordListSchema.ts`
+- `src/data/wordLists.ts`
+- `src/data/bundled/` or equivalent
+
+**Verification**:
+- Schema validation tests for representative lengths.
+- Confirm length 2, length 5, and length 35 loading paths.
+
+### Step 2.2 — Length-Indexed Loader
+
+**Build / modify**:
+- Implement APIs to retrieve valid guesses, answer candidates, and definition metadata by length.
+- Ensure daily modes request only length 5 while practice can request 2–35.
+
+**Key files**:
+- `src/data/loadWordList.ts`
+- `src/data/wordRepository.ts`
+- Tests for data access
+
+**Verification**:
+- Tests prove daily length is locked to 5.
+- Tests prove practice rejects lengths outside 2–35 and loads supported boundaries.
+
+### Step 2.3 — Production Update Check
+
+**Build / modify**:
+- Add production-deploy-aware update check design that can compare bundled metadata with remote metadata.
+- Degrade gracefully when remote checks fail.
+
+**Key files**:
+- `src/data/updateCheck.ts`
+- `src/data/metadata.ts`
+- Server/API route files appropriate to the selected Vite/Vercel setup
+
+**Verification**:
+- Tests or mocks for current, stale, failed-network, and malformed-metadata scenarios.
+- Confirm no secrets are used client-side.
+
+### Step 2.4 — Data Caching and Failure UX Hooks
+
+**Build / modify**:
+- Add data status states for loading, ready, stale, failed, and fallback.
+- Expose user-friendly error states to UI without blocking playable bundled data when available.
+
+**Key files**:
+- `src/data/status.ts`
+- `src/data/cache.ts`
+- UI integration hooks when UI exists
+
+**Verification**:
+- Tests cover failure and fallback behavior.
+- Build and test commands pass.
+
+**Pause point**: Commit Phase 2, update changelog, report verification, and halt for user approval.
+
+---
+
+## 5. Phase 3 — Application Shell, Routing, and UI Foundation
+
+**Goal**: Build the accessible, mobile-first shell that can host modes, settings, stats, admin, and definitions.
+
+### Step 3.1 — App Shell and Navigation
+
+**Build / modify**:
+- Create the main layout, navigation, route structure, and mode selection.
+- Keep routes minimal and aligned to approved scope.
+
+**Key files**:
+- `src/app/App.tsx`
+- `src/app/routes.tsx`
+- `src/ui/Layout.tsx`
+- `src/ui/Navigation.tsx`
+
+**Verification**:
+- Build passes.
+- Browser smoke test shows app loads without console errors.
+- Keyboard navigation reaches core controls.
+
+### Step 3.2 — Design System and Accessibility Foundation
+
+**Build / modify**:
+- Establish dark-first icy visual tokens, responsive layout primitives, buttons, dialogs, toasts, and loading/error states.
+- Ensure focus states and semantic controls.
+
+**Key files**:
+- `src/index.css`
+- `src/ui/`
+- Tailwind config if needed
+
+**Verification**:
+- Manual responsive check for mobile and desktop widths.
+- Basic accessibility checks for labels, focus, contrast, and reduced-motion behavior.
+
+### Step 3.3 — Keyboard Input Foundation
+
+**Build / modify**:
+- Add physical keyboard handling and on-screen keyboard components using canonical game state.
+- Ensure keyboard state derives from `getTileStates` results.
+
+**Key files**:
+- `src/ui/Keyboard.tsx`
+- `src/game/useKeyboardInput.ts`
+
+**Verification**:
+- Manual smoke test for physical and on-screen keyboard input.
+- Unit tests where practical for key normalization.
+
+**Pause point**: Commit Phase 3, update changelog, report verification, and halt for user approval.
+
+---
+
+## 6. Phase 4 — `og` Mode Gameplay
+
+**Goal**: Deliver classic single-puzzle gameplay for daily and practice variants.
+
+### Step 4.1 — `og` Daily Mode
+
+**Build / modify**:
+- Implement daily `og` puzzle selection fixed at 5 letters.
+- Add deterministic daily answer selection.
+- Persist daily completion state.
+
+**Key files**:
+- `src/game/og/`
+- `src/app/routes/og.tsx`
+- `src/data/daily.ts`
+- Persistence files under `src/account/` or `src/lib/storage/`
+
+**Verification**:
+- Tests confirm daily `og` always uses length 5.
+- Manual playthrough win and loss.
+- Refresh preserves appropriate daily state.
+
+### Step 4.2 — `og` Practice Mode
+
+**Build / modify**:
+- Implement selectable practice lengths 2–35.
+- Generate independent practice puzzles without affecting daily state.
+
+**Key files**:
+- `src/game/og/`
+- Practice route/components
+
+**Verification**:
+- Manual and automated checks for lengths 2, 5, and 35.
+- Invalid length selections are rejected or unavailable.
+
+### Step 4.3 — `og` Hard Mode
+
+**Build / modify**:
+- Integrate Hard Mode validation into daily and practice `og` gameplay.
+- Show clear feedback when a guess violates constraints.
+
+**Key files**:
+- `src/game/og/`
+- `src/game/hardMode.ts`
+- UI feedback components
+
+**Verification**:
+- Tests and manual checks for green, yellow, and gray constraints.
+
+**Pause point**: Commit Phase 4, update changelog, report verification, and halt for user approval.
+
+---
+
+## 7. Phase 5 — `go` Mode Gameplay
+
+**Goal**: Deliver chained 5-puzzle Hurdle-style gameplay with carry-over pre-fills.
+
+### Step 5.1 — `go` Session Model
+
+**Build / modify**:
+- Implement five-puzzle session orchestration.
+- Track current puzzle, prior answers, carry-over pre-fills, wins, losses, and session completion.
+
+**Key files**:
+- `src/game/go/`
+- `src/game/go/session.ts`
+- Tests for go session progression
+
+**Verification**:
+- Tests cover progression through all five puzzles.
+- Tests cover failed puzzle and completion states.
+
+### Step 5.2 — `go` Daily Mode
+
+**Build / modify**:
+- Implement daily `go` fixed at 5 letters for all five puzzles.
+- Persist daily session state.
+
+**Key files**:
+- `src/app/routes/go.tsx`
+- `src/game/go/`
+- `src/data/daily.ts`
+
+**Verification**:
+- Tests confirm daily `go` always uses length 5.
+- Manual full-session smoke test.
+
+### Step 5.3 — `go` Practice Mode
+
+**Build / modify**:
+- Implement practice `go` with one selected length applied to all five puzzles.
+- Support lengths 2–35.
+
+**Key files**:
+- `src/game/go/`
+- Practice route/components
+
+**Verification**:
+- Manual checks for lengths 2, 5, and 35.
+- Tests confirm all puzzles in a practice session share the selected length.
+
+### Step 5.4 — `go` Hard Mode and Carry-Over Rules
+
+**Build / modify**:
+- Integrate Hard Mode constraints with carry-over pre-fills.
+- Ensure pre-filled letters and constraints do not conflict.
+
+**Key files**:
+- `src/game/go/`
+- `src/game/hardMode.ts`
+
+**Verification**:
+- Tests cover carry-over pre-fills and Hard Mode interaction.
+- Manual smoke test of chained play.
+
+**Pause point**: Commit Phase 5, update changelog, report verification, and halt for user approval.
+
+---
+
+## 8. Phase 6 — Definitions System
+
+**Goal**: Show definitions after wins or losses with the required fallback order and Google search behavior.
+
+### Step 6.1 — Definition Data Model and Pre-Processed Lookup
+
+**Build / modify**:
+- Model definition data from English OpenList files.
+- Implement lookup against bundled word data first.
+
+**Key files**:
+- `src/definitions/types.ts`
+- `src/definitions/preprocessed.ts`
+- `src/definitions/definitionService.ts`
+
+**Verification**:
+- Tests confirm pre-processed definitions are preferred when present.
+
+### Step 6.2 — External API Fallbacks
+
+**Build / modify**:
+- Add Dictionary API fallback.
+- Add Wiktionary fallback.
+- Handle network errors, empty results, malformed responses, and timeouts gracefully.
+
+**Key files**:
+- `src/definitions/dictionaryApi.ts`
+- `src/definitions/wiktionary.ts`
+- `src/definitions/definitionService.ts`
+
+**Verification**:
+- Mocked tests cover success and failure at each fallback layer.
+- Confirm external failures do not crash the game.
+
+### Step 6.3 — Google Search Button Fallback UI
+
+**Build / modify**:
+- Add post-game definition panel.
+- Always make Google search available.
+- When all definition sources fail, show clear non-intrusive fallback message recommending the button.
+- Button text must be dynamic: `Search Google for ‘[WORD]’`.
+- Button opens a new tab for `define [WORD]` using safe external-link behavior.
+
+**Key files**:
+- `src/definitions/DefinitionPanel.tsx`
+- `src/definitions/googleSearch.ts`
+- Post-game UI integration files
+
+**Verification**:
+- Unit tests for URL generation and dynamic label.
+- Manual post-game checks for win and loss.
+- Manual check that new tab opens correctly.
+
+**Pause point**: Commit Phase 6, update changelog, report verification, and halt for user approval.
+
+---
+
+## 9. Phase 7 — Persistence, Progression, Economy, and Statistics
+
+**Goal**: Add durable guest progress, XP, levels, coins, consumables, Pay-to-Continue, and stats.
+
+### Step 7.1 — Local Guest Persistence
+
+**Build / modify**:
+- Store guest progress, coins, levels, stats, settings, and game history locally.
+- Add versioned storage for future migrations.
+
+**Key files**:
+- `src/account/guestStorage.ts`
+- `src/account/storageSchema.ts`
+- `src/lib/storage/`
+
+**Verification**:
+- Tests cover save/load/reset/export and corrupted data fallback.
+- Manual refresh persistence check.
+
+### Step 7.2 — Progression and Economy
+
+**Build / modify**:
+- Implement XP, level, coin award calculations based on game performance.
+- Implement consumables: Reveal One Letter and Remove Incorrect Letters.
+- Implement Pay-to-Continue cost scaling by word length and completion percentage.
+
+**Key files**:
+- `src/progression/experience.ts`
+- `src/progression/coins.ts`
+- `src/progression/consumables.ts`
+- `src/progression/payToContinue.ts`
+
+**Verification**:
+- Unit tests for scoring, coin awards, consumable effects, insufficient coins, and Pay-to-Continue cost edge cases.
+
+### Step 7.3 — Statistics
+
+**Build / modify**:
+- Track per-mode statistics for `og` and `go` from day one.
+- Structure data to support future per-length statistics without exposing variable daily lengths.
+- Add visual dashboard.
+
+**Key files**:
+- `src/stats/types.ts`
+- `src/stats/statistics.ts`
+- `src/stats/StatsDashboard.tsx`
+
+**Verification**:
+- Tests cover stat updates for wins, losses, streaks, daily/practice separation where applicable, and `og` vs `go` separation.
+- Manual dashboard smoke test.
+
+**Pause point**: Commit Phase 7, update changelog, report verification, and halt for user approval.
+
+---
+
+## 10. Phase 8 — Supabase Accounts, Sync, and Admin Route
+
+**Goal**: Add optional Supabase accounts, cloud sync, guest transfer, danger-zone settings, and protected admin refresh.
+
+### Step 8.1 — Supabase Client and Environment Setup
+
+**Build / modify**:
+- Add Supabase client configuration using public anon key only.
+- Document required environment variables in `.env.example`.
+- Ensure no service-role secrets are exposed to client code.
+
+**Key files**:
+- `src/account/supabaseClient.ts`
+- `.env.example`
+- Supabase migration/config documentation files if used
+
+**Verification**:
+- Build passes without real secrets.
+- Static review confirms no secret values are committed.
+
+### Step 8.2 — Database Schema and RLS Policies
+
+**Build / modify**:
+- Define tables for profiles, progress, stats, game history, settings, and roles.
+- Add RLS policies so users can access only their data.
+- Add admin role support suitable for manual dashboard assignment in v1.
+
+**Key files**:
+- `supabase/migrations/`
+- `docs/supabase.md` or equivalent setup docs
+
+**Verification**:
+- Review generated SQL for RLS coverage.
+- If Supabase local tooling is available, run migration validation.
+- Document any verification that requires a real Supabase project.
+
+### Step 8.3 — Authentication and Guest Transfer
+
+**Build / modify**:
+- Implement email/password or magic-link auth with email verification expectations.
+- Add login/signup/logout UI.
+- Prompt users to transfer guest data after account creation or login.
+
+**Key files**:
+- `src/account/auth.ts`
+- `src/account/AuthPanel.tsx`
+- `src/account/guestTransfer.ts`
+
+**Verification**:
+- Tests for transfer merge behavior where practical.
+- Manual auth flow checklist documented for real Supabase verification.
+
+### Step 8.4 — Cloud Sync
+
+**Build / modify**:
+- Sync progress, coins, levels, stats, settings, and game history to Supabase.
+- Handle offline, conflict, and partial failure states gracefully.
+
+**Key files**:
+- `src/account/sync.ts`
+- `src/account/syncStatus.ts`
+
+**Verification**:
+- Mocked tests for upload, download, conflict, and failure paths.
+- Manual sync checklist for real project environment.
+
+### Step 8.5 — Settings and Danger Zone
+
+**Build / modify**:
+- Add export data.
+- Add reset progress.
+- Add delete account flow.
+- Add change email/password paths as supported by Supabase.
+
+**Key files**:
+- `src/account/Settings.tsx`
+- `src/account/dangerZone.ts`
+
+**Verification**:
+- Tests for export/reset transformations.
+- Manual UX confirmation for destructive action confirmations.
+
+### Step 8.6 — Protected Admin Manual Refresh Route
+
+**Build / modify**:
+- Add protected admin UI/route for manual word-list refresh override.
+- Require authenticated Supabase user with `admin` role.
+- Validate authorization server-side or in protected Vercel function/API route.
+- Never rely only on hidden UI.
+
+**Key files**:
+- `src/admin/`
+- API/server route files for admin refresh
+- `src/data/updateCheck.ts`
+- Supabase role policy files
+
+**Verification**:
+- Tests or mocked checks for unauthenticated, authenticated non-admin, and authenticated admin states.
+- Manual checklist for real Supabase admin role assignment.
+- Confirm no privileged secrets in browser bundle.
+
+**Pause point**: Commit Phase 8, update changelog, report verification, and halt for user approval.
+
+---
+
+## 11. Phase 9 — Sharing, PWA, Polish, and Accessibility
+
+**Goal**: Complete user-facing polish, installability, sharing, accessibility, and performance work.
+
+### Step 9.1 — Emoji Sharing
+
+**Build / modify**:
+- Implement classic Wordle-style emoji sharing for `og` and `go`.
+- Ensure output uses canonical tile states.
+
+**Key files**:
+- `src/game/share.ts`
+- Share UI components
+
+**Verification**:
+- Tests for share output formats.
+- Manual clipboard/share API checks with fallback.
+
+### Step 9.2 — PWA Support
+
+**Build / modify**:
+- Add manifest, icons, service worker strategy, and offline-capable behavior where reasonable.
+- Avoid making stale data behavior confusing.
+
+**Key files**:
+- `public/manifest.webmanifest`
+- `public/icons/`
+- Service worker or Vite PWA configuration if selected
+
+**Verification**:
+- Production build succeeds.
+- Browser application panel confirms installability where practical.
+- Offline smoke test confirms graceful behavior.
+
+### Step 9.3 — Animation and Responsive Polish
+
+**Build / modify**:
+- Add tile pop-in, flip reveal, row shake, and smooth transitions.
+- Respect reduced-motion preferences.
+- Polish mobile and desktop layouts.
+
+**Key files**:
+- UI component files
+- `src/index.css`
+
+**Verification**:
+- Manual checks on mobile and desktop viewport sizes.
+- Confirm animations do not block input or cause critical console errors.
+
+### Step 9.4 — Accessibility Pass
+
+**Build / modify**:
+- Fix semantic labels, focus order, color contrast, keyboard behavior, dialogs, and status announcements.
+
+**Key files**:
+- UI components across `src/ui/`, game routes, dialogs, and panels
+
+**Verification**:
+- Keyboard-only navigation check.
+- Screen-reader-oriented semantic review.
+- WCAG AA-focused contrast review.
+
+### Step 9.5 — Performance Pass
+
+**Build / modify**:
+- Optimize initial load and interactions.
+- Ensure word-list handling does not degrade daily mode performance.
+
+**Key files**:
+- Data loading files
+- Route-level code splitting if needed
+- UI performance hotspots
+
+**Verification**:
+- Production build.
+- Lighthouse target ≥ 90 where environment supports it.
+- Manual interaction check for smooth gameplay.
+
+**Pause point**: Commit Phase 9, update changelog, report verification, and halt for user approval.
+
+---
+
+## 12. Phase 10 — Blog / Docs on GitHub Pages + Jekyll
+
+**Goal**: Establish the approved blog/docs surface without interfering with the Vercel-hosted game.
+
+### Step 10.1 — Jekyll Foundation
+
+**Build / modify**:
+- Create or refine `docs/` as the GitHub Pages + Jekyll root.
+- Add basic site config and landing page.
+
+**Key files**:
+- `docs/_config.yml`
+- `docs/index.md`
+- `docs/_posts/` if needed
+
+**Verification**:
+- Confirm docs files are valid static/Jekyll content.
+- Confirm Vite build is unaffected.
+
+### Step 10.2 — Project Documentation
+
+**Build / modify**:
+- Document setup, environment variables, Supabase configuration, admin role assignment, deployment, and verification procedures.
+- Keep docs aligned with the implemented system.
+
+**Key files**:
+- `README.md`
+- `docs/*.md`
+- `docs/supabase.md`
+- `docs/deployment.md`
+
+**Verification**:
+- Review docs for accuracy and absence of secrets.
+- Confirm all referenced commands exist.
+
+**Pause point**: Commit Phase 10, update changelog, report verification, and halt for user approval.
+
+---
+
+## 13. Phase 11 — Final Integration, Release Readiness, and Deployment Verification
+
+**Goal**: Verify the full product against the Constitution, spec, and v2.6 success criteria.
+
+### Step 11.1 — Full Automated Verification
+
+**Build / modify**:
+- Fix only issues directly blocking approved v1 functionality or verification.
+
+**Key files**:
+- Any files implicated by failures
+
+**Verification**:
+- Run full lint, typecheck, test, and production build commands.
+- Run security checks available in the environment.
+- Confirm no known critical console errors.
+
+### Step 11.2 — Full Manual Gameplay Matrix
+
+**Build / modify**:
+- No feature work unless verification reveals a scoped defect.
+
+**Verification**:
+- `og` daily fixed at 5.
+- `go` daily fixed at 5.
+- `og` practice lengths 2, 5, and 35.
+- `go` practice lengths 2, 5, and 35.
+- Hard Mode in both modes.
+- Win and loss paths.
+- Pay-to-Continue with enough and insufficient coins.
+- Definitions with pre-processed success, API fallback success, and total failure with Google button.
+- Guest persistence and reset/export.
+- Supabase auth and guest transfer where environment is available.
+- Admin refresh route for unauthenticated, non-admin, and admin users where environment is available.
+
+### Step 11.3 — Deployment Readiness
+
+**Build / modify**:
+- Finalize Vercel configuration and deployment docs.
+- Finalize GitHub Pages/Jekyll docs instructions.
+
+**Key files**:
+- `vercel.json`
+- `README.md`
+- `docs/deployment.md`
+- `.env.example`
+
+**Verification**:
+- Production build passes.
+- Environment variable list is complete and contains no secrets.
+- Lighthouse target ≥ 90 where environment supports it.
+- Confirm update checks and manual refresh are documented for production.
+
+### Step 11.4 — Final Governance Review
+
+**Build / modify**:
+- Update changelog and any release notes.
+- Confirm implementation matches `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, and this approved plan.
+
+**Key files**:
+- `CHANGELOG.md`
+- `README.md`
+- `docs/`
+
+**Verification**:
+- Trace each required spec item to implemented behavior or documented limitation.
+- Confirm no out-of-scope v1 features were added.
+
+**Pause point**: Commit final integration changes, update changelog, provide release-readiness report, and halt for user approval before any production release action.
+
+---
+
+## 14. Cross-Phase Verification Matrix
+
+| Requirement | Minimum verification |
+|---|---|
+| Exact Wordle coloring | Unit tests with duplicate-letter vectors; manual gameplay smoke test |
+| Daily `og` fixed at 5 | Unit tests and manual route check |
+| Daily `go` fixed at 5 | Unit tests and manual full-session check |
+| Practice 2–35 | Boundary tests for 2 and 35; manual checks for 2, 5, 35 |
+| Hard Mode | Unit tests for green/yellow/gray constraints; manual checks |
+| Hybrid word data | Loader tests, metadata/update mocks, production build check |
+| Definition priority | Mocked service tests for each fallback layer |
+| Google fallback button | Unit tests for label/URL; manual new-tab check |
+| Supabase RLS | Migration review and local/real Supabase checks where available |
+| Admin route | Unauthenticated/non-admin/admin authorization checks |
+| Guest persistence | Storage tests and refresh manual check |
+| Guest transfer | Merge/transfer tests and manual auth checklist |
+| Progression/economy | Unit tests for XP, coins, consumables, Pay-to-Continue |
+| Statistics | Unit tests for `og`/`go` separation and streaks |
+| Accessibility | Keyboard, focus, semantic, contrast checks |
+| Performance | Production build, interaction smoke test, Lighthouse where available |
+| Vercel | Local production build and config review |
+| GitHub Pages/Jekyll | Docs config review and Vite non-interference check |
+
+---
+
+## 15. Known Constraints and Clarifications
+
+- This plan does not approve implementation by itself; explicit user approval is required before Phase 0 begins.
+- Real Supabase and deployment verification may require project credentials or dashboard access outside the local sandbox. If unavailable, the agent must document what was verified locally and what remains for the user to verify.
+- Full English OpenList assets may be large. The agent must choose a strategy that satisfies build-time bundling and performance requirements without harming daily-mode load performance.
+- No service-role secret, API key, or privileged credential may be committed.
+- Any requirement conflict must stop work for user clarification.
+
+---
+
+**End of AGENT-IMPLEMENTATION-PLAN.md**

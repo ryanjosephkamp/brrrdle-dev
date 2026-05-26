@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "length": 2,
+    "source": "brrrdle-development-seed",
+    "version": "seed-2026-05-25",
+    "generatedAt": "2026-05-25T00:00:00Z"
+  },
+  "answers": [
+    {
+      "word": "go",
+      "definitions": [
+        {
+          "partOfSpeech": "verb",
+          "definition": "To move or travel.",
+          "source": "development seed"
+        }
+      ]
+    },
+    "ox"
+  ],
+  "validGuesses": ["go", "ox", "am", "it", "we"]
+}
