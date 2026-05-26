@@ -6,6 +6,7 @@ import {
   refreshWordListsFromHuggingFace,
   type RefreshSourceInfo,
 } from '../src/data'
+import { resolveWordListStore } from './_lib/wordListStore'
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
@@ -109,6 +110,54 @@ export default async function handler(request: Request): Promise<Response> {
     answers: file.file.answers.length,
     validGuesses: file.file.validGuesses.length,
   }))
+
+  const resolvedStore = resolveWordListStore()
+  let persistence: Record<string, unknown>
+  if (!resolvedStore.store) {
+    persistence = { status: 'skipped', reason: resolvedStore.reason }
+    console.warn('admin-refresh: persistence skipped', { reason: resolvedStore.reason })
+  } else {
+    const swap = await resolvedStore.store.atomicSwap({ refresh: result })
+    if (swap.status === 'swapped') {
+      persistence = {
+        status: 'swapped',
+        store: resolvedStore.store.name,
+        previousRevision: swap.previousRevision,
+        manifestRevision: swap.manifest.revision,
+      }
+      console.log('admin-refresh: persistence swapped', {
+        store: resolvedStore.store.name,
+        revision: swap.manifest.revision,
+        previousRevision: swap.previousRevision,
+      })
+    } else if (swap.status === 'failed') {
+      persistence = {
+        status: 'failed',
+        store: resolvedStore.store.name,
+        stage: swap.stage,
+        failedLength: swap.failedLength,
+        message: swap.message,
+        previousServedSetIntact: swap.previousServedSetIntact,
+      }
+      console.error('admin-refresh: persistence failed', persistence)
+      return jsonResponse(
+        {
+          ok: false,
+          stage: 'persist',
+          revision: result.source.revision,
+          generatedAt: result.source.generatedAt,
+          fetchedAt: result.fetchedAt,
+          lengths: successSummary,
+          persistence,
+        },
+        { status: 502 },
+      )
+    } else {
+      persistence = { status: 'skipped', store: resolvedStore.store.name, reason: swap.reason }
+      console.warn('admin-refresh: persistence skipped by driver', persistence)
+    }
+  }
+
   console.log('admin-refresh: refresh succeeded', {
     revision: result.source.revision,
     fetchedAt: result.fetchedAt,
@@ -122,7 +171,7 @@ export default async function handler(request: Request): Promise<Response> {
       generatedAt: result.source.generatedAt,
       fetchedAt: result.fetchedAt,
       lengths: successSummary,
-      note: 'Validated dictionaries returned to the admin caller. The deployment environment is responsible for persisting them to the production storage layer via an atomic swap.',
+      persistence,
     },
     { status: 202 },
   )

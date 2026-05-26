@@ -6,6 +6,7 @@ import {
   refreshWordListsFromHuggingFace,
   type RefreshSourceInfo,
 } from '../../src/data'
+import { resolveWordListStore } from '../_lib/wordListStore'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -105,6 +106,62 @@ export default async function handler(request: Request): Promise<Response> {
     answers: file.file.answers.length,
     validGuesses: file.file.validGuesses.length,
   }))
+
+  // After a successful validate, persist the new set via the configured
+  // production storage layer and atomically swap the served manifest. If no
+  // store is configured, the response still surfaces the validated payload
+  // so a caller can persist it externally if desired.
+  const resolvedStore = resolveWordListStore()
+  let persistence: Record<string, unknown>
+  if (!resolvedStore.store) {
+    persistence = { status: 'skipped', reason: resolvedStore.reason }
+    console.warn('cron/refresh-word-lists: persistence skipped', { reason: resolvedStore.reason })
+  } else {
+    const swap = await resolvedStore.store.atomicSwap({ refresh: result })
+    if (swap.status === 'swapped') {
+      persistence = {
+        status: 'swapped',
+        store: resolvedStore.store.name,
+        previousRevision: swap.previousRevision,
+        manifestRevision: swap.manifest.revision,
+      }
+      console.log('cron/refresh-word-lists: persistence swapped', {
+        store: resolvedStore.store.name,
+        revision: swap.manifest.revision,
+        previousRevision: swap.previousRevision,
+      })
+    } else if (swap.status === 'failed') {
+      persistence = {
+        status: 'failed',
+        store: resolvedStore.store.name,
+        stage: swap.stage,
+        failedLength: swap.failedLength,
+        message: swap.message,
+        previousServedSetIntact: swap.previousServedSetIntact,
+      }
+      console.error('cron/refresh-word-lists: persistence failed', persistence)
+      // Return 502 because the run did not reach a fully consistent state.
+      return jsonResponse(
+        {
+          ok: false,
+          stage: 'persist',
+          revision: result.source.revision,
+          generatedAt: result.source.generatedAt,
+          fetchedAt: result.fetchedAt,
+          lengths: successSummary,
+          persistence,
+        },
+        { status: 502 },
+      )
+    } else {
+      // A driver returned 'skipped'. Drivers in this repo don't do that —
+      // the factory returns null instead — but the union allows it for
+      // forward compatibility, so log and surface it cleanly.
+      persistence = { status: 'skipped', store: resolvedStore.store.name, reason: swap.reason }
+      console.warn('cron/refresh-word-lists: persistence skipped by driver', persistence)
+    }
+  }
+
   console.log('cron/refresh-word-lists: refresh succeeded', {
     revision: result.source.revision,
     fetchedAt: result.fetchedAt,
@@ -118,7 +175,7 @@ export default async function handler(request: Request): Promise<Response> {
       generatedAt: result.source.generatedAt,
       fetchedAt: result.fetchedAt,
       lengths: successSummary,
-      note: 'Validated dictionaries returned to the cron caller. The deployment environment is responsible for persisting them to the production storage layer via an atomic swap.',
+      persistence,
     },
     { status: 200 },
   )
