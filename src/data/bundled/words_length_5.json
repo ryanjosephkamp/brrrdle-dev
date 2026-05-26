@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "length": 5,
+    "source": "brrrdle-development-seed",
+    "version": "seed-2026-05-25",
+    "generatedAt": "2026-05-25T00:00:00Z"
+  },
+  "answers": [
+    {
+      "word": "crane",
+      "definitions": [
+        {
+          "partOfSpeech": "noun",
+          "definition": "A large bird with long legs and neck.",
+          "source": "development seed"
+        }
+      ]
+    },
+    "slate",
+    "brisk"
+  ],
+  "validGuesses": ["crane", "slate", "brisk", "cared", "trace", "apple"]
+}
