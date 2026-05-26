@@ -36,6 +36,7 @@
   - Browser smoke check at `http://127.0.0.1:5173/`.
   - Keyboard tab navigation smoke check reached primary navigation controls.
   - Progress CSV validation.
+  - CodeQL/security review after Step 3.1 changes.
 - **Checks not run**:
   - Full responsive manual QA.
   - Full accessibility audit.
