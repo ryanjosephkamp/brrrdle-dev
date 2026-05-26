@@ -55,6 +55,7 @@
   - Admin route smoke check displayed the locked-state alert.
   - Console check showed no application errors.
   - Progress CSV validation.
+  - CodeQL/security review after Step 3.2 changes: 0 alerts.
 - **Checks not run**:
   - Full automated accessibility audit.
   - Gameplay smoke tests.
