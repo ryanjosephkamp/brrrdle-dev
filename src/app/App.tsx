@@ -117,8 +117,8 @@ function RoutePanel({
 const shellMessages: readonly ToastMessage[] = [
   {
     id: 'shell-ready',
-    message: 'Optional Supabase accounts, cloud sync foundations, and protected admin checks are active for Phase 8 review.',
-    title: 'account sync ready',
+    message: 'Sharing, installability, motion polish, accessibility refinements, and offline shell caching are active for Phase 9 review.',
+    title: 'polish ready',
     tone: 'info',
   },
 ]
@@ -208,8 +208,8 @@ function App() {
             <RoutePanel authState={authState} guestProgress={guestProgress} keyboardDisabled={isDialogOpen} onGameComplete={handleGameComplete} onResetProgress={handleResetProgress} onSelectRoute={setActiveRouteId} onSendMagicLink={handleSendMagicLink} onSignOut={handleSignOut} route={activeRoute} syncStatus={syncStatus} />
             <aside className="space-y-4" aria-label="Interface readiness">
               <Panel className="space-y-4" tone="muted">
-                <h2 className="text-xl font-bold text-white">UI foundation</h2>
-                <LoadingState label="Preparing future game surfaces" />
+                <h2 className="text-xl font-bold text-white">Phase 9 polish</h2>
+                <LoadingState label="Checking responsive, share, and offline-ready surfaces" />
                 <Button onClick={() => setIsDialogOpen(true)} variant="primary">Review shell notes</Button>
               </Panel>
             </aside>
@@ -221,10 +221,10 @@ function App() {
         description="A non-gameplay modal used to verify the reusable dialog pattern, Escape handling, labels, and focusable close control."
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
-        title="Phase 8 shell notes"
+        title="Phase 9 shell notes"
       >
         <p>
-          The shell now has reusable icy visual tokens, accessible primitives, keyboard input plumbing, and active og and go daily/practice gameplay, post-game definitions, local guest progression, optional Supabase account setup, sync foundations, and protected admin route checks for Phase 8 review.
+          The shell now has reusable icy visual tokens, accessible primitives, keyboard input plumbing, and active og and go daily/practice gameplay, post-game definitions, local guest progression, optional Supabase account setup, emoji sharing, PWA shell caching, reduced-motion-aware animation, and accessibility refinements for Phase 9 review.
         </p>
       </Dialog>
       <ToastRegion messages={shellMessages} />

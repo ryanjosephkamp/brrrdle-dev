@@ -52,7 +52,7 @@ function createInitialDailySession(setup: ReturnType<typeof createDailyOgSetup>)
 
 function GuessGrid({ session }: { readonly session: PuzzleSessionState }) {
   type GridTile = { readonly isSubmitted: boolean; readonly letter: string; readonly state: GridTileState }
-  const rows = Array.from({ length: session.maxAttempts }, (_, rowIndex) => {
+  const rows = useMemo(() => Array.from({ length: session.maxAttempts }, (_, rowIndex) => {
     const submittedGuess = session.guesses[rowIndex]
     if (submittedGuess) {
       return submittedGuess.tiles.map((tile): GridTile => ({ isSubmitted: true, letter: tile.letter, state: tile.state }))
@@ -67,7 +67,7 @@ function GuessGrid({ session }: { readonly session: PuzzleSessionState }) {
     }
 
     return Array.from({ length: session.wordLength }, (): GridTile => ({ isSubmitted: false, letter: '', state: 'empty' }))
-  })
+  }), [session.currentGuess, session.guesses, session.maxAttempts, session.status, session.wordLength])
 
   return (
     <div aria-label="Guess grid" className="space-y-2" role="grid">
