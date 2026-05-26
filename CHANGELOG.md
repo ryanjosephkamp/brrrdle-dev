@@ -5,6 +5,7 @@ All notable changes to `brrrdle` will be documented in this file.
 ## Unreleased
 
 ### Added
+- Added Phase 3.1 app shell with minimal route definitions, layout, navigation, and mode-selection placeholders.
 - Added Phase 2 bundled word-list data layer with schema validation and seed data.
 - Added length-indexed repository APIs for answers, valid guesses, and bundled definitions.
 - Added remote metadata update checks plus data status and cache/fallback helpers.
