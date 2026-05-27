@@ -2,8 +2,8 @@ import {
   MAX_PRACTICE_WORD_LENGTH,
   MIN_PRACTICE_WORD_LENGTH,
   isSupportedPracticeWordLength,
-} from '../game/constants'
-import type { WordDefinitionEntry, WordEntry, WordListFile } from './types'
+} from '../game/constants.js'
+import type { WordDefinitionEntry, WordEntry, WordListFile } from './types.js'
 
 const WORD_PATTERN = /^[a-z]+$/
 

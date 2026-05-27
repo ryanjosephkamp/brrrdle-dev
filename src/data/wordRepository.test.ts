@@ -5,7 +5,7 @@ import {
   getRequestedWordLength,
   getValidGuesses,
   getWordRepository,
-} from './wordRepository'
+} from './wordRepository.js'
 
 describe('wordRepository', () => {
   it('forces daily requests to the launch daily length', () => {

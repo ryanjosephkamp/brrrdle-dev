@@ -1,8 +1,8 @@
 import {
   MAX_PRACTICE_WORD_LENGTH,
   MIN_PRACTICE_WORD_LENGTH,
-} from '../game/constants'
-import type { RemoteWordListMetadata } from './types'
+} from '../game/constants.js'
+import type { RemoteWordListMetadata } from './types.js'
 
 /**
  * Configuration for the authoritative upstream Hugging Face word-list source.

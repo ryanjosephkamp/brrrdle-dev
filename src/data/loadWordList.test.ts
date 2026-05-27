@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadBundledWordList, resolveWordListLength } from './loadWordList'
+import { loadBundledWordList, resolveWordListLength } from './loadWordList.js'
 
 describe('loadBundledWordList', () => {
   it('loads bundled boundary lengths 2, 5, and 35', () => {

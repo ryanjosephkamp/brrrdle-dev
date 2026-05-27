@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { validateGuess } from '../game/validation'
-import { loadBundledWordList } from './loadWordList'
+import { validateGuess } from '../game/validation.js'
+import { loadBundledWordList } from './loadWordList.js'
 
 /**
  * Phase 12 (updated diagnosis 2026-05-26) regression coverage.

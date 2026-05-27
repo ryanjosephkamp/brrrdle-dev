@@ -1,8 +1,8 @@
-import { DAILY_WORD_LENGTH } from '../game/constants'
-import type { GameMode, PlayScope } from '../game/types'
-import type { LoadWordListFailure } from './loadWordList'
-import { loadBundledWordList } from './loadWordList'
-import type { NormalizedWordList, WordDefinitionEntry, WordEntry } from './types'
+import { DAILY_WORD_LENGTH } from '../game/constants.js'
+import type { GameMode, PlayScope } from '../game/types.js'
+import type { LoadWordListFailure } from './loadWordList.js'
+import { loadBundledWordList } from './loadWordList.js'
+import type { NormalizedWordList, WordDefinitionEntry, WordEntry } from './types.js'
 
 export interface WordRepositorySuccess {
   readonly ok: true

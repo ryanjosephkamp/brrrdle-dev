@@ -1,5 +1,5 @@
-import type { WordListFile } from './types'
-import type { RefreshSuccess } from './refresh'
+import type { WordListFile } from './types.js'
+import type { RefreshSuccess } from './refresh.js'
 
 /**
  * Per-length entry in the served word-list manifest. The manifest is the

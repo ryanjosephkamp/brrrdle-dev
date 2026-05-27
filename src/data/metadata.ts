@@ -1,7 +1,7 @@
-import type { RemoteWordListMetadata, WordListMetadata } from './types'
-import bundledSource from './bundled/source.json'
-import { BUNDLED_WORD_LISTS } from './wordLists'
-import { validateWordListFile } from './wordListSchema'
+import type { RemoteWordListMetadata, WordListMetadata } from './types.js'
+import bundledSource from './bundled/source.json' with { type: 'json' }
+import { BUNDLED_WORD_LISTS } from './wordLists.js'
+import { validateWordListFile } from './wordListSchema.js'
 
 export interface BundledSourceInfo {
   readonly datasetUrl: string

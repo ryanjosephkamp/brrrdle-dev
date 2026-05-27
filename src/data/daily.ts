@@ -1,6 +1,6 @@
-import { DAILY_WORD_LENGTH } from '../game/constants'
-import type { WordEntry } from './types'
-import { getWordRepository } from './wordRepository'
+import { DAILY_WORD_LENGTH } from '../game/constants.js'
+import type { WordEntry } from './types.js'
+import { getWordRepository } from './wordRepository.js'
 
 export interface DailyPuzzle {
   readonly answer: string
