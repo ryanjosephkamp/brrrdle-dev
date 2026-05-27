@@ -49,6 +49,60 @@ export async function sendMagicLink(client: BrrrdleSupabaseClient, email: string
   return error ? { message: error.message, ok: false } : { ok: true }
 }
 
+export async function signInWithPassword(
+  client: BrrrdleSupabaseClient,
+  email: string,
+  password: string,
+): Promise<{ readonly ok: true } | { readonly message: string; readonly ok: false }> {
+  const normalizedEmail = email.trim().toLocaleLowerCase('en-US')
+  if (!normalizedEmail || !password) {
+    return { message: 'Email and password are required.', ok: false }
+  }
+  const { error } = await client.auth.signInWithPassword({ email: normalizedEmail, password })
+  return error ? { message: error.message, ok: false } : { ok: true }
+}
+
+export async function signUpWithPassword(
+  client: BrrrdleSupabaseClient,
+  email: string,
+  password: string,
+): Promise<{ readonly ok: true } | { readonly message: string; readonly ok: false }> {
+  const normalizedEmail = email.trim().toLocaleLowerCase('en-US')
+  if (!normalizedEmail || !password) {
+    return { message: 'Email and password are required.', ok: false }
+  }
+  if (password.length < 8) {
+    return { message: 'Password must be at least 8 characters.', ok: false }
+  }
+  const { error } = await client.auth.signUp({ email: normalizedEmail, password })
+  return error ? { message: error.message, ok: false } : { ok: true }
+}
+
+export type AuthChangeListener = (state: AuthState) => void
+
+export interface AuthSubscription {
+  readonly unsubscribe: () => void
+}
+
+export function subscribeToAuthChanges(
+  client: BrrrdleSupabaseClient | undefined,
+  listener: AuthChangeListener,
+): AuthSubscription {
+  if (!client) {
+    return { unsubscribe: () => undefined }
+  }
+
+  const { data } = client.auth.onAuthStateChange((_event, session) => {
+    if (!session?.user) {
+      listener({ status: 'anonymous' })
+      return
+    }
+    listener({ status: 'authenticated', user: summarizeUser(session.user) })
+  })
+
+  return { unsubscribe: () => data.subscription.unsubscribe() }
+}
+
 export async function signOut(client: BrrrdleSupabaseClient): Promise<{ readonly ok: true } | { readonly message: string; readonly ok: false }> {
   const { error } = await client.auth.signOut()
   return error ? { message: error.message, ok: false } : { ok: true }

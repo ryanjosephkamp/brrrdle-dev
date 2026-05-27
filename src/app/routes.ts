@@ -1,6 +1,6 @@
 import type { GameMode, PlayScope } from '../game/types'
 
-export type AppRouteId = 'home' | 'og-daily' | 'go-daily' | 'practice' | 'definitions' | 'stats' | 'settings' | 'admin'
+export type AppRouteId = 'home' | 'og-daily' | 'go-daily' | 'practice' | 'word-explorer' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'admin'
 
 export interface AppRoute {
   readonly id: AppRouteId
@@ -48,6 +48,20 @@ export const APP_ROUTES = [
     description: 'Practice brrrdle with configurable word lengths from 2 through 35.',
     navigationGroup: 'play',
     scope: 'practice',
+  },
+  {
+    id: 'word-explorer',
+    label: 'Word Explorer',
+    shortLabel: 'Words',
+    description: 'Browse and search the exact words brrrdle is using.',
+    navigationGroup: 'support',
+  },
+  {
+    id: 'feedback',
+    label: 'Feedback',
+    shortLabel: 'Feedback',
+    description: 'Send a pre-filled bug report, feature request, or note.',
+    navigationGroup: 'support',
   },
   {
     id: 'definitions',

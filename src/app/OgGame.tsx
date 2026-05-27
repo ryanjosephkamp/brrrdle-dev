@@ -23,6 +23,7 @@ import {
 } from '../game'
 import { clearDailyOgStoredSession, loadDailyOgStoredSession, saveDailyOgStoredSession } from '../lib/storage/dailyOgStorage'
 import { calculatePayToContinueCost } from '../progression'
+import { useSound } from '../sound'
 import { Button, Keyboard, Panel, ShareButton } from '../ui'
 import { classNames } from '../ui/classNames'
 
@@ -174,8 +175,10 @@ function OgGameSession({
     })
   }, [canAffordContinuation, onGameComplete, practiceLength, practiceSeed, scope, session.answer, session.guesses.length, session.maxAttempts, session.status, session.wordLength, setup.answer, setup.dateKey])
 
+  const sound = useSound()
   const handleInput = useCallback((input: KeyboardInput) => {
     setContinuationMessage(undefined)
+    sound.play('keyboard-click')
     setSession((currentSession) => {
       if (input.type === 'letter') {
         return enterLetter(currentSession, input.value)
@@ -185,9 +188,18 @@ function OgGameSession({
         return deleteLetter(currentSession)
       }
 
-      return submitGuess(currentSession)
+      const nextSession = submitGuess(currentSession)
+      if (nextSession === currentSession) {
+        sound.play('invalid-guess')
+      } else {
+        sound.play('tile-flip')
+        if (nextSession.status === 'won') {
+          sound.play('correct-guess')
+        }
+      }
+      return nextSession
     })
-  }, [])
+  }, [sound])
 
   const handlePayToContinue = useCallback(() => {
     if (session.status !== 'lost') {
