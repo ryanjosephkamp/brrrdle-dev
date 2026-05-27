@@ -4,6 +4,12 @@ All notable changes to `brrrdle` will be documented in this file.
 
 ## Unreleased
 
+### Documentation (Plan Addendum — ADDITIONS-2026-05-27)
+- Drafted a new Section 18 ("Phase 13 — Plan Addendum (ADDITIONS-2026-05-27)") at the end of `AGENT-IMPLEMENTATION-PLAN.md` covering the Word Explorer tab, Feedback tab, Sound Effects, Authentication Improvements (email + password alongside magic link, durable session, admin role detection from `raw_app_meta_data.role === "admin"`), and a safe, non-destructive Repository Cleanup & Re-organization. The addendum is broken into clear phases (13.0 Pre-flight & Risk Map, 13.1 Cleanup, 13.2 Word Explorer, 13.3 Feedback, 13.4 Sound Effects, 13.5 Authentication, 13.6 Final Integration) with per-step verification commands, explicit manual follow-up notes (Supabase password-auth enablement, GitHub label creation, conditional Vercel reconfiguration), and a halt-for-approval gate after every step.
+- Bumped the implementation plan header to version 1.3 to record the addendum.
+- Appended a new `phase_id = 18` row to `progress/PROGRESS.csv` noting that the addendum is drafted and awaiting explicit user approval; no implementation work has begun.
+- Added `progress/PROGRESS-STEP-18.md` summarizing the addendum, the required user actions, and the next major step (Phase 13.0).
+
 ### Fixed (Residual Vercel discriminated-union TypeScript narrowing — 2026-05-27)
 - Fixed the new Vercel TypeScript narrowing errors reported after `VERCEL-REDEPLOY-BUILD-LOGS-2026-05-26.md` and `DIAGNOSIS-REPORT-2026-05-26.md` by adding explicit type guards for `RefreshResult`, `SchemaValidationResult`, `LoadWordListResult`, and `WordRepositoryResult`, then using them at the failure-only field access sites in the data layer and refresh API routes.
 
