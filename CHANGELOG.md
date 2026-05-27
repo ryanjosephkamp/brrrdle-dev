@@ -14,6 +14,7 @@ All notable changes to `brrrdle` will be documented in this file.
 - **Tests**: 43 new unit tests (`src/lib/githubIssue.test.ts`, `src/wordExplorer/wordExplorerData.test.ts`, `src/sound/soundEngine.test.ts`, `src/account/auth.test.ts`). Total: 163 tests passing.
 
 ### Changed (ADDITIONS-2026-05-27 — Phase 13 execution)
+- **Repository organization follow-up**: moved playable game route panels into `src/app/games/`, physical keyboard gameplay helpers into `src/game/input/`, and daily in-progress session storage into `src/game/storage/`; added README files for the new folders and refreshed the root repository tree. This is behavior-preserving and does not change Vercel routes, Supabase configuration, GitHub Actions, the daily 5-letter lock, or practice 2–35 support.
 - Follow-up hardening aligned the primary navigation with the exact approved top-level order (`og`, `go`, `Practice`, `Word Explorer`, `Feedback`, `Settings`, `Admin`) and keeps the Admin entry hidden unless the signed-in user has the Supabase admin role.
 - Word Explorer now attempts the live `/api/word-lists/manifest` read path first and falls back to bundled dictionaries when no live manifest or length file is available, preserving the Vercel Blob / manifest → bundled JSON contract.
 - Password auth errors shown in the UI are sanitized generic messages rather than raw Supabase provider strings.
@@ -21,7 +22,7 @@ All notable changes to `brrrdle` will be documented in this file.
 - `src/app/App.tsx` now wraps the root in a `SoundProvider`, subscribes to Supabase auth changes via `subscribeToAuthChanges`, plays the win/loss tones when a game completes, and threads the new auth handlers and sound toggle into `Settings`.
 - `src/account/Settings.tsx` adds an optional "Sound Effects" panel and passes the password/sign-up handlers through to `AuthPanel`.
 - `src/account/auth.ts` adds `signInWithPassword`, `signUpWithPassword`, and `subscribeToAuthChanges` alongside the existing magic-link flow; the existing magic-link behavior is unchanged.
-- `src/app/OgGame.tsx` and `src/app/GoGame.tsx` consume the sound engine to emit `keyboard-click`, `tile-flip`, `invalid-guess`, and `correct-guess` events at the minimum surface area required by ADDITIONS-2026-05-27.md §3.
+- `src/app/games/OgGame.tsx` and `src/app/games/GoGame.tsx` consume the sound engine to emit `keyboard-click`, `tile-flip`, `invalid-guess`, and `correct-guess` events at the minimum surface area required by ADDITIONS-2026-05-27.md §3.
 
 ### Documentation (Plan Addendum — ADDITIONS-2026-05-27)
 - Drafted a new Section 18 ("Phase 13 — Plan Addendum (ADDITIONS-2026-05-27)") at the end of `AGENT-IMPLEMENTATION-PLAN.md` covering the Word Explorer tab, Feedback tab, Sound Effects, Authentication Improvements (email + password alongside magic link, durable session, admin role detection from `raw_app_meta_data.role === "admin"`), and a safe, non-destructive Repository Cleanup & Re-organization. The addendum is broken into clear phases (13.0 Pre-flight & Risk Map, 13.1 Cleanup, 13.2 Word Explorer, 13.3 Feedback, 13.4 Sound Effects, 13.5 Authentication, 13.6 Final Integration) with per-step verification commands, explicit manual follow-up notes (Supabase password-auth enablement, GitHub label creation, conditional Vercel reconfiguration), and a halt-for-approval gate after every step.

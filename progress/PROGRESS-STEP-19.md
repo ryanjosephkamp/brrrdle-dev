@@ -4,7 +4,7 @@
 - **Major step / phase**: Phase 13 — full execution of `ADDITIONS-2026-05-27.md` (Word Explorer, Feedback, Sound Effects, Authentication Improvements, Repository Cleanup)
 - **Implementation-plan reference**: `AGENT-IMPLEMENTATION-PLAN.md` §18 (13.0–13.6) and `ADDITIONS-2026-05-27.md`
 - **Report file**: `progress/PROGRESS-STEP-19.md`
-- **Date updated**: 2026-05-27T22:49:09Z
+- **Date updated**: 2026-05-27T23:21:40Z
 - **Status**: Completed — Awaiting user verification of Supabase / GitHub-label manual follow-up steps and PR review.
 
 ## Summary of Changes
@@ -69,7 +69,7 @@ The existing `src/` layout already groups code logically by concern: `account/`,
 - `progress/PROGRESS.csv` (appended `phase_id = 19` row)
 - `src/app/App.tsx` (SoundProvider wrap, auth subscription, new auth handlers, game-over sounds, new routes wired)
 - `src/app/routes.ts`, `src/app/routes.test.ts` (added `word-explorer` and `feedback` routes between Practice and Definitions/Stats/Settings/Admin)
-- `src/app/OgGame.tsx`, `src/app/GoGame.tsx` (sound engine wiring at input-submit seam)
+- `src/app/games/OgGame.tsx`, `src/app/games/GoGame.tsx` (sound engine wiring at input-submit seam after the cleanup follow-up)
 - `src/account/AuthPanel.tsx` (magic-link / email+password toggle, sign-in vs. create-account, show/hide password)
 - `src/account/Settings.tsx` (new auth props pass-through, Sound Effects panel)
 - `src/account/auth.ts` (`signInWithPassword`, `signUpWithPassword`, `subscribeToAuthChanges`)
@@ -116,3 +116,22 @@ The existing `src/` layout already groups code logically by concern: `account/`,
 - No secrets, deploy URLs, or private deployment data are present in any artifact.
 - The optional email field on the Feedback tab is embedded only into the issue body the user reviews on github.com before submitting; it is never stored client-side beyond the form state.
 - Sound preference persists under `localStorage` key `brrrdle:sound-effects-enabled` and defaults to On.
+
+### Conservative repository reorganization follow-up — 2026-05-27T23:21:40Z
+- User explicitly authorized a conservative follow-up reorganization after Phase 13.1 while retaining the non-deletion rule and requiring notes to be appended here instead of creating a new progress step.
+- Files moved with `git mv`:
+  - `src/app/OgGame.tsx` → `src/app/games/OgGame.tsx`
+  - `src/app/GoGame.tsx` → `src/app/games/GoGame.tsx`
+  - `src/game/useKeyboardInput.ts` → `src/game/input/useKeyboardInput.ts`
+  - `src/game/useKeyboardInput.test.ts` → `src/game/input/useKeyboardInput.test.ts`
+  - `src/lib/storage/dailyOgStorage.ts` → `src/game/storage/dailyOgStorage.ts`
+  - `src/lib/storage/dailyOgStorage.test.ts` → `src/game/storage/dailyOgStorage.test.ts`
+  - `src/lib/storage/dailyGoStorage.ts` → `src/game/storage/dailyGoStorage.ts`
+  - `src/lib/storage/dailyGoStorage.test.ts` → `src/game/storage/dailyGoStorage.test.ts`
+- New folders created with README files: `src/app/games/`, `src/game/input/`, and `src/game/storage/`.
+- Import paths were updated in the app shell, moved game panels, game barrel exports, UI keyboard component, and moved storage/input tests. No `tsconfig`, Vite, ESLint, Vercel, Supabase, public asset, docs routing, or GitHub Actions path setting required a config change.
+- Documentation updated: root `README.md` now includes a current repository organization tree; `src/app/README.md`, `src/game/README.md`, and `src/lib/README.md` were refreshed; `CHANGELOG.md` records the behavior-preserving reorganization under Unreleased.
+- Manual follow-up: **Vercel — no action required** (no `api/` entry point, cron path, rewrite, output directory, or env binding changed). **Supabase — no action required** (client env names and auth settings unchanged). **GitHub Pages / Jekyll — no action required** (`docs/` did not move). **GitHub Actions — no action required** (no workflow path expression changed).
+- Baseline verification before the follow-up passed: `npm ci`, `npm run lint`, `npm run test` (167/167), `npm run build`, `npx tsc -p tsconfig.api.json --noEmit`, client-bundle leak check, and `git diff --check`.
+- Post-move verification passed before documentation updates: `npm run lint`, `npm run test` (167/167), `npm run build`, `npx tsc -p tsconfig.api.json --noEmit`, client-bundle leak check, and `git diff --check`.
+
