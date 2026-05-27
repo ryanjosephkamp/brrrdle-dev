@@ -1,10 +1,10 @@
-import type { WordListFile } from './types'
-import { validateWordListFile, type SchemaIssue } from './wordListSchema'
+import type { WordListFile } from './types.js'
+import { validateWordListFile, type SchemaIssue } from './wordListSchema.js'
 import {
   HUGGING_FACE_EXPECTED_LENGTHS,
   buildHuggingFaceFileUrl,
   type JsonFetcher,
-} from './huggingFaceSource'
+} from './huggingFaceSource.js'
 
 export interface RefreshSourceInfo {
   readonly datasetId: string

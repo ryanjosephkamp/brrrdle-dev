@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { validateWordListFile } from './wordListSchema'
-import wordsLength2 from './bundled/words_length_2.json'
-import wordsLength5 from './bundled/words_length_5.json'
-import wordsLength35 from './bundled/words_length_35.json'
+import { validateWordListFile } from './wordListSchema.js'
+import wordsLength2 from './bundled/words_length_2.json' with { type: 'json' }
+import wordsLength5 from './bundled/words_length_5.json' with { type: 'json' }
+import wordsLength35 from './bundled/words_length_35.json' with { type: 'json' }
 
 describe('validateWordListFile', () => {
   it('accepts representative bundled lengths', () => {

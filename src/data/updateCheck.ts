@@ -1,4 +1,4 @@
-import type { RemoteWordListMetadata } from './types'
+import type { RemoteWordListMetadata } from './types.js'
 
 export interface UpdateCheckCurrent {
   readonly status: 'current'

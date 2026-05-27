@@ -1,4 +1,4 @@
-import type { GameMode, PlayScope } from '../game/types'
+import type { GameMode, PlayScope } from '../game/types.js'
 
 export interface WordDefinitionEntry {
   readonly partOfSpeech?: string

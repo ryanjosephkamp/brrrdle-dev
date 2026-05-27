@@ -8,7 +8,7 @@ import {
   buildHuggingFaceFileUrl,
   defaultHuggingFaceFilename,
   fetchHuggingFaceRemoteMetadata,
-} from './huggingFaceSource'
+} from './huggingFaceSource.js'
 
 describe('Hugging Face source configuration', () => {
   it('targets the latest/brrrdle folder of the approved dataset', () => {

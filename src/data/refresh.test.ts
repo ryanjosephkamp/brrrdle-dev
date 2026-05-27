@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { refreshWordListsFromHuggingFace, type RefreshSourceInfo } from './refresh'
+import { refreshWordListsFromHuggingFace, type RefreshSourceInfo } from './refresh.js'
 
 const SOURCE: RefreshSourceInfo = {
   datasetId: 'ryanjosephkamp/english-openlist',

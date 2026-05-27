@@ -1,7 +1,7 @@
-import type { PlayScope } from '../game/types'
-import type { NormalizedWordList } from './types'
-import { loadBundledWordList } from './loadWordList'
-import { getDataStatus, type DataStatus } from './status'
+import type { PlayScope } from '../game/types.js'
+import type { NormalizedWordList } from './types.js'
+import { loadBundledWordList } from './loadWordList.js'
+import { getDataStatus, type DataStatus } from './status.js'
 
 export interface CachedWordListResult {
   readonly status: DataStatus

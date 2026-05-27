@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { BUNDLED_REMOTE_METADATA } from './metadata'
-import { checkForWordListUpdates } from './updateCheck'
+import { BUNDLED_REMOTE_METADATA } from './metadata.js'
+import { checkForWordListUpdates } from './updateCheck.js'
 
 describe('checkForWordListUpdates', () => {
   it('reports current metadata', async () => {

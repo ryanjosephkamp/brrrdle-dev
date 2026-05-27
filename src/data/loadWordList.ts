@@ -1,8 +1,8 @@
-import { DAILY_WORD_LENGTH, isSupportedDailyWordLength, isSupportedPracticeWordLength } from '../game/constants'
-import type { PlayScope } from '../game/types'
-import type { NormalizedWordList, WordDefinitionEntry, WordListFile } from './types'
-import { validateWordListFile } from './wordListSchema'
-import { BUNDLED_WORD_LISTS } from './wordLists'
+import { DAILY_WORD_LENGTH, isSupportedDailyWordLength, isSupportedPracticeWordLength } from '../game/constants.js'
+import type { PlayScope } from '../game/types.js'
+import type { NormalizedWordList, WordDefinitionEntry, WordListFile } from './types.js'
+import { validateWordListFile } from './wordListSchema.js'
+import { BUNDLED_WORD_LISTS } from './wordLists.js'
 
 export interface LoadWordListSuccess {
   readonly ok: true
@@ -16,6 +16,13 @@ export interface LoadWordListFailure {
 }
 
 export type LoadWordListResult = LoadWordListSuccess | LoadWordListFailure
+
+interface ResolveWordListLengthSuccess {
+  readonly ok: true
+  readonly length: number
+}
+
+type ResolveWordListLengthResult = LoadWordListFailure | ResolveWordListLengthSuccess
 
 function normalizeWordList(file: WordListFile): NormalizedWordList {
   const validGuesses = new Set(file.validGuesses)
@@ -35,7 +42,7 @@ function normalizeWordList(file: WordListFile): NormalizedWordList {
   }
 }
 
-export function resolveWordListLength(scope: PlayScope, length: number): LoadWordListFailure | { readonly ok: true; readonly length: number } {
+export function resolveWordListLength(scope: PlayScope, length: number): ResolveWordListLengthResult {
   if (scope === 'daily' && !isSupportedDailyWordLength(length)) {
     return {
       ok: false,
@@ -57,7 +64,7 @@ export function resolveWordListLength(scope: PlayScope, length: number): LoadWor
 
 export function loadBundledWordList(scope: PlayScope, length: number): LoadWordListResult {
   const resolvedLength = resolveWordListLength(scope, length)
-  if (!resolvedLength.ok) {
+  if (resolvedLength.ok === false) {
     return resolvedLength
   }
 

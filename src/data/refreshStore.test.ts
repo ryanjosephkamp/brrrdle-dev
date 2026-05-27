@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { RefreshSuccess } from './refresh'
+import type { RefreshSuccess } from './refresh.js'
 import {
   FailingInMemoryWordListStore,
   InMemoryWordListStore,
   projectManifest,
-} from './refreshStore'
-import type { WordListFile } from './types'
+} from './refreshStore.js'
+import type { WordListFile } from './types.js'
 
 function makeFile(length: number, word: string): WordListFile {
   return {

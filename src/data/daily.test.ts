@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DAILY_WORD_LENGTH } from '../game/constants'
-import { getDailyAnswerIndex, getDailyDateKey, getDailyOgPuzzle, selectDailyAnswer } from './daily'
+import { DAILY_WORD_LENGTH } from '../game/constants.js'
+import { getDailyAnswerIndex, getDailyDateKey, getDailyOgPuzzle, selectDailyAnswer } from './daily.js'
 
 describe('daily puzzle selection', () => {
   it('uses stable UTC date keys', () => {

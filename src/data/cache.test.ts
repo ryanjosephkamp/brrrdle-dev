@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { clearWordListCache, getCachedWordList } from './cache'
-import { getDataStatus } from './status'
+import { clearWordListCache, getCachedWordList } from './cache.js'
+import { getDataStatus } from './status.js'
 
 describe('data cache and statuses', () => {
   beforeEach(() => {
