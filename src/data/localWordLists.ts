@@ -58,6 +58,17 @@ import wordsLength32 from '../latest/words_length_32.json' with { type: 'json' }
 import wordsLength33 from '../latest/words_length_33.json' with { type: 'json' }
 import wordsLength34 from '../latest/words_length_34.json' with { type: 'json' }
 import wordsLength35 from '../latest/words_length_35.json' with { type: 'json' }
+/**
+ * Historical seed JSONs at `src/data/bundled/` are kept on disk per §22.6
+ * ("no file deletion"). They are no longer the gameplay source; however, the
+ * tiny set of inline `answers[].definitions` they carry is merged into the
+ * local source below when a seed answer is also present in the local list.
+ * This preserves the existing definition behaviour for the small set of
+ * curated answers documented in `src/data/bundled/source.json` without
+ * re-introducing the seed as a primary loader (see §22.3 and §22.6).
+ */
+import seedLength2 from './bundled/words_length_2.json' with { type: 'json' }
+import seedLength5 from './bundled/words_length_5.json' with { type: 'json' }
 
 /**
  * Single loader-path constant. Encodes the on-disk layout chosen during
@@ -130,6 +141,46 @@ export const LOCAL_WORD_LISTS_MANIFEST: LocalWordListsManifest = projectManifest
  * fed to `validateWordListFile`, producing the canonical `'invalid-bundled-list'`
  * failure surface in `loadBundledWordList`.
  */
+function buildSeedDefinitionsForLength(rawSeed: unknown): ReadonlyMap<string, Readonly<Record<string, unknown>>[]> {
+  const map = new Map<string, Readonly<Record<string, unknown>>[]>()
+  if (!isRecord(rawSeed)) return map
+  const answers = Array.isArray(rawSeed.answers) ? rawSeed.answers : []
+  for (const entry of answers) {
+    if (!isRecord(entry)) continue
+    const word = typeof entry.word === 'string' ? entry.word.trim().toLocaleLowerCase('en-US') : undefined
+    if (!word) continue
+    if (!Array.isArray(entry.definitions) || entry.definitions.length === 0) continue
+    const definitions = entry.definitions.filter((d): d is Record<string, unknown> => isRecord(d))
+    if (definitions.length > 0) {
+      map.set(word, definitions)
+    }
+  }
+  return map
+}
+
+/**
+ * Per-length seed-definition supplement (additive only). Maps a word in the
+ * local source's answers list to its inline definitions from the historical
+ * `src/data/bundled/` seed. Empty for lengths whose seed file has no inline
+ * `answers[].definitions`.
+ */
+const SEED_DEFINITIONS_BY_LENGTH: Readonly<Record<number, ReadonlyMap<string, Readonly<Record<string, unknown>>[]>>> = {
+  2: buildSeedDefinitionsForLength(seedLength2),
+  5: buildSeedDefinitionsForLength(seedLength5),
+}
+
+function mergeSeedDefinitionsIntoAnswers(rawAnswers: unknown, length: number): unknown {
+  if (!Array.isArray(rawAnswers)) return rawAnswers
+  const seedDefs = SEED_DEFINITIONS_BY_LENGTH[length]
+  if (!seedDefs || seedDefs.size === 0) return rawAnswers
+  return rawAnswers.map((entry) => {
+    if (typeof entry !== 'string') return entry
+    const normalized = entry.trim().toLocaleLowerCase('en-US')
+    const definitions = seedDefs.get(normalized)
+    return definitions ? { word: entry, definitions } : entry
+  })
+}
+
 export function normalizeLocalWordListFile(raw: unknown, length: number): unknown {
   const record = isRecord(raw) ? raw : {}
   const rawMetadata = isRecord(record.metadata) ? record.metadata : {}
@@ -148,7 +199,7 @@ export function normalizeLocalWordListFile(raw: unknown, length: number): unknow
   return {
     ...record,
     metadata: synthesizedMetadata,
-    answers: record.answers,
+    answers: mergeSeedDefinitionsIntoAnswers(record.answers, length),
     validGuesses: record.validGuesses,
   }
 }
