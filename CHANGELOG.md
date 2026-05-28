@@ -4,6 +4,9 @@ All notable changes to `brrrdle` will be documented in this file.
 
 ## Unreleased
 
+### Deprecated (Phase 17.3 — Hugging Face runtime fetch is no longer the gameplay default, LOCAL-WORD-LISTS-SPEC-2026-05-28)
+- Added module-level `@deprecated` JSDoc banners (no logic change) to `src/data/huggingFaceSource.ts`, `src/data/refresh.ts`, `src/data/refreshStore.ts`, `src/data/updateCheck.ts`, and `api/admin-refresh.ts`. The runtime Hugging Face fetch and refresh pipeline remain compiled, tested, and reachable from `/api/admin-refresh` and the Vercel Cron job as an **optional admin-triggered override**, but gameplay reads `src/latest/` by default per Phase 17.2. Phase 14 admin authorization and the existing request/response contract are unchanged.
+
 ### Changed (Phase 17.2 — Re-point `BUNDLED_WORD_LISTS` to local source, LOCAL-WORD-LISTS-SPEC-2026-05-28)
 - **`src/data/wordLists.ts`** — replaced 34 static `import ... from "./bundled/words_length_N.json"` statements with a thin re-export of `LOCAL_WORD_LISTS` from `./localWordLists.js` aliased as `BUNDLED_WORD_LISTS` and `BUNDLED_WORD_LIST_LENGTHS = LOCAL_WORD_LIST_LENGTHS`. Public export names are byte-identical. Gameplay (daily and practice) now reads from `src/latest/words_length_N.json`.
 - **`src/data/bundled/source.json`** — `note` rewritten to mark the directory as a historical seed superseded by `src/latest/` per LOCAL-WORD-LISTS-SPEC-2026-05-28. No JSON in `src/data/bundled/` deleted.
