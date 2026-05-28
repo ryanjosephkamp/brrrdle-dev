@@ -1,9 +1,9 @@
 # AGENT-IMPLEMENTATION-PLAN.md
 
 **Project**: brrrdle  
-**Plan Version**: 1.6
+**Plan Version**: 1.7
 **Date**: 2026-05-28
-**Status**: Draft for user review — amended with Hugging Face word-list source integration; further amended on 2026-05-27 with the `ADDITIONS-2026-05-27.md` addendum (see §18); further amended on 2026-05-27 with the `DIAGNOSIS-REPORT-ADMIN-TAB-2026-05-27.md` addendum (see §19); further amended on 2026-05-27 with the `AUTH-UX-IMPROVEMENTS-SPEC-2026-05-27.md` addendum (see §20); further amended on 2026-05-28 with the Mobile & Tablet Responsiveness phase (see §21).
+**Status**: Draft for user review — amended with Hugging Face word-list source integration; further amended on 2026-05-27 with the `ADDITIONS-2026-05-27.md` addendum (see §18); further amended on 2026-05-27 with the `DIAGNOSIS-REPORT-ADMIN-TAB-2026-05-27.md` addendum (see §19); further amended on 2026-05-27 with the `AUTH-UX-IMPROVEMENTS-SPEC-2026-05-27.md` addendum (see §20); further amended on 2026-05-28 with the Mobile & Tablet Responsiveness phase (see §21); further amended on 2026-05-28 with the Local Word Lists addendum (`LOCAL-WORD-LISTS-SPEC-2026-05-28.md`) as Phase 17 (see §22).
 **Authority**: Must follow `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, and the approved v2.6 plan in `BRRRDLE-OVERVIEW.md`.
 
 ---
@@ -2057,6 +2057,148 @@ Required to pass before declaring Phase 16 complete:
 - All §21.3 diagnoses are demonstrably resolved on the six reference viewports.
 - All §21.7 invariants verified intact.
 - All Phase 16.6 verification items (§21.6) green.
+- `progress/PROGRESS.csv`, `progress/PROGRESS-STEP-*.md`, and `CHANGELOG.md` updated and free of sensitive data.
+- Halt for explicit user approval before any production release action.
+
+---
+
+## 22. Phase 17 — Use Local brrrdle Word List JSONs from `src/latest/` (Addendum, LOCAL-WORD-LISTS-SPEC-2026-05-28)
+
+**Plan Version**: 1.7 (addendum). Bound by `CONSTITUTION.md` v3.1, `BRRRDLE-SPEC.md`, the prior plan (Phases 0–16), and `LOCAL-WORD-LISTS-SPEC-2026-05-28.md` (the source of truth for this phase). Triggered by the user manually placing the latest 34 authoritative per-length JSON dictionaries inside the repository and reporting that the runtime Hugging Face fetch is failing and producing "word not in list" errors and incomplete practice lengths.
+
+> Status: **No code changes yet.** This addendum exists for user review. Implementation is gated on explicit user approval (see §22.10).
+
+### 22.1 Scope, Source of Truth, and Operating Rules
+
+- **Source of truth for this phase**: `LOCAL-WORD-LISTS-SPEC-2026-05-28.md` and this Section 22. If the spec and prior phases conflict, the spec wins for the narrow concerns of (a) where the word data is read from and (b) deprecation of the runtime Hugging Face path for normal gameplay. All other invariants from Phases 0–16 are preserved.
+- **Authoritative on-disk path discrepancy (must reconcile during 17.1)**:
+  - The spec text refers to `src/latest/brrrdle/`.
+  - The repository as committed places the 34 files directly at `src/latest/` (verified at HEAD: `src/latest/words_length_2.json` … `src/latest/words_length_35.json`, plus `manifest.json`, `README.md`, and transitional `brrrdle_words.json` / `brrrdle_words.txt` length-5 compatibility files).
+  - Treat the actual on-disk location (`src/latest/`) as authoritative for code. Mention the spec's `src/latest/brrrdle/` wording in `CHANGELOG.md` and Phase 17 progress notes so the discrepancy is auditable. If the user prefers, a one-time `git mv` to `src/latest/brrrdle/` may be performed during Sub-phase 17.1 as a pure rename; the loader path constant is the single point that decides which layout is in effect.
+- **Non-negotiable preserved invariants** (carried unchanged from Phases 0–16):
+  - Daily `og`/`go` locked at 5 letters; practice 2–35.
+  - Admin tab + `/api/admin-refresh` server contract intact; the refresh endpoint and Phase 14 admin authorization remain in place as an optional override only.
+  - Word Explorer, Feedback tab, Sound Effects, Sharing, Pay-to-Continue economy, Auth flows, stats, definitions stack, mobile/tablet responsiveness — all untouched.
+  - Public APIs of the data layer remain byte-identical at the signature level: `loadBundledWordList`, `getWordRepository`, `getRequestedWordLength`, `getAnswerCandidates`, `getValidGuesses`, `getDefinitionsForWord`, `validateGuess`, and barrel exports in `src/data/index.ts`.
+  - `NormalizedWordList`, `WordEntry`, `WordDefinitionEntry`, `WordListFile`, `WordListMetadata`, and `RemoteWordListMetadata` types remain backward-compatible. Any change is additive (optional fields only).
+  - No file deletion. No removal/skip/weakening of existing tests. No new env vars. No service-role on client. No `@vercel/blob` in client bundle. No new runtime dependency. No change to `MIN_PRACTICE_WORD_LENGTH=2` / `MAX_PRACTICE_WORD_LENGTH=35` / `DAILY_WORD_LENGTH=5`.
+- **Operating rules**:
+  - Strictly minimal, non-breaking changes.
+  - The runtime Hugging Face fetch is **deprecated, not deleted**. `src/data/huggingFaceSource.ts`, `src/data/refresh.ts`, `src/data/refreshStore.ts`, `src/data/updateCheck.ts`, and `api/admin-refresh.ts` continue to compile, pass existing tests, and remain reachable from the protected admin route. Only the **default loading path used by gameplay** moves to local JSON.
+  - Use static `import` of the 34 local JSON files via Vite's JSON loader (mirroring the existing pattern in `src/data/wordLists.ts`). No new dependency is required.
+  - All data-layer error reasons and result shapes (`unsupported-length`, `daily-length-locked`, `missing-bundled-list`, `invalid-bundled-list`) remain unchanged. A new failure surface is permitted only if additive (e.g., `'invalid-local-list'`) and only if absolutely required — preferred is to reuse `'invalid-bundled-list'` so consumers don't have to change.
+
+### 22.2 Diagnosis of the Current Remote-Fetch Problem
+
+Findings against HEAD (Plan Version 1.6):
+
+1. **The bundled snapshot under `src/data/bundled/` is the 2026-05-26 development seed, not the real 2026-05-28 dataset.**
+   - `src/data/bundled/source.json` self-identifies as `version: bundle-2026-05-26` with `lengths: [2, 5, 35]` and the note "Bundled development seed. The first successful scheduled or admin refresh … will replace this snapshot".
+   - The seed is sparse for many lengths (e.g., length 5 `answers` includes the curated `{ word: "crane", definitions: […] }` object followed by a handful of plain strings), so practice modes for lengths outside 2/5/35 fall back to thin lists and reject common words as "not in list".
+2. **The runtime path that was supposed to upgrade the seed is the Hugging Face refresh** (`src/data/huggingFaceSource.ts` + `src/data/refresh.ts`, swapped in by `refreshStore.ts` and triggered by the daily Vercel Cron and `/api/admin-refresh`). The user reports this is failing in the current environment, leaving gameplay on the seed permanently.
+3. **The user has now committed the real authoritative data into the repo at `src/latest/`** (34 files, lengths 2–35, generated at `2026-05-28T01:39:10.899912+00:00`, schema version `2.0`, per-length counts ranging from 134 at length 2 to 47,763 at length 9). Per-length `answers` is a curated array of plain strings produced by `stratified_quality_score_v1`; `validGuesses` is the full per-length list.
+4. **Schema gap**: the new files do **not** match the current `WordListMetadata` schema validator:
+   - `metadata` contains only a `curation` block (no `length`, `source`, `version`, `generatedAt` strings).
+   - `answers` is `string[]` (no inline `definitions`). The existing `validateWordEntry` already accepts strings, so this half is compatible.
+   - `validGuesses` is `string[]` — already compatible.
+   - Without an adjustment to `validateWordListFile` (or a new local-list adapter), every local file would be rejected with `invalid-bundled-list` and four "metadata required" issues.
+5. **Definitions consequence**: the new per-length files do not carry inline `definitions`. The post-game Definitions System (Phase 6) already falls back through Dictionary API → Wiktionary → Google search, so eliminating inline definitions for the curated subset is acceptable — but the addendum must explicitly confirm this and the verification matrix must re-cover §6.
+
+### 22.3 Proposed Solution (minimal, non-breaking)
+
+The fix is delivered as **one logical change**: add a thin "local source" path that statically imports the 34 JSONs from `src/latest/` and feeds them into the existing normalization pipeline, then make `BUNDLED_WORD_LISTS` resolve from the local source by default. Everything downstream is unchanged.
+
+**Design choices**:
+
+- **Single new file, single edit point**: introduce `src/data/localWordLists.ts` containing 34 static JSON imports (mirroring `src/data/wordLists.ts`) plus a `LOCAL_WORD_LISTS` record. This keeps the diff cohesive and reviewable. `src/data/wordLists.ts` becomes a thin re-export of `LOCAL_WORD_LISTS` aliased as `BUNDLED_WORD_LISTS`, preserving the existing import name used by `loadBundledWordList`.
+- **Adapter, not schema rewrite**: add a `normalizeLocalWordListFile(raw, length): WordListFile` adapter that:
+  - Synthesizes the legacy `WordListMetadata` block from the manifest + per-length file (e.g., `length: N`, `source: 'src/latest (english-openlist-brrrdle 2026-05-28)'`, `version: '<release_date from manifest.json>'`, `generatedAt: '<generated_at from manifest.json>'`).
+  - Passes the raw `metadata.curation` block through on an additive, optional `curation?` field added to `WordListMetadata` (additive only — existing consumers ignore unknown fields).
+  - Leaves `answers` and `validGuesses` as-is (strings), letting the existing `validateWordListFile` continue to do the heavy validation.
+- **No change to `loadBundledWordList`'s public surface**: it still calls `validateWordListFile(bundled)` and returns `LoadWordListResult`. The adapter runs **before** `validateWordListFile`, so any malformed local file is still caught by the canonical schema validator and surfaces as `invalid-bundled-list`.
+- **Curated answers subset (BRRRDLE-ANSWERS-CURATION-SPEC) is preserved automatically**: the local files already encode the curated subset in `answers` — the loader does not need to re-curate.
+- **Definitions**: `definitionsByWord` becomes an empty Map for the local-source path. The Definitions System already handles "no inline definition" gracefully via the Dictionary API → Wiktionary → Google fallback chain. No UI change.
+- **Daily-mode performance**: static imports of all 34 files are no slower than the existing `src/data/bundled/` pattern. To safeguard daily mode bundle size, length 5 must remain in the initial JS chunk; the other 33 may be code-split via `import('…').then(…)` **only if** the bundle-size delta from static imports is judged unacceptable in 17.4 verification. Default plan: keep static imports (matches current Phase 2 pattern). Code-split is a fall-back lever, not a baseline change.
+- **`src/data/bundled/` is kept on disk** (no deletion, per invariant) and updates its `source.json` to record that it is now a historical seed superseded by `src/latest/`. The seed JSONs remain valid emergency fallbacks; the loader does not consult them by default.
+- **Hugging Face path stays compiled and tested** but is no longer the gameplay default. `refreshStore`'s in-memory swap can still be triggered by the admin route; gameplay reads the local source first and the refresh store only when the admin route has explicitly swapped a length in-session. Final wiring detail to be confirmed during 17.2.
+
+### 22.4 Phase 17 — Sub-Phase Plan
+
+| Sub-phase | Title | Files Touched (planned) | Verification |
+|-----------|-------|-------------------------|--------------|
+| 17.0 | Pre-flight, baseline capture, reconciliation note | none (read-only) | Re-confirm `npm run lint`, `npm run test`, `npm run build`, `npx tsc -p tsconfig.api.json --noEmit` all green at HEAD. Confirm 34 files present at `src/latest/`. Decide and document whether to keep `src/latest/` or `git mv` to `src/latest/brrrdle/` to match the spec wording. |
+| 17.1 | Add local source loader & metadata adapter | **New**: `src/data/localWordLists.ts`, `src/data/localWordLists.test.ts`. **Edit (additive only)**: `src/data/types.ts` (add optional `curation?` to `WordListMetadata`), `src/data/wordListSchema.ts` (accept synthesized metadata, no removal of existing checks). | New unit tests covering: lengths 2, 5, 12, 20, 35 load; metadata is synthesized correctly; answers/validGuesses pass canonical schema; malformed local file is still rejected with `invalid-bundled-list`. |
+| 17.2 | Re-point `BUNDLED_WORD_LISTS` to local source | **Edit**: `src/data/wordLists.ts` (re-export `LOCAL_WORD_LISTS` as `BUNDLED_WORD_LISTS`; keep `BUNDLED_WORD_LIST_LENGTHS` array). **Update**: `src/data/bundled/source.json` to mark itself as historical seed. **No change**: `src/data/loadWordList.ts`, `src/data/wordRepository.ts`. | `src/data/loadWordList.test.ts`, `src/data/wordRepository.test.ts`, `src/data/practiceLengthCoverage.test.ts` all green unchanged. Existing daily-length-locked tests unchanged. |
+| 17.3 | Deprecate runtime HF fetch as default; keep it as optional admin override | **Edit (annotation/JSDoc only, no logic change)**: `src/data/huggingFaceSource.ts`, `src/data/refresh.ts`, `src/data/refreshStore.ts`, `src/data/updateCheck.ts`, `api/admin-refresh.ts`. | Existing HF-related tests (`huggingFaceSource.test.ts`, `refresh.test.ts`, `refreshStore.test.ts`, `updateCheck.test.ts`) remain green. Admin-route auth tests remain green. |
+| 17.4 | Full verification & bundle-leak check | docs/changelog/progress only | Full §22.5 pipeline. |
+| 17.5 | Progress tracking, CHANGELOG, halt for user approval | `progress/PROGRESS.csv`, `progress/PROGRESS-STEP-N.md` (next contiguous IDs after Phase 16's last), `CHANGELOG.md` | Manual review of progress and changelog updates. |
+
+Each sub-phase ends with a `progress/PROGRESS-STEP-N.md` and a `progress/PROGRESS.csv` row appended for the corresponding `phase_id`. The agent halts at every sub-phase gate per CONSTITUTION.md §4 unless the user explicitly authorizes contiguous execution.
+
+### 22.5 Verification & Release Gate (Phase 17.4)
+
+Required to pass before declaring Phase 17 complete:
+
+1. `npm run lint` — clean.
+2. `npm run test` — all existing tests pass with zero new failures. New tests added in 17.1 must:
+   - Assert that lengths 2, 5, 12, 20, and 35 load real local content (answer count and valid-guess count match `src/latest/manifest.json` per-length counts to within an exact equality for `validGuesses` and exact equality for the curated `answers` subset shipped in each file).
+   - Assert daily mode loads length 5 and rejects non-5 lengths.
+   - Assert practice mode rejects length 1 and length 36.
+   - Assert that one carefully chosen ordinary English word per representative length (a word previously reported as "not in list") now validates as a guess.
+   - Assert that a deliberately malformed mock local JSON is rejected via the canonical schema, producing `reason: 'invalid-bundled-list'` (or the alias chosen in 17.1).
+3. `npm run build` — clean. Bundle-size delta over HEAD recorded in `progress/PROGRESS-STEP-N.md`. If the production JS bundle grows by more than +20% over current HEAD, fall back to the code-split plan described in §22.3.
+4. `npx tsc -p tsconfig.api.json --noEmit` — clean.
+5. Client-bundle leak checks (Phase 13/16 invariants), all run against `dist/`:
+   - `grep -R "@vercel/blob" dist/` — no matches.
+   - `grep -R "huggingface.co" dist/` — matches **only** inside dead-code-eliminated branches or admin-only modules; gameplay chunks must not contain any HF URL. If any gameplay chunk still references HF, treat it as a bug for 17.3 to fix by lazy-import.
+   - No service-role keys, no Supabase admin secrets in `dist/`.
+6. Definitions System manual smoke (Phase 6 invariant): post-game definition flow still works because the Dictionary API → Wiktionary → Google fallback chain handles the now-empty inline definitions cleanly; the Google search button remains always available.
+7. Admin tab manual smoke (Phase 14 invariant): `/api/admin-refresh` still authenticates, still authorizes, still returns the same response shape. If a successful refresh is triggered, the new dataset is merged into `refreshStore` and gameplay reflects it without a reload — i.e., the local source acts as the default and the admin refresh acts as an opt-in override.
+8. Auth flows, Word Explorer, Feedback, Sound Effects, Pay-to-Continue, sharing, and Phase 16 responsive UI: spot-checked unchanged.
+9. CodeQL: run on changed lines after 17.3; any true-positive alerts must be fixed before 17.4 closes.
+
+### 22.6 Preserved Invariants (Phase 17-specific re-statement)
+
+- Daily 5-letter lock and practice 2..35 — unchanged.
+- Hard Mode constraints — unchanged.
+- Curated `answers` subset (BRRRDLE-ANSWERS-CURATION-SPEC) — preserved by reading the curated arrays already produced by `stratified_quality_score_v1` in each local file.
+- Admin tab + `/api/admin-refresh` — preserved as an optional override.
+- Word Explorer, Feedback, Sound Effects, Auth (`AuthModal`, `AccountBadge`, `ProfilePanel`, `classifyAuthError`, magic-link + password coexistence), Pay-to-Continue, sharing, definitions, stats, guest persistence, sync stub — untouched.
+- Mobile/tablet responsiveness (Phase 16) — untouched.
+- No file deletion. No test removal/skip/weakening. No new env vars, no service-role on client, no `@vercel/blob` in client bundle. No new runtime dependency.
+- `src/data/index.ts` barrel export surface is preserved; any new exports (`LOCAL_WORD_LISTS`, `localWordListsManifest`) are additive.
+
+### 22.7 Risks and Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Bundle-size regression from statically importing 34 large files in the main chunk. | Measure `dist/` size delta in 17.4; if > +20%, code-split lengths ≠ 5 via dynamic `import()` (loader becomes async for non-daily lengths; daily stays sync). |
+| Path mismatch between spec (`src/latest/brrrdle/`) and repo (`src/latest/`). | Single loader-path constant in `localWordLists.ts`; either keep `src/latest/` and document, or `git mv` to `src/latest/brrrdle/` in 17.1 as a pure rename. |
+| Existing schema validator rejects new metadata shape. | Synthesize legacy `WordListMetadata` from `src/latest/manifest.json` and per-length file in the adapter; do not weaken the validator. |
+| Loss of inline definitions for curated answers (the local files don't carry them). | Existing Definitions System fallback chain (Phase 6) handles this — Dictionary API → Wiktionary → Google. Verification 22.5 §6 re-confirms. |
+| Admin refresh path silently rots because gameplay no longer touches it. | Keep all existing HF tests green; Phase 17.3 only adds JSDoc deprecation notes; the cron route and `/api/admin-refresh` continue to compile and run. |
+| Stale `src/data/bundled/` confuses future contributors. | Update `src/data/bundled/source.json.note` in 17.2 to explicitly state "Historical seed. Do not load at runtime. Superseded by `src/latest/` per LOCAL-WORD-LISTS-SPEC-2026-05-28." |
+| Transitional length-5 compatibility files (`brrrdle_words.json`, `brrrdle_words.txt`) in `src/latest/` cause confusion. | Loader uses `words_length_N.json` filenames only; compatibility files are ignored. Documented in 17.1 progress notes. |
+
+### 22.8 Out of Scope for Phase 17
+
+- Changing the curated-answers algorithm.
+- Adding inline definitions to the local per-length files.
+- Removing or rewriting the Hugging Face fetch, refresh store, or admin refresh contract.
+- Changing daily-mode length, practice-mode bounds, or any UI.
+- Any documentation rewrite beyond the changelog entry and the seed `source.json` historical note.
+
+### 22.9 Progress Tracking and CHANGELOG
+
+- Append rows to `progress/PROGRESS.csv` for each of Phases 17.0 through 17.5, using the next contiguous `phase_id` values after the highest currently recorded ID. Titles follow the pattern `"Phase 17.x — <Sub-phase title>"`.
+- Create `progress/PROGRESS-STEP-N.md` from `progress/PROGRESS-TEMPLATE.md` for each sub-phase, summarising what changed, verification results, blockers, and explicit go/no-go for the next sub-phase.
+- Add `[Unreleased] — Changed` and `[Unreleased] — Deprecated` entries to `CHANGELOG.md` for: local-first word-list loading, deprecation of the runtime HF fetch as the default gameplay path, and the seed-snapshot historical-note update.
+
+### 22.10 Phase 17 Exit Checklist
+
+- All §22.2 diagnoses are demonstrably resolved (daily and practice 2–35 load real local content, previously rejected ordinary words now validate).
+- All §22.6 invariants verified intact.
+- All §22.5 verification items green.
 - `progress/PROGRESS.csv`, `progress/PROGRESS-STEP-*.md`, and `CHANGELOG.md` updated and free of sensitive data.
 - Halt for explicit user approval before any production release action.
 
