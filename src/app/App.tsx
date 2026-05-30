@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AccountBadge, AuthModal, ProfilePanel, classifyAuthError, createBrrrdleSupabaseClient, createSyncStatus, getCurrentAuthState, loadGuestProgress, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, updateProfile, type AuthState, type CompletedGameInput, type ProfileAccentColor } from '../account'
-import { BUNDLED_WORD_LIST_LENGTHS } from '../data'
+import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH } from '../game/constants'
 import { Button, Layout, Navigation, Panel } from '../ui'
 import { AdminPanel } from '../admin'
@@ -32,13 +32,17 @@ function ModeCard({ route, onSelect }: { readonly route: AppRoute; readonly onSe
 
 function PracticeGameSwitcher({
   coins,
+  defaultDifficulty,
   keyboardDisabled,
   onGameComplete,
+  onSaveDifficultyDefault,
   onSpendCoins,
 }: {
   readonly coins: number
+  readonly defaultDifficulty: DifficultyTier
   readonly keyboardDisabled?: boolean
   readonly onGameComplete: (input: CompletedGameInput) => void
+  readonly onSaveDifficultyDefault: (tier: DifficultyTier) => void
   readonly onSpendCoins: (amount: number) => boolean
 }) {
   const [practiceMode, setPracticeMode] = useState<'og' | 'go'>('og')
@@ -50,8 +54,8 @@ function PracticeGameSwitcher({
         <Button onClick={() => setPracticeMode('go')} variant={practiceMode === 'go' ? 'primary' : 'secondary'}>go practice</Button>
       </div>
       {practiceMode === 'og'
-        ? <OgGame coins={coins} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSpendCoins={onSpendCoins} scope="practice" />
-        : <GoGame coins={coins} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSpendCoins={onSpendCoins} scope="practice" />}
+        ? <OgGame coins={coins} defaultDifficulty={defaultDifficulty} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={onSaveDifficultyDefault} onSpendCoins={onSpendCoins} scope="practice" />
+        : <GoGame coins={coins} defaultDifficulty={defaultDifficulty} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={onSaveDifficultyDefault} onSpendCoins={onSpendCoins} scope="practice" />}
     </section>
   )
 }
@@ -112,15 +116,15 @@ function RoutePanel({
   }
 
   if (route.id === 'og-daily') {
-    return <OgGame coins={guestProgress.progression.coins} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSpendCoins={onSpendCoins} scope="daily" />
+    return <OgGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSpendCoins={onSpendCoins} scope="daily" />
   }
 
   if (route.id === 'go-daily') {
-    return <GoGame coins={guestProgress.progression.coins} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSpendCoins={onSpendCoins} scope="daily" />
+    return <GoGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSpendCoins={onSpendCoins} scope="daily" />
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher coins={guestProgress.progression.coins} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSpendCoins={onSpendCoins} />
+    return <PracticeGameSwitcher coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSpendCoins={onSpendCoins} />
   }
 
   if (route.id === 'word-explorer') {
