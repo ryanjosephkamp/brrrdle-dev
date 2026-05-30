@@ -32,6 +32,13 @@ export interface GoSessionState {
   readonly status: GameStatus
   readonly validGuesses: ReadonlySet<string>
   readonly wordLength: number
+  /**
+   * Phase 18.7 — set when the player used the practice-only "Reveal Answer"
+   * action to give up on the current puzzle. Treated as a loss-equivalent and
+   * blocks Pay-to-Continue (continuing a revealed answer would be trivial).
+   * Always `undefined` for daily go, which never offers Reveal.
+   */
+  readonly revealedAnswer?: boolean
 }
 
 export interface SerializedGoSession {
@@ -219,6 +226,32 @@ export function continueGoAfterLoss(state: GoSessionState, extraAttempts = 1): G
     ...state,
     puzzles,
     status: 'playing',
+  }
+}
+
+/**
+ * Phase 18.7 — practice-only "Give Up / Reveal Answer". Marks the current
+ * puzzle as lost (loss-equivalent for stats) and flags the session as revealed
+ * so Pay-to-Continue is not offered. No-op when the chain is already over.
+ */
+export function revealGoPuzzle(state: GoSessionState): GoSessionState {
+  if (state.status !== 'playing') {
+    return state
+  }
+
+  const puzzles = [...state.puzzles]
+  const current = puzzles[state.currentPuzzleIndex]
+  puzzles[state.currentPuzzleIndex] = {
+    ...current,
+    lastValidation: undefined,
+    status: 'lost',
+  }
+
+  return {
+    ...state,
+    puzzles,
+    revealedAnswer: true,
+    status: 'lost',
   }
 }
 

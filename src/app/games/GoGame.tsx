@@ -12,6 +12,7 @@ import {
   enterGoLetter,
   getAvailableGoPracticeLengths,
   restoreGoSession,
+  revealGoPuzzle,
   serializeGoSession,
   setGoHardMode,
   submitGoGuess,
@@ -155,6 +156,7 @@ function GoGameSession({
 }) {
   const [session, setSession] = useState(() => scope === 'daily' ? createInitialDailySession(setup) : createGoSession(setup))
   const [continuationMessage, setContinuationMessage] = useState<string>()
+  const [showDefinitions, setShowDefinitions] = useState(true)
   const currentPuzzle = session.puzzles[session.currentPuzzleIndex]
   const completionPercentage = getCompletionPercentage(currentPuzzle)
   const continuationCost = calculatePayToContinueCost({
@@ -162,7 +164,15 @@ function GoGameSession({
     continuationCount: currentPuzzle.continuationCount,
     wordLength: currentPuzzle.wordLength,
   })
-  const canAffordContinuation = session.status === 'lost' && coins >= continuationCost
+  const canAffordContinuation = session.status === 'lost' && !session.revealedAnswer && coins >= continuationCost
+  const canPayToContinue = session.status === 'lost' && !session.revealedAnswer
+  const revealCost = calculatePayToContinueCost({
+    completionPercentage,
+    continuationCount: currentPuzzle.continuationCount,
+    wordLength: currentPuzzle.wordLength,
+  })
+  const canReveal = scope === 'practice' && session.status === 'playing'
+  const solvedPuzzles = session.puzzles.filter((puzzle) => puzzle.status === 'won')
 
   useEffect(() => {
     if (scope !== 'daily' || !setup.dateKey) {
@@ -241,6 +251,21 @@ function GoGameSession({
     setSession((currentSession) => continueGoAfterLoss(currentSession))
     setContinuationMessage(`Spent ${continuationCost} coins for one more attempt.`)
   }, [continuationCost, onSpendCoins, session.status])
+
+  const handleReveal = useCallback(() => {
+    if (!canReveal) {
+      return
+    }
+
+    if (!onSpendCoins(revealCost)) {
+      setContinuationMessage(`You need ${revealCost} coins to reveal this answer.`)
+      return
+    }
+
+    const revealedAnswer = currentPuzzle.answer.toLocaleUpperCase('en-US')
+    setSession((currentSession) => revealGoPuzzle(currentSession))
+    setContinuationMessage(`Revealed the answer: ${revealedAnswer}. This puzzle counts as a loss.`)
+  }, [canReveal, currentPuzzle.answer, onSpendCoins, revealCost])
 
   const letterStates = deriveKeyboardLetterStates(currentPuzzle.guesses)
   const statusMessage = session.status === 'won'
@@ -343,7 +368,7 @@ function GoGameSession({
           {currentPuzzle.lastValidation ? <p className="mt-1 font-semibold text-amber-100">{currentPuzzle.lastValidation.message}</p> : null}
         </div>
 
-        {session.status === 'lost' ? (
+        {canPayToContinue ? (
           <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-50">
             <p className="font-bold">Pay to Continue</p>
             <p>Spend {continuationCost} coins for one more attempt on puzzle {session.currentPuzzleIndex + 1}. Current balance: {coins} coins.</p>
@@ -354,6 +379,16 @@ function GoGameSession({
           </div>
         ) : continuationMessage ? (
           <div className="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm font-semibold text-cyan-50">{continuationMessage}</div>
+        ) : null}
+
+        {canReveal ? (
+          <div className="rounded-2xl border border-rose-300/30 bg-rose-300/10 p-4 text-sm leading-6 text-rose-50">
+            <p className="font-bold">Give Up / Reveal Answer</p>
+            <p>Reveal puzzle {session.currentPuzzleIndex + 1} for {revealCost} coins. This counts as a loss for this puzzle. Current balance: {coins} coins.</p>
+            <Button onClick={handleReveal} variant="secondary">
+              Reveal answer ({revealCost} coins)
+            </Button>
+          </div>
         ) : null}
 
         <Keyboard disabled={session.status !== 'playing'} letterStates={letterStates} onInput={handleInput} />
@@ -371,6 +406,31 @@ function GoGameSession({
               status: session.status,
             })}
           />
+        ) : null}
+
+        {solvedPuzzles.length > 0 ? (
+          <div className="rounded-2xl border border-slate-700 bg-slate-950/50 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-bold text-cyan-100">Solved puzzle definitions</p>
+              <Button onClick={() => setShowDefinitions((value) => !value)} variant="ghost">
+                {showDefinitions ? 'Hide Definitions' : 'Show All'}
+              </Button>
+            </div>
+            {showDefinitions ? (
+              <div className="mt-3 flex flex-col gap-3">
+                {solvedPuzzles.map((puzzle, index) => (
+                  <DefinitionPanel
+                    enabled
+                    key={`${puzzle.answer}-${index}`}
+                    mode="go"
+                    scope={scope}
+                    word={puzzle.answer}
+                    wordLength={puzzle.wordLength}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         <DefinitionPanel
