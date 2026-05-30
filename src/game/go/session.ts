@@ -1,4 +1,5 @@
 import { BUNDLED_WORD_LIST_LENGTHS, getDailyAnswerIndex, getDailyDateKey, getWordRepository } from '../../data'
+import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data/difficulty'
 import { DAILY_WORD_LENGTH, GO_PUZZLE_COUNT, SUPPORTED_PRACTICE_WORD_LENGTHS } from '../constants'
 import {
   createPuzzleSession,
@@ -78,8 +79,8 @@ export function getAvailableGoPracticeLengths(): readonly number[] {
   return SUPPORTED_PRACTICE_WORD_LENGTHS.filter((length) => BUNDLED_WORD_LIST_LENGTHS.includes(length))
 }
 
-export function createDailyGoSetup(date = new Date()): GoSessionSetup {
-  const repository = getWordRepository({ mode: 'go', scope: 'daily', length: DAILY_WORD_LENGTH })
+export function createDailyGoSetup(date = new Date(), difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER): GoSessionSetup {
+  const repository = getWordRepository({ mode: 'go', scope: 'daily', length: DAILY_WORD_LENGTH, difficulty })
   if (!repository.ok) {
     throw new Error(repository.message)
   }
@@ -101,8 +102,8 @@ export function createDailyGoSetup(date = new Date()): GoSessionSetup {
   }
 }
 
-export function createPracticeGoSetup(length: number, seed = Date.now()): GoSessionSetup {
-  const repository = getWordRepository({ mode: 'go', scope: 'practice', length })
+export function createPracticeGoSetup(length: number, seed = Date.now(), difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER): GoSessionSetup {
+  const repository = getWordRepository({ mode: 'go', scope: 'practice', length, difficulty })
   if (!repository.ok) {
     throw new Error(repository.message)
   }

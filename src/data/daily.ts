@@ -1,4 +1,5 @@
 import { DAILY_WORD_LENGTH } from '../game/constants.js'
+import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from './difficulty/index.js'
 import type { WordEntry } from './types.js'
 import { getWordRepository, isWordRepositoryFailure } from './wordRepository.js'
 
@@ -37,8 +38,8 @@ export function selectDailyAnswer(answers: readonly WordEntry[], date = new Date
   }
 }
 
-export function getDailyOgPuzzle(date = new Date()): DailyPuzzle {
-  const repository = getWordRepository({ mode: 'og', scope: 'daily', length: DAILY_WORD_LENGTH })
+export function getDailyOgPuzzle(date = new Date(), difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER): DailyPuzzle {
+  const repository = getWordRepository({ mode: 'og', scope: 'daily', length: DAILY_WORD_LENGTH, difficulty })
   if (isWordRepositoryFailure(repository)) {
     throw new Error(repository.message)
   }

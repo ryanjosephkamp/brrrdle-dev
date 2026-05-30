@@ -4,6 +4,22 @@ All notable changes to `brrrdle` will be documented in this file.
 
 ## Unreleased
 
+### Phase 18 — Prompt 3: Full Feature Execution (PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28)
+
+Autonomous execution of the Phase 18 feature work (sub-phases 18.1–18.9) per `AGENT-IMPLEMENTATION-PLAN.md` §23, authorized by the user after reviewing Prompt 2. Invariants preserved at every sub-phase: valid guesses identical across all tiers; default Expert reproduces current behavior; daily 5-letter lock; practice 2–35; no file deletions; no secrets; `getTileStates`/Hard Mode untouched.
+
+#### 18.1 — Pre-flight & baseline capture (`phase_id = 37`)
+- Re-confirmed a green baseline at HEAD before any code changes: `npm ci`, `npm run lint`, `npm run test` (266/266), `npm run build`, and `npx tsc -p tsconfig.api.json --noEmit` all clean. Optional doc reorganization remains **declined** (user answer #5); the root layout is retained.
+
+#### 18.2 — Difficulty-tier data model & answer-subset logic (`phase_id = 38`)
+- **New `src/data/difficulty/` module** (answers-only; valid guesses never touched):
+  - `tiers.ts` — `DifficultyTier = 'casual' | 'standard' | 'expert'`, `DIFFICULTY_TIERS`, `DEFAULT_DIFFICULTY_TIER = 'expert'`, tier metadata/labels, and `isDifficultyTier`/`normalizeDifficultyTier` guards.
+  - `heuristic.ts` — a deterministic, pure, in-repo word-quality heuristic mirroring the offline `stratified_quality_score_v1` weights (frequency 0.45, positional 0.30, vowel balance 0.15, uniqueness 0.10). No network, no randomness, no clock.
+  - `subset.ts` — derives Casual/Standard pools as **nested top-fractions** of the same deterministic ordering, memoised per `(length)`. Exposes `getTierAnswerWords`, `getAnswerSubset` (returns the Expert array unchanged by identity), and `classifyAnswerTier` for the Word Explorer.
+- **Documented refinement (user answer #1 is binding)**: the plan floated shipping a curated `standard-5` JSON from the classic Wordle + Hurdle answer sets. Per user answer #1 (compute tiers in-repo via a deterministic heuristic with **no external data dependency**), this build applies the nested top-fraction derivation uniformly across **all** lengths including 5. This keeps `Casual ⊆ Standard ⊆ Expert` provably true everywhere and avoids embedding a third-party answer list; the loader stays forward-compatible with explicit per-word tier tags if a future regeneration ships them.
+- **Additive selection wiring**: `WordRepositoryRequest` gains an optional `difficulty?: DifficultyTier` (default Expert). `getWordRepository` subsets `answers` by tier and leaves `validGuesses` as the full list. `getDailyOgPuzzle`, `createDailyOgSetup`/`createPracticeOgSetup`, and `createDailyGoSetup`/`createPracticeGoSetup` accept an optional tier argument defaulting to Expert, so all existing callers and tests are unchanged.
+- **Tests** (13 new; 279/279 total): `Casual ⊆ Standard ⊆ Expert` for every available length 2–35; Expert equals today's answers (default request unchanged); `validGuesses` identical across tiers for daily and practice; per-length subset scaling; tier classification; heuristic determinism and cache stability; daily 5-letter lock preserved per tier.
+
 ### Phase 18 — Prompt 2: Constitution Phase-Range Amendment & Repo Adjustments (PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28)
 - **Scope of this entry**: governance/documentation only. **No game code, tests, or game scripts changed.** This is Prompt 2 of the user's 3-prompt Phase 18 workflow (Prompt 1 = planning/cleanup/README; **Prompt 2 = constitution/repo adjustments**; Prompt 3 = full Phase 18 feature execution, still gated on explicit approval).
 - **Applied the approved constitution phase-range amendment** (`CONSTITUTION.md` v3.1 → **v3.2**, user answer #3 from `AGENT-IMPLEMENTATION-PLAN.md` §23.11). No rule was removed or weakened:
