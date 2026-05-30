@@ -4,7 +4,17 @@ All notable changes to `brrrdle` will be documented in this file.
 
 ## Unreleased
 
-### Phase 18 — Prompt 3: Full Feature Execution (PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28)
+### Phase 19 — Prompt 1: Planning & §24 Addendum (PHASE-19-ENHANCED-STATS-RESUME-CONFIGURABLE-GO-AND-POLISH-SPEC-2026-05-30)
+
+Planning stage for Phase 19 (Enhanced Statistics Visualizations, Configurable Go Puzzle Count, Full Resume-Most-Recent-Game Activation, Advanced Polish & Theming Foundations), executed under the user's 3-prompt workflow. **No game code changes** — documentation/governance only. All gameplay implementation (sub-phases 19.1–19.6) is gated on explicit user approval ("Start Prompt 2" or equivalent).
+
+#### 19.0 — Planning, governance/repo cleanup & README polish (`phase_id = 46`)
+- **`AGENT-IMPLEMENTATION-PLAN.md`**: appended the full Phase 19 addendum as **§24** (scope/binding rules/preserved invariants, current stats/resume/configurable-Go/theming diagnosis, per-sub-phase implementation plan, the 19.0–19.6 sub-phase table, verification matrix, and exit checklist) and bumped the plan version **v2.0 → v2.1** with an updated header changelog line.
+- **`README.md`**: corrected the stale "Project status" line (Phase 18 is implemented; Phase 19 is now planned & awaiting approval) and lightly updated the feature list to mention shipped answer-difficulty tiers and preview the approved Phase 19 enhancements. Documentation-only; no invented facts.
+- **Model-agnostic / clarity review**: repo-wide `GPT-5*` scan returns zero matches; remaining model references are already phrased model-agnostically (e.g. "any sufficiently capable model, e.g. Claude Opus 4.8"). Binding `CONSTITUTION.md` and `BRRRDLE-SPEC.md` reviewed and left unchanged (no model attribution; no Phase 19 amendment required). Root file layout retained (no files moved/deleted), consistent with the Phase 18.0 decision.
+- **Progress-step numbering deviation (flagged to user)**: the Prompt-1 text said to create `progress/PROGRESS-STEP-37.md`, but that file already records **Phase 18.1** (progress runs through step 45 / Phase 18.9). To avoid destroying an existing phase record (CONSTITUTION §15, no-deletion), the Phase 19.0 planning report is recorded at the next sequential id, **`progress/PROGRESS-STEP-46.md` (`phase_id = 46`)**.
+- **Baseline confirmed green** before drafting: `npm run lint` clean, `npm run test` **292/292**, `npm run build` clean, `npx tsc -p tsconfig.api.json --noEmit` clean — so sub-phase 19.1 starts from a known-good state.
+
 
 Autonomous execution of the Phase 18 feature work (sub-phases 18.1–18.9) per `AGENT-IMPLEMENTATION-PLAN.md` §23, authorized by the user after reviewing Prompt 2. Invariants preserved at every sub-phase: valid guesses identical across all tiers; default Expert reproduces current behavior; daily 5-letter lock; practice 2–35; no file deletions; no secrets; `getTileStates`/Hard Mode untouched.
 
