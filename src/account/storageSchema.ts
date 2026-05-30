@@ -1,15 +1,19 @@
 import type { GameMode, PlayScope } from '../game/types'
 import { DEFAULT_DIFFICULTY_TIER, normalizeDifficultyTier, type DifficultyTier } from '../data/difficulty'
+import { DEFAULT_GO_PUZZLE_COUNT, normalizeGoPuzzleCount, type GoPuzzleCount } from '../game/constants'
+import { DEFAULT_THEME, normalizeTheme, type Theme } from '../theme/theme'
 import { createEmptyStatistics } from '../stats/statistics'
 import type { StatisticsState } from '../stats/types'
-
+import type { ResumeSlot } from './resumeSlot'
 /**
  * Bumped to 2 in Phase 18.3 when `GuestSettingsState.difficultyDefault` was
- * added. Older v1 payloads are upgraded by `migrateGuestProgress` (see
- * `guestStorage.ts`), which preserves all existing coins/XP/history/stats and
- * fills the new setting with its safe Expert default — no data loss.
+ * added, and to 3 in Phase 19.2 when `GuestSettingsState.goPuzzleCountDefault`
+ * was added. Older payloads (v1/v2) are upgraded by `migrateGuestProgress`
+ * (see `guestStorage.ts`), which preserves all existing
+ * coins/XP/history/stats and backfills any missing setting with its safe
+ * default via `normalizeGuestSettings` — no data loss.
  */
-export const GUEST_PROGRESS_SCHEMA_VERSION = 2
+export const GUEST_PROGRESS_SCHEMA_VERSION = 3
 
 export interface GuestProgressionState {
   readonly coins: number
@@ -30,12 +34,33 @@ export interface GuestSettingsState {
    * profile alongside other preferences when signed in (Phase 18.8).
    */
   readonly difficultyDefault: DifficultyTier
+  /**
+   * Phase 19.2 — global default go chain length (5/7/10). Additive; defaults to
+   * 5 so existing players keep today's behaviour. Synced to the Supabase
+   * profile alongside other preferences when signed in. The per-puzzle word
+   * length is independent of this count.
+   */
+  readonly goPuzzleCountDefault: GoPuzzleCount
+  /**
+   * Phase 19.5 — global default visual theme (accent/border palette only).
+   * Additive; defaults to `'icy'` so existing players keep today's look. The
+   * per-puzzle layout and tile-state colors are unaffected. Synced to the
+   * Supabase profile alongside other preferences when signed in.
+   */
+  readonly themeDefault: Theme
 }
 
 export interface GameHistoryEntry {
   readonly attemptsUsed: number
   readonly coinAward: number
   readonly completedAt: string
+  /**
+   * Phase 19.1 — additive, optional difficulty tier the game was played at.
+   * Older history entries (pre-19.1) simply lack it and render in an
+   * "untagged" group in tier-aware visualizations. Back-compatible: no
+   * migration of historical rows and no default behaviour change.
+   */
+  readonly difficulty?: DifficultyTier
   readonly gameId: string
   readonly mode: GameMode
   readonly scope: PlayScope
@@ -53,12 +78,13 @@ export interface GuestProgressState {
   readonly settings: GuestSettingsState
   readonly stats: StatisticsState
   /**
-   * Phase 18.8 — reserved, forward-compatible slot for a future
-   * "resume most recent unfinished game" feature. Always omitted/undefined in
-   * this phase; reserving the name keeps the serialization shape stable so the
-   * feature can be enabled later without another migration. No behaviour change.
+   * Phase 18.8 reserved a forward-compatible slot for "resume most recent
+   * unfinished game"; Phase 19.3 gives it a concrete typed shape and activates
+   * it. Populated only while a game is in progress and cleared on completion,
+   * so it is omitted/undefined for everyone who is not mid-game (no behaviour
+   * change). Validated on load via `normalizeResumeSlot` (untrusted-input safe).
    */
-  readonly resumeSlot?: unknown
+  readonly resumeSlot?: ResumeSlot
 }
 
 export function createDefaultGuestSettings(): GuestSettingsState {
@@ -66,6 +92,8 @@ export function createDefaultGuestSettings(): GuestSettingsState {
     hardModeDefault: false,
     reducedMotion: false,
     difficultyDefault: DEFAULT_DIFFICULTY_TIER,
+    goPuzzleCountDefault: DEFAULT_GO_PUZZLE_COUNT,
+    themeDefault: DEFAULT_THEME,
   }
 }
 
@@ -80,6 +108,8 @@ export function normalizeGuestSettings(raw: unknown): GuestSettingsState {
     hardModeDefault: typeof record.hardModeDefault === 'boolean' ? record.hardModeDefault : false,
     reducedMotion: typeof record.reducedMotion === 'boolean' ? record.reducedMotion : false,
     difficultyDefault: normalizeDifficultyTier(record.difficultyDefault),
+    goPuzzleCountDefault: normalizeGoPuzzleCount(record.goPuzzleCountDefault),
+    themeDefault: normalizeTheme(record.themeDefault),
   }
 }
 

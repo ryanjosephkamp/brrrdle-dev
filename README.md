@@ -26,7 +26,7 @@
 
 It ships with guest progress, optional cloud accounts, post-game definitions, emoji sharing, an in-app economy, and Progressive Web App foundations — all wrapped in a dark-first UI with icy `brrr` accents.
 
-> **Project status:** v1 launch scope plus approved addenda (through Phase 17) are implemented; **Phase 18** (difficulty tiers, Word Explorer / Go / Settings polish, and a daily-overlap fix) is **planned and awaiting approval**. Production deployment requires explicit release approval after PR review — do **not** trigger a production deploy without it.
+> **Project status:** v1 launch scope plus approved addenda **through Phase 18** (answer-difficulty tiers, Word Explorer / Go / Settings polish, and the daily-overlap fix) are implemented; **Phase 19** (enhanced statistics visualizations, a configurable Go puzzle count, full resume-most-recent-game activation, advanced polish, and a light theming foundation) is **planned and awaiting approval**. Production deployment requires explicit release approval after PR review — do **not** trigger a production deploy without it.
 
 ---
 
@@ -47,6 +47,7 @@ It ships with guest progress, optional cloud accounts, post-game definitions, em
 
 ### Words, definitions & discovery
 - 📚 **Local curated word lists** for every length 2–35 (hundreds of thousands of real English words).
+- 🎚️ **Answer-difficulty tiers** (*Casual / Standard / Expert*) that subset the answer pool only — valid guesses stay identical across tiers.
 - 🔍 **Post-game definitions** with a graceful lookup chain: bundled data → Dictionary API → Wiktionary → an always-available *Search Google* button.
 - 🧭 **Word Explorer** tab for browsing and inspecting the dictionary.
 

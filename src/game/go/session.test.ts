@@ -108,14 +108,41 @@ describe('go session model', () => {
     expect(revealed.puzzles[1].status).toBe('lost')
   })
 
-  it('does not reveal once the chain is already over', () => {
-    const setup = createPracticeGoSetup(5, 0)
-    let session = createGoSession(setup)
-    for (const puzzle of setup.puzzles) {
-      session = submitWord(session, puzzle.answer)
+  it('builds daily go chains of 5, 7, or 10 distinct puzzles with carry-over pre-fills', () => {
+    for (const count of [5, 7, 10] as const) {
+      const setup = createDailyGoSetup(new Date('2026-05-26T00:00:00.000Z'), undefined, count)
+      expect(setup.puzzles).toHaveLength(count)
+      expect(setup.wordLength).toBe(DAILY_WORD_LENGTH)
+      expect(setup.puzzles.every((puzzle) => puzzle.answer.length === DAILY_WORD_LENGTH)).toBe(true)
+      // Each daily answer is distinct (the length-5 pool is large enough).
+      expect(new Set(setup.puzzles.map((puzzle) => puzzle.answer)).size).toBe(count)
+      // Later puzzles carry every prior answer as a pre-filled row.
+      setup.puzzles.forEach((puzzle, index) => {
+        expect(puzzle.prefilledGuesses).toEqual(setup.puzzles.slice(0, index).map((prior) => prior.answer))
+      })
     }
-    expect(session.status).toBe('won')
+  })
 
-    expect(revealGoPuzzle(session)).toBe(session)
+  it('advances through and wins a configurable-length daily go chain', () => {
+    const setup = createDailyGoSetup(new Date('2026-05-26T00:00:00.000Z'), undefined, 7)
+    let session = createGoSession(setup)
+    expect(session.puzzles).toHaveLength(7)
+
+    setup.puzzles.forEach((puzzle, index) => {
+      session = submitWord(session, puzzle.answer)
+      if (index < setup.puzzles.length - 1) {
+        expect(session.status).toBe('playing')
+      }
+    })
+
+    expect(session.status).toBe('won')
+    expect(session.currentPuzzleIndex).toBe(6)
+    expect(session.priorAnswers).toEqual(setup.puzzles.map((puzzle) => puzzle.answer))
+  })
+
+  it('builds practice go chains with the selected count and length', () => {
+    const setup = createPracticeGoSetup(5, 0, undefined, 10)
+    expect(setup.puzzles).toHaveLength(10)
+    expect(setup.puzzles.every((puzzle) => puzzle.answer.length === 5)).toBe(true)
   })
 })

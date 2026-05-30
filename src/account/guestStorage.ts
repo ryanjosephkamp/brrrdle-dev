@@ -1,7 +1,9 @@
 import { calculateCoinAward, calculateXpAward, getLevelForXp } from '../progression'
+import type { DifficultyTier } from '../data/difficulty'
 import { updateStatistics } from '../stats/statistics'
 import type { CompletedGameStatsInput } from '../stats/types'
 import { createDefaultGuestProgress, GUEST_PROGRESS_SCHEMA_VERSION, normalizeGuestSettings, type GameHistoryEntry, type GuestProgressState } from './storageSchema'
+import { normalizeResumeSlot } from './resumeSlot'
 
 export interface KeyValueStorage {
   readonly getItem: (key: string) => string | null
@@ -25,7 +27,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isGuestProgressState(value: unknown): value is GuestProgressState {
   return isRecord(value)
-    && (value.schemaVersion === GUEST_PROGRESS_SCHEMA_VERSION || value.schemaVersion === 1)
+    && (value.schemaVersion === 1 || value.schemaVersion === 2 || value.schemaVersion === GUEST_PROGRESS_SCHEMA_VERSION)
     && isRecord(value.progression)
     && typeof value.progression.xp === 'number'
     && typeof value.progression.level === 'number'
@@ -51,6 +53,7 @@ export function migrateGuestProgress(value: unknown): GuestProgressState | undef
 
   return {
     ...value,
+    resumeSlot: normalizeResumeSlot(value.resumeSlot),
     schemaVersion: GUEST_PROGRESS_SCHEMA_VERSION,
     settings: normalizeGuestSettings(value.settings),
   }
@@ -85,6 +88,7 @@ export function exportGuestProgress(progress: GuestProgressState = loadGuestProg
 }
 
 export interface CompletedGameInput extends CompletedGameStatsInput {
+  readonly difficulty?: DifficultyTier
   readonly gameId: string
   readonly maxAttempts: number
   readonly puzzleCount?: number
@@ -106,6 +110,7 @@ export function recordCompletedGame(
     attemptsUsed: input.attemptsUsed,
     coinAward,
     completedAt: new Date().toISOString(),
+    ...(input.difficulty ? { difficulty: input.difficulty } : {}),
     gameId: input.gameId,
     mode: input.mode,
     scope: input.scope,

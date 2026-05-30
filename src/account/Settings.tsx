@@ -6,6 +6,8 @@ import type { AuthState } from './auth'
 import type { SyncStatusState } from './syncStatus'
 import { Button, Panel, Tooltip } from '../ui'
 import { DIFFICULTY_TIERS, getDifficultyTierMeta, isDifficultyTier } from '../data/difficulty'
+import { GO_PUZZLE_COUNTS, isGoPuzzleCount } from '../game/constants'
+import { THEMES, getThemeMeta, isTheme } from '../theme'
 
 interface SettingsProps {
   readonly authState: AuthState
@@ -40,7 +42,7 @@ export function Settings({
   onUpdateSettings,
   syncStatus,
 }: SettingsProps) {
-  const { difficultyDefault, hardModeDefault } = guestProgress.settings
+  const { difficultyDefault, goPuzzleCountDefault, hardModeDefault, themeDefault } = guestProgress.settings
   return (
     <section className="space-y-4" aria-labelledby="settings-title">
       <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">account and persistence</p>
@@ -66,6 +68,44 @@ export function Settings({
               ))}
             </select>
             <p className="text-xs text-slate-400">{getDifficultyTierMeta(difficultyDefault).description}</p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="font-semibold text-cyan-100" htmlFor="settings-go-count">Default go chain length</label>
+              <Tooltip label="More information about go chain length">
+                Sets how many linked puzzles a go chain contains by default (5, 7, or 10). Each puzzle keeps its own word length; daily go puzzles stay 5 letters. You can override this per game from the Customize menu until your first guess.
+              </Tooltip>
+            </div>
+            <select
+              className="w-full rounded-2xl border border-slate-700 bg-slate-950 p-2 text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] sm:max-w-xs"
+              id="settings-go-count"
+              onChange={(event) => { const next = Number(event.target.value); if (isGoPuzzleCount(next)) onUpdateSettings({ goPuzzleCountDefault: next }) }}
+              value={goPuzzleCountDefault}
+            >
+              {GO_PUZZLE_COUNTS.map((count) => (
+                <option key={count} value={count}>{count} puzzles</option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400">Applies to new go chains. Override per game until your first guess.</p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="font-semibold text-cyan-100" htmlFor="settings-theme">Theme</label>
+              <Tooltip label="More information about themes">
+                Themes change only the accent and highlight colors (buttons, focus rings, headings). Layout and the tile colors that show correct, present, and absent letters never change, so puzzles stay just as readable.
+              </Tooltip>
+            </div>
+            <select
+              className="w-full rounded-2xl border border-slate-700 bg-slate-950 p-2 text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] sm:max-w-xs"
+              id="settings-theme"
+              onChange={(event) => { if (isTheme(event.target.value)) onUpdateSettings({ themeDefault: event.target.value }) }}
+              value={themeDefault}
+            >
+              {THEMES.map((theme) => (
+                <option key={theme} value={theme}>{getThemeMeta(theme).label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400">{getThemeMeta(themeDefault).description}</p>
           </div>
           <div className="space-y-2">
             <label className="flex items-center gap-3 text-slate-100">
