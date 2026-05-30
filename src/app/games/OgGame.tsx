@@ -185,6 +185,7 @@ function OgGameSession({
 
     onGameComplete?.({
       attemptsUsed: session.guesses.length,
+      difficulty,
       gameId: scope === 'daily' ? `og:daily:${setup.dateKey}` : `og:practice:${practiceLength}:${practiceSeed}:${setup.answer}`,
       maxAttempts: session.maxAttempts,
       mode: 'og',
@@ -193,7 +194,7 @@ function OgGameSession({
       word: session.answer,
       wordLength: session.wordLength,
     })
-  }, [canAffordContinuation, onGameComplete, practiceLength, practiceSeed, scope, session.answer, session.guesses.length, session.maxAttempts, session.status, session.wordLength, setup.answer, setup.dateKey])
+  }, [canAffordContinuation, difficulty, onGameComplete, practiceLength, practiceSeed, scope, session.answer, session.guesses.length, session.maxAttempts, session.status, session.wordLength, setup.answer, setup.dateKey])
 
   const sound = useSound()
   const handleInput = useCallback((input: KeyboardInput) => {

@@ -4,7 +4,15 @@ All notable changes to `brrrdle` will be documented in this file.
 
 ## Unreleased
 
-### Phase 19 — Prompt 2: Confirmed Numbering Decision & Final Governance/Clarity Adjustments (PHASE-19-ENHANCED-STATS-RESUME-CONFIGURABLE-GO-AND-POLISH-SPEC-2026-05-30)
+### Phase 19 — Prompt 3: Full Feature Execution (sub-phases 19.1–19.6) (PHASE-19-ENHANCED-STATS-RESUME-CONFIGURABLE-GO-AND-POLISH-SPEC-2026-05-30)
+
+Autonomous execution of the Phase 19 feature work, authorized by the user after reviewing Prompt 2 ("Start Prompt 3"). Invariants preserved at every sub-phase: daily 5-letter lock; practice 2–35; valid guesses identical across difficulty tiers; default difficulty Expert; `getTileStates`/Hard Mode untouched; per-mode stats separation. All new settings are additive with defaults that reproduce today's behavior.
+
+#### 19.1 — Enhanced Statistics Dashboard (`phase_id = 48`)
+- **New `src/stats/statsSelectors.ts`** — pure, render-free selectors deriving chart data from existing stats/history/progression: `selectWinRateByScope`, `selectWinRateByLength`, `selectWinRateByTier`, `selectStreakCalendar`, `selectXpProgress`, `selectCoinTrend`. Unit-tested in `src/stats/statsSelectors.test.ts` (6 tests).
+- **New `src/stats/charts/`** — dependency-free, accessible chart primitives: `BarChart` (CSS bars + visually-hidden data table), `CalendarHeatmap` (activity grid + table), `ProgressMeter` (ARIA `progressbar`), `TrendSparkline` (inline SVG polyline + table). No new heavy charting dependency.
+- **`src/stats/StatsDashboard.tsx`** — now renders win-rate-by-mode/scope, by-length, and by-tier bars, an XP-progress meter, a recent-activity heatmap, and a coin-earning trend, **preserving all four existing summary cards and every current number**. Reads `history` + `progression` (passed from `App.tsx`).
+- **Additive `difficulty?: DifficultyTier` on `GameHistoryEntry`** (`storageSchema.ts`) and `CompletedGameInput` (`guestStorage.ts`), recorded going forward from `OgGame`/`GoGame`. Back-compatible — older entries lack it and render in an "untagged" tier group; no migration, no schema bump, no default behavior change.
 
 Governance/clarity stage of the Phase 19 3-prompt workflow, run after the user reviewed Prompt 1 and approved the progress-step numbering decision. **No game code, tests, or source files changed** — documentation/governance only. Full autonomous execution of the Phase 19 features (sub-phases 19.1–19.6) remains gated on explicit user approval ("Start Prompt 3" or equivalent).
 

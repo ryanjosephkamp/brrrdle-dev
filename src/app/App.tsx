@@ -136,7 +136,7 @@ function RoutePanel({
   }
 
   if (route.id === 'stats') {
-    return <StatsDashboard stats={guestProgress.stats} />
+    return <StatsDashboard history={guestProgress.history} progression={guestProgress.progression} stats={guestProgress.stats} />
   }
 
   if (route.id === 'settings') {

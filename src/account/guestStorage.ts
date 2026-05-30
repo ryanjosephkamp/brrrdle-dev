@@ -1,4 +1,5 @@
 import { calculateCoinAward, calculateXpAward, getLevelForXp } from '../progression'
+import type { DifficultyTier } from '../data/difficulty'
 import { updateStatistics } from '../stats/statistics'
 import type { CompletedGameStatsInput } from '../stats/types'
 import { createDefaultGuestProgress, GUEST_PROGRESS_SCHEMA_VERSION, normalizeGuestSettings, type GameHistoryEntry, type GuestProgressState } from './storageSchema'
@@ -85,6 +86,7 @@ export function exportGuestProgress(progress: GuestProgressState = loadGuestProg
 }
 
 export interface CompletedGameInput extends CompletedGameStatsInput {
+  readonly difficulty?: DifficultyTier
   readonly gameId: string
   readonly maxAttempts: number
   readonly puzzleCount?: number
@@ -106,6 +108,7 @@ export function recordCompletedGame(
     attemptsUsed: input.attemptsUsed,
     coinAward,
     completedAt: new Date().toISOString(),
+    ...(input.difficulty ? { difficulty: input.difficulty } : {}),
     gameId: input.gameId,
     mode: input.mode,
     scope: input.scope,

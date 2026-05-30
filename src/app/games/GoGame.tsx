@@ -199,6 +199,7 @@ function GoGameSession({
     const puzzleCount = session.status === 'won' ? session.puzzles.length : session.currentPuzzleIndex + 1
     onGameComplete?.({
       attemptsUsed,
+      difficulty,
       gameId: scope === 'daily' ? `go:daily:${setup.dateKey}` : `go:practice:${practiceLength}:${setup.puzzles.map((puzzle) => puzzle.answer).join('-')}`,
       maxAttempts,
       mode: 'go',
@@ -208,7 +209,7 @@ function GoGameSession({
       word: session.status === 'won' ? session.puzzles.map((puzzle) => puzzle.answer).join(',') : session.puzzles[session.currentPuzzleIndex].answer,
       wordLength: session.wordLength,
     })
-  }, [canAffordContinuation, onGameComplete, practiceLength, scope, session.currentPuzzleIndex, session.puzzles, session.status, session.wordLength, setup.dateKey, setup.puzzles])
+  }, [canAffordContinuation, difficulty, onGameComplete, practiceLength, scope, session.currentPuzzleIndex, session.puzzles, session.status, session.wordLength, setup.dateKey, setup.puzzles])
 
   const sound = useSound()
   const handleInput = useCallback((input: KeyboardInput) => {

@@ -36,6 +36,13 @@ export interface GameHistoryEntry {
   readonly attemptsUsed: number
   readonly coinAward: number
   readonly completedAt: string
+  /**
+   * Phase 19.1 — additive, optional difficulty tier the game was played at.
+   * Older history entries (pre-19.1) simply lack it and render in an
+   * "untagged" group in tier-aware visualizations. Back-compatible: no
+   * migration of historical rows and no default behaviour change.
+   */
+  readonly difficulty?: DifficultyTier
   readonly gameId: string
   readonly mode: GameMode
   readonly scope: PlayScope
