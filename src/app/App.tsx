@@ -74,6 +74,7 @@ function RoutePanel({
   onOpenProfilePanel,
   soundEnabled,
   onToggleSound,
+  onUpdateSettings,
   supabaseClient,
   syncStatus,
 }: {
@@ -93,6 +94,7 @@ function RoutePanel({
   readonly onSelectRoute: (routeId: AppRoute['id']) => void
   readonly soundEnabled: boolean
   readonly onToggleSound: (enabled: boolean) => void
+  readonly onUpdateSettings: (patch: Partial<ReturnType<typeof loadGuestProgress>['settings']>) => void
   readonly supabaseClient: ReturnType<typeof createBrrrdleSupabaseClient>
   readonly syncStatus: ReturnType<typeof createSyncStatus>
   readonly onSpendCoins: (amount: number) => boolean
@@ -147,6 +149,7 @@ function RoutePanel({
         onSignOut={onSignOut}
         onSignUpWithPassword={onSignUpWithPassword}
         onToggleSound={onToggleSound}
+        onUpdateSettings={onUpdateSettings}
         soundEnabled={soundEnabled}
         syncStatus={syncStatus}
       />
@@ -210,6 +213,14 @@ function AppInner() {
   }, [sound])
   const handleResetProgress = useCallback(() => {
     setGuestProgress(resetGuestProgress())
+  }, [])
+  const handleUpdateSettings = useCallback((patch: Partial<ReturnType<typeof loadGuestProgress>['settings']>) => {
+    setGuestProgress((currentProgress) => {
+      const nextSettings = { ...currentProgress.settings, ...patch }
+      const nextProgress = { ...currentProgress, settings: nextSettings }
+      saveGuestProgress(nextProgress)
+      return nextProgress
+    })
   }, [])
   const handleSpendCoins = useCallback((amount: number) => {
     if (guestProgress.progression.coins < amount) {
@@ -393,6 +404,7 @@ function AppInner() {
             onSignUpWithPassword={handleSignUpWithPassword}
             onSpendCoins={handleSpendCoins}
             onToggleSound={sound.setEnabled}
+            onUpdateSettings={handleUpdateSettings}
             route={activeRoute}
             soundEnabled={sound.enabled}
             supabaseClient={supabaseClient}
