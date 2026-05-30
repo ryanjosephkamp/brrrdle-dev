@@ -8,18 +8,21 @@
 - **Status**: Completed — awaiting user approval before any Phase 18 game code changes
 
 ## Summary of Changes
-- Reviewed (in order) `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, `AGENT-IMPLEMENTATION-PLAN.md`, the new `PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28.md`, and the current state of `src/data/`, `src/app/`, `src/account/`, `src/admin/`, `src/game/`, `src/wordExplorer/`, `src/feedback/`, `src/sound/`, plus difficulty/settings/daily-selection touch points.
+- Reviewed (in order) `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, `AGENT-IMPLEMENTATION-PLAN.md`, the new `PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28.md`, the root `README.md`, and the current state of `src/data/`, `src/app/`, `src/account/`, `src/admin/`, `src/game/`, `src/wordExplorer/`, `src/feedback/`, `src/sound/`, plus difficulty/settings/daily-selection touch points.
+- **Integrated the user's definitive answers to all five §23.11 questions.** They are now recorded as resolved decisions in `AGENT-IMPLEMENTATION-PLAN.md` §23.2/§23.4/§23.11: (1) compute Casual/Standard tiers **in-repo via a deterministic heuristic** from the existing local JSONs; (2) **Standard = "Expert minus the rarest stratum"** for lengths ≠ 5 and the **union of classic Wordle + Hurdle** at length 5, preserving `Casual ⊆ Standard ⊆ Expert`; (3) the constitution phase-range amendment is **approved** but **applied in prompt 2** per the 3-prompt workflow; (4) the Phase 18 spec is confirmed as the §3.3/§2 scope approval; (5) the **root layout is retained** (doc reorg deferred).
+- **Upgraded the root `README.md`** into a professional, comprehensive, visually appealing README (badges, features overview, "Why brrrdle", quick start, tech-stack + scripts tables, env-var guidance, Supabase/admin setup, deployment targets, PWA notes, an updated structure tree incl. `src/latest/`, governance/authoritative-sources, contributing guide, accessibility/security notes). Documentation-only; all facts sourced from `package.json`, `.env.example`, the on-disk tree, and existing docs.
 - **Made `BRRRDLE-OVERVIEW.md` model-agnostic.** The three GPT-5.5 references (title, Core Approach, Goal) were rewritten to remove the specific-model assumption while preserving all rules, scope, and success criteria. A repo-wide grep for `GPT-5`/`GPT 5`/`gpt-5`/`GPT5` now returns zero matches.
-- **Reviewed `CONSTITUTION.md`; left unchanged.** It names no model and is already suitable for Claude Opus 4.8 or any capable model. Per CONSTITUTION §17 (revisions require explicit user approval), no constitution bytes were changed. Recorded a staleness observation for the user: §1/§5/§5.2 still say the plan "defines Phases 0 through 11," predating the approved Phase 12–18 addenda.
-- **Evaluated repository organization; moved no files.** Nearly all root-level dated spec/report files are referenced by bare filename from governance docs and a source test, so a physical move now would break references. A reference-safe reorg is captured as optional execution-stage 18.1 work in §23.2.
-- **Appended `AGENT-IMPLEMENTATION-PLAN.md` §23** (Phase 18 addendum; plan version bumped 1.7 → 1.8): 18.0 cleanup record, daily Og↔Go overlap diagnosis, answers-only difficulty-tier design, UI/Settings/Word Explorer/Go plans, a 10-row sub-phase table (`phase_id` 35–44), open questions, verification gate, and exit checklist.
-- **Updated `CHANGELOG.md`** with a Phase 18.0 Unreleased entry documenting exactly what changed.
+- **Reviewed `CONSTITUTION.md`; left unchanged in this prompt.** It names no model and is already suitable for Claude Opus 4.8 or any capable model. Per CONSTITUTION §17 and the user's 3-prompt workflow, the approved phase-range amendment (user answer #3) is deferred to prompt 2.
+- **Evaluated repository organization; moved no files** (user answer #5 retains the root layout). Nearly all root-level dated spec/report files are referenced by bare filename from governance docs and a source test, so a physical move now would break references.
+- **Updated `AGENT-IMPLEMENTATION-PLAN.md` §23** (plan version bumped 1.7 → 1.8 → 1.9): §23.2 cleanup record incl. README upgrade, the finalized answers-only difficulty-tier design, §23.11 rewritten as resolved decisions, sub-phase table rows 18.0/18.1 updated, and exit checklist updated.
+- **Updated `CHANGELOG.md`** Phase 18.0 entry documenting exactly what changed.
 
 ## Files Changed
+- `README.md` — full professional upgrade (documentation-only).
 - `BRRRDLE-OVERVIEW.md` — 3 GPT-5.5 references → model-agnostic wording.
-- `AGENT-IMPLEMENTATION-PLAN.md` — header status/version (1.7 → 1.8) and new §23 Phase 18 addendum.
+- `AGENT-IMPLEMENTATION-PLAN.md` — header status/version (1.7 → 1.8 → 1.9) and §23 Phase 18 addendum updated to integrate the resolved §23.11 answers.
 - `CHANGELOG.md` — Unreleased → Phase 18.0 entry.
-- `progress/PROGRESS.csv` — new row `phase_id = 35`.
+- `progress/PROGRESS.csv` — row `phase_id = 35`.
 - `progress/PROGRESS-STEP-35.md` — this report.
 
 ## Verification
@@ -28,12 +31,12 @@
 - **Reason any checks were skipped**: Phase 18.0 changes are documentation/governance Markdown only — no source, tooling, or config changed. Per the plan's operating rules, lint/build/test are not required for Markdown-only governance edits.
 
 ## Blockers, Errors, or Critical Notes
-- None blocking. Five open questions for the user are listed in `AGENT-IMPLEMENTATION-PLAN.md` §23.11 (Casual/Standard data source; Standard definition at non-5 lengths; optional constitution amendment for Phases 12+; confirmation that the Phase 18 spec is the §3.3/§2 scope approval; optional doc reorg). The dependent sub-phases should not begin until these are resolved.
+- None blocking. All five §23.11 questions have been **resolved by the user** (2026-05-30) and their answers are integrated into `AGENT-IMPLEMENTATION-PLAN.md` §23.2/§23.4/§23.11. No open questions remain.
 
 ## User Action Required Before Next Step
-- Review the Phase 18 addendum (`AGENT-IMPLEMENTATION-PLAN.md` §23) and the §23.2 cleanup performed here.
-- Answer the §23.11 open questions.
-- Provide explicit approval (e.g., "APPROVE", "Proceed", "Start Phase 18.1") before any game code changes.
+- Review the finalized Phase 18 addendum (`AGENT-IMPLEMENTATION-PLAN.md` §23) and the §23.2 cleanup + upgraded `README.md`.
+- Proceed with the 3-prompt workflow: **prompt 2** applies the approved constitution/repo adjustments (incl. the §1/§5/§5.2 phase-range amendment); **prompt 3** executes the Phase 18 feature work.
+- Provide explicit approval (e.g., "APPROVE", "Proceed", "Start prompt 2") before any constitution edits or game code changes.
 
 ## Authorization to Proceed
 - **Safe/authorized to proceed to next major step?**: No — halt for explicit user approval per CONSTITUTION §4 and the user's instruction to halt after drafting the addendum.
