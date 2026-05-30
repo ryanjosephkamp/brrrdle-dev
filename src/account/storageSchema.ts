@@ -1,15 +1,18 @@
 import type { GameMode, PlayScope } from '../game/types'
 import { DEFAULT_DIFFICULTY_TIER, normalizeDifficultyTier, type DifficultyTier } from '../data/difficulty'
+import { DEFAULT_GO_PUZZLE_COUNT, normalizeGoPuzzleCount, type GoPuzzleCount } from '../game/constants'
 import { createEmptyStatistics } from '../stats/statistics'
 import type { StatisticsState } from '../stats/types'
 
 /**
  * Bumped to 2 in Phase 18.3 when `GuestSettingsState.difficultyDefault` was
- * added. Older v1 payloads are upgraded by `migrateGuestProgress` (see
- * `guestStorage.ts`), which preserves all existing coins/XP/history/stats and
- * fills the new setting with its safe Expert default — no data loss.
+ * added, and to 3 in Phase 19.2 when `GuestSettingsState.goPuzzleCountDefault`
+ * was added. Older payloads (v1/v2) are upgraded by `migrateGuestProgress`
+ * (see `guestStorage.ts`), which preserves all existing
+ * coins/XP/history/stats and backfills any missing setting with its safe
+ * default via `normalizeGuestSettings` — no data loss.
  */
-export const GUEST_PROGRESS_SCHEMA_VERSION = 2
+export const GUEST_PROGRESS_SCHEMA_VERSION = 3
 
 export interface GuestProgressionState {
   readonly coins: number
@@ -30,6 +33,13 @@ export interface GuestSettingsState {
    * profile alongside other preferences when signed in (Phase 18.8).
    */
   readonly difficultyDefault: DifficultyTier
+  /**
+   * Phase 19.2 — global default go chain length (5/7/10). Additive; defaults to
+   * 5 so existing players keep today's behaviour. Synced to the Supabase
+   * profile alongside other preferences when signed in. The per-puzzle word
+   * length is independent of this count.
+   */
+  readonly goPuzzleCountDefault: GoPuzzleCount
 }
 
 export interface GameHistoryEntry {
@@ -73,6 +83,7 @@ export function createDefaultGuestSettings(): GuestSettingsState {
     hardModeDefault: false,
     reducedMotion: false,
     difficultyDefault: DEFAULT_DIFFICULTY_TIER,
+    goPuzzleCountDefault: DEFAULT_GO_PUZZLE_COUNT,
   }
 }
 
@@ -87,6 +98,7 @@ export function normalizeGuestSettings(raw: unknown): GuestSettingsState {
     hardModeDefault: typeof record.hardModeDefault === 'boolean' ? record.hardModeDefault : false,
     reducedMotion: typeof record.reducedMotion === 'boolean' ? record.reducedMotion : false,
     difficultyDefault: normalizeDifficultyTier(record.difficultyDefault),
+    goPuzzleCountDefault: normalizeGoPuzzleCount(record.goPuzzleCountDefault),
   }
 }
 

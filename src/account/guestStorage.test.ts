@@ -22,12 +22,12 @@ describe('guest storage', () => {
     saveGuestProgress({ ...progress, progression: { ...progress.progression, coins: 12 } }, storage)
 
     expect(loadGuestProgress(storage).progression.coins).toBe(12)
-    expect(JSON.parse(exportGuestProgress(loadGuestProgress(storage))).schemaVersion).toBe(2)
+    expect(JSON.parse(exportGuestProgress(loadGuestProgress(storage))).schemaVersion).toBe(3)
     expect(resetGuestProgress(storage).progression.coins).toBe(0)
   })
 
   it('falls back to defaults for corrupted or incompatible data', () => {
-    expect(loadGuestProgress(createMemoryStorage('{broken')).schemaVersion).toBe(2)
+    expect(loadGuestProgress(createMemoryStorage('{broken')).schemaVersion).toBe(3)
     expect(loadGuestProgress(createMemoryStorage(JSON.stringify({ schemaVersion: 99 }))).progression.level).toBe(1)
   })
 
@@ -41,13 +41,14 @@ describe('guest storage', () => {
     })
     const migrated = loadGuestProgress(createMemoryStorage(legacyPayload))
 
-    expect(migrated.schemaVersion).toBe(2)
+    expect(migrated.schemaVersion).toBe(3)
     expect(migrated.progression.coins).toBe(42)
     expect(migrated.progression.xp).toBe(120)
     expect(migrated.progression.level).toBe(3)
     expect(migrated.settings.hardModeDefault).toBe(true)
     expect(migrated.settings.reducedMotion).toBe(true)
     expect(migrated.settings.difficultyDefault).toBe('expert')
+    expect(migrated.settings.goPuzzleCountDefault).toBe(5)
   })
 
   it('records completed games once for history, stats, XP, and coins', () => {

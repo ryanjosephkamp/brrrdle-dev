@@ -1,6 +1,6 @@
 import { BUNDLED_WORD_LIST_LENGTHS, getDailyGoSeedIndex, getDailyDateKey, getWordRepository } from '../../data'
 import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data/difficulty'
-import { DAILY_WORD_LENGTH, GO_PUZZLE_COUNT, SUPPORTED_PRACTICE_WORD_LENGTHS } from '../constants'
+import { DAILY_WORD_LENGTH, DEFAULT_GO_PUZZLE_COUNT, SUPPORTED_PRACTICE_WORD_LENGTHS, type GoPuzzleCount } from '../constants'
 import {
   createPuzzleSession,
   continueAfterLoss,
@@ -55,12 +55,12 @@ export interface SerializedGoSession {
   }[]
 }
 
-function selectAnswerSequence(answers: readonly { readonly word: string }[], seedIndex: number): readonly string[] {
+function selectAnswerSequence(answers: readonly { readonly word: string }[], seedIndex: number, puzzleCount: number): readonly string[] {
   if (answers.length < 1) {
     throw new Error('At least one answer candidate is required for go gameplay.')
   }
 
-  return Array.from({ length: GO_PUZZLE_COUNT }, (_, offset) => answers[(seedIndex + offset) % answers.length].word)
+  return Array.from({ length: puzzleCount }, (_, offset) => answers[(seedIndex + offset) % answers.length].word)
 }
 
 function createPuzzle(answer: string, validGuesses: ReadonlySet<string>, hardMode: boolean, prefilledGuesses: readonly string[]): PuzzleSessionState {
@@ -79,21 +79,21 @@ function getStatus(puzzles: readonly PuzzleSessionState[], currentPuzzleIndex: n
     return 'lost'
   }
 
-  return currentPuzzleIndex === GO_PUZZLE_COUNT - 1 && currentPuzzle.status === 'won' ? 'won' : 'playing'
+  return currentPuzzleIndex === puzzles.length - 1 && currentPuzzle.status === 'won' ? 'won' : 'playing'
 }
 
 export function getAvailableGoPracticeLengths(): readonly number[] {
   return SUPPORTED_PRACTICE_WORD_LENGTHS.filter((length) => BUNDLED_WORD_LIST_LENGTHS.includes(length))
 }
 
-export function createDailyGoSetup(date = new Date(), difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER): GoSessionSetup {
+export function createDailyGoSetup(date = new Date(), difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER, puzzleCount: GoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT): GoSessionSetup {
   const repository = getWordRepository({ mode: 'go', scope: 'daily', length: DAILY_WORD_LENGTH, difficulty })
   if (!repository.ok) {
     throw new Error(repository.message)
   }
 
   const dateKey = getDailyDateKey(date)
-  const answers = selectAnswerSequence(repository.answers, getDailyGoSeedIndex(dateKey, repository.answers.length))
+  const answers = selectAnswerSequence(repository.answers, getDailyGoSeedIndex(dateKey, repository.answers.length), puzzleCount)
   const priorAnswers: string[] = []
   const puzzles = answers.map((answer) => {
     const prefilledGuesses = [...priorAnswers]
@@ -109,14 +109,14 @@ export function createDailyGoSetup(date = new Date(), difficulty: DifficultyTier
   }
 }
 
-export function createPracticeGoSetup(length: number, seed = Date.now(), difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER): GoSessionSetup {
+export function createPracticeGoSetup(length: number, seed = Date.now(), difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER, puzzleCount: GoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT): GoSessionSetup {
   const repository = getWordRepository({ mode: 'go', scope: 'practice', length, difficulty })
   if (!repository.ok) {
     throw new Error(repository.message)
   }
 
   const seedIndex = Math.abs(Math.trunc(seed)) % repository.answers.length
-  const answers = selectAnswerSequence(repository.answers, seedIndex)
+  const answers = selectAnswerSequence(repository.answers, seedIndex, puzzleCount)
   const priorAnswers: string[] = []
   const puzzles = answers.map((answer) => {
     const prefilledGuesses = [...priorAnswers]
@@ -181,7 +181,7 @@ export function submitGoGuess(state: GoSessionState): GoSessionState {
   }
 
   const priorAnswers = [...state.priorAnswers, submittedPuzzle.answer]
-  if (state.currentPuzzleIndex === GO_PUZZLE_COUNT - 1) {
+  if (state.currentPuzzleIndex === state.puzzles.length - 1) {
     return { ...state, priorAnswers, puzzles, status: 'won' }
   }
 

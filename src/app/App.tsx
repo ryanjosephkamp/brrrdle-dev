@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AccountBadge, AuthModal, ProfilePanel, classifyAuthError, createBrrrdleSupabaseClient, createSyncStatus, getCurrentAuthState, loadGuestProgress, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, updateProfile, type AuthState, type CompletedGameInput, type ProfileAccentColor } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
-import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH } from '../game/constants'
+import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Layout, Navigation, Panel } from '../ui'
 import { AdminPanel } from '../admin'
 import { StatsDashboard } from '../stats'
@@ -33,16 +33,20 @@ function ModeCard({ route, onSelect }: { readonly route: AppRoute; readonly onSe
 function PracticeGameSwitcher({
   coins,
   defaultDifficulty,
+  defaultGoPuzzleCount,
   keyboardDisabled,
   onGameComplete,
   onSaveDifficultyDefault,
+  onSaveGoPuzzleCountDefault,
   onSpendCoins,
 }: {
   readonly coins: number
   readonly defaultDifficulty: DifficultyTier
+  readonly defaultGoPuzzleCount: GoPuzzleCount
   readonly keyboardDisabled?: boolean
   readonly onGameComplete: (input: CompletedGameInput) => void
   readonly onSaveDifficultyDefault: (tier: DifficultyTier) => void
+  readonly onSaveGoPuzzleCountDefault: (count: GoPuzzleCount) => void
   readonly onSpendCoins: (amount: number) => boolean
 }) {
   const [practiceMode, setPracticeMode] = useState<'og' | 'go'>('og')
@@ -55,7 +59,7 @@ function PracticeGameSwitcher({
       </div>
       {practiceMode === 'og'
         ? <OgGame coins={coins} defaultDifficulty={defaultDifficulty} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={onSaveDifficultyDefault} onSpendCoins={onSpendCoins} scope="practice" />
-        : <GoGame coins={coins} defaultDifficulty={defaultDifficulty} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={onSaveDifficultyDefault} onSpendCoins={onSpendCoins} scope="practice" />}
+        : <GoGame coins={coins} defaultDifficulty={defaultDifficulty} defaultGoPuzzleCount={defaultGoPuzzleCount} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={onSaveDifficultyDefault} onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault} onSpendCoins={onSpendCoins} scope="practice" />}
     </section>
   )
 }
@@ -120,11 +124,11 @@ function RoutePanel({
   }
 
   if (route.id === 'go-daily') {
-    return <GoGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSpendCoins={onSpendCoins} scope="daily" />
+    return <GoGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} scope="daily" />
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSpendCoins={onSpendCoins} />
+    return <PracticeGameSwitcher coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} />
   }
 
   if (route.id === 'word-explorer') {

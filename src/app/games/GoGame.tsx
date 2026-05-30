@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BUNDLED_WORD_LIST_LENGTHS, DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
+import { DEFAULT_GO_PUZZLE_COUNT, type GoPuzzleCount } from '../../game/constants'
 import type { CompletedGameInput } from '../../account'
 import { DefinitionPanel } from '../../definitions'
 import {
@@ -34,9 +35,11 @@ import { CustomizeMenu } from './CustomizeMenu'
 interface GoGameProps {
   readonly coins: number
   readonly defaultDifficulty?: DifficultyTier
+  readonly defaultGoPuzzleCount?: GoPuzzleCount
   readonly keyboardDisabled?: boolean
   readonly onGameComplete?: (input: CompletedGameInput) => void
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
+  readonly onSaveGoPuzzleCountDefault?: (count: GoPuzzleCount) => void
   readonly onSpendCoins: (amount: number) => boolean
   readonly scope: 'daily' | 'practice'
 }
@@ -53,7 +56,12 @@ const tileStateClasses: Record<GridTileState, string> = {
 
 function createInitialDailySession(setup: ReturnType<typeof createDailyGoSetup>): GoSessionState {
   const stored = loadDailyGoStoredSession()
-  if (stored && stored.dateKey === setup.dateKey && stored.session.puzzles[0]?.answer === setup.puzzles[0]?.answer) {
+  if (
+    stored &&
+    stored.dateKey === setup.dateKey &&
+    stored.session.puzzles.length === setup.puzzles.length &&
+    stored.session.puzzles[0]?.answer === setup.puzzles[0]?.answer
+  ) {
     return restoreGoSession(stored.session, setup.validGuesses)
   }
 
@@ -126,13 +134,17 @@ function getCompletionPercentage(session: PuzzleSessionState): number {
 function GoGameSession({
   coins,
   defaultDifficulty,
+  defaultGoPuzzleCount,
   difficulty,
+  goPuzzleCount,
   keyboardDisabled,
   onDifficultyChange,
   onGameComplete,
+  onGoPuzzleCountChange,
   onPracticeLengthChange,
   onPracticeSeedChange,
   onSaveDifficultyDefault,
+  onSaveGoPuzzleCountDefault,
   onSpendCoins,
   practiceLength,
   practiceLengths,
@@ -141,13 +153,17 @@ function GoGameSession({
 }: {
   readonly coins: number
   readonly defaultDifficulty: DifficultyTier
+  readonly defaultGoPuzzleCount: GoPuzzleCount
   readonly difficulty: DifficultyTier
+  readonly goPuzzleCount: GoPuzzleCount
   readonly keyboardDisabled: boolean
   readonly onDifficultyChange: (tier: DifficultyTier) => void
   readonly onGameComplete?: (input: CompletedGameInput) => void
+  readonly onGoPuzzleCountChange: (count: GoPuzzleCount) => void
   readonly onPracticeLengthChange: (length: number) => void
   readonly onPracticeSeedChange: () => void
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
+  readonly onSaveGoPuzzleCountDefault?: (count: GoPuzzleCount) => void
   readonly onSpendCoins: (amount: number) => boolean
   readonly practiceLength: number
   readonly practiceLengths: readonly number[]
@@ -270,7 +286,7 @@ function GoGameSession({
 
   const letterStates = deriveKeyboardLetterStates(currentPuzzle.guesses)
   const statusMessage = session.status === 'won'
-    ? 'Solved all five go puzzles. Daily completion is preserved on refresh.'
+    ? `Solved all ${session.puzzles.length} go puzzles. Daily completion is preserved on refresh.`
     : session.status === 'lost'
       ? `The chain ended on puzzle ${session.currentPuzzleIndex + 1}. The answer was ${currentPuzzle.answer.toLocaleUpperCase('en-US')}.`
       : `Puzzle ${session.currentPuzzleIndex + 1} of ${session.puzzles.length}; ${currentPuzzle.maxAttempts - currentPuzzle.guesses.length} attempts remaining.`
@@ -283,7 +299,7 @@ function GoGameSession({
           {scope === 'daily' ? 'Daily go chain' : 'Practice go chain'}
         </h2>
         <p className="max-w-3xl text-base leading-7 text-slate-300">
-          Five linked brrrdles are active with prior answers carried forward as pre-filled rows on later puzzles.
+          {session.puzzles.length} linked brrrdles are active with prior answers carried forward as pre-filled rows on later puzzles.
         </p>
       </div>
 
@@ -329,10 +345,14 @@ function GoGameSession({
         {onSaveDifficultyDefault ? (
           <CustomizeMenu
             defaultDifficulty={defaultDifficulty}
+            defaultGoPuzzleCount={defaultGoPuzzleCount}
             difficulty={difficulty}
+            goPuzzleCount={goPuzzleCount}
             locked={session.puzzles.some((puzzle) => puzzle.guesses.length > 0)}
             onDifficultyChange={onDifficultyChange}
+            onGoPuzzleCountChange={onGoPuzzleCountChange}
             onSaveDefault={() => onSaveDifficultyDefault(difficulty)}
+            onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault ? () => onSaveGoPuzzleCountDefault(goPuzzleCount) : undefined}
           />
         ) : null}
 
@@ -446,29 +466,34 @@ function GoGameSession({
   )
 }
 
-export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, keyboardDisabled = false, onGameComplete, onSaveDifficultyDefault, onSpendCoins, scope }: GoGameProps) {
+export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultGoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT, keyboardDisabled = false, onGameComplete, onSaveDifficultyDefault, onSaveGoPuzzleCountDefault, onSpendCoins, scope }: GoGameProps) {
   const practiceLengths = useMemo(() => getAvailableGoPracticeLengths(), [])
   const [practiceLength, setPracticeLength] = useState(5)
   const [practiceSeed, setPracticeSeed] = useState(0)
   const [difficulty, setDifficulty] = useState<DifficultyTier>(defaultDifficulty)
+  const [goPuzzleCount, setGoPuzzleCount] = useState<GoPuzzleCount>(defaultGoPuzzleCount)
   const setup = useMemo(
-    () => scope === 'daily' ? createDailyGoSetup(new Date(), difficulty) : createPracticeGoSetup(practiceLength, practiceSeed, difficulty),
-    [difficulty, practiceLength, practiceSeed, scope],
+    () => scope === 'daily' ? createDailyGoSetup(new Date(), difficulty, goPuzzleCount) : createPracticeGoSetup(practiceLength, practiceSeed, difficulty, goPuzzleCount),
+    [difficulty, goPuzzleCount, practiceLength, practiceSeed, scope],
   )
-  const sessionKey = scope === 'daily' ? `${scope}-${difficulty}-${setup.dateKey}` : `${scope}-${difficulty}-${practiceLength}-${practiceSeed}`
+  const sessionKey = scope === 'daily' ? `${scope}-${difficulty}-${goPuzzleCount}-${setup.dateKey}` : `${scope}-${difficulty}-${goPuzzleCount}-${practiceLength}-${practiceSeed}`
 
   return (
     <GoGameSession
       key={sessionKey}
       coins={coins}
       defaultDifficulty={defaultDifficulty}
+      defaultGoPuzzleCount={defaultGoPuzzleCount}
       difficulty={difficulty}
+      goPuzzleCount={goPuzzleCount}
       keyboardDisabled={keyboardDisabled}
       onDifficultyChange={setDifficulty}
       onGameComplete={onGameComplete}
+      onGoPuzzleCountChange={setGoPuzzleCount}
       onPracticeLengthChange={setPracticeLength}
       onPracticeSeedChange={() => setPracticeSeed((seed) => seed + 1)}
       onSaveDifficultyDefault={onSaveDifficultyDefault}
+      onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault}
       onSpendCoins={onSpendCoins}
       practiceLength={practiceLength}
       practiceLengths={practiceLengths}
