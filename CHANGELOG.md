@@ -4,6 +4,19 @@ All notable changes to `brrrdle` will be documented in this file.
 
 ## Unreleased
 
+### Phase 18.0 — Governance & Repository Cleanup (model-agnostic), planning stage (PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28)
+- **Source of truth**: `PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28.md` and `AGENT-IMPLEMENTATION-PLAN.md` §23.
+- **Scope of this entry**: planning/governance cleanup only. **No game code changed.** The full Phase 18 feature work (difficulty tiers, Word Explorer / Go / Settings improvements, daily Og↔Go overlap fix) is drafted in `AGENT-IMPLEMENTATION-PLAN.md` §23 and is gated on explicit user approval (see §23.13).
+- **`BRRRDLE-OVERVIEW.md` made model-agnostic** — the three GPT-5.5 references were rewritten so the plan no longer assumes a specific model:
+  - Title: "Autonomous GPT-5.5 Copilot Agent Build" → "Autonomous Copilot Agent Build".
+  - Core Approach: "GitHub Copilot agent (GPT-5.5) sessions" → "a GitHub Copilot coding agent (model-agnostic — any sufficiently capable model, e.g. Claude Opus 4.8)".
+  - Goal: "the autonomous GPT-5.5 Copilot workflow" → "the autonomous Copilot agent workflow (model-agnostic)".
+  - A repo-wide grep for `GPT-5`/`GPT 5`/`gpt-5`/`GPT5` across `*.md`, `*.ts`, `*.tsx`, `*.json`, `*.html` returns **zero** matches afterward. No rules, scope, or success criteria were removed — only the model attribution changed.
+- **`CONSTITUTION.md` reviewed; intentionally not edited.** The constitution names no model, so it is already model-neutral and suitable for Claude Opus 4.8 or any capable model. Per CONSTITUTION §17 (revisions require explicit user approval), the agent did not self-edit it. Two staleness observations are recorded for user decision in §23.2/§23.11: §1/§5/§5.2 still say the plan "defines Phases 0 through 11" (predating the approved Phase 12–18 addenda).
+- **Repository organization** — evaluated, no files moved. Nearly all root-level dated spec/report files are referenced by bare filename from `AGENT-IMPLEMENTATION-PLAN.md`, `CHANGELOG.md`, several `progress/PROGRESS-STEP-N.md`, and a source test (`src/wordExplorer/wordExplorerData.test.ts` → `ADDITIONS-2026-05-27.md`). Moving them now would silently break those governance references, so a reference-safe reorg (move + update all references in the same commit) is deferred to optional execution-stage 18.1 per `AGENT-IMPLEMENTATION-PLAN.md` §23.2.
+- **`AGENT-IMPLEMENTATION-PLAN.md`** — appended §23 (Phase 18 addendum, Plan Version bumped 1.7 → 1.8) including the §23.2 Phase 18.0 cleanup record, the daily Og↔Go overlap diagnosis, the answers-only difficulty-tier design (valid guesses identical across tiers; default tier Expert), the UI/Go/Settings/Word Explorer plans, a 10-row sub-phase table (`phase_id` 35–44), open questions, the verification gate, and the exit checklist.
+- **Progress tracking**: `progress/PROGRESS.csv` row `phase_id = 35`; `progress/PROGRESS-STEP-35.md` created.
+
 ### Phase 17 — Use Local brrrdle Word List JSONs from `src/latest/` (complete; awaiting user approval)
 - **Source of truth**: `LOCAL-WORD-LISTS-SPEC-2026-05-28.md` and `AGENT-IMPLEMENTATION-PLAN.md` §22.
 - **Path reconciliation**: spec says `src/latest/brrrdle/`; repo as-committed places the 34 per-length JSONs at `src/latest/`; the on-disk layout is authoritative. The single loader-path constant `LOCAL_WORD_LISTS_SOURCE_PATH = 'src/latest'` in `src/data/localWordLists.ts` is the only point that encodes this decision.
