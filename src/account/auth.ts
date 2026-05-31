@@ -204,16 +204,11 @@ export function subscribeToAuthChanges(
   return { unsubscribe: () => data.subscription.unsubscribe() }
 }
 
-export async function signOut(client: BrrrdleSupabaseClient): Promise<{ readonly ok: true } | { readonly message: string; readonly ok: false }> {
-  const { error } = await client.auth.signOut()
-  return error ? { message: error.message, ok: false } : { ok: true }
-}
-
 // -----------------------------------------------------------------------------
 // Phase 15.1 — Additive auth helpers (do not change existing behavior).
 // -----------------------------------------------------------------------------
 
-export type AuthErrorAction = 'sign-in' | 'sign-up' | 'magic-link' | 'reset-password' | 'update-profile'
+export type AuthErrorAction = 'sign-in' | 'sign-out' | 'sign-up' | 'magic-link' | 'reset-password' | 'update-profile'
 
 /**
  * Maps a Supabase error (or any unknown thrown value) into one of a closed set
@@ -254,6 +249,8 @@ export function classifyAuthError(error: unknown, action: AuthErrorAction): stri
   switch (action) {
     case 'sign-in':
       return 'Unable to sign in with those credentials. Check your email and password, then try again.'
+    case 'sign-out':
+      return 'Unable to sign out right now. Please try again.'
     case 'sign-up':
       return 'Unable to create an account right now. Check the details and try again.'
     case 'magic-link':
@@ -262,6 +259,15 @@ export function classifyAuthError(error: unknown, action: AuthErrorAction): stri
       return 'Unable to send a reset link right now. Please try again in a moment.'
     case 'update-profile':
       return 'Unable to save your profile right now. Please try again.'
+  }
+}
+
+export async function signOut(client: BrrrdleSupabaseClient): Promise<{ readonly ok: true } | { readonly message: string; readonly ok: false }> {
+  try {
+    const { error } = await client.auth.signOut()
+    return error ? { message: classifyAuthError(error, 'sign-out'), ok: false } : { ok: true }
+  } catch (error) {
+    return { message: classifyAuthError(error, 'sign-out'), ok: false }
   }
 }
 

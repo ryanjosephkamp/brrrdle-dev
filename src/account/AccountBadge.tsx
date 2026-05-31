@@ -27,7 +27,7 @@ export function AccountBadge({ authState, onOpenAuthModal, onOpenProfile }: Acco
         type="button"
         onClick={onOpenProfile}
         aria-label={`Open profile for ${label}`}
-        className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/75 px-2 py-1 text-sm text-slate-100 transition hover:border-[var(--color-ice-300)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+        className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-slate-950/75 px-2 py-1 text-sm text-slate-100 shadow-inner shadow-white/5 transition hover:border-[var(--color-ice-300)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
       >
         <span
           aria-hidden="true"
@@ -53,7 +53,7 @@ export function AccountBadge({ authState, onOpenAuthModal, onOpenProfile }: Acco
       <span
         title="Sign-in is unavailable in this environment because Supabase is not configured."
         aria-label="Guest — sync unavailable"
-        className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/60 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-400"
+        className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-1 text-xs font-semibold uppercase text-slate-400 shadow-inner shadow-white/5"
       >
         <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-slate-500" />
         <span>Guest · sync unavailable</span>
@@ -66,11 +66,11 @@ export function AccountBadge({ authState, onOpenAuthModal, onOpenProfile }: Acco
       type="button"
       onClick={onOpenAuthModal}
       aria-label="Sign in or create an account to sync progress"
-      className="inline-flex items-center gap-2 rounded-full border border-[var(--color-ice-300)]/40 bg-slate-950/75 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-100 transition hover:border-[var(--color-ice-300)] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+      className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-ice-300)]/40 bg-slate-950/75 px-3 py-1 text-xs font-semibold uppercase text-cyan-100 shadow-inner shadow-white/5 transition hover:border-[var(--color-ice-300)] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
     >
       <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-cyan-300" />
       <span>Guest</span>
-      <span className="hidden text-[10px] font-normal normal-case tracking-normal text-slate-300 sm:inline">· Sign in to sync</span>
+      <span className="hidden text-[10px] font-normal normal-case text-slate-300 sm:inline">· Sign in to sync</span>
     </button>
   )
 }

@@ -53,6 +53,72 @@ body {
   background: var(--color-polar-night);
 }
 
+.brrrdle-command-shell {
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  background:
+    linear-gradient(118deg, rgb(2 6 23 / 0.96) 0%, rgb(7 17 31 / 0.94) 48%, rgb(2 6 23 / 0.98) 100%),
+    linear-gradient(180deg, #020617 0%, #07111f 54%, #020617 100%);
+}
+
+.brrrdle-command-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(103 232 249 / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(103 232 249 / 0.08) 1px, transparent 1px),
+    linear-gradient(120deg, transparent 0 34%, rgb(34 211 238 / 0.12) 42%, transparent 58% 100%),
+    linear-gradient(24deg, transparent 0 42%, rgb(16 185 129 / 0.1) 48%, transparent 62% 100%);
+  background-position: center;
+  background-size: 4rem 4rem, 4rem 4rem, 100% 100%, 100% 100%;
+  mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.92), rgb(0 0 0 / 0.18) 78%, transparent);
+}
+
+.brrrdle-command-shell::after {
+  content: '';
+  position: fixed;
+  inset: auto -10vw 0;
+  z-index: 0;
+  height: 38vh;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent, rgb(103 232 249 / 0.1)),
+    repeating-linear-gradient(90deg, rgb(103 232 249 / 0.14) 0 1px, transparent 1px 5rem);
+  transform: perspective(48rem) rotateX(62deg);
+  transform-origin: bottom;
+}
+
+.brrrdle-top-command,
+.brrrdle-hud-card,
+.brrrdle-play-bay {
+  position: relative;
+  overflow: hidden;
+}
+
+.brrrdle-top-command::before,
+.brrrdle-hud-card::before,
+.brrrdle-play-bay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, transparent, rgb(103 232 249 / 0.18), transparent) top / 100% 1px no-repeat,
+    linear-gradient(180deg, rgb(255 255 255 / 0.04), transparent 30%);
+}
+
+.brrrdle-hud-card > *,
+.brrrdle-play-bay > *,
+.brrrdle-top-command > * {
+  position: relative;
+  z-index: 1;
+}
+
 button,
 input,
 select,
