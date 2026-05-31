@@ -54,13 +54,3 @@ The chosen layout must feel:
 **End of Spec**
 
 ---
-
-You can now upload/overwrite the spec file with this updated version.
-
-Once you confirm it’s uploaded, just reply with:
-
-**“Spec updated and uploaded. Now generate the starting prompt for Codex.”**
-
-I’ll then give you the optimized starting prompt for GPT-5.5 Codex Pro right away.
-
-Let me know when the spec is ready!
