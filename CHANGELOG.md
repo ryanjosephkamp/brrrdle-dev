@@ -4,6 +4,62 @@ All notable changes to `brrrdle` will be documented in this file.
 
 ## Unreleased
 
+### Phase 20 Complete - Final Lunar Signal Deck Layout + All Refinements
+
+Phase 20 is finalized with **Variant 03 - Lunar Signal Deck** selected as the official layout direction. This completes the dramatic UI/layout exploration phase with a production-ready lunar command-deck shell, preserved gameplay mechanics, responsive landing/play surfaces, and the final refinement set captured in `PHASE-20-VARIANT-03-REFINEMENT-NOTES.md`.
+
+#### 20 Finalization - Selected winner and release gate (`phase_id = 58`)
+- **Selected final layout**: marked Variant 03 as **Selected Winner & Finalized** in `PHASE-20-LAYOUT-VARIANTS.md`.
+- **Lunar Signal Deck shell**: preserves the full existing app surface while presenting the game through the finalized lunar landing deck, colored route chips, route-aware play shell, contextual rail labels, and dedicated About tab.
+- **Gameplay-preserving refinements**: retained independent resume slots for daily og, daily go, practice og, and practice go; collapsed Customize panels by default; kept practice reveal controls gated to puzzles with at least one submitted guess; preserved all existing daily/practice rules, difficulty tiers, stats, definitions, auth, sounds, and theme behavior.
+- **Interactive HUD and Words polish**: finalized clickable Account/Sync/Sound/Theme HUD controls, removed the HUD Hard Mode row only, kept Settings/per-game hard-mode controls intact, and retained paginated Word Explorer rendering with sorting, filtering, copy, request-word, and Define pop-up behavior preserved.
+- **Release gate**: final verification for the selected layout included lint, tests, build, API type-check, whitespace diff check, and desktop/mobile browser smoke testing before PR creation and merge.
+
+### Phase 20.1 - First Layout Variant: Frozen Command Center
+
+First single Phase 20 layout variant, implemented for preview and user feedback only. This variant reframes the existing brrrdle app as an arctic command-deck HUD with a central mission bay, left mission-status rail, right systems/profile rail, sharper glass panels, grid/aurora depth, and responsive mobile collapse. **No game logic, word-list filtering, stats math, auth mechanics, monetization, commit, merge, or production release changed in this step.**
+
+#### 20.1 - Variant 1 preview implementation (`phase_id = 57`)
+- **`src/app/App.tsx`**: wrapped the unchanged route/game surfaces in a three-zone command layout: mission-status rail, active-route play bay, and system/profile rail. Added reusable HUD helper components and kept the About Brrrdle content as a dedicated page-compatible surface.
+- **`src/ui/Layout.tsx`, `src/ui/Navigation.tsx`, `src/ui/Panel.tsx`, `src/ui/Button.tsx`, `src/account/AccountBadge.tsx`**: restyled the shared shell primitives toward the frozen command-center look with sharper frames, glassy contrast, compact navigation, and stronger active states.
+- **`src/index.css`**: added the full-page command-shell background, grid floor, aurora bands, and shared HUD frame highlights using existing theme tokens so Phase 21 theming can extend the surface.
+- **Preview**: live Vercel preview is available at `https://brrrdle-n72n71ee2-ryanjosephkamps-projects.vercel.app`; local browser screenshots were also captured at `/tmp/brrrdle-phase20-variant1-desktop.png`, `/tmp/brrrdle-phase20-variant1-mobile-game.png`, and `/tmp/brrrdle-phase20-variant1-mobile-board.png`.
+- **Verification**: `npm run lint`, `npx tsc -p tsconfig.app.json --noEmit`, `npm run test` (324/324), `npm run build`, `npx tsc -p tsconfig.api.json --noEmit`, client-bundle leak check, and `git diff --check` passed. Browser checks verified primary nav buttons, Word Explorer navigation, no console errors, and no mobile horizontal overflow at 390px.
+- **Gate**: halt here for user feedback on this first variant. Do not start a second variant, refine, commit, merge, or release without explicit user approval.
+
+### Phase 20.0 — Critical Sign-Out Fix (PHASE-20-DRAMATIC-UI-LAYOUT-EXPLORATION-SPEC-2026-05-30)
+
+Required first implementation step for Phase 20. The broken sign-out path is fixed and verified before any layout exploration begins. **No layout variant, UI redesign, game logic, word-list filtering, or monetization change was implemented in this step.**
+
+#### 20.0 — Sign-out button now completes or reports failure (`phase_id = 56`)
+- **`src/account/auth.ts`**: hardened `signOut` so Supabase provider errors and thrown/network failures return safe user-facing messages instead of leaving the UI with an unhandled promise. Added the `sign-out` classification path to `classifyAuthError`.
+- **`src/app/App.tsx`**: updated the sign-out handler to clear stale auth/profile messages, avoid concurrent auth actions, keep the profile panel open on failure so the error remains visible, and on success explicitly clear authenticated UI state and close auth/profile surfaces. Guest progress, local settings, history, stats, and resume state are not reset.
+- **`src/account/auth.test.ts`**: added focused coverage for successful `auth.signOut`, provider-error fallback text, and thrown/network failure handling.
+- **Verification**: focused auth test file passed (27/27); full suite passed (324/324); `npm run lint`, `npm run build`, `npx tsc -p tsconfig.api.json --noEmit`, and `git diff --check` all clean. A live signed-in Supabase browser smoke was not possible in this local environment because no Supabase credentials/session are configured; the implementation is covered by unit tests and code-path verification.
+- **Gate**: halt here. Layout variants must wait for explicit user approval after this 20.0 fix.
+
+### Phase 20 Prompt 2 — Final governance adjustments and Phase 20.0 preparation
+
+Governance-only continuation after Prompt 1. **No layout code, UI implementation, sign-out fix, game logic, word-list filtering, source files, tests, build config, commits, merges, previews, or deployment actions changed in this prompt.** Phase 20.0 remains the next required implementation step and must fix/verify the broken sign-out button before any layout variants begin.
+
+#### 20 Prompt 2 — Governance confirmation and next-step lock (`phase_id = 55`)
+- Confirmed `CONSTITUTION.md` is v3.3 and contains the multi-agent workflow amendment, including coordinating-agent responsibilities, sub-agent work-packet/reporting rules, conflict-avoidance rules, integration/merge gates, and Phase 20 one-variant / preview-before-commit / explicit-approval rules.
+- Confirmed `AGENT-IMPLEMENTATION-PLAN.md` is v2.3 and includes §25, **Phase 20 – Dramatic UI/Layout Exploration**, with Phase 20.0 recorded as the required first implementation step.
+- Confirmed `progress/PROGRESS.csv` contains `phase_id = 54` and `progress/PROGRESS-STEP-54.md` exists as a governance-only Prompt 1 report.
+- Added `phase_id = 55` to `progress/PROGRESS.csv` and created `progress/PROGRESS-STEP-55.md` for this governance-only Prompt 2 step.
+- Halt for explicit user approval before Prompt 3 / Phase 20.0 implementation.
+
+### Phase 20 — Prompt 1: Multi-Agent Governance Setup & §25 Addendum (PHASE-20-DRAMATIC-UI-LAYOUT-EXPLORATION-SPEC-2026-05-30)
+
+Governance-only setup for Phase 20. **No layout code, UI implementation, auth fix, game logic, word-list filtering, source files, tests, or build config changed in this prompt.** Implementation remains gated on explicit user approval for Prompt 2.
+
+#### 20 Prompt 1 — Constitution, plan, and progress setup (`phase_id = 54`)
+- **`CONSTITUTION.md`**: upgraded v3.2 → **v3.3** with a multi-agent workflow amendment. Existing product scope, review gates, verification requirements, data/auth/security rules, minimal-change conduct, progress tracking, and phase-range coverage are preserved. Added coordinating-agent responsibilities, sub-agent work-packet rules, conflict-avoidance/file-ownership rules, handoff reporting requirements, integration/merge gates, and Phase 20-specific one-variant-at-a-time / preview-before-commit / explicit-approval rules.
+- **`AGENT-IMPLEMENTATION-PLAN.md`**: bumped v2.2 → **v2.3**, added a current phase index near the top, and appended **§25 Phase 20 – Dramatic UI/Layout Exploration**. The addendum records the Phase 20 source of truth, boundaries, Phase 20.0 sign-out bug fix as the required first implementation step, the single-variant layout workflow, preview requirements, final success criteria, verification matrix, and exit checklist.
+- **Progress tracking**: appended `phase_id = 54` to `progress/PROGRESS.csv` and created `progress/PROGRESS-STEP-54.md` for this governance-only prompt.
+- **Environment setup**: cloned the repository into the workspace and ran `npm ci` successfully (0 vulnerabilities) before editing.
+- **Halt**: per CONSTITUTION §4 and the user's prompt, stop after this governance setup and wait for explicit approval before any sign-out or layout implementation.
+
 ### Phase 19 — Prompt 3: Full Feature Execution (sub-phases 19.1–19.6) (PHASE-19-ENHANCED-STATS-RESUME-CONFIGURABLE-GO-AND-POLISH-SPEC-2026-05-30)
 
 Autonomous execution of the Phase 19 feature work, authorized by the user after reviewing Prompt 2 ("Start Prompt 3"). Invariants preserved at every sub-phase: daily 5-letter lock; practice 2–35; valid guesses identical across difficulty tiers; default difficulty Expert; `getTileStates`/Hard Mode untouched; per-mode stats separation. All new settings are additive with defaults that reproduce today's behavior.

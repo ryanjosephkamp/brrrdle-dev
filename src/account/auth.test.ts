@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   isAdminUser,
   signInWithPassword,
+  signOut,
   signUpWithPassword,
   subscribeToAuthChanges,
   summarizeUser,
@@ -13,6 +14,7 @@ function makeClient(overrides: Record<string, unknown> = {}): BrrrdleSupabaseCli
   return {
     auth: {
       signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
       signUp: vi.fn().mockResolvedValue({ error: null }),
       onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
       getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
@@ -43,6 +45,34 @@ describe('signInWithPassword', () => {
     const result = await signInWithPassword(client, 'a@b.com', 'p1234567')
     expect(result).toEqual({
       message: 'Unable to sign in with those credentials. Check your email and password, then try again.',
+      ok: false,
+    })
+  })
+})
+
+describe('signOut', () => {
+  it('forwards to Supabase auth.signOut', async () => {
+    const spy = vi.fn().mockResolvedValue({ error: null })
+    const client = makeClient({ signOut: spy })
+    const result = await signOut(client)
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({ ok: true })
+  })
+
+  it('returns a safe error message when Supabase rejects sign-out', async () => {
+    const client = makeClient({ signOut: vi.fn().mockResolvedValue({ error: { message: 'raw provider detail' } }) })
+    const result = await signOut(client)
+    expect(result).toEqual({
+      message: 'Unable to sign out right now. Please try again.',
+      ok: false,
+    })
+  })
+
+  it('returns a safe error message when auth.signOut throws', async () => {
+    const client = makeClient({ signOut: vi.fn().mockRejectedValue(new Error('network blew up')) })
+    const result = await signOut(client)
+    expect(result).toEqual({
+      message: 'Network unavailable — please try again.',
       ok: false,
     })
   })

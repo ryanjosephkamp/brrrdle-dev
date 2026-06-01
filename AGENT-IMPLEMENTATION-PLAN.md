@@ -1,12 +1,38 @@
 # AGENT-IMPLEMENTATION-PLAN.md
 
 **Project**: brrrdle  
-**Plan Version**: 2.2
-**Date**: 2026-05-30
-**Status**: Draft for user review — amended with Hugging Face word-list source integration; further amended on 2026-05-27 with the `ADDITIONS-2026-05-27.md` addendum (see §18); further amended on 2026-05-27 with the `DIAGNOSIS-REPORT-ADMIN-TAB-2026-05-27.md` addendum (see §19); further amended on 2026-05-27 with the `AUTH-UX-IMPROVEMENTS-SPEC-2026-05-27.md` addendum (see §20); further amended on 2026-05-28 with the Mobile & Tablet Responsiveness phase (see §21); further amended on 2026-05-28 with the Local Word Lists addendum (`LOCAL-WORD-LISTS-SPEC-2026-05-28.md`) as Phase 17 (see §22); further amended on 2026-05-28 with the Word List Difficulty Tiers + Word Explorer / Go / Settings improvements addendum (`PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28.md`) as Phase 18 (see §23), whose §23.2 (Phase 18.0) performs an approved model-agnostic governance/repo cleanup and a root `README.md` upgrade in the planning stage; further amended on 2026-05-30 (v1.9) to integrate the user's definitive answers to the five §23.11 open questions (now recorded as resolved decisions) and to record the Phase 18.0 `README.md` upgrade; further amended on 2026-05-30 (v2.0) to record that Phase 18 **Prompt 2** has applied the approved constitution phase-range amendment (`CONSTITUTION.md` §1/§4/§5/§5.2/§17, v3.1 → v3.2) and the associated repo/doc adjustments, ahead of Prompt 3 (full Phase 18 feature execution); further amended on 2026-05-30 (v2.1) to append the Phase 19 addendum (`PHASE-19-ENHANCED-STATS-RESUME-CONFIGURABLE-GO-AND-POLISH-SPEC-2026-05-30.md`) as §24 (Phase 19 — Enhanced Statistics Visualizations, Configurable Go Puzzle Count, Full Resume-Most-Recent-Game Activation, Advanced Polish & Theming Foundations), whose §24.2 (Phase 19.0) performs the approved planning-stage governance/repo cleanup and a root `README.md` polish while deferring all game code changes (sub-phases 19.1–19.6) to explicit user approval ("Start Prompt 2" or equivalent); further amended on 2026-05-30 (v2.2) to record that Phase 19 **Prompt 2** has confirmed the planning-stage progress-step numbering decision (`phase_id = 46` / `progress/PROGRESS-STEP-46.md`, approved by the user) and applied the associated small clarity/governance adjustments (no game code), ahead of Prompt 3 (full Phase 19 feature execution, sub-phases 19.1–19.6).
+**Plan Version**: 2.3
+**Date**: 2026-05-31
+**Status**: Draft for user review — amended with Hugging Face word-list source integration; further amended on 2026-05-27 with the `ADDITIONS-2026-05-27.md` addendum (see §18); further amended on 2026-05-27 with the `DIAGNOSIS-REPORT-ADMIN-TAB-2026-05-27.md` addendum (see §19); further amended on 2026-05-27 with the `AUTH-UX-IMPROVEMENTS-SPEC-2026-05-27.md` addendum (see §20); further amended on 2026-05-28 with the Mobile & Tablet Responsiveness phase (see §21); further amended on 2026-05-28 with the Local Word Lists addendum (`LOCAL-WORD-LISTS-SPEC-2026-05-28.md`) as Phase 17 (see §22); further amended on 2026-05-28 with the Word List Difficulty Tiers + Word Explorer / Go / Settings improvements addendum (`PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28.md`) as Phase 18 (see §23), whose §23.2 (Phase 18.0) performs an approved model-agnostic governance/repo cleanup and a root `README.md` upgrade in the planning stage; further amended on 2026-05-30 (v1.9) to integrate the user's definitive answers to the five §23.11 open questions (now recorded as resolved decisions) and to record the Phase 18.0 `README.md` upgrade; further amended on 2026-05-30 (v2.0) to record that Phase 18 **Prompt 2** has applied the approved constitution phase-range amendment (`CONSTITUTION.md` §1/§4/§5/§5.2/§17, v3.1 → v3.2) and the associated repo/doc adjustments, ahead of Prompt 3 (full Phase 18 feature execution); further amended on 2026-05-30 (v2.1) to append the Phase 19 addendum (`PHASE-19-ENHANCED-STATS-RESUME-CONFIGURABLE-GO-AND-POLISH-SPEC-2026-05-30.md`) as §24 (Phase 19 — Enhanced Statistics Visualizations, Configurable Go Puzzle Count, Full Resume-Most-Recent-Game Activation, Advanced Polish & Theming Foundations), whose §24.2 (Phase 19.0) performs the approved planning-stage governance/repo cleanup and a root `README.md` polish while deferring all game code changes (sub-phases 19.1–19.6) to explicit user approval ("Start Prompt 2" or equivalent); further amended on 2026-05-30 (v2.2) to record that Phase 19 **Prompt 2** has confirmed the planning-stage progress-step numbering decision (`phase_id = 46` / `progress/PROGRESS-STEP-46.md`, approved by the user) and applied the associated small clarity/governance adjustments (no game code), ahead of Prompt 3 (full Phase 19 feature execution, sub-phases 19.1–19.6); further amended on 2026-05-31 (v2.3) to upgrade `CONSTITUTION.md` to v3.3 for multi-agent workflow governance and append the Phase 20 addendum (`PHASE-20-DRAMATIC-UI-LAYOUT-EXPLORATION-SPEC-2026-05-30.md`) as §25, with governance-only tracking at `phase_id = 54`.
 **Authority**: Must follow `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, and the approved v2.6 plan in `BRRRDLE-OVERVIEW.md`.
 
 ---
+
+## Current Phase Index
+
+| Phase / step | Plan section | Status |
+| --- | --- | --- |
+| Phase 0 | §2 | Complete |
+| Phase 1 | §3 | Complete |
+| Phase 2 | §4 | Complete |
+| Phase 3 | §5 | Complete |
+| Phase 4 | §6 | Complete |
+| Phase 5 | §7 | Complete |
+| Phase 6 | §8 | Complete |
+| Phase 7 | §9 | Complete |
+| Phase 8 | §10 | Complete |
+| Phase 9 | §11 | Complete |
+| Phase 10 | §12 | Complete |
+| Phase 11 | §13 | Release PR ready |
+| Phase 12 | §16 / §17 | Complete / residual fixes complete |
+| Phase 13 | §18 | Complete |
+| Phase 14 | §19 | Complete |
+| Phase 15 | §20 | Complete |
+| Phase 16 | §21 | Complete |
+| Phase 17 | §22 | Complete |
+| Phase 18 | §23 | Complete |
+| Phase 19 | §24 | Complete; halt before production release |
+| Phase 20 | §25 | Governance addendum added; implementation not started |
 
 ## 1. Operating Rules
 
@@ -2497,6 +2523,98 @@ Each sub-phase ends with a `progress/PROGRESS-STEP-N.md`, a `progress/PROGRESS.c
 - `progress/PROGRESS.csv`, `progress/PROGRESS-STEP-*.md`, and `CHANGELOG.md` updated and free of sensitive data.
 - Progress-step numbering deviation (planning recorded at `PROGRESS-STEP-46.md`, not `37`) **confirmed by the user in Prompt 2** (§24.2); Prompt 2 itself recorded at `phase_id = 47`, with feature sub-phases 19.1–19.6 assigned final ids 48+.
 - Halt for explicit user approval ("Start Prompt 2" or equivalent) before any game code changes, and before any production release action.
+
+---
+
+## 25. Phase 20 – Dramatic UI/Layout Exploration (Addendum, PHASE-20-DRAMATIC-UI-LAYOUT-EXPLORATION-SPEC-2026-05-30)
+
+**Plan Version**: 2.3 (addendum). Bound by `CONSTITUTION.md` v3.3, `BRRRDLE-SPEC.md`, `BRRRDLE-OVERVIEW.md`, the prior plan (Phases 0–19), and `PHASE-20-DRAMATIC-UI-LAYOUT-EXPLORATION-SPEC-2026-05-30.md` (the binding source of truth for this phase). Triggered by the user's Phase 20 spec requesting dramatic UI/layout exploration while preserving every existing mechanic, feature, and behavior exactly.
+
+> Status: **Phase 20 Prompt 1 governance setup complete (`phase_id = 54`)**. This prompt upgrades the constitution for multi-agent workflow, appends this §25 addendum, and records progress. **No layout code, UI implementation, auth fix, game logic, word-list filtering, source files, or tests changed in Prompt 1.** Halt for explicit user approval before Prompt 2 or any Phase 20 implementation.
+
+### 25.1 Scope, Source of Truth, and Operating Rules
+
+- **Source of truth for this phase**: `PHASE-20-DRAMATIC-UI-LAYOUT-EXPLORATION-SPEC-2026-05-30.md` and this §25. If either conflicts with earlier plan language for the narrow concerns of sign-out repair or layout exploration, stop and ask the user; do not infer.
+- **Phase goal**: explore and iterate a dramatically improved brrrdle UI/layout that feels premium, modern, immersive, game-like, responsive, polished, and future-proof for later theming work, while preserving all existing gameplay, data, auth, stats, sharing, definitions, settings, accessibility, PWA, and persistence behavior.
+- **Phase boundary**: Phase 20 is only the sign-out bug fix plus dramatic UI/layout exploration. No new game modes, no word-list filtering, no canonical game-logic changes, no new monetization mechanics, and no Phase 21 theming/effects work.
+- **One variant at a time**: never generate, implement, present, or compare multiple full layout variants in a single review cycle. Finish the active variant's preview/review loop before starting another.
+- **Preview before commit/merge**: every layout variant must be shown with a live Vercel preview link whenever available. If a live preview is not available, provide detailed screenshots plus a component breakdown before committing, merging, or carrying the variant forward.
+- **Explicit approval required**: no layout code may be committed, merged, or treated as selected until the user explicitly approves that variant. Silence or casual feedback is not approval.
+- **About Brrrdle surface**: keep About Brrrdle as a dedicated page-compatible surface, not a required tab-only section, so it can fit whichever final layout wins.
+- **Reference-driven design allowed**: Codex and sub-agents may draw heavy inspiration from user-linked websites, games, or design references, but must not copy assets or behavior in a way that breaks project scope, accessibility, or licensing expectations.
+- **Multi-agent fit**: if sub-agents are used, the coordinating agent assigns non-overlapping work packets, keeps only one active review variant, consolidates reports, and reruns verification before any gate closes.
+
+### 25.2 Phase 20.0 — Critical Sign-Out Bug Fix (Required First)
+
+The first implementation sub-phase must fix the broken sign-out button reported in the spec: after a user signs in, clicking sign out currently does nothing. This must be completed and verified before any layout variant work begins.
+
+Required implementation behavior:
+
+- Locate the failing sign-out path across `src/app/App.tsx`, `src/account/auth.ts`, `src/account/ProfilePanel.tsx`, `src/account/Settings.tsx`, `src/account/AuthPanel.tsx`, and any tests or mocks that cover Supabase auth.
+- Ensure clicking sign out calls the Supabase sign-out path, closes account/profile surfaces as appropriate, clears authenticated UI state, returns the app to an anonymous/unconfigured-safe state, and displays a safe user-facing failure message if the provider rejects the sign-out.
+- Preserve guest progress, local settings, stats, history, and resume behavior. Signing out must not reset local guest data unless the user explicitly uses reset/delete flows.
+- Add or update focused tests for successful sign-out, sign-out failure messaging, and no accidental local-progress reset.
+- Verify auth surfaces manually or with component tests before moving to layout exploration.
+
+### 25.3 Layout Variant Workflow
+
+After 20.0 is verified, each variant follows the same strict loop:
+
+1. **Pre-flight**: re-read this §25 and the spec, inspect current UI files, confirm no dirty unrelated changes, and define the single variant concept in one paragraph.
+2. **Implement one variant only**: edit only the minimum UI/layout files required for the active concept. Preserve all props, callbacks, state flows, game mechanics, and existing accessible semantics unless the change improves accessibility without behavior loss.
+3. **Verify locally**: run lint, tests, build, API typecheck, and targeted manual/browser checks on mobile/tablet/desktop viewports. Include auth sign-out smoke coverage because 20.0 is a prerequisite.
+4. **Preview first**: provide a live Vercel preview link when possible. If unavailable, provide screenshots for key viewports and a concise component breakdown.
+5. **User review**: wait for explicit feedback. Iterate the same variant if requested, or abandon it and start a new single variant only when the user asks.
+6. **Selection and polish**: once the user chooses a clear favorite, refine only that layout, clean up temporary experimentation, update README screenshots, update CHANGELOG and progress files, rerun full verification, and halt for merge approval.
+
+### 25.4 Final Layout Success Criteria
+
+The final selected Phase 20 layout must:
+
+- Feel materially more polished, engaging, and impressive than the current minimalist UI.
+- Preserve all existing behavior exactly: `og`, `go`, daily 5-letter lock, practice 2–35, difficulty tiers, configurable Go count, resume, stats, economy, auth/sync, Word Explorer, definitions, sharing, PWA, sound, and light accent themes.
+- Stay responsive and polished on mobile, tablet, and desktop.
+- Preserve WCAG AA goals, keyboard navigation, visible focus, status announcements, reduced-motion support, and readable contrast.
+- Keep the codebase cleaner and more extensible for future Phase 21 theming/effects work.
+- Include updated root `README.md` screenshots of the chosen layout before Phase 20 closes.
+
+### 25.5 Phase 20 Sub-Phase Plan
+
+| Sub-phase | `phase_id` | Title | Scope | Verification |
+| --- | --- | --- | --- | --- |
+| 20 Prompt 1 | 54 | Governance setup and addendum | `CONSTITUTION.md` v3.3; §25 addendum; progress/changelog tracking | Markdown/governance only; confirm no source changes; `git diff --check`; CSV parse; install baseline |
+| 20.0 | 55 | Critical sign-out fix | Minimal auth/UI fix for sign-out button | Focused auth tests; lint; test; build; API typecheck; manual sign-out smoke |
+| 20.1 | 56 | Variant 1 pre-flight and implementation | One dramatic layout concept only | Local checks plus live Vercel preview or screenshots before commit/merge |
+| 20.N | 57+ | Additional single variants or iterations | Only if the user requests another variant or iteration | Same one-variant loop; each variant gets its own progress row/report |
+| 20 final | TBD | Selected layout polish and release gate | Polish chosen layout, README screenshots, cleanup, progress/changelog | Full verification matrix; preview reviewed; explicit user approval before merge/release |
+
+The final ids after 20.1 are assigned sequentially in `progress/PROGRESS.csv` as the user requests variants or iterations. Never overwrite existing progress reports.
+
+### 25.6 Verification and Release Gate
+
+Before declaring any Phase 20 implementation sub-phase complete:
+
+1. `npm run lint` — clean.
+2. `npm run test` — all existing tests pass with zero weakened/removed tests.
+3. `npm run build` — clean.
+4. `npx tsc -p tsconfig.api.json --noEmit` — clean.
+5. `git diff --check` — clean.
+6. Client-bundle leak check where source changes touch auth, data, API-adjacent, or build surfaces: no `@vercel/blob`, service-role strings, privileged credentials, or new secret-like values in client chunks.
+7. Manual/browser smoke: sign-out works; daily/practice `og` and `go` still playable; resume still works; stats/settings/Word Explorer/definitions/sharing still accessible; responsive mobile/tablet/desktop layout; keyboard-only navigation; reduced-motion behavior; no critical console errors.
+8. Live Vercel preview link preferred for every layout variant; screenshots plus component breakdown acceptable only when preview is unavailable.
+
+Phase 20 must halt before any merge or production release. The user must explicitly approve the selected variant and any merge/release action.
+
+### 25.7 Phase 20 Exit Checklist
+
+- Sign-out bug fixed first and verified.
+- Exactly one layout variant active per review cycle.
+- Preview provided before any layout commit/merge; user explicitly approved the selected layout.
+- Final layout polished and README screenshots updated.
+- All existing features and invariants preserved, including auth, stats, sync, game logic, daily/practice constraints, word data, economy, definitions, sharing, PWA, accessibility, and current light themes.
+- `progress/PROGRESS.csv`, relevant `progress/PROGRESS-STEP-*.md`, and `CHANGELOG.md` updated with no secrets.
+- Full verification matrix and manual responsive/accessibility smoke checks documented.
+- Halt for explicit user approval before merge and before any production release.
 
 ---
 

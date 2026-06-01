@@ -1,16 +1,16 @@
 # brrrdle Constitution
 
-**Version**: 3.2
-**Date**: 2026-05-30
-**Status**: Final upgraded project constitution with the progress tracking amendment and the phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+) — binding until revised with explicit user approval.
+**Version**: 3.3
+**Date**: 2026-05-31
+**Status**: Final upgraded project constitution with the progress tracking amendment, the phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+), and the multi-agent workflow amendment — binding until revised with explicit user approval.
 
 ---
 
 ## 1. Purpose
 
-This constitution governs all autonomous development of `brrrdle`. It binds implementation to the approved product specification, the approved v2.6 project plan, and the approved `AGENT-IMPLEMENTATION-PLAN.md`. The `AGENT-IMPLEMENTATION-PLAN.md` now spans Phases 0–11 plus all subsequently approved addenda (Phases 12+); every approved addendum is bound by this constitution to the same degree as the original phases.
+This constitution governs all autonomous development of `brrrdle`, including single-agent work, coordinating-agent work, and any parallel sub-agent work performed under the user's direction. It binds implementation to the approved product specification, the approved v2.6 project plan, and the approved `AGENT-IMPLEMENTATION-PLAN.md`. The `AGENT-IMPLEMENTATION-PLAN.md` now spans Phases 0–11 plus all subsequently approved addenda (Phases 12+); every approved addendum is bound by this constitution to the same degree as the original phases.
 
-The goal is to build a polished, production-ready Wordle + Hurdle hybrid while preventing scope creep, preserving implementation fidelity, enforcing phase-by-phase verification, maintaining durable progress records, and requiring human review at every gate.
+The goal is to build a polished, production-ready Wordle + Hurdle hybrid while preventing scope creep, preserving implementation fidelity, enforcing phase-by-phase verification, maintaining durable progress records, coordinating parallel work safely, and requiring human review at every gate.
 
 If this constitution, `BRRRDLE-SPEC.md`, `BRRRDLE-OVERVIEW.md`, or `AGENT-IMPLEMENTATION-PLAN.md` conflict, stop immediately and ask the user for clarification. Do not guess.
 
@@ -28,6 +28,8 @@ Treat these sources as authoritative in this order:
 6. Existing implementation, only when it does not conflict with the above.
 
 No feature, dependency, architecture choice, route, data model, UX behavior, monetization behavior, or deployment change may be added simply because it seems useful. If it is not supported by the authoritative sources, it is out of scope unless explicitly approved by the user.
+
+Sub-agent instructions, branch-local notes, preview notes, or implementation handoffs are never higher authority than the ordered sources above. If a sub-agent report conflicts with an authoritative source, the coordinating agent must stop, identify the conflict, and ask the user for clarification.
 
 ---
 
@@ -78,12 +80,15 @@ Do not implement without explicit approval:
 The agent must halt and wait for explicit user approval:
 
 - After any constitution upgrade or amendment.
+- After any governance-only planning prompt that upgrades coordination rules, phase plans, or progress gates.
 - Before beginning Phase 0 scaffolding.
 - After Phase 0 and after every later phase in `AGENT-IMPLEMENTATION-PLAN.md` (including all subsequently approved addenda, Phases 12+).
 - Whenever a phase's pause point says to halt.
 - Whenever requirements conflict.
 - Whenever verification cannot be completed.
 - Whenever a critical issue cannot be fixed with a small, clearly scoped change.
+- Before merging, squashing, rebasing, deleting, or otherwise finalizing any sub-agent work branch.
+- Before committing or merging any Phase 20 layout variant after preview review.
 - Before any production release action.
 
 Acceptable approval must be explicit, such as “APPROVE”, “Start Phase 0”, “Continue”, or “Proceed”. Silence, ambiguous feedback, or unrelated comments are not approval.
@@ -98,23 +103,30 @@ At each review gate, provide:
 
 Then stop. Do not continue into the next phase, scaffold, or implement additional code until approved.
 
+In a multi-agent workflow, the coordinating agent is responsible for enforcing the halt. A sub-agent may report readiness, but only the user can authorize the next phase, merge, commit, or production action.
+
 ---
 
 ## 5. Phase Execution Rules
 
 The approved implementation plan defines Phases 0–11 plus all subsequently approved addenda (Phases 12+). Work must proceed in order unless the user explicitly approves a change.
 
+When multiple agents are involved, phase order still applies to the combined project state, not just to one agent's local branch. Parallel work is allowed only when the user explicitly directs it or the coordinating agent can prove the scopes are independent and do not violate the active phase's gates.
+
 ### 5.1 Phase Discipline
 
 For each phase:
 
 - Re-read the relevant section of `AGENT-IMPLEMENTATION-PLAN.md` before editing.
+- Re-read this constitution before assigning or accepting sub-agent work.
 - Make only changes directly tied to the current phase.
 - Prefer small, cohesive, reviewable changes.
 - Do not perform future-phase work early unless required to keep the current phase functional and approved by the user.
 - Do not add placeholder complexity that causes lint, build, or test failures.
 - Update `CHANGELOG.md` when the phase requires it.
 - Commit and push only through the approved progress-reporting workflow.
+- Keep branch ownership and file ownership explicit when work is parallelized.
+- Never use parallelism to bypass the one-phase-at-a-time, one-variant-at-a-time, preview-before-commit, or explicit-approval rules.
 
 ### 5.2 Phase Order
 
@@ -161,6 +173,76 @@ The project must maintain progress artifacts for user transparency, session resu
 - Each progress markdown report must summarize the phase changes, verification, known blockers or critical errors, required user action, and whether the user is safe/authorized to proceed to the next phase.
 - If a blocker or critical error arises during a phase, the relevant progress markdown report must be annotated before halting.
 - Progress artifacts must never contain secrets, credentials, or private deployment data.
+
+### 5.5 Multi-Agent Coordination Rules
+
+The user may direct several sub-agents to work in parallel. The coordinating agent owns governance, integration, and final reporting.
+
+#### 5.5.1 Work Packet Discipline
+
+Every sub-agent work packet must state:
+
+- The active phase and sub-phase.
+- The authoritative spec section being implemented.
+- The exact intended file or module ownership.
+- The expected verification commands.
+- The handoff format the sub-agent must return.
+
+No sub-agent may self-expand scope. If the assigned work reveals adjacent defects, the sub-agent reports them separately and does not fix them unless the fix is required for the assigned scope and remains small.
+
+#### 5.5.2 Conflict Avoidance
+
+Parallel sub-agents must not edit the same files, migration surfaces, shared state schemas, canonical game logic, or routing/navigation surfaces unless the user explicitly approves a coordination plan.
+
+High-conflict areas require a single owner at a time:
+
+- `src/game/` canonical game engine, Hard Mode, tile state, sharing, and session logic.
+- `src/account/` persistence, auth, sync, settings, and migrations.
+- `src/data/` word-list loading, daily selection, difficulty tiers, and refresh behavior.
+- `src/app/` routing, layout composition, and playable route panels.
+- `src/ui/` shared primitives and global interaction patterns.
+- `progress/PROGRESS.csv`, `CHANGELOG.md`, `CONSTITUTION.md`, and `AGENT-IMPLEMENTATION-PLAN.md`.
+
+If two work packets need the same file, the coordinating agent must sequence them or create an explicit integration plan before edits begin.
+
+#### 5.5.3 Reporting Back
+
+Each sub-agent report must include:
+
+1. Files changed.
+2. Behavior changed.
+3. Verification run and exact result.
+4. Checks skipped and why.
+5. Known risks or follow-up work.
+6. Whether any user approval is needed before merge.
+
+The coordinating agent must consolidate reports into `progress/PROGRESS.csv`, the relevant `progress/PROGRESS-STEP-N.md`, and `CHANGELOG.md` before a phase gate closes.
+
+#### 5.5.4 Integration and Merge Rules
+
+Sub-agent branches are not authoritative until reviewed by the coordinating agent and approved by the user where this constitution requires approval.
+
+The coordinating agent must:
+
+- Inspect diffs before integrating.
+- Reject unrelated changes and speculative refactors.
+- Re-run the relevant verification after integration, not merely trust sub-agent results.
+- Confirm no secrets, generated noise, weakened tests, or future-phase work entered the merge.
+- Preserve existing user changes and never overwrite progress artifacts with stale copies.
+
+No merge to the main working branch, release branch, or production branch may happen without explicit user approval at the applicable gate.
+
+#### 5.5.5 Phase 20 Layout Exploration Governance
+
+Phase 20 has additional binding workflow rules:
+
+- Phase 20.0, the sign-out bug fix, must be completed and verified before any layout variants begin.
+- Only one full layout variant may be active for review at a time.
+- Layout variants must be shown through a live Vercel preview link when available; if that is impossible, provide detailed screenshots and a component breakdown before any commit or merge.
+- No layout variant code may be committed, merged, or carried forward as the selected layout until the user explicitly approves that variant.
+- Design inspiration from user-provided references is encouraged, but the implementation must preserve all existing mechanics, data, auth, stats, sharing, definitions, accessibility, and daily/practice invariants.
+- The About Brrrdle section must remain a dedicated page-compatible surface, not be collapsed into a required tab-only experience.
+- No Phase 20 work may change word-list filtering, canonical game logic, or monetization mechanics.
 
 ---
 
@@ -377,6 +459,8 @@ It must support:
 - Responsive layouts for mobile and desktop.
 - Post-game definition and share flows.
 
+During Phase 20, the UI may be dramatically reimagined only inside the approved exploration boundaries: one variant at a time, preview before commit, explicit user approval before merge, and no loss of existing functionality.
+
 ### 12.2 Accessibility
 
 Target WCAG AA minimums. Preserve:
@@ -498,7 +582,7 @@ Implementation and tests must explicitly consider:
 
 ## 17. Constitution Evolution
 
-This constitution includes the approved second upgrade, a progress tracking amendment, and a phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+). Future revisions require explicit user approval and must preserve:
+This constitution includes the approved second upgrade, a progress tracking amendment, a phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+), and a multi-agent workflow amendment. Future revisions require explicit user approval and must preserve:
 
 - Scope fidelity.
 - Mandatory review gates.
@@ -510,6 +594,7 @@ This constitution includes the approved second upgrade, a progress tracking amen
 - Minimal-change conduct.
 - Progress logging for transparency, resumability, and coordination.
 - Phase-range continuity, so every approved addendum (Phases 12+) remains bound by the same rules as Phases 0–11.
+- Multi-agent conflict avoidance, explicit handoff reporting, coordinating-agent integration responsibility, and user approval before merges, commits where gated, layout-variant selection, and production releases.
 
 ---
 
