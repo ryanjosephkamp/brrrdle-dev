@@ -4,7 +4,20 @@ All notable changes to `brrrdle` will be documented in this file.
 
 ## Unreleased
 
-### Phase 21 Prompt 2 — Governance-Only Refined-Instruction Update: UI Polish & Theming Foundation (PHASE-21-UI-POLISH-AND-THEMING-FOUNDATION-SPEC-2026-06-01)
+### Phase 21 Prompt 3 — Full Execution: UI Polish & Theming Foundation (PHASE-21-UI-POLISH-AND-THEMING-FOUNDATION-SPEC-2026-06-01)
+
+Full execution of Phase 21. Polishes the finalized Phase 20 "Lunar Signal Deck" layout into a sophisticated, theming-ready foundation **with the layout and tab structure preserved**, adopts a very minimalist default background, and captures the original heavier Lunar Signal Deck visual style as **one individual, opt-in surface theme** to be enabled in Phase 22. Every gameplay mechanic, accent theme, and supporting feature is preserved 100% intact, and the Phase 22 dramatic theming system itself is intentionally **not** implemented.
+
+#### 21 Prompt 3 — Minimalist default surface + Lunar Signal Deck as opt-in theme (`phase_id = 61`)
+- **New surface-theme foundation (`src/theme/surface.ts` + tests)**: a pure module with `SURFACE_THEMES = ['minimal', 'lunar-signal']`, `DEFAULT_SURFACE_THEME = 'minimal'`, `isSurfaceTheme`/`normalizeSurfaceTheme`/`getSurfaceThemeMeta`, and `applySurfaceTheme` (reflects the active surface onto `<html>` via a `data-surface` attribute; the default removes it). Mirrors the existing accent `theme.ts` conventions and is fully unit-tested (9 new tests).
+- **Minimalist default background**: `.brrrdle-lunar-shell` now renders a plain near-black surface with a faint, static, edge-fading grid. The original radial signal-glow background and screen-blended scan grid are gated behind `.brrrdle-lunar-shell[data-surface='lunar-signal']`.
+- **Lunar Signal Deck captured as one opt-in surface**: the original treatment (signal glow, animated star/moon canvas, scan grid, custom cursor) is preserved verbatim as the `lunar-signal` surface. `LunarSignalStage` renders the animated canvas and custom cursor only under that surface and skips background pointer-tracking work otherwise; `App` applies the default `minimal` surface on mount. No future-phase surface-switching UI was added.
+- **CSS-architecture cleanup**: removed dead Phase-20 layout-exploration styles — the entire `.brrrdle-command-shell` block and all `.brrrdle-prism-*` rules except the still-used `.brrrdle-prism-mode-card::before` accent overlay — plus the now-unused `--prism-*` custom properties, and deleted the unused `Layout` component (the only consumer of the `command-shell` CSS) and its barrel export.
+- **Preserved exactly**: the Lunar Signal Deck layout and tab structure; daily/practice `og` and `go`; difficulty tiers; configurable Go count; resume; stats; definitions; economy; auth/sync; sharing; PWA; sound; and the four accent themes (`icy`/`classic`/`neon`/`country-flag`). About Brrrdle remains a dedicated page.
+- **Verification**: `npm run lint` clean; `npx tsc -p tsconfig.app.json --noEmit` clean; `npm run test` **338/338**; `npm run build` clean (existing chunk-size advisory only); `npx tsc -p tsconfig.api.json --noEmit` clean; `git diff --check` clean; `PROGRESS.csv` parse check (all rows 12 columns, last row `phase_id = 61`); browser smoke clean (minimal default + `lunar-signal` restore, no console errors).
+- **Docs/tracking**: updated `AGENT-IMPLEMENTATION-PLAN.md` (v2.5 → v2.6, §26 status + phase index), `progress/PROGRESS.csv` (`phase_id = 61`), and `progress/PROGRESS-STEP-60.md`.
+
+
 
 Governance/documentation-only step that records the user's refined Phase 21 instructions before any implementation begins. **No code, UI polish, layout change, theming-foundation code, component refactor, CSS architecture change, or future-phase feature was implemented in this step.** The finalized Phase 20 "Lunar Signal Deck" layout and every existing mechanic remain 100% intact.
 
