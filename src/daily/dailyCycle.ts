@@ -33,10 +33,18 @@ import { getDailyVariantDescriptor, type DailyVariant } from './dailyVariant'
 import { getDailyNow, type DailyNow } from './simulatedClock'
 
 /** A stable id for the current live page session (one per module load). */
-export const DAILY_SESSION_ID: string =
-  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : `s-${Math.random().toString(36).slice(2)}-${Date.now()}`
+function createDailySessionId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  // Non-security identifier: it only distinguishes the current live page session
+  // (with its monotonic baseline) from a persisted/reloaded anchor. Cryptographic
+  // randomness is unnecessary, so derive uniqueness from time sources instead.
+  const monotonic = typeof performance !== 'undefined' ? performance.now() : 0
+  return `s-${Date.now().toString(36)}-${Math.trunc(monotonic * 1000).toString(36)}`
+}
+
+export const DAILY_SESSION_ID: string = createDailySessionId()
 
 function getBrowserStorage(): KeyValueStorage | undefined {
   if (typeof window === 'undefined') {
