@@ -73,13 +73,6 @@ export const APP_ROUTES = [
     navigationGroup: 'support',
   },
   {
-    id: 'feedback',
-    label: 'Feedback',
-    shortLabel: 'Feedback',
-    description: 'Send a pre-filled bug report, feature request, or note.',
-    navigationGroup: 'support',
-  },
-  {
     id: 'definitions',
     label: 'Definitions',
     shortLabel: 'Defs',
@@ -98,6 +91,13 @@ export const APP_ROUTES = [
     label: 'Settings',
     shortLabel: 'Settings',
     description: 'Preferences, accessibility options, and account controls will appear here.',
+    navigationGroup: 'support',
+  },
+  {
+    id: 'feedback',
+    label: 'Feedback',
+    shortLabel: 'Feedback',
+    description: 'Send a pre-filled bug report, feature request, or note.',
     navigationGroup: 'support',
   },
   {
@@ -132,6 +132,6 @@ export function getPrimaryNavigationRoutes(isAdmin: boolean): readonly AppRoute[
       return isAdmin
     }
 
-    return ['calendar', 'practice', 'word-explorer', 'feedback', 'settings', 'about'].includes(route.id)
+    return ['calendar', 'practice', 'word-explorer', 'settings', 'feedback', 'about'].includes(route.id)
   })
 }

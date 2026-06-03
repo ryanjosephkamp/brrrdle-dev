@@ -151,6 +151,8 @@ body {
   position: relative;
   z-index: 3;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   margin-inline: auto;
   min-height: 100svh;
   width: min(100%, 104rem);
@@ -239,7 +241,8 @@ body {
 .brrrdle-lunar-intro {
   position: relative;
   display: grid;
-  min-height: calc(100svh - 7.25rem);
+  flex: 1 1 auto;
+  min-height: 0;
   place-items: center;
   overflow: hidden;
   border-radius: 0.5rem;
@@ -349,14 +352,14 @@ body {
 .brrrdle-lunar-dock-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  min-height: 2.5rem;
+  gap: 0.5rem;
+  min-height: 2.85rem;
   border: 1px solid rgb(255 255 255 / 0.13);
   border-radius: 999px;
   background: rgb(5 7 14 / 0.62);
   color: white;
-  padding: 0.45rem 0.82rem;
-  font-size: 0.82rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.92rem;
   font-weight: 900;
   box-shadow: 0 0.8rem 2.5rem rgb(0 0 0 / 0.28);
   backdrop-filter: blur(16px);
@@ -370,6 +373,11 @@ body {
   border-radius: 999px;
   background: var(--signal-color);
   box-shadow: 0 0 1.5rem var(--signal-color);
+}
+
+.brrrdle-lunar-dock-chip span {
+  width: 0.6rem;
+  height: 0.6rem;
 }
 
 .brrrdle-lunar-dock-chip[aria-current='true'],
@@ -737,7 +745,7 @@ body {
   }
 
   .brrrdle-lunar-intro {
-    min-height: calc(100svh - 10rem);
+    min-height: 0;
   }
 
   .brrrdle-lunar-hero {
@@ -776,9 +784,9 @@ body {
   }
 
   .brrrdle-lunar-dock-chip {
-    min-height: 2rem;
-    padding: 0.3rem 0.52rem;
-    font-size: 0.68rem;
+    min-height: 2.3rem;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.78rem;
   }
 
   .brrrdle-lunar-route-head {
@@ -796,7 +804,7 @@ body {
   }
 
   .brrrdle-lunar-intro {
-    min-height: calc(100svh - 9.25rem);
+    min-height: 0;
   }
 
   .brrrdle-lunar-hero {

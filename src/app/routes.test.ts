@@ -16,7 +16,7 @@ describe('APP_ROUTES', () => {
 
   it('includes minimal play and support navigation groups', () => {
     expect(getRoutesByGroup('play').map((route) => route.id)).toEqual(['home', 'calendar', 'og-daily', 'go-daily', 'practice'])
-    expect(getRoutesByGroup('support').map((route) => route.id)).toEqual(['word-explorer', 'feedback', 'definitions', 'stats', 'settings', 'about', 'admin'])
+    expect(getRoutesByGroup('support').map((route) => route.id)).toEqual(['word-explorer', 'definitions', 'stats', 'settings', 'feedback', 'about', 'admin'])
   })
 
   it('keeps the legacy daily routes defined but hidden from primary navigation', () => {
@@ -30,16 +30,16 @@ describe('APP_ROUTES', () => {
       'calendar',
       'practice',
       'word-explorer',
-      'feedback',
       'settings',
+      'feedback',
       'about',
     ])
     expect(getPrimaryNavigationRoutes(true).map((route) => route.id)).toEqual([
       'calendar',
       'practice',
       'word-explorer',
-      'feedback',
       'settings',
+      'feedback',
       'about',
       'admin',
     ])

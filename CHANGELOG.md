@@ -4,6 +4,15 @@ All notable changes to `brrrdle` will be documented in this file.
 
 ## Unreleased
 
+### Phase 22 Addendum Follow-up — Landing Tab-Row Layout Fix & Feedback Tab Reorder
+
+Small UI/UX follow-up on the Phase 22 addendum branch in response to user feedback. **No new scope, gameplay, economy, persistence, sync, or daily-cycle behavior changed. Invariants hold: daily puzzles remain exactly 5 letters; practice still supports 2–35.**
+
+- **Landing tab row no longer cut off (`src/index.css`)**: the Lunar Signal Deck landing region (`.brrrdle-lunar-intro`) now fills the viewport via flexbox (`.brrrdle-lunar-interface` is a flex column; the intro is `flex: 1; min-height: 0`) instead of a magic-number `calc(100svh - Nrem)` estimate of the topbar height. Previously, when the topbar was taller than the estimate (notably on mobile, where the account/countdown stack vertically), the intro overflowed and pushed the bottom-anchored horizontal tab dock below the fold, making it unreachable on both mobile and desktop. The redundant per-breakpoint intro height estimates were neutralized accordingly.
+- **Slightly larger landing tabs (`src/index.css`)**: the landing dock chips were enlarged modestly — desktop `min-height` 2.5rem → 2.85rem with larger padding/font (and dot 0.55rem → 0.6rem); mobile `min-height` 2rem → 2.3rem with larger padding/font. The in-game (awake) rail is unchanged.
+- **Feedback tab repositioned (`src/app/routes.ts`)**: the `feedback` route now sits second-to-last in the navigation order — immediately after `settings` and immediately before `about`. `getPrimaryNavigationRoutes`' membership list and `routes.test.ts` expectations were updated to match.
+- **Verification**: `npm run lint` clean; `npm run test` 390/390; `npm run build` succeeds; `git diff --check` clean.
+
 ### Phase 22 Addendum — Full Execution: Calendar (Central Daily Hub), Coin-Gated Past Dailies & Top Countdown Positioning (PHASE-22-ADDENDUM-CALENDAR-AND-COUNTDOWN-POSITIONING-2026-06-03)
 
 Full autonomous implementation of the Phase 22 addendum (§27.10), building on the Phase 22 Prompt 2 `src/daily/` service and `DailyCountdown.tsx`. Introduces the **Calendar** as the first navigation tab and single central hub for all daily play (current + past, OG + GO), coin-gated access to past dailies, and repositions the daily countdown from the fixed bottom corner to the top of the UI. **All Phase 22 Prompt 2 behavior (local-midnight rollover, anti-gaming guard, reset alert + unique sound, Settings toggle, dev Simulate-Time tool) is preserved. Strict invariants hold: daily puzzles remain exactly 5 letters; practice still supports 2–35; no multiplayer/marketplace changes; the only economy addition is the fixed past-daily unlock cost; guest and signed-in sync stay consistent.**
