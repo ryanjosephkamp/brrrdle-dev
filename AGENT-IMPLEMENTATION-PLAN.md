@@ -1,9 +1,9 @@
 # AGENT-IMPLEMENTATION-PLAN.md
 
 **Project**: brrrdle  
-**Plan Version**: 2.7
-**Date**: 2026-06-02
-**Status**: Draft for user review — amended with Hugging Face word-list source integration; further amended on 2026-05-27 with the `ADDITIONS-2026-05-27.md` addendum (see §18); further amended on 2026-05-27 with the `DIAGNOSIS-REPORT-ADMIN-TAB-2026-05-27.md` addendum (see §19); further amended on 2026-05-27 with the `AUTH-UX-IMPROVEMENTS-SPEC-2026-05-27.md` addendum (see §20); further amended on 2026-05-28 with the Mobile & Tablet Responsiveness phase (see §21); further amended on 2026-05-28 with the Local Word Lists addendum (`LOCAL-WORD-LISTS-SPEC-2026-05-28.md`) as Phase 17 (see §22); further amended on 2026-05-28 with the Word List Difficulty Tiers + Word Explorer / Go / Settings improvements addendum (`PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28.md`) as Phase 18 (see §23), whose §23.2 (Phase 18.0) performs an approved model-agnostic governance/repo cleanup and a root `README.md` upgrade in the planning stage; further amended on 2026-05-30 (v1.9) to integrate the user's definitive answers to the five §23.11 open questions (now recorded as resolved decisions) and to record the Phase 18.0 `README.md` upgrade; further amended on 2026-05-30 (v2.0) to record that Phase 18 **Prompt 2** has applied the approved constitution phase-range amendment (`CONSTITUTION.md` §1/§4/§5/§5.2/§17, v3.1 → v3.2) and the associated repo/doc adjustments, ahead of Prompt 3 (full Phase 18 feature execution); further amended on 2026-05-30 (v2.1) to append the Phase 19 addendum (`PHASE-19-ENHANCED-STATS-RESUME-CONFIGURABLE-GO-AND-POLISH-SPEC-2026-05-30.md`) as §24 (Phase 19 — Enhanced Statistics Visualizations, Configurable Go Puzzle Count, Full Resume-Most-Recent-Game Activation, Advanced Polish & Theming Foundations), whose §24.2 (Phase 19.0) performs the approved planning-stage governance/repo cleanup and a root `README.md` polish while deferring all game code changes (sub-phases 19.1–19.6) to explicit user approval ("Start Prompt 2" or equivalent); further amended on 2026-05-30 (v2.2) to record that Phase 19 **Prompt 2** has confirmed the planning-stage progress-step numbering decision (`phase_id = 46` / `progress/PROGRESS-STEP-46.md`, approved by the user) and applied the associated small clarity/governance adjustments (no game code), ahead of Prompt 3 (full Phase 19 feature execution, sub-phases 19.1–19.6); further amended on 2026-05-31 (v2.3) to upgrade `CONSTITUTION.md` to v3.3 for multi-agent workflow governance and append the Phase 20 addendum (`PHASE-20-DRAMATIC-UI-LAYOUT-EXPLORATION-SPEC-2026-05-30.md`) as §25, with governance-only tracking at `phase_id = 54`; further amended on 2026-06-01 (v2.4) to record Phase 20 completion (Variant 03 "Lunar Signal Deck" finalized) and append the Phase 21 addendum (`PHASE-21-UI-POLISH-AND-THEMING-FOUNDATION-SPEC-2026-06-01.md`) as §26 (Phase 21 — UI Polish & Theming Foundation), whose Prompt 1 is a planning + governance-only step (no UI polish, layout, or theming-foundation code) tracked at `phase_id = 59`, ahead of Prompt 2 (full Phase 21 execution); further amended on 2026-06-01 (v2.5) to record Phase 21 **Prompt 2**, a governance-only refined-instruction update incorporating the user's clarifications (keep the Lunar Signal Deck layout/tab structure mostly the same, adopt a very minimalist default background of plain black or a simple grid pattern, and capture the current Lunar Signal Deck visual style as one individual theme to be enabled in Phase 22) into the spec, §26, changelog, and progress at `phase_id = 60` — with no code, UI, layout, or theming-foundation changes — ahead of Prompt 3 (full Phase 21 execution); further amended on 2026-06-02 (v2.6) to record Phase 21 **Prompt 3** (full execution, `phase_id = 61`): added the `src/theme/surface.ts` surface-theme foundation (`minimal` default + `lunar-signal`), adopted a minimalist near-black default backdrop with a faint static grid, captured the original Lunar Signal Deck treatment as the single opt-in `lunar-signal` surface (gated by a `data-surface` attribute, to be enabled in Phase 22), and removed dead Phase-20 exploration CSS (`prism` and `command-shell` shells) plus the unused `Layout` component — with the Lunar Signal Deck layout/tab structure and every gameplay/accent-theme/stats/auth/resume/economy/sharing behavior preserved, and the Phase 22 theming system itself not implemented; further amended on 2026-06-02 (v2.7) to incorporate the **Phase 21 Addendum – Theme Proposal Templates** spec (`PHASE-21-THEME-PROPOSAL-TEMPLATES-SPEC-2026-06-02.md`) as a governance/planning-only step appended at §26.8, recording the new `themes/proposals/template_proposals/` + `full_proposals/` + `theme_proposals.csv` structure that Phase 21 must produce before closing, tracked at `phase_id = 62` — with no theme code, no proposal Markdown files, no CSV population, and no folder creation in this step (the requested "§26.1" addendum is recorded as §26.8 because the §26.1–§26.7 slots were already occupied, and the version advances to v2.7 because v2.6 was already consumed by the Phase 21 Prompt 3 full-execution amendment above).
+**Plan Version**: 3.0
+**Date**: 2026-06-03
+**Status**: Draft for user review — amended with Hugging Face word-list source integration; further amended on 2026-05-27 with the `ADDITIONS-2026-05-27.md` addendum (see §18); further amended on 2026-05-27 with the `DIAGNOSIS-REPORT-ADMIN-TAB-2026-05-27.md` addendum (see §19); further amended on 2026-05-27 with the `AUTH-UX-IMPROVEMENTS-SPEC-2026-05-27.md` addendum (see §20); further amended on 2026-05-28 with the Mobile & Tablet Responsiveness phase (see §21); further amended on 2026-05-28 with the Local Word Lists addendum (`LOCAL-WORD-LISTS-SPEC-2026-05-28.md`) as Phase 17 (see §22); further amended on 2026-05-28 with the Word List Difficulty Tiers + Word Explorer / Go / Settings improvements addendum (`PHASE-18-WORD-DIFFICULTY-AND-GO-IMPROVEMENTS-SPEC-2026-05-28.md`) as Phase 18 (see §23), whose §23.2 (Phase 18.0) performs an approved model-agnostic governance/repo cleanup and a root `README.md` upgrade in the planning stage; further amended on 2026-05-30 (v1.9) to integrate the user's definitive answers to the five §23.11 open questions (now recorded as resolved decisions) and to record the Phase 18.0 `README.md` upgrade; further amended on 2026-05-30 (v2.0) to record that Phase 18 **Prompt 2** has applied the approved constitution phase-range amendment (`CONSTITUTION.md` §1/§4/§5/§5.2/§17, v3.1 → v3.2) and the associated repo/doc adjustments, ahead of Prompt 3 (full Phase 18 feature execution); further amended on 2026-05-30 (v2.1) to append the Phase 19 addendum (`PHASE-19-ENHANCED-STATS-RESUME-CONFIGURABLE-GO-AND-POLISH-SPEC-2026-05-30.md`) as §24 (Phase 19 — Enhanced Statistics Visualizations, Configurable Go Puzzle Count, Full Resume-Most-Recent-Game Activation, Advanced Polish & Theming Foundations), whose §24.2 (Phase 19.0) performs the approved planning-stage governance/repo cleanup and a root `README.md` polish while deferring all game code changes (sub-phases 19.1–19.6) to explicit user approval ("Start Prompt 2" or equivalent); further amended on 2026-05-30 (v2.2) to record that Phase 19 **Prompt 2** has confirmed the planning-stage progress-step numbering decision (`phase_id = 46` / `progress/PROGRESS-STEP-46.md`, approved by the user) and applied the associated small clarity/governance adjustments (no game code), ahead of Prompt 3 (full Phase 19 feature execution, sub-phases 19.1–19.6); further amended on 2026-05-31 (v2.3) to upgrade `CONSTITUTION.md` to v3.3 for multi-agent workflow governance and append the Phase 20 addendum (`PHASE-20-DRAMATIC-UI-LAYOUT-EXPLORATION-SPEC-2026-05-30.md`) as §25, with governance-only tracking at `phase_id = 54`; further amended on 2026-06-01 (v2.4) to record Phase 20 completion (Variant 03 "Lunar Signal Deck" finalized) and append the Phase 21 addendum (`PHASE-21-UI-POLISH-AND-THEMING-FOUNDATION-SPEC-2026-06-01.md`) as §26 (Phase 21 — UI Polish & Theming Foundation), whose Prompt 1 is a planning + governance-only step (no UI polish, layout, or theming-foundation code) tracked at `phase_id = 59`, ahead of Prompt 2 (full Phase 21 execution); further amended on 2026-06-01 (v2.5) to record Phase 21 **Prompt 2**, a governance-only refined-instruction update incorporating the user's clarifications (keep the Lunar Signal Deck layout/tab structure mostly the same, adopt a very minimalist default background of plain black or a simple grid pattern, and capture the current Lunar Signal Deck visual style as one individual theme to be enabled in Phase 22) into the spec, §26, changelog, and progress at `phase_id = 60` — with no code, UI, layout, or theming-foundation changes — ahead of Prompt 3 (full Phase 21 execution); further amended on 2026-06-02 (v2.6) to record Phase 21 **Prompt 3** (full execution, `phase_id = 61`): added the `src/theme/surface.ts` surface-theme foundation (`minimal` default + `lunar-signal`), adopted a minimalist near-black default backdrop with a faint static grid, captured the original Lunar Signal Deck treatment as the single opt-in `lunar-signal` surface (gated by a `data-surface` attribute, to be enabled in Phase 22), and removed dead Phase-20 exploration CSS (`prism` and `command-shell` shells) plus the unused `Layout` component — with the Lunar Signal Deck layout/tab structure and every gameplay/accent-theme/stats/auth/resume/economy/sharing behavior preserved, and the Phase 22 theming system itself not implemented; further amended on 2026-06-02 (v2.7) to incorporate the **Phase 21 Addendum – Theme Proposal Templates** spec (`PHASE-21-THEME-PROPOSAL-TEMPLATES-SPEC-2026-06-02.md`) as a governance/planning-only step appended at §26.8, recording the new `themes/proposals/template_proposals/` + `full_proposals/` + `theme_proposals.csv` structure that Phase 21 must produce before closing, tracked at `phase_id = 62` — with no theme code, no proposal Markdown files, no CSV population, and no folder creation in this step (the requested "§26.1" addendum is recorded as §26.8 because the §26.1–§26.7 slots were already occupied, and the version advances to v2.7 because v2.6 was already consumed by the Phase 21 Prompt 3 full-execution amendment above); further amended on 2026-06-02 (v2.8) to incorporate the **Phase 22 – Advanced Calendar / Midnight Handling + Timezone-Aware Daily Reset (+ Targeted Bug Fixes)** spec (`PHASE-22-CALENDAR-MIDNIGHT-AND-BUGFIXES-SPEC-2026-06-02.md`) as §27, a planning + governance-only step (Prompt 1) that records the phase goals, scope, deliverables, verification requirements, and two-prompt workflow and makes Phase 22 the active next phase — with **no** daily-rollover, timezone, countdown, reset-alert, sound, dev-tool, or other source code implemented in this step (tracked at `phase_id = 64`), ahead of Prompt 2 (full Phase 22 execution); further amended on 2026-06-03 (v2.9) to record that Phase 22 **Prompt 2** (full execution) is complete (`phase_id = 65`) — timezone-aware local-midnight daily reset, balanced anti-gaming, cross-page countdown indicator, reset alert + brand-new unique sound, global Settings toggle, dev-mode Simulate Time tool, and the modular `src/daily/` service — and to incorporate the **Phase 22 Addendum – Calendar (Central Daily Hub) & Countdown Positioning** spec (`PHASE-22-ADDENDUM-CALENDAR-AND-COUNTDOWN-POSITIONING-2026-06-03.md`) as §27.10, a planning + governance-only step that records the Calendar-as-central-daily-hub feature (first tab, "Play Today's OG/GO" quick-access buttons, coin-gated past dailies with a one-guess-permanently-unlocks rule, past dailies treated as full daily experiences), the countdown repositioning to the top of the UI (context-aware on the landing page vs. game tabs), and the deliverables/scope/verification — with **no** calendar, navigation, routing, state-management, countdown-repositioning, economy, or other source code implemented in this step (tracked at `phase_id = 66`), ahead of a separately approved full-execution prompt.
 **Authority**: Must follow `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, and the approved v2.6 plan in `BRRRDLE-OVERVIEW.md`.
 
 ---
@@ -34,9 +34,10 @@
 | Phase 19 | §24 | Complete; halt before production release |
 | Phase 20 | §25 | Complete — Variant 03 "Lunar Signal Deck" finalized |
 | Phase 21 | §26 | Implementation complete (Prompt 3): minimalist default surface + Lunar Signal Deck captured as one opt-in surface theme; theming-foundation and CSS-architecture cleanup done |
-| Phase 21 Addendum – Theme Proposal Templates | §26.8 | Governance/planning only (`phase_id = 62`): incorporates `PHASE-21-THEME-PROPOSAL-TEMPLATES-SPEC-2026-06-02.md`; records the `themes/proposals/template_proposals/` + `full_proposals/` + `theme_proposals.csv` structure to produce before Phase 21 closes; no theme code, proposal files, CSV population, or folder creation yet |
+| Phase 21 Addendum – Theme Proposal Templates | §26.8 | Governance/planning only (`phase_id = 62`): incorporates `PHASE-21-THEME-PROPOSAL-TEMPLATES-SPEC-2026-06-02.md`; records the `themes/proposals/template_proposals/` + `full_proposals/` + `theme_proposals.csv` structure to produce before Phase 21 closes; templates authored (`phase_id = 63`) |
+| **Phase 22 (active phase)** | §27 | **Prompt 1 (planning + governance) complete (`phase_id = 64`)** and **Prompt 2 (full execution) complete (`phase_id = 65`)**: timezone-aware local-midnight daily reset, balanced anti-gaming, cross-page countdown, reset alert + new unique sound, dev-mode Simulate Time tool, modular `src/daily/` service. **Addendum (§27.10) — Calendar & Countdown Positioning — governance complete (`phase_id = 66`) and full execution complete (`phase_id = 67`)**: the Calendar is the central first-tab hub for all dailies (current + past, OG + GO) with "Play Today's OG/GO" buttons, coin-gated past dailies (fixed 60 coins, one guess permanently unlocks), past dailies as full daily experiences, the dedicated OG/GO Daily tabs removed (legacy deep links redirect into the Calendar), calendar history fixed to start 2025-01-01, and the countdown repositioned to the top of the UI. Verified (lint clean; 390/390 tests; build succeeds; `tsc -b` clean; `git diff --check` clean); halting for explicit user review before the Phase 22 PR |
 
-> **Upcoming planned roadmap (not yet specced into this plan):** Phase 22 — Dramatic Theming System (built on the Phase 21 foundation), followed by additional planned phases through Phase 26 covering future scope such as a consumables shop, calendar, and multiplayer. These are listed here only for roadmap awareness; no work on Phases 22–26 may begin until each is approved and added as its own addendum.
+> **Upcoming planned roadmap (not yet specced into this plan):** following Phase 22, additional planned phases through Phase 26 cover future scope such as a dramatic theming system (built on the Phase 21 foundation and the §26.8 theme proposal templates), a consumables shop, and multiplayer. These are listed here only for roadmap awareness; no work on Phases 23–26 may begin until each is approved and added as its own addendum.
 
 ## 1. Operating Rules
 
@@ -2763,6 +2764,196 @@ Each proposal Markdown file must use a consistent header: Theme Name; Category /
 | Addendum Prompt 1 | (spec upload) | Spec authored | User uploads `PHASE-21-THEME-PROPOSAL-TEMPLATES-SPEC-2026-06-02.md` | n/a |
 | Addendum Prompt 2 | 62 | Governance / planning addendum | Append §26.8; update header/version, phase index, changelog, progress; update `themes/proposals/README.md` | Markdown/governance only; confirm no source changes; `git diff --check`; CSV parse |
 | Addendum Prompt 3 | 63+ | Full execution (separately approved) | Author 5–10 template proposals, populate `theme_proposals.csv`, finalize README | Per-spec verification; halt before merging the final Phase 21 PR |
+
+---
+
+## 27. Phase 22 – Advanced Calendar / Midnight Handling + Timezone-Aware Daily Reset (Addendum, PHASE-22-CALENDAR-MIDNIGHT-AND-BUGFIXES-SPEC-2026-06-02)
+
+**Plan Version**: 2.8 (addendum). Bound by `CONSTITUTION.md` v3.3, `BRRRDLE-SPEC.md`, `BRRRDLE-OVERVIEW.md`, the prior plan (Phases 0–21 plus the §26.8 addendum), and `PHASE-22-CALENDAR-MIDNIGHT-AND-BUGFIXES-SPEC-2026-06-02.md` (the binding source of truth for this phase). Triggered by the user's Phase 22 spec requesting that the daily puzzle system respect the player's local device time, mitigate easy gaming of the daily reset, add a lightweight cross-page countdown indicator, provide a subtle reset alert (visual + a brand-new unique sound), add a developer-only Simulate Time debug tool, and design the rollover logic modularly so a future multiplayer daily variant can reuse it — all while preserving every existing mechanic 100% intact.
+
+> Status: **Phase 22 Prompt 1 (planning + governance only) complete (`phase_id = 64`)**. This step appends this §27 addendum, makes Phase 22 the active next phase in the Current Phase Index, references the spec, and records the goals, scope, deliverables, verification requirements, and two-prompt workflow. **No daily-rollover, timezone, anti-gaming, countdown, reset-alert, sound, dev-tool, modular-refactor, or bug-fix source code was implemented in this step.** The finalized Phase 21 surface foundation and every existing mechanic remain 100% intact. Full execution (Prompt 2) requires explicit user approval.
+
+### 27.1 Scope, Source of Truth, and Operating Rules
+
+- **Source of truth for this phase**: `PHASE-22-CALENDAR-MIDNIGHT-AND-BUGFIXES-SPEC-2026-06-02.md` and this §27. If either conflicts with earlier plan language on the narrow concerns of daily rollover, timezone handling, the countdown indicator, reset alerts, the dev Simulate Time tool, or the modular daily-reset architecture, stop and ask the user; do not infer.
+- **Phase goal**: make the daily puzzle system roll over at **local midnight in the player's device timezone**, add balanced anti-gaming safeguards, surface a non-intrusive cross-page countdown, play a brand-new unique reset alert, ship a dev-only Simulate Time tool, and prepare the rollover logic for a future multiplayer daily variant.
+- **Phase boundary**: Phase 22 implements the calendar/midnight/timezone work, the countdown + reset alert, the global Settings toggle, the dev-mode Simulate Time tool, the modular design *preparation*, and any small discovered bug fixes only. It does **not** implement any actual multiplayer daily functionality, the dramatic theming system, a consumables shop, or other future-phase features.
+- **Preserve every mechanic 100% intact**: all existing daily completion records, resume slots, per-mode stats, sync behavior, guest/signed-in consistency, and the rest of the app must behave exactly as before. No regressions are acceptable.
+- **Strict invariants (must never break)**: daily puzzles remain **exactly 5 letters**; practice mode continues to support lengths **2–35**; no changes to multiplayer, marketplace, or economy systems; guest and signed-in progress/sync remain consistent.
+- **Maximum autonomy with guardrails**: the agent may automatically fix small bugs and make obvious improvements discovered during exploration/implementation, documenting every such change in the progress surfaces; `CONSTITUTION.md` v3.3 governs at all times.
+- **Update tracking surfaces after every major step**: `CHANGELOG.md`, `progress/PROGRESS.csv`, and `progress/PROGRESS-STEP-N.md` must be updated after each major step.
+
+### 27.2 Primary Goals (from the spec)
+
+1. Daily puzzles roll over at **local midnight** in the player's device timezone (using reliable browser APIs; reasonable for travelers / timezone changes).
+2. Mitigate casual gaming of the daily reset via device time manipulation (balanced approach).
+3. Add a **non-intrusive countdown indicator** visible on every page/tab by default (toggleable in Settings), clickable to navigate to the daily game, and theme-ready (CSS variables / data attributes).
+4. When a new daily becomes available, show a subtle, non-modal visual alert + play a **brand-new unique sound** (not reused from any existing sound) that clearly signals "new daily is available."
+5. Add a hidden developer-only "Simulate Time" floating button (dev mode only) with a panel to set a specific date/time, jump by hours/days, and reset to real device time. Must never appear in production builds.
+6. Automatically fix any small bugs / make obvious improvements discovered during the work (documented in the progress surfaces).
+7. Design the daily reset / rollover logic modularly (e.g., dedicated service or hook) so it can later support a special multiplayer daily variant with separate statistics — without implementing multiplayer in this phase.
+
+### 27.3 Anti-Gaming Policy (balanced, from the spec)
+
+- Allow normal drift and small adjustments (±~2 hours).
+- Clamp or ignore forward jumps larger than ~12–24 hours.
+- On detection, keep the previous daily or show a clear, friendly message.
+- Goal: make casual cheating ineffective without being overly strict.
+
+### 27.4 What Claude Must Do First (Prompt 2, before writing code)
+
+Before writing any Phase 22 code, the agent must:
+
+1. Thoroughly explore and document the current daily puzzle system (generation, completion tracking, storage, rollover logic, and all dependent UI surfaces).
+2. Produce a short internal mapping of key files and decision points.
+3. Identify where the current rollover decision lives and how timestamps are stored/computed (today this lives in `src/data/daily.ts`, which derives the daily `dateKey` from UTC via `toISOString().slice(0, 10)` and is the primary surface Phase 22 must make timezone-aware).
+
+### 27.5 Scope Summary (from the spec)
+
+**In Scope**
+
+- Local-midnight daily rollover with timezone awareness.
+- Balanced anti-gaming safeguards.
+- Non-intrusive countdown indicator visible across all pages + clickable + theme-ready.
+- Subtle non-modal reset visual alert + brand-new unique reset sound.
+- Global Settings toggle that disables the countdown + reset alerts.
+- Hidden dev-mode floating Simulate Time button + panel.
+- Modular design preparation for a future multiplayer daily variant.
+- Any small discovered bug fixes/improvements (documented).
+- Tests (including time mocking), documentation, and progress tracking updates.
+
+**Out of Scope**
+
+- Changing daily word length (stays 5).
+- Any actual multiplayer implementation.
+- Per-tab hide/minimize of the countdown (global toggle only).
+- Major UI redesign or new full screens.
+- Large-scale refactoring.
+
+### 27.6 Phase Deliverables (from the spec)
+
+1. Updated daily-handling code with local-midnight rollover + anti-gaming logic.
+2. Countdown indicator (visible on all pages, clickable, theme-ready) + reset alert (subtle visual + brand-new unique sound).
+3. Global Settings toggle for the countdown + alerts.
+4. Hidden dev-mode floating Simulate Time button + panel.
+5. Modular structure prepared for a future multiplayer daily.
+6. New/updated tests (including time mocking).
+7. Any discovered bug fixes (documented).
+8. Updated `CHANGELOG.md` and progress tracking surfaces.
+9. Clear manual testing notes.
+
+### 27.7 Prompt Workflow
+
+| Prompt | `phase_id` | Title | Scope | Verification |
+| --- | --- | --- | --- | --- |
+| 22 Prompt 1 | 64 | Planning & governance addendum | Append §27; bump plan to v2.8; update phase index/roadmap; update changelog + progress | Markdown/governance only; confirm no source changes; `git diff --check`; CSV parse |
+| 22 Prompt 2 | 65+ | Full execution of Phase 22 | Timezone-aware local-midnight rollover + anti-gaming; cross-page clickable theme-ready countdown; subtle reset alert + brand-new unique sound; global Settings toggle; dev-mode Simulate Time tool; modular daily-reset design; documented bug fixes; tests (time mocking); manual testing notes | Full verification matrix (§27.8); responsive/accessibility smoke; preview before merge |
+
+The Prompt 2 id(s) are assigned sequentially in `progress/PROGRESS.csv` as the work proceeds. Never overwrite existing progress reports.
+
+### 27.8 Success Criteria and Verification Gate
+
+The final Phase 22 result must:
+
+- Reliably roll over daily puzzles at the player's local midnight.
+- Mitigate reasonable gaming attempts via large forward time jumps.
+- Show a countdown that is visible across the app, non-intrusive (especially on mobile), clickable, and theme-ready.
+- Play the reset alert (subtle visual + brand-new unique sound) when the daily becomes available.
+- Correctly disable the countdown + alerts via the Settings toggle.
+- Provide a useful dev-mode Simulate Time tool that never appears in production.
+- Keep the daily reset logic modular and ready for a future multiplayer daily variant.
+- Introduce no regressions in existing behavior, and preserve all strict invariants (§27.1).
+
+Before declaring any Phase 22 implementation step complete:
+
+1. `npm run lint` — clean.
+2. `npm run test` — all existing tests pass with zero weakened/removed tests, plus new time-mocking tests for rollover/anti-gaming.
+3. `npm run build` — clean.
+4. `npx tsc -p tsconfig.api.json --noEmit` — clean.
+5. `git diff --check` — clean.
+6. Client-bundle leak check where source changes touch auth, data, API-adjacent, or build surfaces.
+7. Manual/browser smoke across mobile, tablet, and desktop viewports: local-midnight rollover, anti-gaming clamp, countdown visibility/click/theme-readiness, reset alert + unique sound, Settings toggle, and the dev Simulate Time tool (dev only) all behave per spec; daily/practice `og` and `go`, resume, stats, definitions, sharing, sound, auth/sync, and accent/surface themes intact; no critical console errors; no horizontal overflow.
+
+### 27.9 Phase 22 Exit Checklist
+
+- Timezone-aware local-midnight daily rollover implemented with balanced anti-gaming safeguards.
+- Cross-page, clickable, theme-ready countdown indicator implemented.
+- Subtle non-modal reset visual alert + brand-new unique reset sound implemented.
+- Global Settings toggle disables the countdown + reset alerts.
+- Hidden dev-mode floating Simulate Time button + panel implemented and excluded from production builds.
+- Daily reset logic refactored into a modular service/hook ready for a future multiplayer daily variant (no multiplayer implemented).
+- Any discovered bug fixes/improvements applied and documented.
+- All strict invariants preserved (daily = 5 letters; practice 2–35; no multiplayer/marketplace/economy changes; guest/signed-in sync consistent; existing completion records, resume slots, and per-mode stats intact).
+- `CHANGELOG.md`, `progress/PROGRESS.csv`, the relevant `progress/PROGRESS-STEP-*.md`, and documentation/manual-testing notes updated with no secrets.
+- Full verification matrix and responsive/accessibility smoke checks documented.
+- Halt for explicit user approval before creating or merging any PR.
+
+### 27.10 Phase 22 Addendum – Calendar (Central Daily Hub) & Countdown Positioning (Governance Step, PHASE-22-ADDENDUM-CALENDAR-AND-COUNTDOWN-POSITIONING-2026-06-03)
+
+**Source of truth**: `PHASE-22-ADDENDUM-CALENDAR-AND-COUNTDOWN-POSITIONING-2026-06-03.md` (the binding spec for this addendum), `CONSTITUTION.md` v3.3, and the existing Phase 22 work (§27.1–§27.9, the `src/daily/` service, and `DailyCountdown.tsx` from Prompt 2). This subsection extends Phase 22; it is recorded as §27.10 to preserve existing §27.1–§27.9 numbering. The plan version advances to **v2.9** (v2.8 was consumed by the original §27 Prompt 1 amendment).
+
+> Status: **Governance / planning-only step complete (`phase_id = 66`); full execution complete (`phase_id = 67`).** The governance step bound the new Calendar & Countdown Positioning spec into the plan; the execution step then implemented it in full — the Calendar is now the first navigation tab and central hub for all dailies (current + past, OG + GO) with "Play Today's OG/GO" buttons, coin-gated past dailies (fixed **60 coins**, one-guess-permanently-unlocks), past dailies as full daily experiences, the dedicated OG/GO Daily tabs removed (legacy deep links redirect into the Calendar), calendar history fixed to start **January 1, 2025**, and the daily countdown repositioned to the top of the UI. The finalized Phase 21 surface foundation and every existing mechanic — including the Phase 22 Prompt 2 daily-cycle work — remain 100% intact. Halting for explicit user review before creating the Phase 22 PR.
+
+#### 27.10.1 Purpose and Relationship to Prior Phase 22 Work
+
+This addendum builds directly on the modular `src/daily/` service and `DailyCountdown.tsx` created during Phase 22 Prompt 2 (`phase_id = 65`). It adds a full **Calendar** feature that becomes the central hub for accessing both current and past daily puzzles (replacing the previous separate dedicated daily tabs) and repositions the countdown indicator from the bottom to the top of the UI. The local-midnight rollover, anti-gaming guard, reset alert, unique sound, Settings toggle, and dev Simulate Time tool delivered in Prompt 2 are all preserved and reused; the calendar and countdown work layer on top of them.
+
+#### 27.10.2 Calendar Feature (Central Hub for All Dailies)
+
+- **Central navigation role**: the Calendar becomes the **first tab** in the top horizontal navigation and the single source of truth for all daily play (current and historical). The previous separate dedicated "OG Daily" and "GO Daily" tabs are removed / fully integrated into the Calendar experience.
+- **Visual design**: a clean monthly calendar view (optional weekly overview); each day clearly indicates OG and GO daily completion status; the current day is prominently highlighted using the Prompt 2 local-midnight logic; current streak and longest streak are displayed prominently on or near the calendar; fully theme-ready via the existing `data-surface` + CSS-variable/accent-token system.
+- **Prominent quick-access buttons**: clear, prominent **"Play Today's OG"** and **"Play Today's GO"** buttons for fast access to the current day's dailies.
+- **Accessing past dailies**: every calendar day exposes separate OG and GO entry points. Clicking a past day's button opens a confirmation modal offering either (a) pay a fixed coin cost to unlock and play that daily, or (b) cancel/close. Today's dailies load normally with no coin cost.
+- **Unlock persistence**: once a user makes **at least one guess** on a past daily instance, that specific instance remains **permanently unlocked** (it does not re-lock after the next calendar day begins).
+- **Full daily experience**: unlocked past dailies are treated as full daily experiences — full stats recording, hard-mode support, resume functionality, definitions, etc. — for consistency with current daily play. Partial progress must persist correctly.
+
+#### 27.10.3 Coin Cost for Past Dailies
+
+- One **fixed** coin cost applies to unlocking any past daily, **identical across OG and GO modes**.
+- The spec asks the agent to select and justify a specific value in the suggested range **50–75 coins** (≈ the coin earnings from ~5 average-performance practice games). **Recommended value (pending user confirmation): 60 coins** — a round mid-range figure that sits comfortably within the suggested band and is non-trivial without discouraging exploration. The final value is to be confirmed by the user before execution.
+- The cost integrates with the existing coin economy and spending paths; no other economy/marketplace changes are introduced.
+
+#### 27.10.4 Countdown Indicator Repositioning
+
+- Move the countdown from the **bottom** of the screen to the **top** of the UI on all pages, in a **context-aware** way:
+  - **Landing / Home page**: near the existing daily-puzzle status area and the user login/status information.
+  - **Game / tab pages**: near the top-right account/user area (cleanest horizontal placement relative to the account pill; exact placement chosen during execution).
+- Keep it non-intrusive (especially on mobile), still clickable (navigates to the current daily), and fully theme-ready.
+- The existing global Settings toggle ("Daily countdown & reset alerts") continues to control its visibility and reset-alert behavior.
+
+#### 27.10.5 Strict Rules and Preserved Invariants
+
+- Build on the existing `src/daily/` service and `DailyCountdown.tsx`; do not regress the Prompt 2 rollover/anti-gaming/reset-alert/sound/Settings/dev-tool behavior.
+- Preserve every invariant: daily puzzles remain **exactly 5 letters**; practice supports **2–35**; stats, economy (beyond the new fixed past-daily cost), auth/sync, resume behavior, and guest/signed-in consistency all remain intact.
+- The calendar and repositioned countdown must feel cohesive with the Lunar Signal Deck layout and the minimalist default surface, and must be fully theme-ready.
+- Strictly follow `CONSTITUTION.md` v3.3; update `CHANGELOG.md` and progress tracking after every major step; document any extra improvements discovered; halt for explicit user approval before creating the final Phase 22 PR.
+
+#### 27.10.6 Planned Deliverables (Execution Step, Separately Approved)
+
+1. Fully functional Calendar as the first navigation tab — the central hub for all daily access (current + past, OG + GO).
+2. Prominent "Play Today's OG" and "Play Today's GO" buttons on the calendar.
+3. Coin-gated unlocking flow for past dailies with the "one guess = permanently unlocked" persistence rule and the confirmed fixed cost.
+4. Unlocked past dailies treated as full daily experiences (stats, hard mode, resume, definitions).
+5. Repositioned, context-aware countdown at the top of all pages (landing vs. game tabs).
+6. Necessary updates to navigation, routing, and state management; removal/integration of the old dedicated daily tabs.
+7. Updated tests covering the new flows; documentation of any additional improvements discovered.
+
+#### 27.10.7 Prompt Workflow
+
+| Prompt | `phase_id` | Title | Scope | Verification |
+| --- | --- | --- | --- | --- |
+| 22 Addendum Prompt 1 | 66 | Calendar & Countdown Positioning planning/governance | Append §27.10; bump plan to v2.9; update phase index; update changelog + progress | Markdown/governance only; confirm no source changes; `git diff --check`; CSV parse |
+| 22 Addendum Prompt 2 | 67 | Full execution (separately approved) — **complete** | Added `src/calendar/` (model + `CalendarPanel`) as the central first-tab daily hub with "Play Today's OG/GO" buttons, month grid (Jan 1 2025 → today) with completion/lock badges, OG/GO streak + coin readouts, and a 60-coin unlock confirmation modal; `src/daily/pastDailies.ts` (cost/start-date + unlock helpers); additive `unlockedDailies` persistence + migrate + cloud merge; `affectsStreak` stat flag (past dailies record stats but never patch streaks); per-date daily session storage; OG/GO games accept `pastDailyDateKey` + first-guess unlock; legacy `og-daily`/`go-daily` routes hidden and redirected into the Calendar; countdown moved into the top account stack | `npm run lint` clean; `npm run test` 390/390; `npm run build` succeeds; `tsc -b` clean; `git diff --check` clean; CodeQL reviewed; halt before creating the final Phase 22 PR |
+
+#### 27.10.8 Open Questions / Recommendations for the User — RESOLVED
+
+All four open questions were answered by the user and applied in the `phase_id = 67` execution:
+
+1. **Past-daily coin cost** — Confirmed **60 coins** (fixed; same for OG and GO).
+2. **Streak semantics on the calendar** — Confirmed: unlocked past dailies record full stats but do **not** retroactively affect or patch streak continuity (streaks reflect natural current-day play only).
+3. **Tab removal scope** — Confirmed: the dedicated OG Daily / GO Daily tabs are fully removed; the Calendar is the single source of truth, and legacy deep links redirect into the Calendar with the appropriate mode/day pre-selected.
+4. **Calendar history depth** — Confirmed: fixed start date **January 1, 2025** (not rolling); any daily from 2025-01-01 onward is selectable; earlier days are out of scope.
+
 
 ---
 

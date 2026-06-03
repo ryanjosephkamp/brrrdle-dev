@@ -8,9 +8,11 @@ import { StatsDashboard } from '../stats'
 import { WordExplorerPanel } from '../wordExplorer'
 import { FeedbackPanel } from '../feedback'
 import { SoundProvider, useSound } from '../sound'
+import { DailyCountdown, SimulateTimePanel, useDailyCycle } from '../daily'
 import { applySurfaceTheme, applyTheme, DEFAULT_SURFACE_THEME, getThemeMeta, isTheme, THEMES, type Theme } from '../theme'
 import { GoGame } from './games/GoGame'
 import { OgGame } from './games/OgGame'
+import { CalendarPanel, type CalendarLaunchRequest } from '../calendar'
 import { LunarSignalStage } from './LunarSignalStage'
 import { APP_ROUTES, DEFAULT_ROUTE_ID, getRouteById, getRoutesByGroup, type AppRoute } from './routes'
 
@@ -156,6 +158,10 @@ function RoutePanel({
   onUpdateSettings,
   supabaseClient,
   syncStatus,
+  todayDateKey,
+  onMarkPastDailyUnlocked,
+  calendarLaunch,
+  onCalendarLaunchConsumed,
 }: {
   readonly authState: AuthState
   readonly authMessage?: string
@@ -181,18 +187,39 @@ function RoutePanel({
   readonly supabaseClient: ReturnType<typeof createBrrrdleSupabaseClient>
   readonly syncStatus: ReturnType<typeof createSyncStatus>
   readonly onSpendCoins: (amount: number) => boolean
+  readonly todayDateKey: string
+  readonly onMarkPastDailyUnlocked: (mode: 'og' | 'go', dateKey: string) => void
+  readonly calendarLaunch: CalendarLaunchRequest | null
+  readonly onCalendarLaunchConsumed: () => void
 }) {
   if (route.id === 'home') {
     return (
       <div className="space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
           {getRoutesByGroup('play')
-            .filter((playRoute) => playRoute.id !== 'home')
+            .filter((playRoute) => playRoute.id !== 'home' && !playRoute.hidden)
             .map((playRoute) => (
               <ModeCard key={playRoute.id} onSelect={(selectedRoute) => onSelectRoute(selectedRoute.id)} route={playRoute} />
             ))}
         </div>
       </div>
+    )
+  }
+
+  if (route.id === 'calendar') {
+    return (
+      <CalendarPanel
+        guestProgress={guestProgress}
+        keyboardDisabled={keyboardDisabled}
+        launchRequest={calendarLaunch}
+        onGameComplete={onGameComplete}
+        onLaunchConsumed={onCalendarLaunchConsumed}
+        onMarkPastDailyUnlocked={onMarkPastDailyUnlocked}
+        onResumeCapture={onResumeCapture}
+        onSpendCoins={onSpendCoins}
+        onUpdateSettings={onUpdateSettings}
+        todayDateKey={todayDateKey}
+      />
     )
   }
 
@@ -285,15 +312,56 @@ function AppInner() {
   const [profileBusy, setProfileBusy] = useState(false)
   const [syncStatus, setSyncStatus] = useState(() => createSyncStatus(supabaseClient ? 'idle' : 'error'))
   const [practiceMode, setPracticeMode] = useState<PracticeMode>('og')
+  const [dailyAlerting, setDailyAlerting] = useState(false)
+  const dailyAlertTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const autoResumedRef = useRef(false)
   const guestProgressRef = useRef(guestProgress)
   const activeRoute = getRouteById(activeRouteId)
   const resumeSlots = useMemo(() => normalizeResumeSlots(guestProgress.resumeSlots), [guestProgress.resumeSlots])
   const isAdmin = authState.user?.roles.includes('admin') ?? false
-  const prismRoutes = useMemo(() => APP_ROUTES.filter((route) => route.id !== 'home' && (route.id !== 'admin' || isAdmin)), [isAdmin])
-  const handleNavigate = useCallback((routeId: AppRoute['id']) => {
-    setActiveRouteId(routeId)
+  const prismRoutes = useMemo(() => (APP_ROUTES as readonly AppRoute[]).filter((route) => route.id !== 'home' && !route.hidden && (route.id !== 'admin' || isAdmin)), [isAdmin])
+  const [calendarLaunch, setCalendarLaunch] = useState<CalendarLaunchRequest | null>(null)
+  const handleClearCalendarLaunch = useCallback(() => setCalendarLaunch(null), [])
+  const handleMarkPastDailyUnlocked = useCallback((mode: 'og' | 'go', dateKey: string) => {
+    setGuestProgress((currentProgress) => {
+      const key = `${mode}:${dateKey}`
+      const current = currentProgress.unlockedDailies ?? []
+      if (current.includes(key)) {
+        return currentProgress
+      }
+      const nextProgress = { ...currentProgress, unlockedDailies: [...current, key] }
+      saveGuestProgress(nextProgress)
+      return nextProgress
+    })
   }, [])
+  const countdownEnabled = guestProgress.settings.dailyCountdownEnabled
+  const handleDailyReset = useCallback(() => {
+    // Subtle, non-modal alert: play the unique reset chime (respects the master
+    // sound toggle inside the engine) and glow the countdown for a few seconds.
+    sound.play('daily-reset')
+    setDailyAlerting(true)
+    if (dailyAlertTimeoutRef.current) {
+      clearTimeout(dailyAlertTimeoutRef.current)
+    }
+    dailyAlertTimeoutRef.current = setTimeout(() => setDailyAlerting(false), 12_000)
+  }, [sound])
+  const daily = useDailyCycle({ alertsEnabled: countdownEnabled, onReset: handleDailyReset })
+  const handleNavigate = useCallback((routeId: AppRoute['id']) => {
+    // Phase 22 Addendum (§27.10): the dedicated daily routes are retired. Any
+    // deep link to them gracefully redirects into the Calendar with today's
+    // daily for the requested mode pre-launched.
+    if (routeId === 'og-daily' || routeId === 'go-daily') {
+      setCalendarLaunch({ mode: routeId === 'og-daily' ? 'og' : 'go', dateKey: daily.dateKey })
+      setActiveRouteId('calendar')
+      return
+    }
+    setActiveRouteId(routeId)
+  }, [daily.dateKey])
+  const handleCountdownActivate = useCallback(() => {
+    setDailyAlerting(false)
+    setCalendarLaunch({ mode: 'og', dateKey: daily.dateKey })
+    setActiveRouteId('calendar')
+  }, [daily.dateKey])
   const handleResumeCapture = useCallback((capture: ResumeCapture) => {
     setGuestProgress((currentProgress) => {
       const slotKey = getResumeSlotKey(capture)
@@ -329,8 +397,10 @@ function AppInner() {
       setActiveRouteId('practice')
       return
     }
-    setActiveRouteId(slot.mode === 'og' ? 'og-daily' : 'go-daily')
-  }, [])
+    // Daily resume now lands inside the Calendar with today's daily launched.
+    setCalendarLaunch({ mode: slot.mode, dateKey: daily.dateKey })
+    setActiveRouteId('calendar')
+  }, [daily.dateKey])
   // Auto-resume the most recent unfinished game once per signed-in load (spec §2).
   // Called from async auth callbacks (not synchronously in an effect body).
   const maybeAutoResume = useCallback((nextAuthState: AuthState) => {
@@ -534,6 +604,12 @@ function AppInner() {
     guestProgressRef.current = guestProgress
   }, [guestProgress])
 
+  useEffect(() => () => {
+    if (dailyAlertTimeoutRef.current) {
+      clearTimeout(dailyAlertTimeoutRef.current)
+    }
+  }, [])
+
   useEffect(() => {
     applyTheme(guestProgress.settings.themeDefault)
   }, [guestProgress.settings.themeDefault])
@@ -570,6 +646,15 @@ function AppInner() {
       <LunarSignalStage
         accountControls={<AccountBadge authState={authState} onOpenAuthModal={handleOpenAuthModal} onOpenProfile={handleOpenProfilePanel} />}
         activeRoute={activeRoute}
+        dailyCountdown={countdownEnabled ? (
+          <DailyCountdown
+            alerting={dailyAlerting}
+            clamped={daily.clamped}
+            countdownLabel={daily.countdownLabel}
+            onActivate={handleCountdownActivate}
+            timeZone={daily.timeZone}
+          />
+        ) : undefined}
         surfaceTheme={DEFAULT_SURFACE_THEME}
         metrics={[
           { label: 'daily', value: `${DAILY_WORD_LENGTH} letters` },
@@ -635,8 +720,11 @@ function AppInner() {
           <RoutePanel
             authMessage={authMessage}
             authState={authState}
+            calendarLaunch={calendarLaunch}
             guestProgress={guestProgress}
+            onCalendarLaunchConsumed={handleClearCalendarLaunch}
             onGameComplete={handleGameComplete}
+            onMarkPastDailyUnlocked={handleMarkPastDailyUnlocked}
             onOpenAuthModal={handleOpenAuthModal}
             onOpenProfilePanel={handleOpenProfilePanel}
             onPracticeModeChange={setPracticeMode}
@@ -656,8 +744,11 @@ function AppInner() {
             soundEnabled={sound.enabled}
             supabaseClient={supabaseClient}
             syncStatus={syncStatus}
+            todayDateKey={daily.dateKey}
           />
       </LunarSignalStage>
+
+      {import.meta.env.DEV ? <SimulateTimePanel /> : null}
 
       <AuthModal
         authenticated={authState.status === 'authenticated'}
