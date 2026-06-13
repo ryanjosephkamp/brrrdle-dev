@@ -52,7 +52,9 @@ interface MultiplayerPanelProps {
   readonly defaultGoPuzzleCount: GoPuzzleCount
   readonly onChange: (state: MultiplayerState) => void
   readonly onCompetitiveChange?: (state: MultiplayerCompetitiveState) => void
+  readonly onSelectedGameChange?: (gameId: string) => void
   readonly readOnly?: boolean
+  readonly selectedGameId?: string
   readonly scope: PlayScope
   readonly state: MultiplayerState | undefined
   readonly viewerProfile?: MultiplayerProfileSummary
@@ -192,7 +194,9 @@ export function MultiplayerPanel({
   defaultGoPuzzleCount,
   onChange,
   onCompetitiveChange,
+  onSelectedGameChange,
   readOnly = false,
+  selectedGameId,
   scope,
   state,
   viewerProfile,
@@ -204,7 +208,7 @@ export function MultiplayerPanel({
     () => normalized.games.filter((game) => game.scope === scope && (scope === 'practice' || game.dailyDateKey === dailyDateKey)),
     [dailyDateKey, normalized.games, scope],
   )
-  const [selectedGameId, setSelectedGameId] = useState<string | undefined>(() => visibleGames[0]?.id)
+  const [internalSelectedGameId, setInternalSelectedGameId] = useState<string | undefined>(() => visibleGames[0]?.id)
   const [mode, setMode] = useState<GameMode>('og')
   const [matchKind, setMatchKind] = useState<MultiplayerMatchKind>('unranked')
   const [hardMode, setHardMode] = useState(false)
@@ -231,9 +235,19 @@ export function MultiplayerPanel({
   const existingDailyClaim = scope === 'daily' && viewerUserId
     ? visibleGames.find((game) => game.mode === mode && getViewerMultiplayerPlayerId(game, viewerUserId))
     : undefined
-  const effectiveSelectedGameId = selectedGameId && visibleGames.some((game) => game.id === selectedGameId)
+  const selectGame = (gameId: string) => {
+    setInternalSelectedGameId(gameId)
+    onSelectedGameChange?.(gameId)
+  }
+  const controlledSelectedGameId = selectedGameId && visibleGames.some((game) => game.id === selectedGameId)
     ? selectedGameId
-    : existingDailyClaim?.id ?? visibleGames[0]?.id
+    : undefined
+  const effectiveSelectedGameId = controlledSelectedGameId
+    ?? (internalSelectedGameId && visibleGames.some((game) => game.id === internalSelectedGameId)
+      ? internalSelectedGameId
+      : undefined)
+    ?? existingDailyClaim?.id
+    ?? visibleGames[0]?.id
   const selectedGame = visibleGames.find((game) => game.id === effectiveSelectedGameId)
   const latestSolvedGoMoveId = getLatestSolvedGoMoveId(selectedGame)
   const [clearedTerminalGoMoveId, setClearedTerminalGoMoveId] = useState<string | undefined>(undefined)
@@ -284,7 +298,7 @@ export function MultiplayerPanel({
 
   const createGame = () => {
     if (existingDailyClaim) {
-      setSelectedGameId(existingDailyClaim.id)
+      selectGame(existingDailyClaim.id)
       setLocalMessage({
         gameId: existingDailyClaim.id,
         text: 'You already have today\'s Daily Multiplayer game for this mode. Re-entering it here.',
@@ -357,7 +371,7 @@ export function MultiplayerPanel({
       })
       return
     }
-    setSelectedGameId(game.id)
+    selectGame(game.id)
     setLocalMessage(undefined)
     onChange(next)
   }
@@ -556,7 +570,7 @@ export function MultiplayerPanel({
               data-game-id={game.id}
               data-testid={`multiplayer-game-tab-${game.id}`}
               key={game.id}
-              onClick={() => { setSelectedGameId(game.id); setLocalMessage(undefined) }}
+              onClick={() => { selectGame(game.id); setLocalMessage(undefined) }}
               variant={game.id === selectedGame?.id ? 'primary' : 'secondary'}
             >
               {game.mode.toUpperCase()} · {game.status}

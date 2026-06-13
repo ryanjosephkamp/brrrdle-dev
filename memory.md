@@ -46,9 +46,11 @@
 
 ## 2. Current Governance Files
 
-- `CONSTITUTION.md`: binding project constitution. Version 3.4 after this scaffolding pass.
+- `CONSTITUTION.md`: binding project constitution. Version 3.5 after the prompt-package governance amendment.
 - `AGENT-IMPLEMENTATION-PLAN.md`: root compatibility shim; the full historical Phase 0-23 plan lives at `planning/history/AGENT-IMPLEMENTATION-PLAN.md`.
 - `planning/IMPLEMENTATION-PLAN.md`: lightweight current implementation-plan entrypoint.
+- `planning/governance/PROMPT-PACKAGE-STANDARD.md`: prompt-package and next-step prompt handoff standard.
+- Prompt-package outputs should use one copy-safe markdown/text block whenever practical; avoid nested triple-backtick fence collisions by using inline command lists or an outer fence longer than any inner fence.
 - `planning/specs/phase-23/PHASE-23-MULTIPLAYER-FOUNDATIONS-AND-POLISH-SPEC-2026-06-03.md`: approved Phase 23 spec.
 - `agents.md`: multi-agent workflow guide.
 - `memory.md`: this persistent state file.
@@ -386,6 +388,9 @@ Recent IDs:
 - `143`: Phase 23 Stage 20 focused reproduction and fixes; shared-state-derived status text and forfeit precedence fixes implemented with focused tests passing.
 - `144`: Phase 23 Stage 20 final verification and handoff; full local gate, real two-client Supabase-backed E2E, remote probes/cleanup, responsive smoke, and resource cleanup complete.
 - `145`: Repository reorganization between Phase 23 and Phase 24; root clutter moved into `planning/`, active governance entrypoints preserved, `BRRRDLE-SPEC.md` audited, and Phase 24 planning placeholders created.
+- `146`: Phase 24 testing suite implementation and verification; gameplay correctness, Playwright E2E, and full verification gate complete for PR review.
+- `147`: Phase 24 Stage 24.0 baseline complete after npm dependency bootstrap; Stage 24.1 remains gated.
+- `148`: Prompt-package governance standard and local `brrrdle-prompt-packages` Codex skill creation; governance/local-skill only, Phase 24.1 remains gated.
 
 Use the next available integer for the next major step. Do not overwrite existing progress files.
 

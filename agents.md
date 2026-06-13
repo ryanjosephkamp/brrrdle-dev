@@ -960,3 +960,11 @@ Any agent must stop and report if:
 - Verification fails and the fix is not small and clearly in scope.
 - A secret, credential, or private deployment artifact appears.
 - The work would require a merge, production deployment, or branch deletion without explicit user approval.
+
+## 14. Prompt Package Handoffs
+
+At meaningful review gates, the coordinator should follow `planning/governance/PROMPT-PACKAGE-STANDARD.md` when generating the next recommended prompt package for the user.
+
+Generated prompt packages are recommendations only. They do not authorize work until the user sends them back or otherwise explicitly authorizes the work.
+
+If the next action is blocked, unclear, or requires manual review first, report that instead of presenting the prompt as safe to use.

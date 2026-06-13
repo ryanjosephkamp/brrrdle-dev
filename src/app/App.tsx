@@ -20,8 +20,8 @@ import {
   normalizeCompetitiveMultiplayerState,
   saveMultiplayerState,
   settleMultiplayerStateResults,
-  MultiplayerFoundationPanel,
   MultiplayerPanel,
+  MultiplayerWorkspace,
   type MultiplayerRepository,
   type MultiplayerState,
   type MultiplayerProfileSummary,
@@ -30,56 +30,14 @@ import {
 import { GoGame } from './games/GoGame'
 import { OgGame } from './games/OgGame'
 import { CalendarPanel, type CalendarLaunchRequest } from '../calendar'
+import { HistoryWorkspace } from '../history/HistoryWorkspace'
+import { SoloWorkspace } from '../solo/SoloWorkspace'
+import { isSoloActiveGameKey, type SoloActiveGameKey, type SoloMode, type SoloScope } from '../solo/soloViewModels'
 import { LunarSignalStage } from './LunarSignalStage'
-import { APP_ROUTES, DEFAULT_ROUTE_ID, getPrimaryNavigationRoutes, getRouteById, getRoutesByGroup, type AppRoute } from './routes'
+import { getPrimaryNavigationRoutes, getRouteById, getRoutesByGroup, type AppRoute, type AppRouteId } from './routes'
+import { loadNavigationState, saveNavigationState, type HistoryFilters, type LegacyPracticeMode, type MultiplayerSubtabId, type SoloSubtabId } from './navigationState'
 
-type PracticeMode = 'og' | 'go'
-
-const NAVIGATION_STORAGE_KEY = 'brrrdle:navigation:v1'
-
-interface PersistedNavigation {
-  readonly activeRouteId?: AppRoute['id']
-  readonly practiceMode?: PracticeMode
-}
-
-function isPracticeMode(value: unknown): value is PracticeMode {
-  return value === 'og' || value === 'go'
-}
-
-function isAppRouteId(value: unknown): value is AppRoute['id'] {
-  return typeof value === 'string' && APP_ROUTES.some((route) => route.id === value)
-}
-
-function loadPersistedNavigation(): PersistedNavigation {
-  if (typeof window === 'undefined') {
-    return {}
-  }
-  try {
-    const raw = window.localStorage.getItem(NAVIGATION_STORAGE_KEY)
-    if (!raw) {
-      return {}
-    }
-    const record = JSON.parse(raw) as Record<string, unknown>
-    return {
-      activeRouteId: isAppRouteId(record.activeRouteId) ? record.activeRouteId : undefined,
-      practiceMode: isPracticeMode(record.practiceMode) ? record.practiceMode : undefined,
-    }
-  } catch {
-    return {}
-  }
-}
-
-function savePersistedNavigation(patch: PersistedNavigation): void {
-  if (typeof window === 'undefined') {
-    return
-  }
-  try {
-    const current = loadPersistedNavigation()
-    window.localStorage.setItem(NAVIGATION_STORAGE_KEY, JSON.stringify({ ...current, ...patch }))
-  } catch {
-    // Browser storage is best-effort only; navigation still works without it.
-  }
-}
+type PracticeMode = LegacyPracticeMode
 
 function isSameResumeSlot(left: ResumeSlot | undefined, right: ResumeSlot): boolean {
   if (!left) {
@@ -241,6 +199,16 @@ function RoutePanel({
   onResetProgress,
   onResumeCapture,
   onSelectRoute,
+  onSelectSoloGame,
+  onSelectMultiplayerGame,
+  onSoloDailyModeChange,
+  onOpenSoloHistory,
+  onOpenMultiplayerHistory,
+  onHistoryFiltersChange,
+  onResumeSoloGame,
+  onResumeMultiplayerGame,
+  onSoloSubtabChange,
+  onMultiplayerSubtabChange,
   onSendMagicLink,
   onRequestPasswordReset,
   onSignInWithPassword,
@@ -252,6 +220,12 @@ function RoutePanel({
   onPracticeModeChange,
   onPracticeSeedAdvance,
   practiceMode,
+  soloDailyMode,
+  soloSubtab,
+  selectedSoloGameKey,
+  selectedMultiplayerGameId,
+  multiplayerSubtab,
+  historyFilters,
   resumeSlots,
   soundEnabled,
   onToggleSound,
@@ -276,6 +250,14 @@ function RoutePanel({
   readonly onResumeCapture: (capture: ResumeCapture) => void
   readonly onPracticeModeChange: (mode: PracticeMode) => void
   readonly onPracticeSeedAdvance: (mode: PracticeMode) => void
+  readonly onSelectSoloGame: (key: SoloActiveGameKey) => void
+  readonly onSelectMultiplayerGame: (id: string) => void
+  readonly onSoloDailyModeChange: (mode: SoloMode) => void
+  readonly onOpenSoloHistory: (filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => void
+  readonly onOpenMultiplayerHistory: () => void
+  readonly onHistoryFiltersChange: (filters: HistoryFilters) => void
+  readonly onResumeSoloGame: (key: SoloActiveGameKey) => void
+  readonly onResumeMultiplayerGame: (id: string) => void
   readonly onSendMagicLink: (email: string) => void
   readonly onRequestPasswordReset: (email: string) => void
   readonly onSignInWithPassword: (email: string, password: string) => void
@@ -284,9 +266,17 @@ function RoutePanel({
   readonly onOpenAuthModal: () => void
   readonly onOpenProfilePanel: () => void
   readonly practiceMode: PracticeMode
+  readonly soloDailyMode: SoloMode
+  readonly selectedSoloGameKey?: SoloActiveGameKey
+  readonly selectedMultiplayerGameId?: string
   readonly resumeSlots: ResumeSlotCollection
   readonly route: AppRoute
-  readonly onSelectRoute: (routeId: AppRoute['id']) => void
+  readonly onSelectRoute: (routeId: AppRouteId) => void
+  readonly soloSubtab: SoloSubtabId
+  readonly multiplayerSubtab: MultiplayerSubtabId
+  readonly historyFilters: ReturnType<typeof loadNavigationState>['historyFilters']
+  readonly onSoloSubtabChange: (subtab: SoloSubtabId) => void
+  readonly onMultiplayerSubtabChange: (subtab: MultiplayerSubtabId) => void
   readonly soundEnabled: boolean
   readonly onToggleSound: (enabled: boolean) => void
   readonly onUpdateSettings: (patch: Partial<ReturnType<typeof loadGuestProgress>['settings']>) => void
@@ -302,6 +292,89 @@ function RoutePanel({
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
     ? createMultiplayerProfileSummary(authState.user.profile, 'Player')
     : undefined
+  const renderSoloDailyGame = (mode: SoloMode) => mode === 'og'
+    ? (
+      <OgGame
+        coins={guestProgress.progression.coins}
+        defaultDifficulty={guestProgress.settings.difficultyDefault}
+        defaultHardMode={guestProgress.settings.hardModeDefault}
+        keyboardDisabled={keyboardDisabled}
+        onGameComplete={onGameComplete}
+        onResumeCapture={onResumeCapture}
+        onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
+        onSpendCoins={onSpendCoins}
+        scope="daily"
+      />
+    )
+    : (
+      <GoGame
+        coins={guestProgress.progression.coins}
+        defaultDifficulty={guestProgress.settings.difficultyDefault}
+        defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
+        defaultHardMode={guestProgress.settings.hardModeDefault}
+        keyboardDisabled={keyboardDisabled}
+        onGameComplete={onGameComplete}
+        onResumeCapture={onResumeCapture}
+        onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
+        onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })}
+        onSpendCoins={onSpendCoins}
+        scope="daily"
+      />
+    )
+  const renderSoloPracticeGame = (mode: SoloMode) => mode === 'og'
+    ? (
+      <OgGame
+        coins={guestProgress.progression.coins}
+        defaultDifficulty={guestProgress.settings.difficultyDefault}
+        defaultHardMode={guestProgress.settings.hardModeDefault}
+        initialResume={resumeSlots['practice-og']?.mode === 'og' ? resumeSlots['practice-og'] : undefined}
+        keyboardDisabled={keyboardDisabled}
+        onAdvancePracticeSeed={() => onPracticeSeedAdvance('og')}
+        onGameComplete={onGameComplete}
+        onResumeCapture={onResumeCapture}
+        onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
+        onSpendCoins={onSpendCoins}
+        practiceSeedCounter={guestProgress.practiceSeeds.og}
+        practiceSeedUserId={authState.user?.id}
+        scope="practice"
+      />
+    )
+    : (
+      <GoGame
+        coins={guestProgress.progression.coins}
+        defaultDifficulty={guestProgress.settings.difficultyDefault}
+        defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
+        defaultHardMode={guestProgress.settings.hardModeDefault}
+        initialResume={resumeSlots['practice-go']?.mode === 'go' ? resumeSlots['practice-go'] : undefined}
+        keyboardDisabled={keyboardDisabled}
+        onAdvancePracticeSeed={() => onPracticeSeedAdvance('go')}
+        onGameComplete={onGameComplete}
+        onResumeCapture={onResumeCapture}
+        onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
+        onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })}
+        onSpendCoins={onSpendCoins}
+        practiceSeedCounter={guestProgress.practiceSeeds.go}
+        practiceSeedUserId={authState.user?.id}
+        scope="practice"
+      />
+    )
+  const renderMultiplayerPanel = (scope: 'daily' | 'practice') => (
+    <MultiplayerPanel
+      authStatus={authState.status}
+      competitiveState={guestProgress.competitiveMultiplayer}
+      dailyDateKey={scope === 'daily' ? multiplayerDailyDateKey : undefined}
+      defaultDifficulty={guestProgress.settings.difficultyDefault}
+      defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
+      onChange={onMultiplayerChange}
+      onCompetitiveChange={onCompetitiveMultiplayerChange}
+      onSelectedGameChange={onSelectMultiplayerGame}
+      scope={scope}
+      selectedGameId={selectedMultiplayerGameId}
+      state={multiplayer}
+      viewerProfile={viewerProfile}
+      viewerUserId={authState.user?.id}
+    />
+  )
 
   if (route.id === 'home') {
     return (
@@ -341,6 +414,28 @@ function RoutePanel({
     )
   }
 
+  if (route.id === 'solo') {
+    return (
+      <SoloWorkspace
+        activeSubtab={soloSubtab}
+        dailyMode={soloDailyMode}
+        history={guestProgress.history}
+        onDailyModeChange={onSoloDailyModeChange}
+        onOpenCalendar={() => onSelectRoute('calendar')}
+        onOpenHistory={onOpenSoloHistory}
+        onPracticeModeChange={onPracticeModeChange}
+        onResumeGame={onResumeSoloGame}
+        onSelectActiveGame={onSelectSoloGame}
+        onSubtabChange={onSoloSubtabChange}
+        practiceMode={practiceMode}
+        renderDailyGame={renderSoloDailyGame}
+        renderPracticeGame={renderSoloPracticeGame}
+        resumeSlots={resumeSlots}
+        selectedGameKey={selectedSoloGameKey}
+      />
+    )
+  }
+
   if (route.id === 'og-daily') {
     return <OgGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSpendCoins={onSpendCoins} scope="daily" />
   }
@@ -354,7 +449,34 @@ function RoutePanel({
   }
 
   if (route.id === 'multiplayer') {
-    return <MultiplayerFoundationPanel />
+    return (
+      <MultiplayerWorkspace
+        activeSubtab={multiplayerSubtab}
+        competitiveState={guestProgress.competitiveMultiplayer}
+        dailyDateKey={multiplayerDailyDateKey}
+        onOpenHistory={onOpenMultiplayerHistory}
+        onResumeGame={onResumeMultiplayerGame}
+        onSelectGame={onSelectMultiplayerGame}
+        onSubtabChange={onMultiplayerSubtabChange}
+        renderDailyPanel={() => renderMultiplayerPanel('daily')}
+        renderPracticePanel={() => renderMultiplayerPanel('practice')}
+        selectedGameId={selectedMultiplayerGameId}
+        state={multiplayer}
+        viewerUserId={authState.user?.id}
+      />
+    )
+  }
+
+  if (route.id === 'history') {
+    return (
+      <HistoryWorkspace
+        competitiveState={guestProgress.competitiveMultiplayer}
+        filters={historyFilters}
+        history={guestProgress.history}
+        onFiltersChange={onHistoryFiltersChange}
+        viewerUserId={authState.user?.id}
+      />
+    )
   }
 
   if (route.id === 'word-explorer') {
@@ -423,8 +545,8 @@ function App() {
 
 function AppInner() {
   const sound = useSound()
-  const [initialNavigation] = useState(() => loadPersistedNavigation())
-  const [activeRouteId, setActiveRouteId] = useState<AppRoute['id']>(() => initialNavigation.activeRouteId ?? DEFAULT_ROUTE_ID)
+  const [initialNavigation] = useState(() => loadNavigationState())
+  const [activeRouteId, setActiveRouteId] = useState<AppRouteId>(() => initialNavigation.activeRouteId)
   const [guestProgress, setGuestProgress] = useState(() => loadGuestProgress())
   const [multiplayer, setMultiplayer] = useState(() => guestProgress.multiplayer ?? loadMultiplayerState())
   const [initialMultiplayerSeed] = useState(() => guestProgress.multiplayer)
@@ -447,7 +569,15 @@ function AppInner() {
   const [profileMessage, setProfileMessage] = useState<string | undefined>(undefined)
   const [profileBusy, setProfileBusy] = useState(false)
   const [syncStatus, setSyncStatus] = useState(() => createSyncStatus(supabaseClient ? 'idle' : 'error'))
-  const [practiceMode, setPracticeModeState] = useState<PracticeMode>(() => initialNavigation.practiceMode ?? 'og')
+  const [practiceMode, setPracticeModeState] = useState<PracticeMode>(() => initialNavigation.legacyPracticeMode)
+  const [selectedSoloGameKey, setSelectedSoloGameKey] = useState<SoloActiveGameKey | undefined>(() => (
+    isSoloActiveGameKey(initialNavigation.selectedSoloGameKey) ? initialNavigation.selectedSoloGameKey : undefined
+  ))
+  const [soloDailyMode, setSoloDailyMode] = useState<SoloMode>(() => selectedSoloGameKey === 'daily-go' ? 'go' : 'og')
+  const [soloSubtab, setSoloSubtab] = useState<SoloSubtabId>(() => initialNavigation.soloSubtab)
+  const [multiplayerSubtab, setMultiplayerSubtab] = useState<MultiplayerSubtabId>(() => initialNavigation.multiplayerSubtab)
+  const [selectedMultiplayerGameId, setSelectedMultiplayerGameId] = useState<string | undefined>(() => initialNavigation.selectedMultiplayerGameId)
+  const [historyFilters, setHistoryFilters] = useState(() => initialNavigation.historyFilters)
   const [dailyAlerting, setDailyAlerting] = useState(false)
   const [dailyMultiplayerAlerting, setDailyMultiplayerAlerting] = useState(false)
   const dailyAlertTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -500,7 +630,29 @@ function AppInner() {
   })
   const handlePracticeModeChange = useCallback((mode: PracticeMode) => {
     setPracticeModeState(mode)
-    savePersistedNavigation({ practiceMode: mode })
+    setSoloSubtab('practice')
+    saveNavigationState({ legacyPracticeMode: mode, soloSubtab: 'practice' })
+  }, [])
+  const handleSoloDailyModeChange = useCallback((mode: SoloMode) => {
+    setSoloDailyMode(mode)
+    setSoloSubtab('daily')
+    saveNavigationState({ soloSubtab: 'daily' })
+  }, [])
+  const handleSoloSubtabChange = useCallback((subtab: SoloSubtabId) => {
+    setSoloSubtab(subtab)
+    saveNavigationState({ soloSubtab: subtab })
+  }, [])
+  const handleSelectSoloGame = useCallback((key: SoloActiveGameKey) => {
+    setSelectedSoloGameKey(key)
+    saveNavigationState({ selectedSoloGameKey: key })
+  }, [])
+  const handleMultiplayerSubtabChange = useCallback((subtab: MultiplayerSubtabId) => {
+    setMultiplayerSubtab(subtab)
+    saveNavigationState({ multiplayerSubtab: subtab })
+  }, [])
+  const handleSelectMultiplayerGame = useCallback((id: string) => {
+    setSelectedMultiplayerGameId(id)
+    saveNavigationState({ selectedMultiplayerGameId: id })
   }, [])
   const handlePracticeSeedAdvance = useCallback((mode: PracticeMode) => {
     setGuestProgress((currentProgress) => {
@@ -517,24 +669,33 @@ function AppInner() {
     if (routeId === 'og-daily' || routeId === 'go-daily') {
       setCalendarLaunch({ mode: routeId === 'og-daily' ? 'og' : 'go', dateKey: daily.dateKey })
       setActiveRouteId('calendar')
-      savePersistedNavigation({ activeRouteId: 'calendar' })
+      setSoloSubtab('daily')
+      saveNavigationState({ activeRouteId: 'calendar', soloSubtab: 'daily' })
+      return
+    }
+    if (routeId === 'practice') {
+      setSoloSubtab('practice')
+      saveNavigationState({ activeRouteId: 'solo', soloSubtab: 'practice' })
+      setActiveRouteId('solo')
       return
     }
     setActiveRouteId(routeId)
-    savePersistedNavigation({ activeRouteId: routeId })
+    saveNavigationState({ activeRouteId: routeId })
   }, [daily.dateKey])
   const handleCountdownActivate = useCallback(() => {
     setDailyAlerting(false)
     setCalendarLaunch({ mode: 'og', dateKey: daily.dateKey })
     setActiveRouteId('calendar')
-    savePersistedNavigation({ activeRouteId: 'calendar' })
+    setSoloSubtab('daily')
+    saveNavigationState({ activeRouteId: 'calendar', soloSubtab: 'daily' })
   }, [daily.dateKey])
   const handleDailyMultiplayerCountdownActivate = useCallback(() => {
     setDailyMultiplayerAlerting(false)
-    setCalendarLaunch({ dateKey: dailyMultiplayer.dateKey, kind: 'multiplayer' })
-    setActiveRouteId('calendar')
-    savePersistedNavigation({ activeRouteId: 'calendar' })
-  }, [dailyMultiplayer.dateKey])
+    setCalendarLaunch(null)
+    setActiveRouteId('multiplayer')
+    setMultiplayerSubtab('daily')
+    saveNavigationState({ activeRouteId: 'multiplayer', multiplayerSubtab: 'daily' })
+  }, [])
   const handleMultiplayerChange = useCallback((multiplayer: MultiplayerState) => {
     setMultiplayer(multiplayer)
     setGuestProgress((currentProgress) => {
@@ -593,21 +754,103 @@ function AppInner() {
       return nextProgress
     })
   }, [])
+  const handleOpenSoloHistory = useCallback((filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => {
+    const nextFilters: HistoryFilters = {
+      mode: filters?.mode ?? 'all',
+      player: 'solo',
+      scope: filters?.scope ?? 'all',
+    }
+    setHistoryFilters(nextFilters)
+    setActiveRouteId('history')
+    saveNavigationState({ activeRouteId: 'history', historyFilters: nextFilters })
+  }, [])
+  const handleOpenMultiplayerHistory = useCallback(() => {
+    const nextFilters: HistoryFilters = {
+      mode: 'all',
+      player: 'multiplayer',
+      scope: 'all',
+    }
+    setHistoryFilters(nextFilters)
+    setActiveRouteId('history')
+    saveNavigationState({ activeRouteId: 'history', historyFilters: nextFilters })
+  }, [])
+  const handleHistoryFiltersChange = useCallback((filters: HistoryFilters) => {
+    setHistoryFilters(filters)
+    saveNavigationState({ historyFilters: filters })
+  }, [])
+  const handleResumeSoloGame = useCallback((key: SoloActiveGameKey) => {
+    const slot = resumeSlots[key]
+    if (!slot) {
+      return
+    }
+
+    setSelectedSoloGameKey(key)
+    setActiveRouteId('solo')
+    if (slot.scope === 'practice') {
+      setPracticeModeState(slot.mode)
+      setSoloSubtab('practice')
+      saveNavigationState({
+        activeRouteId: 'solo',
+        legacyPracticeMode: slot.mode,
+        selectedSoloGameKey: key,
+        soloSubtab: 'practice',
+      })
+      return
+    }
+
+    setSoloDailyMode(slot.mode)
+    setSoloSubtab('daily')
+    saveNavigationState({
+      activeRouteId: 'solo',
+      selectedSoloGameKey: key,
+      soloSubtab: 'daily',
+    })
+  }, [resumeSlots])
+  const handleResumeMultiplayerGame = useCallback((id: string) => {
+    const game = multiplayer.games.find((entry) => entry.id === id)
+    if (!game) {
+      return
+    }
+    const nextSubtab: MultiplayerSubtabId = game.scope === 'daily' ? 'daily' : 'practice'
+    setSelectedMultiplayerGameId(id)
+    setActiveRouteId('multiplayer')
+    setMultiplayerSubtab(nextSubtab)
+    saveNavigationState({
+      activeRouteId: 'multiplayer',
+      multiplayerSubtab: nextSubtab,
+      selectedMultiplayerGameId: id,
+    })
+  }, [multiplayer.games])
   const navigateToResumeSlot = useCallback((slot: ResumeSlot | undefined) => {
     if (!slot) {
       return
     }
+    const slotKey = getResumeSlotKey(slot)
     if (slot.scope === 'practice') {
-      handlePracticeModeChange(slot.mode)
-      setActiveRouteId('practice')
-      savePersistedNavigation({ activeRouteId: 'practice' })
+      setPracticeModeState(slot.mode)
+      setSelectedSoloGameKey(slotKey)
+      setActiveRouteId('solo')
+      setSoloSubtab('practice')
+      saveNavigationState({
+        activeRouteId: 'solo',
+        legacyPracticeMode: slot.mode,
+        selectedSoloGameKey: slotKey,
+        soloSubtab: 'practice',
+      })
       return
     }
-    // Daily resume now lands inside the Calendar with today's daily launched.
-    setCalendarLaunch({ mode: slot.mode, dateKey: daily.dateKey })
-    setActiveRouteId('calendar')
-    savePersistedNavigation({ activeRouteId: 'calendar' })
-  }, [daily.dateKey, handlePracticeModeChange])
+    // Daily resume now lands inside the Solo workspace; Calendar remains the
+    // compatibility hub for past dailies and legacy daily routes.
+    setSoloDailyMode(slot.mode)
+    setSelectedSoloGameKey(slotKey)
+    setActiveRouteId('solo')
+    setSoloSubtab('daily')
+    saveNavigationState({
+      activeRouteId: 'solo',
+      selectedSoloGameKey: slotKey,
+      soloSubtab: 'daily',
+    })
+  }, [])
   // Auto-resume the most recent unfinished game once per signed-in load (spec §2).
   // Called from async auth callbacks (not synchronously in an effect body).
   const maybeAutoResume = useCallback((nextAuthState: AuthState) => {
@@ -1065,30 +1308,46 @@ function AppInner() {
             multiplayer={multiplayer}
             calendarLaunch={calendarLaunch}
             guestProgress={guestProgress}
+            historyFilters={historyFilters}
             onCalendarLaunchConsumed={handleClearCalendarLaunch}
             onMultiplayerChange={handleMultiplayerChange}
             onCompetitiveMultiplayerChange={handleCompetitiveMultiplayerChange}
             onGameComplete={handleGameComplete}
+            onHistoryFiltersChange={handleHistoryFiltersChange}
             onMarkPastDailyUnlocked={handleMarkPastDailyUnlocked}
+            onMultiplayerSubtabChange={handleMultiplayerSubtabChange}
             onOpenAuthModal={handleOpenAuthModal}
+            onOpenMultiplayerHistory={handleOpenMultiplayerHistory}
             onOpenProfilePanel={handleOpenProfilePanel}
+            onOpenSoloHistory={handleOpenSoloHistory}
             onPracticeModeChange={handlePracticeModeChange}
             onPracticeSeedAdvance={handlePracticeSeedAdvance}
             onResetProgress={handleResetProgress}
             onRequestPasswordReset={handleRequestPasswordReset}
             onResumeCapture={handleResumeCapture}
+            onResumeMultiplayerGame={handleResumeMultiplayerGame}
+            onResumeSoloGame={handleResumeSoloGame}
+            onSelectMultiplayerGame={handleSelectMultiplayerGame}
+            onSelectSoloGame={handleSelectSoloGame}
             onSelectRoute={handleNavigate}
             onSendMagicLink={handleSendMagicLink}
             onSignInWithPassword={handleSignInWithPassword}
             onSignOut={handleSignOut}
             onSignUpWithPassword={handleSignUpWithPassword}
+            onSoloDailyModeChange={handleSoloDailyModeChange}
+            onSoloSubtabChange={handleSoloSubtabChange}
             onSpendCoins={handleSpendCoins}
             onToggleSound={sound.setEnabled}
             onUpdateSettings={handleUpdateSettings}
             practiceMode={practiceMode}
+            multiplayerSubtab={multiplayerSubtab}
             resumeSlots={resumeSlots}
             route={activeRoute}
+            selectedMultiplayerGameId={selectedMultiplayerGameId}
+            selectedSoloGameKey={selectedSoloGameKey}
             soundEnabled={sound.enabled}
+            soloDailyMode={soloDailyMode}
+            soloSubtab={soloSubtab}
             supabaseClient={supabaseClient}
             syncStatus={syncStatus}
             multiplayerDailyDateKey={dailyMultiplayer.dateKey}

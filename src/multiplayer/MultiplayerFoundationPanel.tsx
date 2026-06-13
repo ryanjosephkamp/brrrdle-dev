@@ -9,7 +9,7 @@ export function MultiplayerFoundationPanel() {
       </div>
       <Panel className="text-sm leading-6 text-slate-300" tone="muted">
         <p>
-          Multiplayer foundations are ready. Practice Multiplayer still opens from Practice, and Daily Multiplayer still opens from Calendar.
+          Multiplayer workspace foundations are active. Practice and Daily Multiplayer now open from the Multiplayer workspace, with Calendar retained as the Daily hub.
         </p>
       </Panel>
     </section>

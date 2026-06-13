@@ -1,8 +1,8 @@
 # brrrdle Constitution
 
-**Version**: 3.4
-**Date**: 2026-06-04
-**Status**: Final upgraded project constitution with the progress tracking amendment, the phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+), the multi-agent workflow amendment, and the Phase 23 coordination-file amendment — binding until revised with explicit user approval.
+**Version**: 3.5
+**Date**: 2026-06-13
+**Status**: Final upgraded project constitution with the progress tracking amendment, the phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+), the multi-agent workflow amendment, the Phase 23 coordination-file amendment, and the prompt-package governance amendment — binding until revised with explicit user approval.
 
 ---
 
@@ -103,10 +103,13 @@ At each review gate, provide:
 3. Any known limitations, risks, or skipped checks.
 4. The relevant `PROGRESS.csv` and progress markdown updates.
 5. The exact approval needed to continue.
+6. The recommended next prompt package for the next safe gated action, plus whether the user is authorized/safe to use it, or a clear reason no next prompt package should be generated yet.
 
 Then stop. Do not continue into the next phase, scaffold, or implement additional code until approved.
 
 In a multi-agent workflow, the coordinating agent is responsible for enforcing the halt. A sub-agent may report readiness, but only the user can authorize the next phase, merge, commit, or production action.
+
+Prompt packages must follow `planning/governance/PROMPT-PACKAGE-STANDARD.md`. Generated prompt packages are recommendations only and do not authorize work until the user sends them back or otherwise explicitly authorizes the work.
 
 ---
 
@@ -597,7 +600,7 @@ Implementation and tests must explicitly consider:
 
 ## 17. Constitution Evolution
 
-This constitution includes the approved second upgrade, a progress tracking amendment, a phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+), a multi-agent workflow amendment, and a coordination-file amendment. Future revisions require explicit user approval and must preserve:
+This constitution includes the approved second upgrade, a progress tracking amendment, a phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+), a multi-agent workflow amendment, a coordination-file amendment, and a prompt-package governance amendment. Future revisions require explicit user approval and must preserve:
 
 - Scope fidelity.
 - Mandatory review gates.
@@ -611,6 +614,7 @@ This constitution includes the approved second upgrade, a progress tracking amen
 - Phase-range continuity, so every approved addendum (Phases 12+) remains bound by the same rules as Phases 0–11.
 - Multi-agent conflict avoidance, explicit handoff reporting, coordinating-agent integration responsibility, and user approval before merges, commits where gated, layout-variant selection, and production releases.
 - Coordination-file hierarchy, so `agents.md`, `memory.md`, and planning indexes remain subordinate to the authority stack and cannot authorize new scope or phase progression.
+- Prompt-package discipline, so generated next-step prompts preserve authorization boundaries, safety rules, verification gates, and review halts.
 
 ---
 

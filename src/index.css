@@ -338,7 +338,7 @@ body {
   left: 1rem;
   display: flex;
   flex-wrap: nowrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.5rem;
   overflow-x: auto;
   padding-bottom: 0.1rem;
@@ -397,8 +397,9 @@ body {
 
 .brrrdle-lunar-rail {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  overflow-x: auto;
+  overflow-x: visible;
   padding-bottom: 0.25rem;
   scrollbar-width: none;
 }
@@ -410,7 +411,8 @@ body {
 .brrrdle-lunar-rail-button {
   position: relative;
   display: flex;
-  min-width: max-content;
+  flex: 1 1 9.75rem;
+  min-width: 0;
   align-items: center;
   gap: 0.65rem;
   overflow: hidden;
@@ -681,8 +683,13 @@ body {
     position: sticky;
     top: 1rem;
     display: grid;
+    flex-wrap: nowrap;
     overflow: visible;
     padding-bottom: 0;
+  }
+
+  .brrrdle-lunar-rail-button {
+    flex: 0 0 auto;
   }
 
   .brrrdle-lunar-playfield {

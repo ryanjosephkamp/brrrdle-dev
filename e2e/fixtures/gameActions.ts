@@ -1,9 +1,23 @@
 import type { Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
-export async function navigateToPractice(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /^Practice$/i }).click()
-  await expect(page.getByRole('heading', { level: 1, name: /^Practice$/i })).toBeVisible()
+export async function navigateToSoloPractice(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^Solo$/i }).click()
+  await expect(page.locator('#solo-workspace-title')).toBeVisible()
+  await page.getByRole('tab', { name: /^Practice Solo$/i }).click()
+  await expect(page.getByRole('group', { name: /^Practice Solo mode$/i })).toBeVisible()
+}
+
+export async function chooseSoloPracticeMode(page: Page, mode: 'go' | 'og'): Promise<void> {
+  const modeGroup = page.getByRole('group', { name: /^Practice Solo mode$/i })
+  await modeGroup.getByRole('button', { name: new RegExp(`^${mode.toLocaleUpperCase('en-US')}$`, 'i') }).click()
+}
+
+export async function navigateToPracticeMultiplayer(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^Multiplayer$/i }).click()
+  await expect(page.locator('#multiplayer-workspace-title')).toBeVisible()
+  await page.getByRole('tab', { name: /^Practice Multiplayer$/i }).click()
+  await expect(page.getByRole('heading', { level: 3, name: /^Practice Multiplayer$/i })).toBeVisible()
 }
 
 export async function navigateToCalendar(page: Page): Promise<void> {
@@ -35,7 +49,20 @@ export async function openMultiplayerMatch(page: Page): Promise<void> {
 }
 
 export async function selectMultiplayerGame(page: Page, gameId: string): Promise<void> {
-  await page.getByTestId(`multiplayer-game-tab-${gameId}`).click()
+  const panelTab = page.getByTestId(`multiplayer-game-tab-${gameId}`)
+  try {
+    await panelTab.click({ timeout: 5_000 })
+  } catch {
+    const lobbyTab = page.getByRole('tab', { name: /^Lobby$/i })
+    await lobbyTab.click()
+    const lobbyAction = page.getByTestId(`multiplayer-lobby-action-${gameId}`)
+    try {
+      await lobbyAction.click({ timeout: 10_000 })
+    } catch {
+      await page.getByRole('tab', { name: /^Active Games$/i }).click()
+      await page.getByTestId(`multiplayer-active-resume-${gameId}`).click({ timeout: 10_000 })
+    }
+  }
   await expect(page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-game-id', gameId)
 }
 

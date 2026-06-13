@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { expectNoConsoleFailures, expectVisibleStatus } from '../fixtures/assertions'
 import { getCurrentAnswer, getValidWrongGuess, projectionFromRow } from '../fixtures/answers'
-import { navigateToPractice, openMultiplayerMatch, joinMultiplayerMatch, selectMultiplayerGame, setPracticeMultiplayerTimeLimit, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
+import { navigateToPracticeMultiplayer, openMultiplayerMatch, joinMultiplayerMatch, selectMultiplayerGame, setPracticeMultiplayerTimeLimit, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
 import { updateMultiplayerProjection, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession } from '../fixtures/twoClientGame'
 
@@ -9,7 +9,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
   test('creates, joins, submits, and completes an OG match through two real clients', async ({ browser }) => {
     const session = await createTwoClientSession(browser)
     try {
-      await navigateToPractice(session.host.page)
+      await navigateToPracticeMultiplayer(session.host.page)
       await openMultiplayerMatch(session.host.page)
 
       const waitingRow = await waitForMultiplayerRowForUsers({
@@ -19,7 +19,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
         userIds: [session.host.user.id],
       })
 
-      await navigateToPractice(session.rival.page)
+      await navigateToPracticeMultiplayer(session.rival.page)
       await selectMultiplayerGame(session.rival.page, waitingRow.id)
       await joinMultiplayerMatch(session.rival.page)
 
@@ -56,7 +56,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
   test('keeps post-guess forfeits as losses for the forfeiting player', async ({ browser }) => {
     const session = await createTwoClientSession(browser)
     try {
-      await navigateToPractice(session.host.page)
+      await navigateToPracticeMultiplayer(session.host.page)
       await openMultiplayerMatch(session.host.page)
       const waitingRow = await waitForMultiplayerRowForUsers({
         mode: 'og',
@@ -65,7 +65,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
         userIds: [session.host.user.id],
       })
 
-      await navigateToPractice(session.rival.page)
+      await navigateToPracticeMultiplayer(session.rival.page)
       await selectMultiplayerGame(session.rival.page, waitingRow.id)
       await joinMultiplayerMatch(session.rival.page)
       const playingRow = await waitForMultiplayerRowForUsers({
@@ -105,7 +105,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
   test('preserves timeout loser precedence for timed Practice matches', async ({ browser }) => {
     const session = await createTwoClientSession(browser)
     try {
-      await navigateToPractice(session.host.page)
+      await navigateToPracticeMultiplayer(session.host.page)
       await setPracticeMultiplayerTimeLimit(session.host.page, '30000')
       await openMultiplayerMatch(session.host.page)
       const waitingRow = await waitForMultiplayerRowForUsers({
@@ -115,7 +115,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
         userIds: [session.host.user.id],
       })
 
-      await navigateToPractice(session.rival.page)
+      await navigateToPracticeMultiplayer(session.rival.page)
       await selectMultiplayerGame(session.rival.page, waitingRow.id)
       await joinMultiplayerMatch(session.rival.page)
       const playingRow = await waitForMultiplayerRowForUsers({

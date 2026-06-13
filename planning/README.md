@@ -28,6 +28,7 @@ For normal future work, read:
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.
 - `planning/governance/`: guidance for active governance file locations.
+- `planning/governance/PROMPT-PACKAGE-STANDARD.md`: standard for Codex-generated prompt packages and next-step handoff prompts.
 - `planning/testing/`: testing-suite strategy and verification philosophy.
 
 ## Planning Rules
