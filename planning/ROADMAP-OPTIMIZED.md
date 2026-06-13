@@ -1,9 +1,9 @@
 # brrrdle Optimized Development Roadmap
 
-**Status**: Proposed optimized roadmap for review  
-**Last Updated**: 2026-06-12  
-**Repository Target**: `brrrdle-dev`  
-**Source Roadmap**: `planning/ROADMAP.md`  
+**Status**: Proposed optimized roadmap for review
+**Last Updated**: 2026-06-12
+**Repository Target**: `brrrdle-dev`
+**Source Roadmap**: `planning/ROADMAP.md`
 **Purpose**: Refine the long-term roadmap into a lower-risk execution strategy, with Phase 24 broken into concrete stages and explicit success criteria.
 
 ---

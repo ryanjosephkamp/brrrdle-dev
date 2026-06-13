@@ -1,7 +1,7 @@
 # brrrdle Development Roadmap
 
-**Status**: Ready for Codex – v1.0  
-**Last Updated**: 2026-06-11  
+**Status**: Ready for Codex – v1.0
+**Last Updated**: 2026-06-11
 **Purpose**: This document serves as the long-term vision and planning reference for the brrrdle project. It is intended to be given to Codex so it can propose its own optimized staging and execution strategy.
 
 ---
