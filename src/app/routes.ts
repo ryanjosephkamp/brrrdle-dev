@@ -1,6 +1,6 @@
 import type { GameMode, PlayScope } from '../game/types'
 
-export type AppRouteId = 'home' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'word-explorer' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'about' | 'admin'
+export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'word-explorer' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'about' | 'admin'
 
 export interface AppRoute {
   readonly id: AppRouteId
@@ -24,6 +24,13 @@ export const APP_ROUTES = [
     label: 'Home',
     shortLabel: 'Home',
     description: 'Choose a brrrdle mode and review launch status.',
+    navigationGroup: 'play',
+  },
+  {
+    id: 'solo',
+    label: 'Solo',
+    shortLabel: 'Solo',
+    description: 'Play Solo Daily and Practice games, resume active games, and review recent results.',
     navigationGroup: 'play',
   },
   {
@@ -60,17 +67,24 @@ export const APP_ROUTES = [
     id: 'practice',
     label: 'Practice',
     shortLabel: 'Practice',
-    description: 'Practice brrrdle with configurable word lengths from 2 through 35.',
+    description: 'Legacy compatibility route for Practice. Current Practice entry points live under Solo and Multiplayer.',
     navigationGroup: 'play',
     scope: 'practice',
+    hidden: true,
   },
   {
     id: 'multiplayer',
     label: 'Multiplayer',
     shortLabel: 'Multiplayer',
-    description: 'Future home for Multiplayer routes. Current Practice and Daily Multiplayer entry points stay in Practice and Calendar.',
+    description: 'Play Daily and Practice Multiplayer, resume active games, browse lobbies, and check Live v0.',
     navigationGroup: 'play',
-    hidden: true,
+  },
+  {
+    id: 'history',
+    label: 'History',
+    shortLabel: 'History',
+    description: 'Review completed Solo and Multiplayer results.',
+    navigationGroup: 'support',
   },
   {
     id: 'word-explorer',
@@ -125,6 +139,35 @@ export const APP_ROUTES = [
 
 export const DEFAULT_ROUTE_ID: AppRouteId = 'home'
 
+export const PRIMARY_NAVIGATION_ROUTE_IDS = [
+  'solo',
+  'multiplayer',
+  'calendar',
+  'history',
+  'word-explorer',
+  'settings',
+  'feedback',
+  'about',
+] as const satisfies readonly AppRouteId[]
+
+const HIDDEN_DAILY_COMPATIBILITY_ROUTE_IDS = ['og-daily', 'go-daily'] as const satisfies readonly AppRouteId[]
+
+export function isAppRouteId(value: unknown): value is AppRouteId {
+  return typeof value === 'string' && APP_ROUTES.some((route) => route.id === value)
+}
+
+export function isDailyCompatibilityRoute(routeId: AppRouteId): boolean {
+  return (HIDDEN_DAILY_COMPATIBILITY_ROUTE_IDS as readonly AppRouteId[]).includes(routeId)
+}
+
+export function getRouteCompatibilityTarget(routeId: AppRouteId): AppRouteId {
+  if (isDailyCompatibilityRoute(routeId)) {
+    return 'calendar'
+  }
+
+  return routeId === 'practice' ? 'solo' : routeId
+}
+
 export function getRouteById(routeId: AppRouteId): AppRoute {
   return APP_ROUTES.find((route) => route.id === routeId) ?? APP_ROUTES[0]
 }
@@ -134,11 +177,7 @@ export function getRoutesByGroup(group: AppRoute['navigationGroup']): readonly A
 }
 
 export function getPrimaryNavigationRoutes(isAdmin: boolean): readonly AppRoute[] {
-  return APP_ROUTES.filter((route) => {
-    if (route.id === 'admin') {
-      return isAdmin
-    }
+  const routeIds: readonly AppRouteId[] = isAdmin ? [...PRIMARY_NAVIGATION_ROUTE_IDS, 'admin'] : PRIMARY_NAVIGATION_ROUTE_IDS
 
-    return ['calendar', 'practice', 'word-explorer', 'settings', 'feedback', 'about'].includes(route.id)
-  })
+  return routeIds.map((routeId) => getRouteById(routeId))
 }

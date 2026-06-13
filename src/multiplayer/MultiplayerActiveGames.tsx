@@ -1,0 +1,109 @@
+import type { ReactNode } from 'react'
+import { Button } from '../ui'
+import type { MultiplayerActiveGameViewModel } from './multiplayerViewModels'
+
+function formatDateTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown time'
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    month: 'short',
+    timeZone: 'UTC',
+    year: 'numeric',
+  }).format(date)
+}
+
+function EmptyState({ children }: { readonly children: ReactNode }) {
+  return (
+    <div className="rounded-lg border border-dashed border-white/15 bg-black/20 p-4 text-sm leading-6 text-slate-400">
+      {children}
+    </div>
+  )
+}
+
+function MultiplayerActiveGameCard({
+  game,
+  onResume,
+  onSelect,
+  selected,
+}: {
+  readonly game: MultiplayerActiveGameViewModel
+  readonly onResume: (id: string) => void
+  readonly onSelect: (id: string) => void
+  readonly selected: boolean
+}) {
+  return (
+    <article
+      aria-label={game.title}
+      className={`rounded-lg border bg-black/30 p-4 shadow-xl shadow-black/20 ${selected ? 'border-[var(--color-ice-300)]/70' : 'border-white/10'}`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ice-200)]">{game.scopeLabel}</p>
+          <h3 className="mt-1 text-lg font-bold text-white">{game.modeLabel}</h3>
+        </div>
+        <span className="rounded border border-white/10 px-2 py-1 text-xs font-semibold text-cyan-100">{game.statusLabel}</span>
+      </div>
+      <dl className="mt-4 space-y-2 text-sm text-slate-300">
+        <div>
+          <dt className="sr-only">Opponent</dt>
+          <dd>{game.opponentLabel}</dd>
+        </div>
+        <div>
+          <dt className="sr-only">Progress</dt>
+          <dd>{game.detailLabel}</dd>
+        </div>
+        <div>
+          <dt className="sr-only">Rules</dt>
+          <dd>{game.ruleLabel}</dd>
+        </div>
+        <div>
+          <dt className="sr-only">Updated</dt>
+          <dd>Updated {formatDateTime(game.updatedAt)}</dd>
+        </div>
+      </dl>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button data-testid={`multiplayer-active-resume-${game.id}`} disabled={!game.canResume} onClick={() => onResume(game.id)} size="sm" variant="primary">{game.actionLabel}</Button>
+        <Button aria-pressed={selected} data-testid={`multiplayer-active-select-${game.id}`} onClick={() => onSelect(game.id)} size="sm" variant="ghost">{selected ? 'Selected' : 'Select'}</Button>
+      </div>
+    </article>
+  )
+}
+
+export function MultiplayerActiveGames({
+  activeGames,
+  limit,
+  onResumeGame,
+  onSelectGame,
+  selectedGameId,
+}: {
+  readonly activeGames: readonly MultiplayerActiveGameViewModel[]
+  readonly limit?: number
+  readonly onResumeGame: (id: string) => void
+  readonly onSelectGame: (id: string) => void
+  readonly selectedGameId?: string
+}) {
+  const visibleGames = typeof limit === 'number' ? activeGames.slice(0, Math.max(0, limit)) : activeGames
+  if (visibleGames.length === 0) {
+    return <EmptyState>No active multiplayer games.</EmptyState>
+  }
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      {visibleGames.map((game) => (
+        <MultiplayerActiveGameCard
+          game={game}
+          key={game.id}
+          onResume={onResumeGame}
+          onSelect={onSelectGame}
+          selected={game.id === selectedGameId}
+        />
+      ))}
+    </div>
+  )
+}

@@ -12,6 +12,8 @@ export function installConsoleGuards(page: Page): string[] {
           /\/api\/definition/u.test(location.url)
           || /api\.dictionaryapi\.dev\/api\/v2\/entries/u.test(location.url)
           || /api\.dictionaryapi\.dev\/api\/v2\/entries/u.test(message.text())
+          || /en\.wiktionary\.org\/api\/rest_v1\/page\/definition/u.test(location.url)
+          || /en\.wiktionary\.org\/api\/rest_v1\/page\/definition/u.test(message.text())
         )
       if (isMissingDefinition) {
         return

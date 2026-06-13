@@ -24,6 +24,7 @@ The detailed planning system now lives under `planning/`:
 - `planning/history/`
 - `planning/specs/`
 - `planning/testing/`
+- `planning/governance/PROMPT-PACKAGE-STANDARD.md`: standard for Codex-generated prompt packages and next-step handoff prompts.
 
 ## Rule Of Thumb
 

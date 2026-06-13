@@ -23,6 +23,7 @@ Use this index when orienting a future Codex session.
 - `planning/history/CHANGELOG.md`: full historical changelog through Phase 23.
 - `planning/history/AGENT-IMPLEMENTATION-PLAN-SUMMARY.md`: concise historical orientation summary.
 - `planning/testing/TESTING-SUITE.md`: verification philosophy and testing-suite foundation.
+- `planning/governance/PROMPT-PACKAGE-STANDARD.md`: default structure, safety rules, and authorization-status language for Codex-generated prompt packages.
 
 ## Progress Files
 
