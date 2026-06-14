@@ -25,6 +25,7 @@ For normal future work, read:
 - `planning/phase-24/`: active Phase 24 planning and changelog area.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
+- `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.
 - `planning/governance/`: guidance for active governance file locations.

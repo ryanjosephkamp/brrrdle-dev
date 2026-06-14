@@ -117,8 +117,10 @@ function moveStateClass(state: string): string {
   return 'border-slate-700 bg-slate-950 text-slate-400'
 }
 
-function getLatestSolvedGoMoveId(game: MultiplayerGame | undefined): string | undefined {
-  if (!game || game.mode !== 'go') {
+const TERMINAL_SOLVED_SURFACE_HOLD_MS = 2000
+
+function getLatestSolvedMoveId(game: MultiplayerGame | undefined): string | undefined {
+  if (!game) {
     return undefined
   }
   return [...game.moves].reverse().find((move) => (
@@ -249,26 +251,26 @@ export function MultiplayerPanel({
     ?? existingDailyClaim?.id
     ?? visibleGames[0]?.id
   const selectedGame = visibleGames.find((game) => game.id === effectiveSelectedGameId)
-  const latestSolvedGoMoveId = getLatestSolvedGoMoveId(selectedGame)
-  const [clearedTerminalGoMoveId, setClearedTerminalGoMoveId] = useState<string | undefined>(undefined)
-  const showTerminalGoSolvedSurface = Boolean(
+  const viewerPlayerId = selectedGame ? getViewerMultiplayerPlayerId(selectedGame, viewerUserId) : undefined
+  const latestSolvedMoveId = getLatestSolvedMoveId(selectedGame)
+  const [clearedTerminalSolvedMoveId, setClearedTerminalSolvedMoveId] = useState<string | undefined>(undefined)
+  const showTerminalSolvedSurface = Boolean(
     selectedGame
       && !readOnly
-      && selectedGame.mode === 'go'
+      && viewerPlayerId
       && selectedGame.status === 'won'
-      && latestSolvedGoMoveId
-      && clearedTerminalGoMoveId !== latestSolvedGoMoveId,
+      && latestSolvedMoveId
+      && clearedTerminalSolvedMoveId !== latestSolvedMoveId,
   )
   useEffect(() => {
-    if (!showTerminalGoSolvedSurface || !latestSolvedGoMoveId) {
+    if (!showTerminalSolvedSurface || !latestSolvedMoveId) {
       return undefined
     }
     const timeoutId = window.setTimeout(() => {
-      setClearedTerminalGoMoveId(latestSolvedGoMoveId)
-    }, 2000)
+      setClearedTerminalSolvedMoveId(latestSolvedMoveId)
+    }, TERMINAL_SOLVED_SURFACE_HOLD_MS)
     return () => window.clearTimeout(timeoutId)
-  }, [latestSolvedGoMoveId, showTerminalGoSolvedSurface])
-  const viewerPlayerId = selectedGame ? getViewerMultiplayerPlayerId(selectedGame, viewerUserId) : undefined
+  }, [latestSolvedMoveId, showTerminalSolvedSurface])
   const rivalPlayerId = viewerPlayerId === 'player-one' ? 'player-two' : viewerPlayerId === 'player-two' ? 'player-one' : undefined
   const rivalPlayer = rivalPlayerId && selectedGame ? selectedGame.players.find((player) => player.id === rivalPlayerId) : undefined
   const waitingHostPlayer = !viewerPlayerId && selectedGame ? selectedGame.players.find((player) => player.id === 'player-one') : undefined
@@ -641,13 +643,13 @@ export function MultiplayerPanel({
             <RivalIdentityCard label="Waiting for a signed-in rival" title="Rival" />
           ) : null}
 
-          {!readOnly && viewerPlayerId && (selectedGame.status === 'playing' || showTerminalGoSolvedSurface) ? (
+          {!readOnly && viewerPlayerId && (selectedGame.status === 'playing' || showTerminalSolvedSurface) ? (
             <MultiplayerGameSurface
-              disabled={showTerminalGoSolvedSurface || !canSubmitSelectedGame}
+              disabled={showTerminalSolvedSurface || !canSubmitSelectedGame}
               game={selectedGame}
               onSubmitGuess={submitTurn}
               playerId={viewerPlayerId}
-              statusLabel={showTerminalGoSolvedSurface ? 'Advancing to final results' : canSubmitSelectedGame ? 'Your turn' : 'Waiting for the other player'}
+              statusLabel={showTerminalSolvedSurface ? 'Advancing to final results' : canSubmitSelectedGame ? 'Your turn' : 'Waiting for the other player'}
             />
           ) : null}
 
@@ -714,7 +716,7 @@ export function MultiplayerPanel({
             )}
           </div>
 
-          {(selectedGame.status !== 'cancelled' && !showTerminalGoSolvedSurface && (readOnly || selectedGame.status === 'won' || selectedGame.status === 'lost' || selectedGame.status === 'expired')) ? (
+          {(selectedGame.status !== 'cancelled' && !showTerminalSolvedSurface && (readOnly || selectedGame.status === 'won' || selectedGame.status === 'lost' || selectedGame.status === 'expired')) ? (
             <div className="space-y-3 rounded-lg border border-white/10 bg-slate-950/70 p-3">
               <p className="font-semibold text-cyan-100">Answer and definitions</p>
               {getMultiplayerAnswerWords(selectedGame).map((answer, index) => (
