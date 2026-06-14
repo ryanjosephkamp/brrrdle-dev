@@ -344,6 +344,50 @@ describe('MultiplayerPanel', () => {
     expect(html).not.toContain('Answer and definitions')
   })
 
+  it.each(['practice', 'daily'] as const)('keeps a completed %s og surface visible briefly before terminal definitions', (scope) => {
+    const lobby = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      dailyDateKey: '2026-06-04',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user' },
+      scope,
+      seed: 1,
+      wordLength: 5,
+    })
+    const joined = joinMultiplayerGame(addMultiplayerGame(createEmptyMultiplayerState(), lobby), {
+      gameId: lobby.id,
+      userId: 'rival-user',
+    })
+    const answer = getMultiplayerAnswerWords(joined.game!)[0]
+    const finalSubmitted = submitMultiplayerGuess(joined.state, {
+      gameId: joined.game!.id,
+      guess: answer,
+      playerId: joined.game!.currentTurn,
+    })
+    const current = finalSubmitted.game!
+
+    const html = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        dailyDateKey="2026-06-04"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        scope={scope}
+        state={finalSubmitted.state}
+        viewerUserId="host-user"
+      />,
+    )
+
+    expect(current.status).toBe('won')
+    expect(html).toContain('Multiplayer guess grid')
+    expect(html).toContain('Advancing to final results')
+    expect(html).not.toContain('Answer and definitions')
+    for (const [index, letter] of [...answer].entries()) {
+      expect(html).toContain(`Row 1, tile ${index + 1}, ${letter}`)
+    }
+  })
+
   it('does not mount the gameplay surface for an authenticated nonparticipant observer', () => {
     const lobby = createMultiplayerGame({
       mode: 'og',
