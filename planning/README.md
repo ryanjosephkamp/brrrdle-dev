@@ -16,15 +16,17 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active phase plan, currently [planning/phase-24/IMPLEMENTATION-PLAN.md](phase-24/IMPLEMENTATION-PLAN.md), when Phase 24 is authorized.
+7. The active or next phase plan, currently [planning/phase-25/IMPLEMENTATION-PLAN.md](phase-25/IMPLEMENTATION-PLAN.md) for Phase 25 execution and handoff state.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
 
 - `planning/IMPLEMENTATION-PLAN.md`: lightweight living project plan.
 - `planning/phase-24/`: active Phase 24 planning and changelog area.
+- `planning/phase-25/`: Phase 25 planning brief, implementation plan, and future phase planning artifacts.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
+- `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.

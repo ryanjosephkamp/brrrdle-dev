@@ -5,6 +5,11 @@ export interface SubtabOption<TSubtabId extends string> {
   readonly id: TSubtabId
   readonly label: string
   readonly description?: string
+  readonly attention?: {
+    readonly ariaLabel: string
+    readonly label: string
+    readonly tone?: 'neutral' | 'attention' | 'urgent'
+  }
 }
 
 interface SubtabBarProps<TSubtabId extends string> {
@@ -60,9 +65,14 @@ export function SubtabBar<TSubtabId extends string>({ activeId, label, onSelect,
     <div aria-label={label} className="flex flex-wrap gap-2 rounded-lg border border-white/10 bg-slate-950/60 p-1 shadow-inner shadow-white/5" role="tablist">
       {options.map((option, index) => {
         const isActive = option.id === activeId
+        const attentionDescriptionId = option.attention
+          ? `subtab-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${option.id}-attention`
+          : undefined
 
         return (
           <Button
+            aria-describedby={attentionDescriptionId}
+            aria-label={option.label}
             aria-selected={isActive}
             isActive={isActive}
             key={option.id}
@@ -74,7 +84,21 @@ export function SubtabBar<TSubtabId extends string>({ activeId, label, onSelect,
             title={option.description}
             variant="secondary"
           >
-            {option.label}
+            <span>{option.label}</span>
+            {option.attention ? (
+              <>
+                <span className="sr-only" id={attentionDescriptionId}>
+                  {option.attention.ariaLabel}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="brrrdle-attention-badge"
+                  data-tone={option.attention.tone ?? 'attention'}
+                >
+                  {option.attention.label}
+                </span>
+              </>
+            ) : null}
           </Button>
         )
       })}

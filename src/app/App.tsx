@@ -11,6 +11,25 @@ import { SoundProvider, useSound } from '../sound'
 import { DailyCountdown, MULTIPLAYER_DAILY_VARIANT, SimulateTimePanel, useDailyCycle } from '../daily'
 import { applySurfaceTheme, applyTheme, DEFAULT_SURFACE_THEME, getThemeMeta, isTheme, THEMES, type Theme } from '../theme'
 import {
+  DashboardHome,
+  createDashboardViewModel,
+  dispatchDashboardAction,
+  type DashboardActionHandlers,
+  type DashboardActionTarget,
+  type DashboardViewModel,
+} from '../dashboard'
+import {
+  activateNotificationItem,
+  createNotificationViewModel,
+  dismissNotificationItem,
+  loadNotificationMetadata,
+  markNotificationItemRead,
+  NotificationCenter,
+  saveNotificationMetadata,
+  type NotificationItemViewModel,
+  type NotificationMetadataState,
+} from '../notifications'
+import {
   createLocalStorageMultiplayerRepository,
   createMultiplayerProfileSummary,
   createSupabaseMultiplayerRepository,
@@ -33,8 +52,9 @@ import { CalendarPanel, type CalendarLaunchRequest } from '../calendar'
 import { HistoryWorkspace } from '../history/HistoryWorkspace'
 import { SoloWorkspace } from '../solo/SoloWorkspace'
 import { isSoloActiveGameKey, type SoloActiveGameKey, type SoloMode, type SoloScope } from '../solo/soloViewModels'
+import { createRouteAttentionMap, createWorkspaceAttentionMap, type WorkspaceAttentionMap } from './attentionViewModels'
 import { LunarSignalStage } from './LunarSignalStage'
-import { getPrimaryNavigationRoutes, getRouteById, getRoutesByGroup, type AppRoute, type AppRouteId } from './routes'
+import { getPrimaryNavigationRoutes, getRouteById, type AppRoute, type AppRouteId } from './routes'
 import { loadNavigationState, saveNavigationState, type HistoryFilters, type LegacyPracticeMode, type MultiplayerSubtabId, type SoloSubtabId } from './navigationState'
 
 type PracticeMode = LegacyPracticeMode
@@ -51,24 +71,6 @@ function isSameResumeSlot(left: ResumeSlot | undefined, right: ResumeSlot): bool
     && (left.mode !== 'go' || (right.mode === 'go' && left.goPuzzleCount === right.goPuzzleCount))
     && JSON.stringify(left.serializedSession) === JSON.stringify(right.serializedSession)
 }
-
-function ModeCard({ route, onSelect }: { readonly route: AppRoute; readonly onSelect: (route: AppRoute) => void }) {
-  return (
-    <button
-      className="brrrdle-prism-mode-card group relative overflow-hidden rounded-lg border border-white/10 bg-black/42 p-5 text-left shadow-2xl shadow-black/40 transition hover:border-[var(--color-ice-300)]/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] motion-safe:hover:-translate-y-0.5"
-      onClick={() => onSelect(route)}
-      type="button"
-    >
-      <span className="text-xs font-semibold uppercase text-[var(--color-ice-200)]">{route.scope ?? 'support'}</span>
-      <h2 className="mt-3 text-2xl font-black text-white">{route.label}</h2>
-      <p className="mt-3 text-sm leading-6 text-slate-300">{route.description}</p>
-      {route.wordLength ? (
-        <p className="mt-4 text-sm font-semibold text-cyan-100">{route.wordLength} letters</p>
-      ) : null}
-    </button>
-  )
-}
-
 
 function PracticeGameSwitcher({
   multiplayer,
@@ -187,6 +189,7 @@ function AboutBrrrdlePanel() {
 }
 
 function RoutePanel({
+  dashboard,
   route,
   keyboardDisabled,
   multiplayer,
@@ -198,6 +201,7 @@ function RoutePanel({
   authMessage,
   onResetProgress,
   onResumeCapture,
+  onDashboardAction,
   onSelectRoute,
   onSelectSoloGame,
   onSelectMultiplayerGame,
@@ -232,6 +236,7 @@ function RoutePanel({
   onUpdateSettings,
   supabaseClient,
   syncStatus,
+  workspaceAttention,
   todayDateKey,
   multiplayerDailyDateKey,
   onMarkPastDailyUnlocked,
@@ -240,12 +245,14 @@ function RoutePanel({
 }: {
   readonly authState: AuthState
   readonly authMessage?: string
+  readonly dashboard: DashboardViewModel
   readonly multiplayer: MultiplayerState
   readonly guestProgress: ReturnType<typeof loadGuestProgress>
   readonly keyboardDisabled?: boolean
   readonly onGameComplete: (input: CompletedGameInput) => void
   readonly onMultiplayerChange: (state: MultiplayerState) => void
   readonly onCompetitiveMultiplayerChange: (state: MultiplayerCompetitiveState) => void
+  readonly onDashboardAction: (target: DashboardActionTarget) => void
   readonly onResetProgress: () => void
   readonly onResumeCapture: (capture: ResumeCapture) => void
   readonly onPracticeModeChange: (mode: PracticeMode) => void
@@ -282,6 +289,7 @@ function RoutePanel({
   readonly onUpdateSettings: (patch: Partial<ReturnType<typeof loadGuestProgress>['settings']>) => void
   readonly supabaseClient: ReturnType<typeof createBrrrdleSupabaseClient>
   readonly syncStatus: ReturnType<typeof createSyncStatus>
+  readonly workspaceAttention: WorkspaceAttentionMap
   readonly onSpendCoins: (amount: number) => boolean
   readonly todayDateKey: string
   readonly multiplayerDailyDateKey: string
@@ -377,17 +385,7 @@ function RoutePanel({
   )
 
   if (route.id === 'home') {
-    return (
-      <div className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-3">
-          {getRoutesByGroup('play')
-            .filter((playRoute) => playRoute.id !== 'home' && !playRoute.hidden)
-            .map((playRoute) => (
-              <ModeCard key={playRoute.id} onSelect={(selectedRoute) => onSelectRoute(selectedRoute.id)} route={playRoute} />
-            ))}
-        </div>
-      </div>
-    )
+    return <DashboardHome dashboard={dashboard} onAction={onDashboardAction} />
   }
 
   if (route.id === 'calendar') {
@@ -418,6 +416,7 @@ function RoutePanel({
     return (
       <SoloWorkspace
         activeSubtab={soloSubtab}
+        attention={workspaceAttention.solo}
         dailyMode={soloDailyMode}
         history={guestProgress.history}
         onDailyModeChange={onSoloDailyModeChange}
@@ -452,6 +451,7 @@ function RoutePanel({
     return (
       <MultiplayerWorkspace
         activeSubtab={multiplayerSubtab}
+        attention={workspaceAttention.multiplayer}
         competitiveState={guestProgress.competitiveMultiplayer}
         dailyDateKey={multiplayerDailyDateKey}
         onOpenHistory={onOpenMultiplayerHistory}
@@ -569,6 +569,7 @@ function AppInner() {
   const [profileMessage, setProfileMessage] = useState<string | undefined>(undefined)
   const [profileBusy, setProfileBusy] = useState(false)
   const [syncStatus, setSyncStatus] = useState(() => createSyncStatus(supabaseClient ? 'idle' : 'error'))
+  const [notificationMetadata, setNotificationMetadata] = useState(() => loadNotificationMetadata())
   const [practiceMode, setPracticeModeState] = useState<PracticeMode>(() => initialNavigation.legacyPracticeMode)
   const [selectedSoloGameKey, setSelectedSoloGameKey] = useState<SoloActiveGameKey | undefined>(() => (
     isSoloActiveGameKey(initialNavigation.selectedSoloGameKey) ? initialNavigation.selectedSoloGameKey : undefined
@@ -628,6 +629,53 @@ function AppInner() {
     onReset: handleDailyMultiplayerReset,
     variant: 'multiplayer',
   })
+  const dashboard = useMemo(() => createDashboardViewModel({
+    competitiveMultiplayerState: guestProgress.competitiveMultiplayer,
+    dailyDateKey: dailyMultiplayer.dateKey,
+    dailyMultiplayer: {
+      actionLabel: dailyMultiplayerAlerting ? 'Play now' : 'Open daily',
+      detailLabel: dailyMultiplayerAlerting
+        ? 'Daily Multiplayer has refreshed.'
+        : `Daily Multiplayer resets in ${dailyMultiplayer.countdownLabel} (${dailyMultiplayer.timeZone}).`,
+      ready: dailyMultiplayerAlerting,
+    },
+    dailySolo: {
+      actionLabel: dailyAlerting ? 'Play now' : 'Open daily',
+      detailLabel: dailyAlerting
+        ? 'Daily Solo has refreshed.'
+        : `Daily Solo resets in ${daily.countdownLabel} (${daily.timeZone}).`,
+      ready: dailyAlerting,
+    },
+    history: guestProgress.history,
+    multiplayerState: multiplayer,
+    resumeSlots,
+    viewerUserId: authState.user?.id,
+  }), [
+    authState.user?.id,
+    daily.countdownLabel,
+    daily.timeZone,
+    dailyAlerting,
+    dailyMultiplayer.countdownLabel,
+    dailyMultiplayer.dateKey,
+    dailyMultiplayer.timeZone,
+    dailyMultiplayerAlerting,
+    guestProgress.competitiveMultiplayer,
+    guestProgress.history,
+    multiplayer,
+    resumeSlots,
+  ])
+  const notifications = useMemo(() => createNotificationViewModel({
+    dashboard,
+    notificationMetadata,
+    now: dashboard.generatedAt,
+  }), [dashboard, notificationMetadata])
+  const routeAttention = useMemo(() => createRouteAttentionMap({
+    dashboard,
+    notifications,
+  }), [dashboard, notifications])
+  const workspaceAttention = useMemo(() => createWorkspaceAttentionMap({
+    dashboard,
+  }), [dashboard])
   const handlePracticeModeChange = useCallback((mode: PracticeMode) => {
     setPracticeModeState(mode)
     setSoloSubtab('practice')
@@ -778,6 +826,45 @@ function AppInner() {
     setHistoryFilters(filters)
     saveNavigationState({ historyFilters: filters })
   }, [])
+  const dashboardActionHandlers = useMemo<DashboardActionHandlers>(() => ({
+      onHistoryFiltersChange: handleHistoryFiltersChange,
+      onMultiplayerSubtabChange: handleMultiplayerSubtabChange,
+      onSelectMultiplayerGame: handleSelectMultiplayerGame,
+      onSelectRoute: handleNavigate,
+      onSelectSoloGame: handleSelectSoloGame,
+      onSoloSubtabChange: handleSoloSubtabChange,
+  }), [
+    handleHistoryFiltersChange,
+    handleMultiplayerSubtabChange,
+    handleNavigate,
+    handleSelectMultiplayerGame,
+    handleSelectSoloGame,
+    handleSoloSubtabChange,
+  ])
+  const handleDashboardAction = useCallback((target: DashboardActionTarget) => {
+    dispatchDashboardAction(target, dashboardActionHandlers)
+  }, [dashboardActionHandlers])
+  const updateNotificationMetadata = useCallback((
+    updater: (current: NotificationMetadataState) => NotificationMetadataState,
+  ) => {
+    setNotificationMetadata((current) => {
+      const next = updater(current)
+      saveNotificationMetadata(next)
+      return next
+    })
+  }, [])
+  const handleMarkNotificationRead = useCallback((item: NotificationItemViewModel) => {
+    markNotificationItemRead(item, updateNotificationMetadata)
+  }, [updateNotificationMetadata])
+  const handleDismissNotification = useCallback((item: NotificationItemViewModel) => {
+    dismissNotificationItem(item, updateNotificationMetadata)
+  }, [updateNotificationMetadata])
+  const handleNotificationAction = useCallback((item: NotificationItemViewModel) => {
+    activateNotificationItem(item, {
+      dashboardHandlers: dashboardActionHandlers,
+      updateMetadata: updateNotificationMetadata,
+    })
+  }, [dashboardActionHandlers, updateNotificationMetadata])
   const handleResumeSoloGame = useCallback((key: SoloActiveGameKey) => {
     const slot = resumeSlots[key]
     if (!slot) {
@@ -1213,7 +1300,17 @@ function AppInner() {
   return (
     <>
       <LunarSignalStage
-        accountControls={<AccountBadge authState={authState} onOpenAuthModal={handleOpenAuthModal} onOpenProfile={handleOpenProfilePanel} />}
+        accountControls={(
+          <div className="brrrdle-lunar-account-stack">
+            <AccountBadge authState={authState} onOpenAuthModal={handleOpenAuthModal} onOpenProfile={handleOpenProfilePanel} />
+            <NotificationCenter
+              onActivate={handleNotificationAction}
+              onDismiss={handleDismissNotification}
+              onMarkRead={handleMarkNotificationRead}
+              viewModel={notifications}
+            />
+          </div>
+        )}
         activeRoute={activeRoute}
         dailyCountdown={(
           <>
@@ -1248,6 +1345,7 @@ function AppInner() {
           { label: 'banks', value: BUNDLED_WORD_LIST_LENGTHS.length },
         ]}
         onNavigate={handleNavigate}
+        routeAttention={routeAttention}
         routes={prismRoutes}
         statusLines={[
           {
@@ -1305,6 +1403,7 @@ function AppInner() {
           <RoutePanel
             authMessage={authMessage}
             authState={authState}
+            dashboard={dashboard}
             multiplayer={multiplayer}
             calendarLaunch={calendarLaunch}
             guestProgress={guestProgress}
@@ -1312,6 +1411,7 @@ function AppInner() {
             onCalendarLaunchConsumed={handleClearCalendarLaunch}
             onMultiplayerChange={handleMultiplayerChange}
             onCompetitiveMultiplayerChange={handleCompetitiveMultiplayerChange}
+            onDashboardAction={handleDashboardAction}
             onGameComplete={handleGameComplete}
             onHistoryFiltersChange={handleHistoryFiltersChange}
             onMarkPastDailyUnlocked={handleMarkPastDailyUnlocked}
@@ -1350,6 +1450,7 @@ function AppInner() {
             soloSubtab={soloSubtab}
             supabaseClient={supabaseClient}
             syncStatus={syncStatus}
+            workspaceAttention={workspaceAttention}
             multiplayerDailyDateKey={dailyMultiplayer.dateKey}
             todayDateKey={daily.dateKey}
           />
