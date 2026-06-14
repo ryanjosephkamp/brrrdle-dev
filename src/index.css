@@ -447,6 +447,38 @@ body {
   line-height: 1.1;
 }
 
+.brrrdle-attention-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.45rem;
+  max-width: 6rem;
+  min-height: 1.35rem;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+  color: white;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brrrdle-attention-badge[data-tone='attention'] {
+  border-color: color-mix(in srgb, var(--signal-color, #55f4ff), white 24%);
+  background: color-mix(in srgb, var(--signal-color, #55f4ff), black 78%);
+}
+
+.brrrdle-attention-badge[data-tone='urgent'] {
+  border-color: rgb(255 255 255 / 0.36);
+  background: linear-gradient(135deg, rgb(255 77 69 / 0.86), rgb(255 102 212 / 0.72));
+  box-shadow: 0 0 1.4rem rgb(255 77 69 / 0.2);
+}
+
 .brrrdle-lunar-panel,
 .brrrdle-lunar-playfield {
   border: 1px solid rgb(255 255 255 / 0.14);
@@ -614,6 +646,158 @@ body {
   outline: none;
 }
 
+.brrrdle-notification-center {
+  position: relative;
+  display: inline-block;
+  width: max-content;
+  max-width: min(100%, 26rem);
+  color: white;
+}
+
+.brrrdle-notification-summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  width: 100%;
+  border: 1px solid rgb(255 255 255 / 0.13);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.055);
+  color: white;
+  padding: 0.38rem 0.48rem 0.38rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.brrrdle-notification-summary::-webkit-details-marker {
+  display: none;
+}
+
+.brrrdle-notification-summary:hover,
+.brrrdle-notification-summary:focus-visible {
+  border-color: color-mix(in srgb, var(--signal-color, #f5fbff), white 34%);
+  background: color-mix(in srgb, var(--signal-color, #f5fbff), black 82%);
+  box-shadow: 0 0 1.6rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 68%);
+  outline: none;
+}
+
+.brrrdle-notification-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--signal-color, #f5fbff), transparent 78%);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.brrrdle-notification-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 45;
+  width: min(92vw, 27rem);
+  max-height: min(70vh, 34rem);
+  overflow: auto;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 0.75rem;
+  background: rgb(3 6 18 / 0.94);
+  padding: 0.9rem;
+  text-align: left;
+  box-shadow: 0 1.35rem 3.5rem rgb(0 0 0 / 0.42), 0 0 2.8rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 86%);
+  backdrop-filter: blur(20px);
+}
+
+.brrrdle-notification-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  padding-bottom: 0.7rem;
+}
+
+.brrrdle-notification-header h2,
+.brrrdle-notification-item h3,
+.brrrdle-notification-empty h3 {
+  margin: 0;
+  color: white;
+  line-height: 1.2;
+}
+
+.brrrdle-notification-header p,
+.brrrdle-notification-item p,
+.brrrdle-notification-empty p {
+  margin: 0.25rem 0 0;
+  color: rgb(226 232 240 / 0.76);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.brrrdle-notification-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brrrdle-notification-item,
+.brrrdle-notification-empty {
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 0.65rem;
+  background: rgb(255 255 255 / 0.045);
+  padding: 0.8rem;
+}
+
+.brrrdle-notification-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.45rem;
+  color: rgb(255 255 255 / 0.56);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.brrrdle-notification-time {
+  color: rgb(255 255 255 / 0.5) !important;
+  font-size: 0.74rem !important;
+}
+
+.brrrdle-notification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+
+.brrrdle-notification-actions button {
+  border: 1px solid rgb(255 255 255 / 0.13);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.06);
+  color: white;
+  padding: 0.36rem 0.62rem;
+  font-size: 0.76rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.brrrdle-notification-actions button:hover,
+.brrrdle-notification-actions button:focus-visible {
+  border-color: color-mix(in srgb, var(--signal-color, #f5fbff), white 34%);
+  outline: none;
+}
+
 .brrrdle-lunar-switch {
   display: inline-flex;
   align-items: center;
@@ -744,6 +928,18 @@ body {
 
   .brrrdle-lunar-account-stack {
     justify-items: start;
+  }
+
+  .brrrdle-notification-center,
+  .brrrdle-notification-summary {
+    width: 100%;
+  }
+
+  .brrrdle-notification-panel {
+    right: auto;
+    left: 0;
+    width: min(calc(100vw - 1.3rem), 27rem);
+    max-height: min(72vh, 32rem);
   }
 
   .brrrdle-lunar-daily-status {

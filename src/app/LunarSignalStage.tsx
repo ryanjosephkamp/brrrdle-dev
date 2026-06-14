@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import { DEFAULT_SURFACE_THEME, type SurfaceTheme } from '../theme'
+import type { RouteAttentionMap } from './attentionViewModels'
 import type { AppRoute, AppRouteId } from './routes'
 
 interface SignalMetric {
@@ -21,6 +22,7 @@ interface LunarSignalStageProps {
   readonly dailyCountdown?: ReactNode
   readonly metrics: readonly SignalMetric[]
   readonly onNavigate: (routeId: AppRouteId) => void
+  readonly routeAttention?: RouteAttentionMap
   readonly routes: readonly AppRoute[]
   readonly statusLines: readonly SignalMetric[]
   /**
@@ -271,6 +273,7 @@ export function LunarSignalStage({
   dailyCountdown,
   metrics,
   onNavigate,
+  routeAttention,
   routes,
   statusLines,
   surfaceTheme = DEFAULT_SURFACE_THEME,
@@ -278,7 +281,7 @@ export function LunarSignalStage({
   const isLunarSurface = surfaceTheme === 'lunar-signal'
   const initialFocus = useMemo(() => routes.find((route) => route.id === activeRoute.id)?.id ?? routes[0]?.id ?? activeRoute.id, [activeRoute.id, routes])
   const [focusedRouteId, setFocusedRouteId] = useState<AppRouteId>(initialFocus)
-  const [isAwake, setIsAwake] = useState(false)
+  const [isAwake, setIsAwake] = useState(true)
   const shellRef = useRef<HTMLDivElement>(null)
   const cursorFrameRef = useRef(0)
   const cursorPointRef = useRef({ clientX: '62vw', clientY: '54vh', x: '62%', y: '54%' })
@@ -354,7 +357,7 @@ export function LunarSignalStage({
             className="brrrdle-lunar-brand"
             onClick={() => {
               onNavigate('home')
-              setIsAwake(false)
+              setIsAwake(true)
             }}
             type="button"
           >
@@ -388,9 +391,13 @@ export function LunarSignalStage({
             <nav aria-label="Lunar route dock" className="brrrdle-lunar-dock">
               {routes.map((route, index) => {
                 const isFocused = route.id === focusedRoute.id
+                const attention = routeAttention?.[route.id]
+                const attentionDescriptionId = attention ? `lunar-dock-${route.id}-attention` : undefined
                 return (
                   <button
                     aria-current={isFocused ? 'true' : undefined}
+                    aria-describedby={attentionDescriptionId}
+                    aria-label={route.shortLabel}
                     className="brrrdle-lunar-dock-chip"
                     key={route.id}
                     onClick={() => activateRoute(route.id)}
@@ -400,7 +407,17 @@ export function LunarSignalStage({
                     type="button"
                   >
                     <span aria-hidden="true" />
-                    {route.shortLabel}
+                    <span>{route.shortLabel}</span>
+                    {attention ? (
+                      <>
+                        <span className="sr-only" id={attentionDescriptionId}>
+                          {attention.ariaLabel}
+                        </span>
+                        <span aria-hidden="true" className="brrrdle-attention-badge" data-tone={attention.tone}>
+                          {attention.label}
+                        </span>
+                      </>
+                    ) : null}
                   </button>
                 )
               })}
@@ -411,9 +428,13 @@ export function LunarSignalStage({
             <nav aria-label="Brrrdle destinations" className="brrrdle-lunar-rail">
               {routes.map((route, index) => {
                 const isActive = route.id === activeRoute.id
+                const attention = routeAttention?.[route.id]
+                const attentionDescriptionId = attention ? `lunar-rail-${route.id}-attention` : undefined
                 return (
                   <button
                     aria-current={isActive ? 'page' : undefined}
+                    aria-describedby={attentionDescriptionId}
+                    aria-label={route.shortLabel}
                     className="brrrdle-lunar-rail-button"
                     key={route.id}
                     onClick={() => activateRoute(route.id)}
@@ -427,6 +448,16 @@ export function LunarSignalStage({
                       <strong>{route.shortLabel}</strong>
                       <small>{getRouteEyebrow(route)}</small>
                     </span>
+                    {attention ? (
+                      <>
+                        <span className="sr-only" id={attentionDescriptionId}>
+                          {attention.ariaLabel}
+                        </span>
+                        <span aria-hidden="true" className="brrrdle-attention-badge" data-tone={attention.tone}>
+                          {attention.label}
+                        </span>
+                      </>
+                    ) : null}
                   </button>
                 )
               })}

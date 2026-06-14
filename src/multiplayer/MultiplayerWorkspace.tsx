@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { MultiplayerWorkspaceAttentionMap } from '../app/attentionViewModels'
 import type { MultiplayerSubtabId } from '../app/navigationState'
 import { Button, Panel, SubtabBar, type SubtabOption } from '../ui'
 import type { MultiplayerState } from './multiplayer'
@@ -26,6 +27,7 @@ const MULTIPLAYER_SUBTABS = [
 
 interface MultiplayerWorkspaceProps {
   readonly activeSubtab: MultiplayerSubtabId
+  readonly attention?: MultiplayerWorkspaceAttentionMap
   readonly competitiveState?: MultiplayerCompetitiveState
   readonly dailyDateKey: string
   readonly onOpenHistory: () => void
@@ -103,22 +105,32 @@ function RecentResultsList({
 function MultiplayerOverview({
   activeGames,
   lobbyRows,
+  liveRows,
   onOpenHistory,
   onResumeGame,
   onSelectGame,
   onSubtabChange,
   recentResults,
+  restrictedLiveCount,
   selectedGameId,
+  viewerUserId,
 }: {
   readonly activeGames: ReturnType<typeof selectActiveMultiplayerGameRows>
   readonly lobbyRows: ReturnType<typeof selectMultiplayerLobbyRows>
+  readonly liveRows: ReturnType<typeof selectLiveMultiplayerRows>
   readonly onOpenHistory: () => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame: (id: string) => void
   readonly onSubtabChange: (subtab: MultiplayerSubtabId) => void
   readonly recentResults: readonly MultiplayerRecentResultViewModel[]
+  readonly restrictedLiveCount: number
   readonly selectedGameId?: string
+  readonly viewerUserId?: string
 }) {
+  const yourTurnCount = activeGames.filter((game) => game.turnLabel === 'Your turn').length
+  const latestLobby = lobbyRows[0]?.updatedAt
+  const latestLive = liveRows[0]?.updatedAt
+
   return (
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-5">
@@ -133,7 +145,9 @@ function MultiplayerOverview({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-bold text-white">Active Multiplayer Games</h3>
-            <p className="text-sm text-slate-400">{activeGames.length} active</p>
+            <p className="text-sm text-slate-400">
+              {activeGames.length} active{yourTurnCount > 0 ? ` · ${yourTurnCount} ${yourTurnCount === 1 ? 'turn' : 'turns'} waiting` : ''}
+            </p>
           </div>
           <Button onClick={() => onSubtabChange('active')} size="sm" variant="ghost">View Active</Button>
         </div>
@@ -144,11 +158,26 @@ function MultiplayerOverview({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-bold text-white">Lobby</h3>
-            <p className="text-sm text-slate-400">{lobbyRows.length} open</p>
+            <p className="text-sm text-slate-400">
+              {lobbyRows.length} open{latestLobby ? ` · Freshest ${formatDateTime(latestLobby)}` : ''}
+            </p>
           </div>
           <Button onClick={() => onSubtabChange('lobby')} size="sm" variant="ghost">Open Lobby</Button>
         </div>
         <MultiplayerLobby limit={4} onOpenGame={onResumeGame} rows={lobbyRows} />
+      </Panel>
+
+      <Panel className="space-y-4" tone="muted">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-white">Live v0</h3>
+            <p className="text-sm text-slate-400">
+              {liveRows.length} visible{restrictedLiveCount > 0 ? ` · ${restrictedLiveCount} restricted` : ''}{latestLive ? ` · Freshest ${formatDateTime(latestLive)}` : ''}
+            </p>
+          </div>
+          <Button onClick={() => onSubtabChange('live')} size="sm" variant="ghost">Open Live</Button>
+        </div>
+        <MultiplayerLive liveGames={liveRows.slice(0, 4)} onResumeGame={onResumeGame} restrictedGameCount={restrictedLiveCount} viewerUserId={viewerUserId} />
       </Panel>
 
       <Panel className="space-y-4" tone="muted">
@@ -167,6 +196,7 @@ function MultiplayerOverview({
 
 export function MultiplayerWorkspace({
   activeSubtab,
+  attention,
   competitiveState,
   dailyDateKey,
   onOpenHistory,
@@ -184,6 +214,10 @@ export function MultiplayerWorkspace({
   const liveRows = selectLiveMultiplayerRows(state, viewerUserId)
   const restrictedLiveCount = selectRestrictedLiveMultiplayerCount(state, viewerUserId)
   const recentResults = selectRecentMultiplayerResults(competitiveState, viewerUserId, 5)
+  const subtabs = MULTIPLAYER_SUBTABS.map((subtab) => ({
+    ...subtab,
+    attention: attention?.[subtab.id],
+  }))
 
   return (
     <section className="space-y-5" aria-labelledby="multiplayer-workspace-title">
@@ -191,7 +225,7 @@ export function MultiplayerWorkspace({
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">Multiplayer</p>
         <h2 id="multiplayer-workspace-title" className="text-3xl font-bold text-white">Multiplayer</h2>
       </div>
-      <SubtabBar activeId={activeSubtab} label="Multiplayer workspace sections" onSelect={onSubtabChange} options={MULTIPLAYER_SUBTABS} />
+      <SubtabBar activeId={activeSubtab} label="Multiplayer workspace sections" onSelect={onSubtabChange} options={subtabs} />
       {activeSubtab === 'daily' ? (
         renderDailyPanel()
       ) : activeSubtab === 'practice' ? (
@@ -200,7 +234,7 @@ export function MultiplayerWorkspace({
         <Panel className="space-y-4" tone="muted">
           <div>
             <h3 className="text-lg font-bold text-white">Active Multiplayer Games</h3>
-            <p className="text-sm text-slate-400">{activeGames.length} active</p>
+            <p className="text-sm text-slate-400">{activeGames.length} active{activeGames.some((game) => game.turnLabel === 'Your turn') ? ' · turn attention' : ''}</p>
           </div>
           <MultiplayerActiveGames activeGames={activeGames} onResumeGame={onResumeGame} onSelectGame={onSelectGame} selectedGameId={selectedGameId} />
         </Panel>
@@ -209,7 +243,7 @@ export function MultiplayerWorkspace({
           <Panel className="space-y-4" tone="muted">
             <div>
               <h3 className="text-lg font-bold text-white">Lobby</h3>
-              <p className="text-sm text-slate-400">{lobbyRows.length} open</p>
+              <p className="text-sm text-slate-400">{lobbyRows.length} open{lobbyRows[0] ? ` · Freshest ${formatDateTime(lobbyRows[0].updatedAt)}` : ''}</p>
             </div>
             <MultiplayerLobby onOpenGame={onResumeGame} rows={lobbyRows} />
           </Panel>
@@ -219,7 +253,9 @@ export function MultiplayerWorkspace({
         <Panel className="space-y-4" tone="muted">
           <div>
             <h3 className="text-lg font-bold text-white">Live</h3>
-            <p className="text-sm text-slate-400">Participant-safe active games only. Spectator expansion remains deferred.</p>
+            <p className="text-sm text-slate-400">
+              Participant-safe active games only. {liveRows.length} visible{restrictedLiveCount > 0 ? ` · ${restrictedLiveCount} restricted` : ''}{liveRows[0] ? ` · Freshest ${formatDateTime(liveRows[0].updatedAt)}` : ''}
+            </p>
           </div>
           <MultiplayerLive liveGames={liveRows} onResumeGame={onResumeGame} restrictedGameCount={restrictedLiveCount} viewerUserId={viewerUserId} />
         </Panel>
@@ -227,12 +263,15 @@ export function MultiplayerWorkspace({
         <MultiplayerOverview
           activeGames={activeGames}
           lobbyRows={lobbyRows}
+          liveRows={liveRows}
           onOpenHistory={onOpenHistory}
           onResumeGame={onResumeGame}
           onSelectGame={onSelectGame}
           onSubtabChange={onSubtabChange}
           recentResults={recentResults}
+          restrictedLiveCount={restrictedLiveCount}
           selectedGameId={selectedGameId}
+          viewerUserId={viewerUserId}
         />
       )}
     </section>

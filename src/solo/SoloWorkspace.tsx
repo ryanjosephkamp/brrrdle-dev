@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { GameHistoryEntry, ResumeSlotCollection } from '../account'
+import type { SoloWorkspaceAttentionMap } from '../app/attentionViewModels'
 import type { SoloSubtabId } from '../app/navigationState'
 import { Button, Panel, SubtabBar, type SubtabOption } from '../ui'
 import {
@@ -21,6 +22,7 @@ const SOLO_SUBTABS = [
 
 interface SoloWorkspaceProps {
   readonly activeSubtab: SoloSubtabId
+  readonly attention?: SoloWorkspaceAttentionMap
   readonly dailyMode: SoloMode
   readonly history: readonly GameHistoryEntry[]
   readonly onDailyModeChange: (mode: SoloMode) => void
@@ -303,6 +305,7 @@ function PracticeSoloPanel({
 
 export function SoloWorkspace({
   activeSubtab,
+  attention,
   dailyMode,
   history,
   onDailyModeChange,
@@ -320,6 +323,10 @@ export function SoloWorkspace({
 }: SoloWorkspaceProps) {
   const activeGames = selectActiveSoloGames(resumeSlots)
   const recentResults = selectRecentSoloResults(history, 5)
+  const subtabs = SOLO_SUBTABS.map((subtab) => ({
+    ...subtab,
+    attention: attention?.[subtab.id],
+  }))
 
   return (
     <section className="space-y-5" aria-labelledby="solo-workspace-title">
@@ -327,7 +334,7 @@ export function SoloWorkspace({
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">Solo</p>
         <h2 id="solo-workspace-title" className="text-3xl font-bold text-white">Solo</h2>
       </div>
-      <SubtabBar activeId={activeSubtab} label="Solo workspace sections" onSelect={onSubtabChange} options={SOLO_SUBTABS} />
+      <SubtabBar activeId={activeSubtab} label="Solo workspace sections" onSelect={onSubtabChange} options={subtabs} />
       {activeSubtab === 'daily' ? (
         <DailySoloPanel dailyMode={dailyMode} onDailyModeChange={onDailyModeChange} onOpenCalendar={onOpenCalendar} renderDailyGame={renderDailyGame} />
       ) : activeSubtab === 'practice' ? (
