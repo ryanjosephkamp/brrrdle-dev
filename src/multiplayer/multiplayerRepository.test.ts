@@ -12,7 +12,9 @@ import {
   MULTIPLAYER_STORAGE_KEY,
   createLocalStorageMultiplayerRepository,
   createSupabaseMultiplayerRepository,
+  loadAuthenticatedLiveSpectatorRows,
   loadMultiplayerState,
+  normalizeAuthenticatedLiveSpectatorRows,
 } from './multiplayerRepository'
 
 function createStorage(initial: Record<string, string> = {}) {
@@ -23,6 +25,60 @@ function createStorage(initial: Record<string, string> = {}) {
       values[key] = value
     },
     values,
+  }
+}
+
+function createSanitizedSpectatorRow(overrides: Record<string, unknown> = {}) {
+  return {
+    created_at: '2026-06-15T23:50:00.000Z',
+    current_turn_seat: 'player-two',
+    daily_date_key: null,
+    deadline_at: null,
+    difficulty: 'expert',
+    go_puzzle_count: null,
+    hard_mode: true,
+    id: 'spectator-game-1',
+    mode: 'og',
+    moves: [
+      {
+        createdAt: '2026-06-15T23:51:00.000Z',
+        guess: 'ROBOT',
+        puzzleIndex: 0,
+        seat: 'player-one',
+        tiles: [
+          { letter: 'R', state: 'absent' },
+          { letter: 'O', state: 'present' },
+          { letter: 'B', state: 'absent' },
+          { letter: 'O', state: 'correct' },
+          { letter: 'T', state: 'correct' },
+        ],
+      },
+    ],
+    players: [
+      { label: 'Host', profile: { displayName: 'Host player', initials: 'H' }, seat: 'player-one' },
+      { label: 'Rival', profile: { displayName: 'Rival player', initials: 'R' }, seat: 'player-two' },
+    ],
+    progress: {
+      currentPuzzleIndex: 0,
+      latestMoveAt: '2026-06-15T23:51:00.000Z',
+      moveCount: 1,
+      solvedPuzzleCount: 0,
+    },
+    ranked: false,
+    rating_bucket: null,
+    scope: 'practice',
+    spectator_capabilities: {
+      canCancel: false,
+      canForfeit: false,
+      canJoin: false,
+      canMutate: false,
+      canSubmitGuess: false,
+    },
+    status: 'playing',
+    time_limit_ms: 300000,
+    updated_at: '2026-06-15T23:52:00.000Z',
+    word_length: 5,
+    ...overrides,
   }
 }
 
@@ -49,6 +105,57 @@ describe('multiplayer repository seam', () => {
     const repository = createLocalStorageMultiplayerRepository(storage, { games: [game] })
 
     expect((await repository.load()).state.games[0].id).toBe(game.id)
+  })
+
+  it('normalizes sanitized authenticated Live spectator RPC rows', () => {
+    const rows = normalizeAuthenticatedLiveSpectatorRows([createSanitizedSpectatorRow()])
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      currentTurnSeat: 'player-two',
+      hardMode: true,
+      id: 'spectator-game-1',
+      mode: 'og',
+      scope: 'practice',
+      spectatorCapabilities: {
+        canCancel: false,
+        canForfeit: false,
+        canJoin: false,
+        canMutate: false,
+        canSubmitGuess: false,
+      },
+      timeLimitMs: 300000,
+      wordLength: 5,
+    })
+    expect(rows[0].players.map((player) => player.label)).toEqual(['Host', 'Rival'])
+    expect(rows[0].moves[0].tiles.map((tile) => tile.state)).toEqual(['absent', 'present', 'absent', 'correct', 'correct'])
+  })
+
+  it('rejects Live spectator rows that contain forbidden raw projection or identity fields', () => {
+    const rawProjection = createSanitizedSpectatorRow({
+      projection: {
+        serializedSession: { answer: 'crane' },
+      },
+    })
+    const rawIdentity = createSanitizedSpectatorRow({
+      players: [
+        { label: 'Host', seat: 'player-one', userId: 'raw-auth-id' },
+        { label: 'Rival', seat: 'player-two' },
+      ],
+    })
+
+    expect(normalizeAuthenticatedLiveSpectatorRows([rawProjection, rawIdentity])).toEqual([])
+  })
+
+  it('loads authenticated Live spectator rows from the sanitized RPC only', async () => {
+    const rpc = vi.fn(async () => ({ data: [createSanitizedSpectatorRow()], error: null }))
+    const client = { rpc } as unknown as BrrrdleSupabaseClient
+
+    const rows = await loadAuthenticatedLiveSpectatorRows(client, 25)
+
+    expect(rpc).toHaveBeenCalledWith('get_authenticated_live_v1_spectator_games', { p_limit: 25 })
+    expect(rows).toHaveLength(1)
+    expect(rows[0].id).toBe('spectator-game-1')
   })
 
   it('saves only the current user multiplayer games through the Supabase adapter', async () => {

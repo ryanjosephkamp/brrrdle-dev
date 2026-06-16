@@ -127,6 +127,14 @@ describe('createSoundEngine', () => {
     expect(mock.events).toContain('oscillator.start')
   })
 
+  it('plays a compact notification alert', () => {
+    const mock = createMockContext()
+    const engine = createSoundEngine({ enabled: true, audioContextFactory: () => mock.context })
+    engine.play('notification-alert')
+    expect(mock.oscillators.length).toBe(2)
+    expect(mock.events).toContain('oscillator.start')
+  })
+
   it('stops creating new audio activity after setEnabled(false)', () => {
     const mock = createMockContext()
     const engine = createSoundEngine({ enabled: true, audioContextFactory: () => mock.context })
@@ -183,6 +191,7 @@ describe('sound categories', () => {
     'invalid-guess',
     'daily-reset',
     'daily-multiplayer-reset',
+    'notification-alert',
   ]
 
   it('assigns every sound event to exactly one category', () => {
@@ -199,6 +208,7 @@ describe('sound categories', () => {
     expect(getSoundCategory('game-over-win')).toBe('win')
     expect(getSoundCategory('game-over-loss')).toBe('loss')
     expect(getSoundCategory('invalid-guess')).toBe('ui')
+    expect(getSoundCategory('notification-alert')).toBe('ui')
   })
 
   it('covers exactly the five defined categories', () => {

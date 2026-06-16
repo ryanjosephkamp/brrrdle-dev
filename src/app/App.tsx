@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, PasswordResetModal, ProfilePanel, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type PracticeSeedState, type ProfileAccentColor, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, PasswordResetModal, ProfilePanel, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type PracticeSeedState, type ProfileAccentColor, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -22,15 +22,18 @@ import {
   activateNotificationItem,
   createNotificationViewModel,
   dismissNotificationItem,
+  getNotificationSoundFingerprints,
   loadNotificationMetadata,
   markNotificationItemRead,
   NotificationCenter,
   saveNotificationMetadata,
+  selectNotificationSoundDecision,
   type NotificationItemViewModel,
   type NotificationMetadataState,
 } from '../notifications'
 import {
   createLocalStorageMultiplayerRepository,
+  loadAuthenticatedLiveSpectatorRows,
   createMultiplayerProfileSummary,
   createSupabaseMultiplayerRepository,
   expireStaleDailyMultiplayerGames,
@@ -45,6 +48,7 @@ import {
   type MultiplayerState,
   type MultiplayerProfileSummary,
   type MultiplayerCompetitiveState,
+  type AuthenticatedLiveSpectatorGame,
 } from '../multiplayer'
 import { GoGame } from './games/GoGame'
 import { OgGame } from './games/OgGame'
@@ -173,15 +177,15 @@ function AboutBrrrdlePanel() {
       <Panel className="grid gap-4 text-sm leading-6 text-slate-300 md:grid-cols-3" tone="muted">
         <div>
           <p className="font-semibold text-cyan-100">Game modes</p>
-          <p>Notes about og, go, daily, and practice rules can live here as the interface settles.</p>
+          <p>OG plays one board at a time, while GO links multiple boards into a chain across Solo and Multiplayer.</p>
         </div>
         <div>
           <p className="font-semibold text-cyan-100">Word lists</p>
-          <p>Future copy can explain how answer banks, valid guesses, difficulty tiers, and definitions work.</p>
+          <p>Answer banks, valid guesses, difficulty tiers, and definitions are bundled into the local word library.</p>
         </div>
         <div>
           <p className="font-semibold text-cyan-100">Credits</p>
-          <p>Credits, release notes, design notes, and contact details can move here from temporary surfaces.</p>
+          <p>Release notes, design notes, feedback, and account controls live in their dedicated workspaces.</p>
         </div>
       </Panel>
     </section>
@@ -193,6 +197,7 @@ function RoutePanel({
   route,
   keyboardDisabled,
   multiplayer,
+  liveSpectatorRows,
   guestProgress,
   onGameComplete,
   onMultiplayerChange,
@@ -247,6 +252,7 @@ function RoutePanel({
   readonly authMessage?: string
   readonly dashboard: DashboardViewModel
   readonly multiplayer: MultiplayerState
+  readonly liveSpectatorRows: readonly AuthenticatedLiveSpectatorGame[]
   readonly guestProgress: ReturnType<typeof loadGuestProgress>
   readonly keyboardDisabled?: boolean
   readonly onGameComplete: (input: CompletedGameInput) => void
@@ -462,6 +468,7 @@ function RoutePanel({
         renderPracticePanel={() => renderMultiplayerPanel('practice')}
         selectedGameId={selectedMultiplayerGameId}
         state={multiplayer}
+        liveSpectatorRows={liveSpectatorRows}
         viewerUserId={authState.user?.id}
       />
     )
@@ -549,6 +556,7 @@ function AppInner() {
   const [activeRouteId, setActiveRouteId] = useState<AppRouteId>(() => initialNavigation.activeRouteId)
   const [guestProgress, setGuestProgress] = useState(() => loadGuestProgress())
   const [multiplayer, setMultiplayer] = useState(() => guestProgress.multiplayer ?? loadMultiplayerState())
+  const [liveSpectatorRows, setLiveSpectatorRows] = useState<readonly AuthenticatedLiveSpectatorGame[]>([])
   const [initialMultiplayerSeed] = useState(() => guestProgress.multiplayer)
   const supabaseClient = useMemo(() => createBrrrdleSupabaseClient(), [])
   const [authState, setAuthState] = useState<AuthState>(() => supabaseClient ? { status: 'anonymous' } : { status: 'unconfigured' })
@@ -570,6 +578,7 @@ function AppInner() {
   const [profileBusy, setProfileBusy] = useState(false)
   const [syncStatus, setSyncStatus] = useState(() => createSyncStatus(supabaseClient ? 'idle' : 'error'))
   const [notificationMetadata, setNotificationMetadata] = useState(() => loadNotificationMetadata())
+  const notificationSoundFingerprintsRef = useRef<Set<string> | undefined>(undefined)
   const [practiceMode, setPracticeModeState] = useState<PracticeMode>(() => initialNavigation.legacyPracticeMode)
   const [selectedSoloGameKey, setSelectedSoloGameKey] = useState<SoloActiveGameKey | undefined>(() => (
     isSoloActiveGameKey(initialNavigation.selectedSoloGameKey) ? initialNavigation.selectedSoloGameKey : undefined
@@ -647,6 +656,7 @@ function AppInner() {
       ready: dailyAlerting,
     },
     history: guestProgress.history,
+    liveSpectatorRows,
     multiplayerState: multiplayer,
     resumeSlots,
     viewerUserId: authState.user?.id,
@@ -661,14 +671,20 @@ function AppInner() {
     dailyMultiplayerAlerting,
     guestProgress.competitiveMultiplayer,
     guestProgress.history,
+    liveSpectatorRows,
     multiplayer,
     resumeSlots,
   ])
   const notifications = useMemo(() => createNotificationViewModel({
     dashboard,
     notificationMetadata,
+    notificationPreferences: guestProgress.settings,
     now: dashboard.generatedAt,
-  }), [dashboard, notificationMetadata])
+  }), [
+    dashboard,
+    guestProgress.settings,
+    notificationMetadata,
+  ])
   const routeAttention = useMemo(() => createRouteAttentionMap({
     dashboard,
     notifications,
@@ -676,6 +692,31 @@ function AppInner() {
   const workspaceAttention = useMemo(() => createWorkspaceAttentionMap({
     dashboard,
   }), [dashboard])
+  useEffect(() => {
+    const currentFingerprints = getNotificationSoundFingerprints(notifications.items)
+    const previousFingerprints = notificationSoundFingerprintsRef.current
+
+    if (!previousFingerprints) {
+      notificationSoundFingerprintsRef.current = new Set(currentFingerprints)
+      return
+    }
+
+    const decision = selectNotificationSoundDecision({
+      items: notifications.items,
+      masterSoundEnabled: sound.enabled,
+      preferences: guestProgress.settings,
+      previousFingerprints: Array.from(previousFingerprints),
+    })
+
+    if (decision) {
+      sound.play(decision.event)
+    }
+
+    notificationSoundFingerprintsRef.current = new Set([
+      ...Array.from(previousFingerprints),
+      ...currentFingerprints,
+    ])
+  }, [guestProgress.settings, notifications.items, sound])
   const handlePracticeModeChange = useCallback((mode: PracticeMode) => {
     setPracticeModeState(mode)
     setSoloSubtab('practice')
@@ -970,7 +1011,7 @@ function AppInner() {
   }, [])
   const handleUpdateSettings = useCallback((patch: Partial<ReturnType<typeof loadGuestProgress>['settings']>) => {
     setGuestProgress((currentProgress) => {
-      const nextSettings = { ...currentProgress.settings, ...patch }
+      const nextSettings = normalizeGuestSettings({ ...currentProgress.settings, ...patch })
       const nextProgress = { ...currentProgress, settings: nextSettings }
       saveGuestProgress(nextProgress)
       return nextProgress
@@ -1191,6 +1232,43 @@ function AppInner() {
     }
   }, [authState, multiplayerRepository])
 
+  useEffect(() => {
+    if (!authenticatedMultiplayerUserId || !supabaseClient) {
+      const timeoutId = setTimeout(() => setLiveSpectatorRows([]), 0)
+      return () => clearTimeout(timeoutId)
+    }
+
+    let isActive = true
+    let inFlight = false
+    const refresh = () => {
+      if (inFlight) {
+        return
+      }
+      inFlight = true
+      void loadAuthenticatedLiveSpectatorRows(supabaseClient)
+        .then((rows) => {
+          if (isActive) {
+            setLiveSpectatorRows(rows)
+          }
+        })
+        .catch(() => {
+          if (isActive) {
+            setLiveSpectatorRows([])
+          }
+        })
+        .finally(() => {
+          inFlight = false
+        })
+    }
+
+    refresh()
+    const intervalId = setInterval(refresh, 30_000)
+    return () => {
+      isActive = false
+      clearInterval(intervalId)
+    }
+  }, [authenticatedMultiplayerUserId, supabaseClient])
+
   useEffect(() => () => {
     if (dailyAlertTimeoutRef.current) {
       clearTimeout(dailyAlertTimeoutRef.current)
@@ -1405,6 +1483,7 @@ function AppInner() {
             authState={authState}
             dashboard={dashboard}
             multiplayer={multiplayer}
+            liveSpectatorRows={liveSpectatorRows}
             calendarLaunch={calendarLaunch}
             guestProgress={guestProgress}
             historyFilters={historyFilters}

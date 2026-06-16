@@ -76,7 +76,7 @@ export const APP_ROUTES = [
     id: 'multiplayer',
     label: 'Multiplayer',
     shortLabel: 'Multiplayer',
-    description: 'Play Daily and Practice Multiplayer, resume active games, browse lobbies, and check Live v0.',
+    description: 'Play Daily and Practice Multiplayer, resume active games, browse lobbies, and check Live v1.',
     navigationGroup: 'play',
   },
   {

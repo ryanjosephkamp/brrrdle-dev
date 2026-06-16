@@ -1,4 +1,6 @@
 import type { BrrrdleSupabaseClient } from '../account/supabaseClient'
+import type { DifficultyTier } from '../data'
+import type { GameMode, PlayScope, TileResult } from '../game/types'
 import {
   createEmptyMultiplayerState,
   normalizeMultiplayerState,
@@ -103,6 +105,332 @@ interface MultiplayerGameRow {
   readonly id?: string
   readonly projection?: unknown
   readonly updated_at?: string
+}
+
+export type AuthenticatedLiveSpectatorSeat = 'player-one' | 'player-two'
+
+export interface AuthenticatedLiveSpectatorPlayer {
+  readonly seat: AuthenticatedLiveSpectatorSeat
+  readonly label: string
+  readonly profile?: {
+    readonly accentColor?: string
+    readonly avatarUrl?: string
+    readonly displayName?: string
+    readonly initials?: string
+  }
+}
+
+export interface AuthenticatedLiveSpectatorMove {
+  readonly createdAt?: string
+  readonly guess: string
+  readonly puzzleIndex: number
+  readonly seat: AuthenticatedLiveSpectatorSeat
+  readonly tiles: readonly TileResult[]
+}
+
+export interface AuthenticatedLiveSpectatorProgress {
+  readonly currentPuzzleIndex: number
+  readonly latestMoveAt?: string
+  readonly moveCount: number
+  readonly solvedPuzzleCount: number
+}
+
+export interface AuthenticatedLiveSpectatorCapabilities {
+  readonly canCancel: false
+  readonly canForfeit: false
+  readonly canJoin: false
+  readonly canMutate: false
+  readonly canSubmitGuess: false
+}
+
+export interface AuthenticatedLiveSpectatorGame {
+  readonly createdAt: string
+  readonly currentTurnSeat?: AuthenticatedLiveSpectatorSeat
+  readonly dailyDateKey?: string
+  readonly deadlineAt?: string
+  readonly difficulty: DifficultyTier
+  readonly goPuzzleCount?: number
+  readonly hardMode: boolean
+  readonly id: string
+  readonly mode: GameMode
+  readonly moves: readonly AuthenticatedLiveSpectatorMove[]
+  readonly players: readonly AuthenticatedLiveSpectatorPlayer[]
+  readonly progress: AuthenticatedLiveSpectatorProgress
+  readonly ranked: boolean
+  readonly ratingBucket?: string
+  readonly scope: PlayScope
+  readonly spectatorCapabilities: AuthenticatedLiveSpectatorCapabilities
+  readonly status: 'playing'
+  readonly timeLimitMs?: number
+  readonly updatedAt: string
+  readonly wordLength: number
+}
+
+const FORBIDDEN_SPECTATOR_KEYS = new Set([
+  'answer',
+  'answers',
+  'answerWord',
+  'answerWords',
+  'authId',
+  'auth_id',
+  'email',
+  'hostUserId',
+  'host_user_id',
+  'playerOneUserId',
+  'playerSessions',
+  'playerTwoUserId',
+  'playerUserIds',
+  'player_one_user_id',
+  'player_sessions',
+  'player_two_user_id',
+  'player_user_ids',
+  'projection',
+  'rawMoveId',
+  'raw_move_id',
+  'seed',
+  'seeds',
+  'serializedSession',
+  'serialized_session',
+  'userId',
+  'user_id',
+])
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function hasForbiddenSpectatorKey(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.some(hasForbiddenSpectatorKey)
+  }
+  if (!isRecord(value)) {
+    return false
+  }
+  return Object.entries(value).some(([key, child]) => (
+    FORBIDDEN_SPECTATOR_KEYS.has(key) || hasForbiddenSpectatorKey(child)
+  ))
+}
+
+function getString(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key]
+  return typeof value === 'string' && value.trim() ? value : undefined
+}
+
+function getBoolean(record: Record<string, unknown>, key: string): boolean | undefined {
+  return typeof record[key] === 'boolean' ? record[key] : undefined
+}
+
+function getNumber(record: Record<string, unknown>, key: string): number | undefined {
+  const value = record[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function getPositiveInteger(record: Record<string, unknown>, key: string): number | undefined {
+  const value = getNumber(record, key)
+  return value !== undefined && Number.isInteger(value) && value > 0 ? value : undefined
+}
+
+function getNonNegativeInteger(record: Record<string, unknown>, key: string): number | undefined {
+  const value = getNumber(record, key)
+  return value !== undefined && Number.isInteger(value) && value >= 0 ? value : undefined
+}
+
+function parseMode(value: unknown): GameMode | undefined {
+  return value === 'og' || value === 'go' ? value : undefined
+}
+
+function parseScope(value: unknown): PlayScope | undefined {
+  return value === 'daily' || value === 'practice' ? value : undefined
+}
+
+function parseDifficulty(value: unknown): DifficultyTier | undefined {
+  return value === 'casual' || value === 'standard' || value === 'expert' ? value : undefined
+}
+
+function parseSeat(value: unknown): AuthenticatedLiveSpectatorSeat | undefined {
+  return value === 'player-one' || value === 'player-two' ? value : undefined
+}
+
+function parseTile(value: unknown): TileResult | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  const letter = getString(value, 'letter')
+  const state = value.state
+  if (!letter || (state !== 'correct' && state !== 'present' && state !== 'absent')) {
+    return undefined
+  }
+  return {
+    letter: letter.slice(0, 1).toUpperCase(),
+    state,
+  }
+}
+
+function parseSpectatorPlayers(value: unknown): readonly AuthenticatedLiveSpectatorPlayer[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+  const players = value.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return []
+    }
+    const seat = parseSeat(entry.seat)
+    const label = getString(entry, 'label')
+    if (!seat || !label) {
+      return []
+    }
+    const profileRecord = isRecord(entry.profile) ? entry.profile : undefined
+    const profile = profileRecord
+      ? {
+          accentColor: getString(profileRecord, 'accentColor'),
+          avatarUrl: getString(profileRecord, 'avatarUrl'),
+          displayName: getString(profileRecord, 'displayName'),
+          initials: getString(profileRecord, 'initials'),
+        }
+      : undefined
+    return [{
+      label,
+      profile: profile && Object.values(profile).some(Boolean) ? profile : undefined,
+      seat,
+    }]
+  })
+  const seats = new Set(players.map((player) => player.seat))
+  return seats.has('player-one') && seats.has('player-two') ? players : undefined
+}
+
+function parseSpectatorMoves(value: unknown): readonly AuthenticatedLiveSpectatorMove[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+  return value.flatMap((entry) => {
+    if (!isRecord(entry)) {
+      return []
+    }
+    const seat = parseSeat(entry.seat)
+    const guess = getString(entry, 'guess')
+    const puzzleIndex = getNonNegativeInteger(entry, 'puzzleIndex')
+    const tiles = Array.isArray(entry.tiles) ? entry.tiles.flatMap((tile) => parseTile(tile) ?? []) : []
+    if (!seat || !guess || puzzleIndex === undefined) {
+      return []
+    }
+    return [{
+      createdAt: getString(entry, 'createdAt'),
+      guess: guess.toUpperCase(),
+      puzzleIndex,
+      seat,
+      tiles,
+    }]
+  })
+}
+
+function parseSpectatorProgress(value: unknown): AuthenticatedLiveSpectatorProgress | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  const currentPuzzleIndex = getNonNegativeInteger(value, 'currentPuzzleIndex')
+  const moveCount = getNonNegativeInteger(value, 'moveCount')
+  const solvedPuzzleCount = getNonNegativeInteger(value, 'solvedPuzzleCount')
+  if (currentPuzzleIndex === undefined || moveCount === undefined || solvedPuzzleCount === undefined) {
+    return undefined
+  }
+  return {
+    currentPuzzleIndex,
+    latestMoveAt: getString(value, 'latestMoveAt'),
+    moveCount,
+    solvedPuzzleCount,
+  }
+}
+
+function parseSpectatorCapabilities(value: unknown): AuthenticatedLiveSpectatorCapabilities | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  const capabilities = {
+    canCancel: getBoolean(value, 'canCancel') === false,
+    canForfeit: getBoolean(value, 'canForfeit') === false,
+    canJoin: getBoolean(value, 'canJoin') === false,
+    canMutate: getBoolean(value, 'canMutate') === false,
+    canSubmitGuess: getBoolean(value, 'canSubmitGuess') === false,
+  }
+  if (!Object.values(capabilities).every(Boolean)) {
+    return undefined
+  }
+  return {
+    canCancel: false,
+    canForfeit: false,
+    canJoin: false,
+    canMutate: false,
+    canSubmitGuess: false,
+  }
+}
+
+function parseAuthenticatedLiveSpectatorRow(row: unknown): AuthenticatedLiveSpectatorGame | undefined {
+  if (!isRecord(row) || hasForbiddenSpectatorKey(row)) {
+    return undefined
+  }
+  const id = getString(row, 'id')
+  const scope = parseScope(row.scope)
+  const mode = parseMode(row.mode)
+  const status = row.status === 'playing' ? row.status : undefined
+  const wordLength = getPositiveInteger(row, 'word_length')
+  const difficulty = parseDifficulty(row.difficulty)
+  const hardMode = getBoolean(row, 'hard_mode')
+  const ranked = getBoolean(row, 'ranked')
+  const createdAt = getString(row, 'created_at')
+  const updatedAt = getString(row, 'updated_at')
+  const players = parseSpectatorPlayers(row.players)
+  const moves = parseSpectatorMoves(row.moves)
+  const progress = parseSpectatorProgress(row.progress)
+  const spectatorCapabilities = parseSpectatorCapabilities(row.spectator_capabilities)
+  if (
+    !id || !scope || !mode || !status || !wordLength || !difficulty
+    || hardMode === undefined || ranked === undefined || !createdAt || !updatedAt
+    || !players || !moves || !progress || !spectatorCapabilities
+  ) {
+    return undefined
+  }
+  return {
+    createdAt,
+    currentTurnSeat: parseSeat(row.current_turn_seat),
+    dailyDateKey: getString(row, 'daily_date_key'),
+    deadlineAt: getString(row, 'deadline_at'),
+    difficulty,
+    goPuzzleCount: getPositiveInteger(row, 'go_puzzle_count'),
+    hardMode,
+    id,
+    mode,
+    moves,
+    players,
+    progress,
+    ranked,
+    ratingBucket: getString(row, 'rating_bucket'),
+    scope,
+    spectatorCapabilities,
+    status,
+    timeLimitMs: getPositiveInteger(row, 'time_limit_ms'),
+    updatedAt,
+    wordLength,
+  }
+}
+
+export function normalizeAuthenticatedLiveSpectatorRows(value: unknown): readonly AuthenticatedLiveSpectatorGame[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.flatMap((row) => parseAuthenticatedLiveSpectatorRow(row) ?? [])
+}
+
+export async function loadAuthenticatedLiveSpectatorRows(
+  client: BrrrdleSupabaseClient,
+  limit = 50,
+): Promise<readonly AuthenticatedLiveSpectatorGame[]> {
+  const { data, error } = await client.rpc('get_authenticated_live_v1_spectator_games', {
+    p_limit: Math.max(0, Math.min(100, Math.floor(limit))),
+  })
+  if (error) {
+    return []
+  }
+  return normalizeAuthenticatedLiveSpectatorRows(data)
 }
 
 function getStorageRatingBucket(game: MultiplayerGame): 'async:og' | 'async:go' | null {

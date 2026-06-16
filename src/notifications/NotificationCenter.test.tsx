@@ -63,7 +63,8 @@ describe('NotificationCenter', () => {
       />,
     )
 
-    expect(html).toContain('Open in-app notifications. 2 unread notifications.')
+    expect(html).toContain('Close in-app notifications. 2 unread notifications.')
+    expect(html).toContain('aria-live="polite"')
     expect(html).toContain('Notifications')
     expect(html).toContain('2 unread · 0 read')
     expect(html).toContain('Your turn')
@@ -90,7 +91,7 @@ describe('NotificationCenter', () => {
       />,
     )
 
-    expect(html).toContain('Open in-app notifications. 0 unread notifications.')
+    expect(html).toContain('Close in-app notifications. 0 unread notifications.')
     expect(html).toContain('0 unread · 2 read')
     expect(html).toContain('No in-app notifications')
     expect(html).toContain('Read or dismissed items stay hidden until their source changes.')

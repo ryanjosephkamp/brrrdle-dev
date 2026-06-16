@@ -5,6 +5,7 @@
 
 ## 1. Current Snapshot
 
+- Phase 26 scope was revised under `phase_id = 169`: Phase 26 is planned as current UI polish/hardening, Chrome zoom/narrow-width overflow fixes, notification preferences/sounds, and authenticated Live v1 spectation. Theme-specific template modernization moves to Phase 27; Elo/ranking, public profiles, and leaderboards move to Phases 28-30.
 - Repository: `brrrdle`.
 - Primary remote: `https://github.com/ryanjosephkamp/brrrdle`.
 - Current local branch during Stage 2 completion: `codex/phase-23-stage-1`.

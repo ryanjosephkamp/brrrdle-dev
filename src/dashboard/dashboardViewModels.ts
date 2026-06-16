@@ -2,6 +2,7 @@ import type { ResumeSlotCollection, GameHistoryEntry } from '../account'
 import type { AppRouteId } from '../app/routes'
 import type { HistoryFilters, MultiplayerSubtabId, SoloSubtabId } from '../app/navigationState'
 import type { MultiplayerCompetitiveState } from '../multiplayer/competitiveMultiplayer'
+import type { AuthenticatedLiveSpectatorGame } from '../multiplayer/multiplayerRepository'
 import type {
   MultiplayerActiveGameViewModel,
   MultiplayerLiveGameViewModel,
@@ -75,6 +76,7 @@ export interface CreateDashboardViewModelInput {
   readonly generatedAt?: string
   readonly history?: readonly GameHistoryEntry[]
   readonly limits?: DashboardPreviewLimits
+  readonly liveSpectatorRows?: readonly AuthenticatedLiveSpectatorGame[]
   readonly multiplayerState?: MultiplayerState
   readonly resumeSlots?: ResumeSlotCollection
   readonly viewerUserId?: string
@@ -331,7 +333,7 @@ export function createDashboardViewModel(input: CreateDashboardViewModelInput = 
     dailyDateKey: input.dailyDateKey,
     viewerUserId: input.viewerUserId,
   })
-  const liveRows = selectLiveMultiplayerRows(input.multiplayerState, input.viewerUserId)
+  const liveRows = selectLiveMultiplayerRows(input.multiplayerState, input.viewerUserId, input.liveSpectatorRows)
   const recentSoloRows = selectRecentSoloResults(input.history, limits.recentSolo)
   const recentMultiplayerRows = selectRecentMultiplayerResults(
     input.competitiveMultiplayerState,
@@ -357,7 +359,7 @@ export function createDashboardViewModel(input: CreateDashboardViewModelInput = 
     openLobbyCount: lobbyRows.filter((row) => row.canJoin || row.canCancel).length,
     recentMultiplayerResultCount: recentMultiplayerRows.length,
     recentSoloResultCount: recentSoloRows.length,
-    restrictedLiveGameCount: selectRestrictedLiveMultiplayerCount(input.multiplayerState, input.viewerUserId),
+    restrictedLiveGameCount: selectRestrictedLiveMultiplayerCount(input.multiplayerState, input.viewerUserId, input.liveSpectatorRows),
     yourTurnMultiplayerCount: yourTurnMultiplayerRows.length,
   }
 

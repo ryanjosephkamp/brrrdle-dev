@@ -1,185 +1,155 @@
 # brrrdle Development Roadmap
 
-**Status**: Ready for Codex – v1.0
-**Last Updated**: 2026-06-11
-**Purpose**: This document serves as the long-term vision and planning reference for the brrrdle project. It is intended to be given to Codex so it can propose its own optimized staging and execution strategy.
+**Status**: Active long-term roadmap for `brrrdle-dev`
+**Last Updated**: 2026-06-15
+**Purpose**: This document records the long-term product direction for `brrrdle-dev` while keeping implementation gated by the constitution, phase specs, progress records, and explicit user authorization.
 
 ---
 
 ## Overview
 
-The goal of this roadmap is to evolve `brrrdle` into a more organized, social, and scalable experience while protecting the stability of the current playable version.
+The goal of `brrrdle-dev` is to evolve `brrrdle` into a more organized, social, scalable, and polished word-game experience while protecting the stability of the playable game.
 
-All new development will take place in the `brrrdle-dev` repository. The original `brrrdle` repository will remain as the stable reference version.
+All new development targets the independent local repository:
 
-This document outlines planned phases and strategic priorities. Codex is expected to read this document and propose improvements to phasing, staging, and implementation approach. Codex will have significant flexibility in deciding how to stage work within phases and what technical approach to take.
+`/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`
+
+The original stable `brrrdle` repository remains a reference archive unless the user explicitly authorizes work against it.
+
+This roadmap is planning guidance only. It does not authorize implementation, migrations, deployments, commits, PRs, merges, releases, branch deletion, or work against the original stable repository.
 
 ---
 
-## Current State (End of Phase 23)
+## Current State After Phase 25
 
-- Core gameplay (Solo OG/GO + Multiplayer OG/GO) is stable and playable.
-- Comprehensive gameplay-correctness testing suite has been added (Vitest + Playwright E2E with two-client Supabase coverage).
-- Daily puzzle rotation, claim guards, Hard Mode, forfeit/timeout logic, and GO transitions are reliable.
-- The project uses a Vite + React + Supabase architecture with real-time multiplayer support.
+- Phase 23 stabilized the core Solo and Multiplayer gameplay model and added broad local plus real Supabase-backed E2E coverage.
+- Phase 24 made Solo, Multiplayer, History, Lobby, and Live v0 first-class app areas.
+- A pre-Phase-25 bugfix added the missing Multiplayer OG solved-row hold before final results.
+- Phase 25 added Home Dashboard v1, in-app Notifications v0, navigation badges, workspace attention cues, and Lobby/Live freshness while deferring browser notifications.
+- Phase 26 planning is active. Implementation has not begun.
 
 ---
 
 ## Phase Summary Table
 
-| Phase     | Main Focus                                           | Key / Complex Features                                      | Priority     | Notes |
-|-----------|-------------------------------------------------------|-------------------------------------------------------------|--------------|-------|
-| Phase 23  | Multiplayer stabilization + Testing suite            | Multiplayer unification, bug fixes, testing infrastructure  | Complete     | - |
-| **Phase 24** | **Tab Restructuring + Core Solo/Multiplayer Experience** | Solo & Multiplayer tabs, subtabs, Lobby, scoped Live gallery | **High**     | Likely needs internal staging |
-| Phase 25  | Notifications + Dashboard Improvements               | Turn notifications, active games widgets                    | Medium       | Can be split from Phase 24 |
-| Phase 26  | Theming & Visual Polish                              | Theme system, skins, visual consistency                     | Medium       | - |
-| Phase 27+ | Expansion & Advanced Features                        | Additional modes, marketplace, deeper social features       | Future       | High-level |
+| Phase | Main Focus | Key Features | Status |
+| --- | --- | --- | --- |
+| Phase 23 | Multiplayer stabilization and testing suite | Multiplayer unification, bug fixes, two-client E2E coverage | Complete |
+| Phase 24 | Navigation and workspaces | Solo, Multiplayer, History, Lobby, Live v0, route/subtab model | Complete |
+| Pre-Phase-25 | Multiplayer OG solved-row hold | Cosmetic terminal all-green hold for Practice/Daily Multiplayer OG | Complete |
+| Phase 25 | Dashboard and notifications | Home dashboard, in-app notifications, badges, attention cues | Complete |
+| Phase 26 | Polish, notification controls, and Live v1 | Chrome zoom/narrow-width layout fixes, notification Settings/sounds, authenticated spectation | Planning |
+| Phase 27 | Theme modernization | Revise theme templates/proposals and plan full theme implementations | Future |
+| Phase 28 | Elo/ranking and ranked matchmaking | Comprehensive Elo/rank model, matchmaking strategy, points independent from Elo | Future |
+| Phase 29 | Public player profiles | Privacy-safe public identity, bios/flair/featured games foundations | Future |
+| Phase 30 | Leaderboards | Elo/rank, streaks, total games played, and approved performance metrics | Future |
+| Later phases | Expansion | Public/guest spectation with sanitized projections, social/community, marketplace, additional modes | Future |
 
 ---
 
-## Phase 23 Summary (Brief)
+## Phase 26 - Polish, Notification Controls, And Live v1
 
-Phase 23 focused on stabilizing multiplayer after earlier issues. Major accomplishments included unifying async/live models, adding time limits, improving GO transitions and keyboard consistency, and delivering a robust gameplay testing suite. The project left Phase 23 in a significantly more stable state.
+Recommended Phase 26 scope:
 
----
+- current UI visual polish and hardening;
+- Chrome zoom and narrow-width text/container overflow fixes based on user screenshots;
+- responsive safeguards for the three-column shell, dashboard tiles, multiplayer setup controls, result cards, and rail-adjacent content;
+- notification Settings with preferences cloud-synced through guest progress;
+- important-only notification sounds gated by the master sound setting and notification preferences;
+- local/permission-gated browser notification controls where safe, with no service workers or push infrastructure unless separately approved;
+- authenticated nonparticipant Live v1 spectation, with a separately authorized Supabase schema/RLS stage if required;
+- preservation of Phase 24 navigation/workspace behavior, Phase 25 dashboard/notification behavior, and all gameplay invariants.
 
-## Phase 24 – Tab Restructuring & Core Experience (Detailed)
+Explicit Phase 26 deferrals:
 
-### Goals
-- Improve navigation by cleanly separating Solo and Multiplayer experiences.
-- Remove the Practice tab and redistribute its content logically.
-- Create a scalable tab/subtab structure.
-- Lay groundwork for richer multiplayer social features.
-- Maintain the ability for players to have multiple active games simultaneously.
-
-### Major Structural Changes
-- Remove the **Practice** tab.
-- Add two new main tabs: **Solo** and **Multiplayer**.
-- Keep the **Daily** tab (primarily as a calendar and routing hub).
-- Add a dedicated **History** main tab (global history for both Solo and Multiplayer games).
-
-### Solo Tab – Proposed Subtabs
-
-1. **Main / Landing Subtab**
-   - Primary entry point for solo play.
-   - Quick access to start Practice or Daily solo games.
-   - Section showing currently active solo games (clickable).
-   - Section showing recently completed solo games (last 3–5).
-   - Future expansion area for new solo modes.
-
-2. **Daily Solo Subtab**
-   - Dedicated area to play Daily Solo OG and GO.
-   - Should support playing both daily variants concurrently where possible.
-
-3. **Practice Solo Subtab**
-   - Area for playing Practice Solo OG and GO.
-   - Should feel consistent with the Daily Solo subtab.
-
-4. **Active Solo Games Subtab (Gallery)**
-   - Visual gallery showing the current board state of all active solo games (daily + practice).
-   - Clicking a game opens it in the appropriate subtab.
-   - Persistent state when navigating between subtabs.
-
-5. **Solo History** (via Global History Tab)
-   - No dedicated Solo History subtab.
-   - Recent completed games will appear on the Main/Landing subtab.
-   - Clicking the recent history list or table will take the user to the dedicated global **History** main tab.
-   - Clicking an individual game from the recent list will open that game’s history/review view.
-
-### Multiplayer Tab – Proposed Subtabs
-
-1. **Main / Landing Subtab**
-   - Similar structure to the Solo landing subtab.
-   - Additional live snapshot of open lobbies or currently active multiplayer games.
-
-2. **Daily Multiplayer Subtab**
-   - Dedicated area for Daily Multiplayer OG and GO.
-   - Should support concurrent play of both variants where possible.
-
-3. **Practice Multiplayer Subtab**
-   - Area for Practice Multiplayer games (with time limit options).
-
-4. **Active Multiplayer Games Subtab (Gallery)**
-   - Gallery view of the player’s currently active multiplayer games.
-   - Shows current board state.
-
-5. **Lobby Subtab (New)**
-   - Dynamic table of currently open lobbies.
-   - Shows relevant metadata (game type, creator info, etc.).
-   - Players can join lobbies directly from this table.
-
-6. **Live Subtab (New – Scoped)**
-   - Gallery showing ongoing multiplayer games.
-   - Shows live board and keyboard snapshots.
-   - **Click behavior**:
-     - If the current player is one of the two participants in the game → clicking enters the game so they can resume playing.
-     - If the current player is not a participant → clicking enters the game as a spectator (read-only).
-   - Spectators should be visible to the players and other spectators.
-   - Completed games should briefly show the result before being removed from the gallery.
-   - Should support sorting and filtering.
-   - Initial scope, implementation details, and exact visibility rules are left flexible for Codex to decide.
-
-7. **Multiplayer History** (via Global History Tab)
-   - No dedicated Multiplayer History subtab.
-   - Recent completed games will appear on the Main/Landing subtab.
-   - Clicking the recent history list or table will take the user to the dedicated global **History** main tab.
-   - Clicking an individual game from the recent list will open that game’s history/review view.
-
-### Additional Features Desired in Phase 24
-
-- **Persistent State**: State should be preserved when switching between subtabs.
-- **Dashboard Widgets** (on main landing page of the app): Show currently active games across both Solo and Multiplayer. Codex should propose the best implementation approach.
-- **Notifications** (Lower priority): Especially turn notifications for multiplayer games. Can be deferred to Phase 25 if scope is too large.
-- **Spectator Mode**: Build upon existing spectator functionality. Behavior when clicking games in the Live subtab is defined above.
-
-### Priority Guidance for Phase 24
-
-If scope needs to be reduced, the following are considered lower priority and can be deferred:
-- Full Live gallery with spectator mode
-- Notifications system
-- Global History main tab (though recent games lists on landing subtabs are higher priority)
-
-Core tab restructuring, subtabs, Lobby, and Active Games galleries are higher priority.
-
-### Success Criteria for Phase 24
-
-Codex **must** define its own success criteria for Phase 24. Creating success criteria is **mandatory**.
-
-While Codex has discretion over the exact criteria, one non-negotiable requirement is that the full existing gameplay testing suite must continue to pass. All core gameplay mechanics (Solo OG/GO, Multiplayer OG/GO, Daily rotation, Hard Mode, forfeit/timeout logic, GO transitions, keyboard state, etc.) must remain functional and unbroken after the changes in Phase 24.
-
-Codex is expected to document its chosen success criteria clearly before beginning implementation.
+- theme-template modernization and full theme implementation move to Phase 27;
+- public/guest spectation is deferred unless a sanitized public projection is built and explicitly authorized;
+- Elo/ranking, leaderboards, and public profiles move to later dedicated phases.
 
 ---
 
-## Later Phases (Higher Level)
+## Phase 27 - Theme Proposal And Template Modernization
 
-### Phase 25 – Notifications & Dashboard Improvements
-- Full notification system (especially multiplayer turn updates).
-- Refined dashboard widgets showing active games.
-- Polish based on usage of the new tab system.
+Phase 27 should review and modernize the theme proposal system under:
 
-### Phase 26 – Theming & Visual Polish
-- Comprehensive theme and skin system.
-- Improved visual consistency across the application.
+- `themes/proposals/template_proposals/`
+- `themes/proposals/theme_proposals.csv`
+- `themes/proposals/README.md`
 
-### Phase 27+ – Expansion
-- Additional game modes and variants.
-- Marketplace / consumables system.
-- Deeper social and community features.
-- Further expansion of the Live and spectator experience.
-- Potential refinements to the global History tab.
+The goal is to preserve the original template ideas while updating them for the current and planned app surfaces after Phases 24-26. Phase 27 should decide which templates become full concrete theme proposals and which specific themes should be implemented first.
+
+Full theme implementation may be included in Phase 27 only if the approved Phase 27 spec keeps the scope safe; otherwise, implementation can be staged after template modernization.
+
+---
+
+## Phase 28 - Elo/Ranking And Ranked Matchmaking
+
+Phase 28 should define and implement a comprehensive Elo/ranking model inspired by mature chess platforms such as chess.com and lichess, adapted carefully for brrrdle.
+
+Requirements to preserve:
+
+- multiplayer game points and Elo/rank are independent quantities;
+- a player may earn game points but lose Elo if their relative performance warrants it;
+- ranked matchmaking should depend on the ranking model, not the existing point score alone;
+- existing scoring, timeout, forfeit, Daily claim, GO transition, and keyboard-state rules should not be changed accidentally.
+
+---
+
+## Phase 29 - Public Player Profiles
+
+Phase 29 should introduce privacy-safe public player profile foundations.
+
+Candidate features:
+
+- public display name and avatar/flair surfaces;
+- optional bio;
+- featured games or achievements if supported safely;
+- privacy controls and abuse-resistant defaults;
+- public identity links from future leaderboards.
+
+Profile work should not expose private auth emails, internal ids, raw account metadata, tokens, or private progress details.
+
+---
+
+## Phase 30 - Leaderboards
+
+Phase 30 should add leaderboards after profiles and ranking foundations exist.
+
+Candidate leaderboard categories:
+
+- Elo/rank;
+- streaks;
+- total games played;
+- approved achievement or performance metrics.
+
+Leaderboards should be privacy-safe, resistant to obvious abuse, and backed by a clear data model and verification strategy before implementation.
+
+---
+
+## Later Expansion
+
+Later phases may include:
+
+- public/guest spectation through sanitized public projections;
+- deeper social and community systems;
+- marketplace or cosmetic unlocks;
+- additional game modes and variants;
+- richer replay/history features;
+- broader account/profile customization.
+
+These remain separately gated and should not be pulled into Phase 26 unless a later prompt explicitly changes the scope.
 
 ---
 
 ## Guiding Principles
 
-- The original `brrrdle` repository should remain stable.
-- All new development targets the `brrrdle-dev` repository.
-- Codex should be given significant autonomy to propose staging, architecture, and implementation order.
-- Risk should be managed by breaking large efforts into logical stages where appropriate.
-- Features with high complexity (especially real-time systems like the Live gallery) should be carefully scoped. Codex has flexibility to decide initial scope and staging within Phase 24.
-- Success criteria are mandatory. Codex must define its own success criteria (with the existing test suite remaining fully functional as a hard requirement).
+- Keep the original stable `brrrdle` repository untouched unless explicitly authorized.
+- Keep all new development in `brrrdle-dev`.
+- Use staged specs, implementation plans, progress records, and explicit gates.
+- Define success criteria before implementation.
+- Preserve core gameplay invariants unless a higher-authority approved spec explicitly changes them.
+- Treat Supabase migrations, RLS changes, production deployments, releases, merges, and branch deletion as separately authorized protected actions.
 
 ---
 
-**End of Roadmap – Ready for Codex (v1.0)**
+**End of Roadmap**

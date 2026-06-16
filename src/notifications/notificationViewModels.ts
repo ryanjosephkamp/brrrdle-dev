@@ -6,6 +6,7 @@ import {
 } from '../dashboard'
 import type { NotificationMetadataRecord, NotificationMetadataState } from './notificationStorage'
 import { normalizeNotificationMetadataState } from './notificationStorage'
+import { shouldIncludeInAppNotification } from './notificationPreferences'
 
 export type NotificationKind =
   | 'daily-solo-ready'
@@ -46,6 +47,7 @@ export interface CreateNotificationViewModelInput extends CreateDashboardViewMod
   readonly dashboard?: DashboardViewModel
   readonly includeRead?: boolean
   readonly notificationMetadata?: NotificationMetadataState
+  readonly notificationPreferences?: unknown
   readonly now?: string
 }
 
@@ -141,7 +143,7 @@ function liveNotification(dashboard: DashboardViewModel, now: string): Notificat
 
   const latest = latestTimestamp(dashboard.livePreview) ?? now
   const restrictedDetail = dashboard.summary.restrictedLiveGameCount > 0
-    ? ` ${pluralize(dashboard.summary.restrictedLiveGameCount, 'nonparticipant game')} hidden by Live v0 privacy rules.`
+    ? ` ${pluralize(dashboard.summary.restrictedLiveGameCount, 'nonparticipant game')} hidden by Live v1 privacy rules.`
     : ''
   return {
     actionTarget: { multiplayerSubtab: 'live', routeId: 'multiplayer' },
@@ -207,7 +209,7 @@ export function createNotificationViewModel(input: CreateNotificationViewModelIn
     ...multiplayerCompletedNotifications(dashboard),
     ...(lobby ? [lobby] : []),
     ...(live ? [live] : []),
-  ])
+  ]).filter((candidate) => shouldIncludeInAppNotification(candidate, input.notificationPreferences))
   const withMetadata = candidates.map((candidate) => applyMetadata(metadata, candidate))
   const items = sortNotifications(withMetadata.filter((item) => (
     !item.dismissed && (input.includeRead || !item.read)
