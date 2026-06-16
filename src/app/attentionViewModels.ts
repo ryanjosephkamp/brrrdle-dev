@@ -74,8 +74,8 @@ function createMultiplayerRouteCue(dashboard: DashboardViewModel): AttentionCueV
       plural: 'open Multiplayer lobbies',
     })
     ?? countCue(dashboard.summary.activeMultiplayerCount, 'active Multiplayer game')
-    ?? countCue(dashboard.summary.liveGameCount, 'Live v0 game visible to you', {
-      plural: 'Live v0 games visible to you',
+    ?? countCue(dashboard.summary.liveGameCount, 'Live v1 game visible to you', {
+      plural: 'Live v1 games visible to you',
       tone: 'neutral',
     })
 }
@@ -119,8 +119,8 @@ export function createWorkspaceAttentionMap({
         },
       ),
       daily: multiplayerDailyReady ? labelCue('Ready', 'Daily Multiplayer is ready') : undefined,
-      live: countCue(dashboard.summary.liveGameCount, 'Live v0 game visible to you', {
-        plural: 'Live v0 games visible to you',
+      live: countCue(dashboard.summary.liveGameCount, 'Live v1 game visible to you', {
+        plural: 'Live v1 games visible to you',
         tone: 'neutral',
       }),
       lobby: countCue(dashboard.summary.openLobbyCount, 'open Multiplayer lobby', {

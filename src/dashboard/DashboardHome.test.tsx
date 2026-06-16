@@ -78,7 +78,9 @@ function createDashboard(overrides: Partial<DashboardViewModel> = {}): Dashboard
           routeId: 'multiplayer',
           selectedMultiplayerGameId: 'match-1',
         },
-        detailLabel: 'Participant-safe Live v0 preview.',
+        canResume: true,
+        canSpectate: false,
+        detailLabel: 'Participant-safe Live v1 preview.',
         id: 'match-1',
         mode: 'og',
         modeLabel: 'OG',
@@ -89,6 +91,7 @@ function createDashboard(overrides: Partial<DashboardViewModel> = {}): Dashboard
         title: 'Daily Multiplayer OG',
         turnLabel: 'Your turn',
         updatedAt: '2026-06-14T05:15:00.000Z',
+        viewerRole: 'participant',
       },
     ],
     lobbyPreview: [
@@ -196,7 +199,7 @@ describe('DashboardHome', () => {
     expect(html).toContain('Practice Solo OG')
     expect(html).toContain('Daily Multiplayer OG')
     expect(html).toContain('Practice Multiplayer GO hosted by Player One')
-    expect(html).toContain('Live v0')
+    expect(html).toContain('Live v1')
     expect(html).toContain('Recent Results')
     expect(html).toContain('Daily Solo OG')
     expect(html).toContain('Won · 3/6 guesses')
@@ -230,7 +233,7 @@ describe('DashboardHome', () => {
     expect(html).toContain('No active Solo games.')
     expect(html).toContain('No active Multiplayer games.')
     expect(html).toContain('No open lobbies.')
-    expect(html).toContain('No participant Live games.')
+    expect(html).toContain('No Live games.')
     expect(html).toContain('No recent results.')
   })
 })

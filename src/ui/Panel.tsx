@@ -18,7 +18,7 @@ const toneClasses: Record<PanelTone, string> = {
 
 export function Panel({ as: Component = 'section', children, className, tone = 'default', ...props }: PanelProps) {
   return (
-    <Component className={classNames('rounded-lg border p-5 shadow-2xl backdrop-blur-xl sm:p-6', toneClasses[tone], className)} {...props}>
+    <Component className={classNames('min-w-0 rounded-lg border p-5 shadow-2xl backdrop-blur-xl sm:p-6', toneClasses[tone], className)} {...props}>
       {children}
     </Component>
   )

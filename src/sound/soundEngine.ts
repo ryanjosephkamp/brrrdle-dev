@@ -16,6 +16,7 @@ export type SoundEvent =
   | 'invalid-guess'
   | 'daily-reset'
   | 'daily-multiplayer-reset'
+  | 'notification-alert'
 
 /**
  * Phase 19.4 — coarse categories layered over the individual sound events. They
@@ -33,6 +34,7 @@ export const SOUND_CATEGORIES: Record<SoundEvent, SoundCategory> = {
   'game-over-win': 'win',
   'invalid-guess': 'ui',
   'keyboard-click': 'keypress',
+  'notification-alert': 'ui',
   'tile-flip': 'submit',
 }
 
@@ -116,6 +118,13 @@ const TONE_SPECS: Record<SoundEvent, readonly ToneSpec[]> = {
     { frequency: 622.25, type: 'triangle', duration: 0.1, peakGain: 0.05 },
     { frequency: 932.33, type: 'sine', duration: 0.16, peakGain: 0.052 },
     { frequency: 739.99, type: 'triangle', duration: 0.2, peakGain: 0.046 },
+  ],
+  // Phase 26.4 — compact notification alert for important in-app attention
+  // cues. Shorter and quieter than game completion tones so it cannot be
+  // mistaken for a gameplay result.
+  'notification-alert': [
+    { frequency: 740, type: 'sine', duration: 0.08, peakGain: 0.045 },
+    { frequency: 988, type: 'triangle', duration: 0.12, peakGain: 0.04 },
   ],
 }
 

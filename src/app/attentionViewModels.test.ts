@@ -140,7 +140,7 @@ describe('attention view models', () => {
     expect(workspaceAttention.multiplayer).toMatchObject({
       active: { ariaLabel: '2 Multiplayer games need your turn', label: '2', tone: 'urgent' },
       lobby: { ariaLabel: '3 open Multiplayer lobbies', label: '3', tone: 'attention' },
-      live: { ariaLabel: '1 Live v0 game visible to you', label: '1', tone: 'neutral' },
+      live: { ariaLabel: '1 Live v1 game visible to you', label: '1', tone: 'neutral' },
       overview: { ariaLabel: '2 Multiplayer games need your turn', label: '2', tone: 'urgent' },
     })
   })

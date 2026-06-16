@@ -10,6 +10,7 @@ import {
   createEmptyCompetitiveMultiplayerState,
   settleMultiplayerStateResults,
 } from './competitiveMultiplayer'
+import type { AuthenticatedLiveSpectatorGame } from './multiplayerRepository'
 import {
   selectActiveMultiplayerGameRows,
   selectLiveMultiplayerRows,
@@ -24,6 +25,57 @@ const authenticatedHost: AuthState = {
     id: 'host-user',
     roles: [],
   },
+}
+
+const spectatorGame: AuthenticatedLiveSpectatorGame = {
+  createdAt: '2026-06-04T15:00:00.000Z',
+  currentTurnSeat: 'player-two',
+  dailyDateKey: undefined,
+  deadlineAt: undefined,
+  difficulty: 'expert',
+  goPuzzleCount: undefined,
+  hardMode: true,
+  id: 'spectator-game-1',
+  mode: 'og',
+  moves: [
+    {
+      createdAt: '2026-06-04T15:01:00.000Z',
+      guess: 'ROBOT',
+      puzzleIndex: 0,
+      seat: 'player-one',
+      tiles: [
+        { letter: 'R', state: 'absent' },
+        { letter: 'O', state: 'present' },
+        { letter: 'B', state: 'absent' },
+        { letter: 'O', state: 'correct' },
+        { letter: 'T', state: 'correct' },
+      ],
+    },
+  ],
+  players: [
+    { label: 'Host', profile: { displayName: 'Host player', initials: 'H' }, seat: 'player-one' },
+    { label: 'Rival', profile: { displayName: 'Rival player', initials: 'R' }, seat: 'player-two' },
+  ],
+  progress: {
+    currentPuzzleIndex: 0,
+    latestMoveAt: '2026-06-04T15:01:00.000Z',
+    moveCount: 1,
+    solvedPuzzleCount: 0,
+  },
+  ranked: false,
+  ratingBucket: undefined,
+  scope: 'practice',
+  spectatorCapabilities: {
+    canCancel: false,
+    canForfeit: false,
+    canJoin: false,
+    canMutate: false,
+    canSubmitGuess: false,
+  },
+  status: 'playing',
+  timeLimitMs: 300000,
+  updatedAt: '2026-06-04T15:02:00.000Z',
+  wordLength: 5,
 }
 
 describe('multiplayer view models', () => {
@@ -164,7 +216,7 @@ describe('multiplayer view models', () => {
     expect(rows[0].detailLabel).toContain('Won in 1 guess')
   })
 
-  it('projects Live v0 rows for authenticated participant playing games only', () => {
+  it('projects Live v1 rows for authenticated participant playing games only', () => {
     const hostPractice = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
       mode: 'og',
@@ -213,13 +265,57 @@ describe('multiplayer view models', () => {
     expect(rows.map((row) => row.id)).toEqual([joinedDaily.id, hostPractice.id])
     expect(rows[0]).toMatchObject({
       actionLabel: 'Resume live game',
+      canResume: true,
+      canSpectate: false,
       ruleLabel: 'UTC daily · 5 letters · no clock',
       scopeLabel: 'Daily Multiplayer',
+      viewerRole: 'participant',
     })
     expect(selectRestrictedLiveMultiplayerCount({ games: [hostPractice, joinedDaily, unrelated] }, 'host-user')).toBe(1)
   })
 
-  it('keeps Live v0 closed to anonymous users and nonparticipant terminal data', () => {
+  it('projects authenticated spectator RPC rows as read-only Live v1 rows', () => {
+    const participant = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'go',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const matchingRestricted = createMultiplayerGame({
+      createdAt: '2026-06-04T15:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'other-user', 'player-two': 'third-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const rows = selectLiveMultiplayerRows({
+      games: [participant, { ...matchingRestricted, id: spectatorGame.id }],
+    }, 'host-user', [spectatorGame])
+
+    expect(rows.map((row) => row.id)).toEqual([spectatorGame.id, participant.id])
+    expect(rows[0]).toMatchObject({
+      actionLabel: 'Spectate live game',
+      canResume: false,
+      canSpectate: true,
+      detailLabel: 'Read-only · 1 turn submitted',
+      opponentLabel: 'Host vs Rival',
+      ruleLabel: '5 letters · 5 minutes per side · Hard Mode',
+      turnLabel: "Rival's turn",
+      viewerRole: 'spectator',
+    })
+    expect(rows[0].spectatorDetails?.capabilityLabel).toContain('Read-only spectator view')
+    expect(rows[0].spectatorDetails?.moves[0]).toMatchObject({
+      guess: 'ROBOT',
+      playerLabel: 'Host',
+      puzzleLabel: 'Puzzle 1',
+    })
+    expect(selectRestrictedLiveMultiplayerCount({
+      games: [participant, { ...matchingRestricted, id: spectatorGame.id }],
+    }, 'host-user', [spectatorGame])).toBe(0)
+  })
+
+  it('keeps Live v1 closed to anonymous users and nonparticipant terminal data', () => {
     const active = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
       mode: 'og',

@@ -5,6 +5,12 @@ import { DEFAULT_THEME, normalizeTheme, type Theme } from '../theme/theme'
 import { createEmptyStatistics } from '../stats/statistics'
 import type { StatisticsState } from '../stats/types'
 import type { MultiplayerState, MultiplayerCompetitiveState } from '../multiplayer'
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  normalizeNotificationPreferences,
+  type InAppNotificationMode,
+  type NotificationSoundMode,
+} from '../notifications/notificationPreferences'
 import type { ResumeSlot, ResumeSlotCollection } from './resumeSlot'
 import { createDefaultPracticeSeedState, type PracticeSeedState } from './practiceSeeds'
 /**
@@ -12,14 +18,16 @@ import { createDefaultPracticeSeedState, type PracticeSeedState } from './practi
  * added, to 3 in Phase 19.2 when `GuestSettingsState.goPuzzleCountDefault`
  * was added, to 5 in Phase 23 when multiplayer progress was added, and
  * to 6 in Phase 23 Stage 3 when competitive multiplayer result/rating display
- * state was added, and to 7 in Phase 23 Stage 15 when per-account Practice
- * seed counters were added. Older payloads are upgraded by `migrateGuestProgress`
- * (see `guestStorage.ts`), which preserves all existing
- * coins/XP/history/stats and backfills any missing setting with its safe
- * default via `normalizeGuestSettings`; bumped to 4 in Phase 20 Variant 03 so
- * each play lane can remember its own unfinished puzzle.
+ * state was added, to 7 in Phase 23 Stage 15 when per-account Practice seed
+ * counters were added, to 8 in Phase 26.3 when in-app notification
+ * preferences were added, and to 9 in Phase 26.4 when notification sound and
+ * local browser-notification preferences were added. Older payloads are
+ * upgraded by `migrateGuestProgress` (see `guestStorage.ts`), which preserves
+ * all existing coins/XP/history/stats and backfills any missing setting with
+ * its safe default via `normalizeGuestSettings`; bumped to 4 in Phase 20
+ * Variant 03 so each play lane can remember its own unfinished puzzle.
  */
-export const GUEST_PROGRESS_SCHEMA_VERSION = 7
+export const GUEST_PROGRESS_SCHEMA_VERSION = 9
 
 export interface GuestProgressionState {
   readonly coins: number
@@ -68,6 +76,23 @@ export interface GuestSettingsState {
    * `dailyCountdownEnabled`.
    */
   readonly dailyMultiplayerCountdownEnabled: boolean
+  /**
+   * Phase 26.3 — in-app notification preferences. Additive; defaults preserve
+   * Phase 25 behavior by showing all in-app notifications until the player
+   * chooses the quieter important-only filter or disables in-app notifications.
+   * Synced through the existing guest/cloud progress payload.
+   */
+  readonly inAppNotificationsEnabled: boolean
+  readonly inAppNotificationMode: InAppNotificationMode
+  /**
+   * Phase 26.4 — additive notification sound and browser-notification
+   * preferences. Sounds default to important-only, stay gated by the master
+   * sound toggle, and never affect gameplay. Browser notifications are off by
+   * default and remain local/permission-gated with no service worker or push
+   * infrastructure.
+   */
+  readonly notificationSoundMode: NotificationSoundMode
+  readonly browserNotificationsEnabled: boolean
 }
 
 export interface GameHistoryEntry {
@@ -147,6 +172,10 @@ export function createDefaultGuestSettings(): GuestSettingsState {
     themeDefault: DEFAULT_THEME,
     dailyCountdownEnabled: true,
     dailyMultiplayerCountdownEnabled: true,
+    inAppNotificationsEnabled: DEFAULT_NOTIFICATION_PREFERENCES.inAppNotificationsEnabled,
+    inAppNotificationMode: DEFAULT_NOTIFICATION_PREFERENCES.inAppNotificationMode,
+    notificationSoundMode: DEFAULT_NOTIFICATION_PREFERENCES.notificationSoundMode,
+    browserNotificationsEnabled: DEFAULT_NOTIFICATION_PREFERENCES.browserNotificationsEnabled,
   }
 }
 
@@ -157,6 +186,7 @@ export function createDefaultGuestSettings(): GuestSettingsState {
  */
 export function normalizeGuestSettings(raw: unknown): GuestSettingsState {
   const record = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>
+  const notificationPreferences = normalizeNotificationPreferences(record)
   return {
     hardModeDefault: typeof record.hardModeDefault === 'boolean' ? record.hardModeDefault : false,
     reducedMotion: typeof record.reducedMotion === 'boolean' ? record.reducedMotion : false,
@@ -165,6 +195,10 @@ export function normalizeGuestSettings(raw: unknown): GuestSettingsState {
     themeDefault: normalizeTheme(record.themeDefault),
     dailyCountdownEnabled: typeof record.dailyCountdownEnabled === 'boolean' ? record.dailyCountdownEnabled : true,
     dailyMultiplayerCountdownEnabled: typeof record.dailyMultiplayerCountdownEnabled === 'boolean' ? record.dailyMultiplayerCountdownEnabled : true,
+    inAppNotificationsEnabled: notificationPreferences.inAppNotificationsEnabled,
+    inAppNotificationMode: notificationPreferences.inAppNotificationMode,
+    notificationSoundMode: notificationPreferences.notificationSoundMode,
+    browserNotificationsEnabled: notificationPreferences.browserNotificationsEnabled,
   }
 }
 

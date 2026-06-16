@@ -191,6 +191,74 @@ describe('notification view models', () => {
     expect(includeRead.items.map((item) => item.id)).not.toContain(lobby.id)
   })
 
+  it('filters low-priority freshness items in important-only mode', () => {
+    const notifications = createNotificationViewModel({
+      dashboard: createDashboardFixture(),
+      notificationPreferences: {
+        inAppNotificationMode: 'important-only',
+        inAppNotificationsEnabled: true,
+      },
+      now: '2026-06-14T05:00:00.000Z',
+    })
+
+    expect(notifications.totalCandidateCount).toBe(4)
+    expect(notifications.unreadCount).toBe(4)
+    expect(notifications.items.map((item) => item.kind)).toEqual([
+      'multiplayer-your-turn',
+      'daily-multiplayer-ready',
+      'daily-solo-ready',
+      'multiplayer-completed',
+    ])
+  })
+
+  it('suppresses in-app notifications without clearing metadata', () => {
+    const dashboard = createDashboardFixture()
+    const baseline = createNotificationViewModel({
+      dashboard,
+      now: '2026-06-14T05:00:00.000Z',
+    })
+    const turn = baseline.items.find((item) => item.kind === 'multiplayer-your-turn')!
+    const metadata: NotificationMetadataState = {
+      records: [{
+        fingerprint: turn.fingerprint,
+        id: turn.id,
+        readAt: '2026-06-14T05:01:00.000Z',
+      }],
+      version: 1,
+    }
+
+    const disabled = createNotificationViewModel({
+      dashboard,
+      notificationMetadata: metadata,
+      notificationPreferences: {
+        inAppNotificationMode: 'all',
+        inAppNotificationsEnabled: false,
+      },
+      now: '2026-06-14T05:02:00.000Z',
+    })
+    const restored = createNotificationViewModel({
+      dashboard,
+      includeRead: true,
+      notificationMetadata: metadata,
+      notificationPreferences: {
+        inAppNotificationMode: 'all',
+        inAppNotificationsEnabled: true,
+      },
+      now: '2026-06-14T05:03:00.000Z',
+    })
+
+    expect(disabled).toMatchObject({
+      dismissedCount: 0,
+      items: [],
+      readCount: 0,
+      totalCandidateCount: 0,
+      unreadCount: 0,
+    })
+    expect(restored.items.find((item) => item.id === turn.id)).toMatchObject({
+      read: true,
+    })
+  })
+
   it('resurfaces a read notification when source state materially changes', () => {
     const dashboard = createDashboardFixture()
     const baseline = createNotificationViewModel({

@@ -60,7 +60,7 @@ const soloHistory: GameHistoryEntry[] = [
 ]
 
 describe('dashboard view models', () => {
-  it('projects active games, lobby, Live v0, and recent results from existing selectors', () => {
+  it('projects active games, lobby, Live v1, and recent results from existing selectors', () => {
     const active = createMultiplayerGame({
       createdAt: '2026-06-14T03:00:00.000Z',
       mode: 'og',

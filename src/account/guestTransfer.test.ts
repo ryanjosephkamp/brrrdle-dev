@@ -45,6 +45,39 @@ describe('guest transfer', () => {
     expect(mergeGuestProgressIntoCloud(cloud, local).settings.difficultyDefault).toBe('casual')
   })
 
+  it('syncs notification preferences with the winning settings payload', () => {
+    const local = {
+      ...createDefaultGuestProgress(),
+      history: [
+        { attemptsUsed: 1, coinAward: 10, completedAt: '2026-05-26T01:00:00Z', gameId: 'a', mode: 'og', scope: 'daily', status: 'won', word: 'crane', wordLength: 5, xpAward: 50 },
+      ],
+      settings: {
+        ...createDefaultGuestProgress().settings,
+        browserNotificationsEnabled: true,
+        inAppNotificationMode: 'important-only',
+        inAppNotificationsEnabled: false,
+        notificationSoundMode: 'off',
+      },
+    } as const
+    const cloud = {
+      ...createDefaultGuestProgress(),
+      settings: {
+        ...createDefaultGuestProgress().settings,
+        browserNotificationsEnabled: false,
+        inAppNotificationMode: 'all',
+        inAppNotificationsEnabled: true,
+        notificationSoundMode: 'important-only',
+      },
+    } as const
+
+    expect(mergeGuestProgressIntoCloud(local, cloud).settings).toMatchObject({
+      browserNotificationsEnabled: true,
+      inAppNotificationMode: 'important-only',
+      inAppNotificationsEnabled: false,
+      notificationSoundMode: 'off',
+    })
+  })
+
   it('normalizes the winning settings so a missing tier falls back to the default (migration-safe)', () => {
     const local = {
       ...createDefaultGuestProgress(),
@@ -55,6 +88,10 @@ describe('guest transfer', () => {
     const merged = mergeGuestProgressIntoCloud(local, cloud)
     expect(merged.settings.difficultyDefault).toBe('expert')
     expect(merged.settings.hardModeDefault).toBe(true)
+    expect(merged.settings.inAppNotificationsEnabled).toBe(true)
+    expect(merged.settings.inAppNotificationMode).toBe('all')
+    expect(merged.settings.notificationSoundMode).toBe('important-only')
+    expect(merged.settings.browserNotificationsEnabled).toBe(false)
   })
 
   it('preserves a typed resume slot from either side', () => {

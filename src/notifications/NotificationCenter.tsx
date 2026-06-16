@@ -67,13 +67,14 @@ export function NotificationCenter({
   const panelId = 'brrrdle-notification-center-panel'
   const summaryText =
     unreadCount === 1 ? '1 unread notification' : `${unreadCount} unread notifications`
+  const toggleAction = open ? 'Close' : 'Open'
 
   return (
     <div className="brrrdle-notification-center">
       <button
         aria-controls={panelId}
         aria-expanded={open}
-        aria-label={`Open in-app notifications. ${summaryText}.`}
+        aria-label={`${toggleAction} in-app notifications. ${summaryText}.`}
         className="brrrdle-notification-summary"
         onClick={() => setOpen((current) => !current)}
         type="button"
@@ -85,6 +86,7 @@ export function NotificationCenter({
       {open ? (
         <section
           aria-label="In-app notifications"
+          aria-live="polite"
           className="brrrdle-notification-panel"
           id={panelId}
         >

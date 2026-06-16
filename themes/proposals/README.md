@@ -76,3 +76,12 @@ Execution complete for the Phase 21 addendum template-proposal step
 implemented**, `full_proposals/` and `themes/themes.csv` are untouched, and the
 minimalist default surface plus the Lunar Signal Deck layout/tab structure remain
 intact.
+
+## Phase 27 Modernization Note
+
+The Phase 26 scope revision defers all theme-template modernization and full
+theme work to a new Phase 27. Until Phase 27 is explicitly authorized, the
+individual template proposal Markdown files and `theme_proposals.csv` should be
+treated as historical proposal inputs, not current implementation-ready specs.
+Phase 27 should revise these templates against the post-Phase-26 app surface
+before any concrete full theme is implemented.

@@ -51,9 +51,48 @@ describe('guest storage', () => {
     expect(migrated.settings.goPuzzleCountDefault).toBe(5)
     expect(migrated.settings.themeDefault).toBe('icy')
     expect(migrated.settings.dailyMultiplayerCountdownEnabled).toBe(true)
+    expect(migrated.settings.inAppNotificationsEnabled).toBe(true)
+    expect(migrated.settings.inAppNotificationMode).toBe('all')
+    expect(migrated.settings.notificationSoundMode).toBe('important-only')
+    expect(migrated.settings.browserNotificationsEnabled).toBe(false)
     expect(migrated.practiceSeeds).toEqual({ go: 0, og: 0 })
     expect(migrated.multiplayer?.games).toHaveLength(0)
     expect(migrated.competitiveMultiplayer?.rating.profiles).toHaveLength(0)
+  })
+
+  it('migrates notification preferences from current and stale settings payloads', () => {
+    const persisted = loadGuestProgress(createMemoryStorage(JSON.stringify({
+      ...createDefaultGuestProgress(),
+      schemaVersion: 8,
+      settings: {
+        ...createDefaultGuestProgress().settings,
+        browserNotificationsEnabled: true,
+        inAppNotificationMode: 'important-only',
+        inAppNotificationsEnabled: false,
+        notificationSoundMode: 'all',
+      },
+    })))
+    const corrupt = loadGuestProgress(createMemoryStorage(JSON.stringify({
+      ...createDefaultGuestProgress(),
+      schemaVersion: 8,
+      settings: {
+        ...createDefaultGuestProgress().settings,
+        browserNotificationsEnabled: 'yes',
+        inAppNotificationMode: 'everything',
+        inAppNotificationsEnabled: 'nope',
+        notificationSoundMode: 'loud',
+      },
+    })))
+
+    expect(persisted.schemaVersion).toBe(GUEST_PROGRESS_SCHEMA_VERSION)
+    expect(persisted.settings.inAppNotificationsEnabled).toBe(false)
+    expect(persisted.settings.inAppNotificationMode).toBe('important-only')
+    expect(persisted.settings.notificationSoundMode).toBe('all')
+    expect(persisted.settings.browserNotificationsEnabled).toBe(true)
+    expect(corrupt.settings.inAppNotificationsEnabled).toBe(true)
+    expect(corrupt.settings.inAppNotificationMode).toBe('all')
+    expect(corrupt.settings.notificationSoundMode).toBe('important-only')
+    expect(corrupt.settings.browserNotificationsEnabled).toBe(false)
   })
 
   it('records completed games once for history, stats, XP, and coins', () => {

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { exportGuestProgress } from './guestStorage'
 import type { GuestProgressState, GuestSettingsState } from './storageSchema'
 import { AuthPanel } from './AuthPanel'
@@ -7,6 +8,22 @@ import type { SyncStatusState } from './syncStatus'
 import { Button, Panel, Tooltip } from '../ui'
 import { DIFFICULTY_TIERS, getDifficultyTierMeta, isDifficultyTier } from '../data/difficulty'
 import { GO_PUZZLE_COUNTS, isGoPuzzleCount } from '../game/constants'
+import {
+  getBrowserNotificationPermissionState,
+  getBrowserNotificationStatusDescription,
+  getBrowserNotificationStatusLabel,
+  requestBrowserNotificationPermission,
+} from '../notifications/browserNotifications'
+import {
+  IN_APP_NOTIFICATION_MODES,
+  NOTIFICATION_SOUND_MODES,
+  getInAppNotificationModeDescription,
+  getInAppNotificationModeLabel,
+  getNotificationSoundModeDescription,
+  getNotificationSoundModeLabel,
+  isInAppNotificationMode,
+  isNotificationSoundMode,
+} from '../notifications/notificationPreferences'
 import { THEMES, getThemeMeta, isTheme } from '../theme'
 
 interface SettingsProps {
@@ -51,7 +68,26 @@ export function Settings({
     themeDefault,
     dailyCountdownEnabled,
     dailyMultiplayerCountdownEnabled,
+    inAppNotificationsEnabled,
+    inAppNotificationMode,
+    notificationSoundMode,
+    browserNotificationsEnabled,
   } = guestProgress.settings
+  const [browserNotificationPermission, setBrowserNotificationPermission] = useState(() => (
+    getBrowserNotificationPermissionState()
+  ))
+  const browserNotificationsSupported = browserNotificationPermission !== 'unsupported'
+  const browserNotificationsAllowed = browserNotificationPermission === 'granted'
+  const canRequestBrowserNotifications = browserNotificationPermission === 'default'
+  const browserNotificationsChecked = browserNotificationsEnabled && browserNotificationsAllowed
+  const handleRequestBrowserNotifications = () => {
+    void requestBrowserNotificationPermission().then((permission) => {
+      setBrowserNotificationPermission(permission)
+      if (permission !== 'granted') {
+        onUpdateSettings?.({ browserNotificationsEnabled: false })
+      }
+    })
+  }
   return (
     <section className="space-y-4" aria-labelledby="settings-title">
       <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">account and persistence</p>
@@ -163,6 +199,115 @@ export function Settings({
               </span>
             </label>
             <p className="text-xs text-slate-400">Daily Multiplayer uses midnight UTC. Toggle this off to hide only the multiplayer deadline and its unique alert sound.</p>
+          </div>
+        </Panel>
+      ) : null}
+      {onUpdateSettings ? (
+        <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold text-white">Notifications</h3>
+            <p className="text-xs text-slate-400">Preferences sync with guest/cloud progress. Read and dismissed item state stays local to this browser.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 text-slate-100">
+              <input
+                checked={inAppNotificationsEnabled}
+                onChange={(event) => onUpdateSettings({ inAppNotificationsEnabled: event.target.checked })}
+                type="checkbox"
+              />
+              <span className="flex min-w-0 flex-wrap items-center gap-2">
+                Show in-app notifications
+                <Tooltip className="shrink-0" label="More information about in-app notifications">
+                  Controls the Notification Center items and Home notification badge. Turning this off does not erase read or dismissed notification state.
+                </Tooltip>
+              </span>
+            </label>
+            <p className="text-xs text-slate-400">When disabled, existing notification metadata is preserved so items can stay read or dismissed if you turn notifications back on.</p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="font-semibold text-cyan-100" htmlFor="settings-in-app-notification-mode">In-app notification level</label>
+              <Tooltip className="shrink-0" label="More information about notification level">
+                Important-only keeps Daily readiness, multiplayer turns, and completed-game alerts while hiding lower-priority Lobby and Live freshness cues.
+              </Tooltip>
+            </div>
+            <select
+              className="w-full rounded-2xl border border-slate-700 bg-slate-950 p-2 text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-xs"
+              disabled={!inAppNotificationsEnabled}
+              id="settings-in-app-notification-mode"
+              onChange={(event) => {
+                if (isInAppNotificationMode(event.target.value)) {
+                  onUpdateSettings({ inAppNotificationMode: event.target.value })
+                }
+              }}
+              value={inAppNotificationMode}
+            >
+              {IN_APP_NOTIFICATION_MODES.map((mode) => (
+                <option key={mode} value={mode}>{getInAppNotificationModeLabel(mode)}</option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400">{getInAppNotificationModeDescription(inAppNotificationMode)}</p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="font-semibold text-cyan-100" htmlFor="settings-notification-sound-mode">Notification sound mode</label>
+              <Tooltip className="shrink-0" label="More information about notification sounds">
+                Important-only sounds play for multiplayer turns and completed multiplayer matches. The master Sound Effects toggle still silences every notification sound immediately.
+              </Tooltip>
+            </div>
+            <select
+              className="w-full rounded-2xl border border-slate-700 bg-slate-950 p-2 text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-xs"
+              disabled={!inAppNotificationsEnabled}
+              id="settings-notification-sound-mode"
+              onChange={(event) => {
+                if (isNotificationSoundMode(event.target.value)) {
+                  onUpdateSettings({ notificationSoundMode: event.target.value })
+                }
+              }}
+              value={notificationSoundMode}
+            >
+              {NOTIFICATION_SOUND_MODES.map((mode) => (
+                <option key={mode} value={mode}>{getNotificationSoundModeLabel(mode)}</option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400">{getNotificationSoundModeDescription(notificationSoundMode)}</p>
+            <p className="text-xs text-slate-400">
+              Master sound is currently {soundEnabled ? 'on' : 'off'}; turning it off silences all notification sounds.
+            </p>
+          </div>
+          <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
+            <div className="space-y-1">
+              <p className="font-semibold text-cyan-100">Browser notification controls</p>
+              <p className="text-xs text-slate-400">
+                Local and optional. This preference only allows foreground browser notifications after this browser grants permission; no service worker, push delivery, or background cross-device delivery is used.
+              </p>
+            </div>
+            <p className="text-xs text-slate-400">
+              Browser permission: <span className="font-semibold text-slate-200">{getBrowserNotificationStatusLabel(browserNotificationPermission)}</span>. {getBrowserNotificationStatusDescription(browserNotificationPermission)}
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                disabled={!canRequestBrowserNotifications}
+                onClick={handleRequestBrowserNotifications}
+                variant="secondary"
+              >
+                Ask this browser for permission
+              </Button>
+              <label className="flex items-center gap-3 text-slate-100">
+                <input
+                  checked={browserNotificationsChecked}
+                  disabled={!browserNotificationsSupported || !browserNotificationsAllowed}
+                  onChange={(event) => onUpdateSettings({ browserNotificationsEnabled: event.target.checked })}
+                  type="checkbox"
+                />
+                <span>Allow foreground browser notifications on this device</span>
+              </label>
+            </div>
+            {!browserNotificationsAllowed && browserNotificationsEnabled ? (
+              <p className="text-xs text-amber-200">
+                Browser notification preference is saved, but this browser will not show notifications until permission is granted.
+              </p>
+            ) : null}
           </div>
         </Panel>
       ) : null}

@@ -78,6 +78,25 @@ function formatClock(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
+function formatUtcDateTime(value: string | undefined): string {
+  if (!value) {
+    return 'No time limit'
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+  return new Intl.DateTimeFormat('en-US', {
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    month: 'short',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
 function ClockSummary({ game, now }: { readonly game: MultiplayerGame; readonly now: Date }) {
   const clock = getMultiplayerClockState(game, now)
   if (!clock) {
@@ -461,11 +480,11 @@ export function MultiplayerPanel({
   }
 
   return (
-    <Panel className="space-y-4 text-sm leading-6 text-slate-300" data-testid={`multiplayer-panel-${scope}`} tone="muted">
+    <Panel className="min-w-0 space-y-4 text-sm leading-6 text-slate-300" data-testid={`multiplayer-panel-${scope}`} tone="muted">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-xl font-bold text-white">{scope === 'daily' ? 'Daily Multiplayer' : 'Practice Multiplayer'}</h3>
-          <p>
+        <div className="min-w-0">
+          <h3 className="break-words text-xl font-bold text-white">{scope === 'daily' ? 'Daily Multiplayer' : 'Practice Multiplayer'}</h3>
+          <p className="break-words">
             Turn-based matches sync between signed-in players. You can keep up to {MAX_MULTIPLAYER_GAMES} active games at once.
             {scope === 'daily' ? ' Daily Multiplayer uses midnight UTC and past games are view-only.' : ' Practice games can use an optional chess-clock time limit.'}
           </p>
@@ -479,12 +498,12 @@ export function MultiplayerPanel({
       </div>
 
       {!readOnly ? (
-        <div className="grid gap-3 rounded-lg border border-white/10 bg-black/30 p-3 md:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="grid gap-3 sm:grid-cols-4 xl:grid-cols-5">
-            <label className="grid gap-1 font-semibold text-cyan-100">
+        <div className="grid min-w-0 gap-3 rounded-lg border border-white/10 bg-black/30 p-3 2xl:grid-cols-[minmax(0,1fr)_minmax(11rem,14rem)]">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-5">
+            <label className="grid min-w-0 gap-1 font-semibold text-cyan-100">
               Mode
               <select
-                className="rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
+                className="min-w-0 rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
                 onChange={(event) => setMode(event.target.value as GameMode)}
                 value={mode}
               >
@@ -492,10 +511,10 @@ export function MultiplayerPanel({
                 <option value="go">GO</option>
               </select>
             </label>
-            <label className="grid gap-1 font-semibold text-cyan-100">
+            <label className="grid min-w-0 gap-1 font-semibold text-cyan-100">
               Match type
               <select
-                className="rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
+                className="min-w-0 rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
                 onChange={(event) => setMatchKind(event.target.value as MultiplayerMatchKind)}
                 value={matchKind}
               >
@@ -506,10 +525,10 @@ export function MultiplayerPanel({
             </label>
             {scope === 'practice' ? (
               <>
-                <label className="grid gap-1 font-semibold text-cyan-100">
+                <label className="grid min-w-0 gap-1 font-semibold text-cyan-100">
                   Length
                   <input
-                    className="rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
+                    className="min-w-0 rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
                     max={35}
                     min={2}
                     onChange={(event) => setWordLength(Number(event.target.value))}
@@ -517,10 +536,10 @@ export function MultiplayerPanel({
                     value={wordLength}
                   />
                 </label>
-                <label className="grid gap-1 font-semibold text-cyan-100">
+                <label className="grid min-w-0 gap-1 font-semibold text-cyan-100">
                   Time per side
                   <select
-                    className="rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
+                    className="min-w-0 rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
                     onChange={(event) => setTimeLimitMs(event.target.value ? Number(event.target.value) as PracticeMultiplayerTimeLimitMs : null)}
                     value={timeLimitMs ?? ''}
                   >
@@ -529,7 +548,7 @@ export function MultiplayerPanel({
                     ))}
                   </select>
                 </label>
-                <label className="grid gap-2 rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 font-semibold text-cyan-100">
+                <label className="grid min-w-0 gap-2 rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 font-semibold text-cyan-100">
                   <span>Hard Mode</span>
                   <span className="flex items-center gap-2 text-sm text-slate-200">
                     <input
@@ -543,17 +562,17 @@ export function MultiplayerPanel({
                 </label>
               </>
             ) : (
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold text-cyan-100">UTC day</p>
-                <p>{dailyDateKey}</p>
+                <p className="break-words">{dailyDateKey}</p>
               </div>
             )}
-            <div>
+            <div className="min-w-0">
               <p className="font-semibold text-cyan-100">Difficulty</p>
               <p className="capitalize">{defaultDifficulty}</p>
             </div>
           </div>
-          <Button disabled={!canCreate} onClick={createGame} variant="primary">
+          <Button className="min-h-14 w-full px-4" disabled={!canCreate} onClick={createGame} variant="primary">
             {canCreate ? 'Open multiplayer match' : dailyClaimedForMode ? 'Daily multiplayer already claimed' : onlineReady ? 'Active limit reached' : 'Sign in required'}
           </Button>
         </div>
@@ -566,7 +585,7 @@ export function MultiplayerPanel({
       ) : null}
 
       {visibleGames.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex min-w-0 flex-wrap gap-2">
           {visibleGames.map((game) => (
             <Button
               data-game-id={game.id}
@@ -587,7 +606,7 @@ export function MultiplayerPanel({
 
       {selectedGame ? (
         <div
-          className="space-y-4 rounded-lg border border-white/10 bg-black/30 p-4"
+          className="min-w-0 space-y-4 rounded-lg border border-white/10 bg-black/30 p-4"
           data-current-turn={selectedGame.currentTurn}
           data-game-id={selectedGame.id}
           data-mode={selectedGame.mode}
@@ -595,21 +614,21 @@ export function MultiplayerPanel({
           data-status={selectedGame.status}
           data-testid="multiplayer-selected-game"
         >
-          <div className="grid gap-3 md:grid-cols-4">
-            <div>
-              <p className="font-semibold text-cyan-100">{getGameTitle(selectedGame)}</p>
-              <p className="capitalize">Status: {selectedGame.status} · {selectedGame.ranked ? 'Ranked pending settlement' : selectedGame.customGameCode ? `Custom ${selectedGame.customGameCode}` : 'Unranked'}</p>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+            <div className="min-w-0">
+              <p className="break-words font-semibold text-cyan-100">{getGameTitle(selectedGame)}</p>
+              <p className="break-words capitalize">Status: {selectedGame.status} · {selectedGame.ranked ? 'Ranked pending settlement' : selectedGame.customGameCode ? `Custom ${selectedGame.customGameCode}` : 'Unranked'}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="font-semibold text-cyan-100">Turn</p>
-              <p>{selectedGame.players.find((player) => player.id === selectedGame.currentTurn)?.label ?? selectedGame.currentTurn}</p>
+              <p className="break-words">{selectedGame.players.find((player) => player.id === selectedGame.currentTurn)?.label ?? selectedGame.currentTurn}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="font-semibold text-cyan-100">Deadline</p>
-              <p>{selectedGame.scope === 'daily' && selectedGame.deadlineAt ? `${selectedGame.deadlineAt} UTC` : selectedGame.timeLimitMs ? `${formatClock(selectedGame.timeLimitMs)} per side` : 'No time limit'}</p>
+              <p className="break-words">{selectedGame.scope === 'daily' && selectedGame.deadlineAt ? formatUtcDateTime(selectedGame.deadlineAt) : selectedGame.timeLimitMs ? `${formatClock(selectedGame.timeLimitMs)} per side` : 'No time limit'}</p>
             </div>
             {selectedGame.scope === 'practice' ? (
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold text-cyan-100">Hard Mode</p>
                 <p>{selectedGame.hardMode ? 'On' : 'Off'}</p>
               </div>
@@ -674,11 +693,11 @@ export function MultiplayerPanel({
           ) : null}
 
           {selectedPerformance ? (
-            <div className="space-y-2 rounded-lg border border-violet-300/30 bg-violet-300/10 p-3">
-              <p className="font-semibold text-violet-50">{selectedPerformance.summary}</p>
-              <div className="grid gap-2 md:grid-cols-2">
+            <div className="min-w-0 space-y-2 rounded-lg border border-violet-300/30 bg-violet-300/10 p-3">
+              <p className="break-words font-semibold text-violet-50">{selectedPerformance.summary}</p>
+              <div className="grid min-w-0 gap-2 2xl:grid-cols-2">
                 {selectedPerformance.players.map((player) => (
-                  <p className="rounded-md border border-white/10 bg-black/30 p-2" key={player.playerId}>
+                  <p className="min-w-0 break-words rounded-md border border-white/10 bg-black/30 p-2" key={player.playerId}>
                     {selectedGame.players.find((entry) => entry.id === player.playerId)?.label ?? player.playerId}: {player.summary}
                   </p>
                 ))}
@@ -692,11 +711,11 @@ export function MultiplayerPanel({
           <div className="space-y-2">
             <p className="font-semibold text-cyan-100">Turn history</p>
             {selectedGame.moves.length > 0 ? (
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 {selectedGame.moves.map((move) => (
-                  <div className="rounded-lg border border-white/10 bg-slate-950/70 p-3" key={move.id}>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">
-                      {selectedGame.players.find((player) => player.id === move.playerId)?.label ?? move.playerId} · Puzzle {move.puzzleIndex + 1} · {move.createdAt}
+                  <div className="min-w-0 rounded-lg border border-white/10 bg-slate-950/70 p-3" key={move.id}>
+                    <p className="break-words text-xs uppercase tracking-wide text-slate-400">
+                      {selectedGame.players.find((player) => player.id === move.playerId)?.label ?? move.playerId} · Puzzle {move.puzzleIndex + 1} · {formatUtcDateTime(move.createdAt)}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {move.tiles.map((tile, index) => (

@@ -11,6 +11,11 @@ import {
   type MultiplayerState,
 } from './multiplayer'
 import { normalizeCompetitiveMultiplayerState, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
+import type {
+  AuthenticatedLiveSpectatorGame,
+  AuthenticatedLiveSpectatorMove,
+  AuthenticatedLiveSpectatorPlayer,
+} from './multiplayerRepository'
 import type { MultiplayerMatchPerformance, MultiplayerPlayerPerformance } from './scoring'
 
 export interface MultiplayerActiveGameViewModel {
@@ -65,6 +70,8 @@ export interface MultiplayerRecentResultViewModel {
 }
 
 export interface MultiplayerLiveGameViewModel {
+  readonly canResume: boolean
+  readonly canSpectate: boolean
   readonly id: string
   readonly mode: GameMode
   readonly modeLabel: string
@@ -77,6 +84,23 @@ export interface MultiplayerLiveGameViewModel {
   readonly ruleLabel: string
   readonly updatedAt: string
   readonly actionLabel: string
+  readonly spectatorDetails?: MultiplayerLiveSpectatorDetailsViewModel
+  readonly viewerRole: 'participant' | 'spectator'
+}
+
+export interface MultiplayerLiveSpectatorMoveViewModel {
+  readonly createdAt?: string
+  readonly guess: string
+  readonly playerLabel: string
+  readonly puzzleLabel: string
+  readonly tiles: AuthenticatedLiveSpectatorMove['tiles']
+}
+
+export interface MultiplayerLiveSpectatorDetailsViewModel {
+  readonly capabilityLabel: string
+  readonly moves: readonly MultiplayerLiveSpectatorMoveViewModel[]
+  readonly players: readonly AuthenticatedLiveSpectatorPlayer[]
+  readonly progressLabel: string
 }
 
 export function getMultiplayerModeLabel(mode: GameMode): string {
@@ -108,7 +132,7 @@ function getStatusLabel(status: MultiplayerGameStatus): string {
   }
 }
 
-function getTimeLimitLabel(game: Pick<MultiplayerGame, 'scope' | 'timeLimitMs'>): string {
+function getTimeLimitLabel(game: { readonly scope: PlayScope; readonly timeLimitMs?: number | null }): string {
   if (game.scope === 'daily') {
     return 'No clock'
   }
@@ -126,7 +150,12 @@ function getTimeLimitLabel(game: Pick<MultiplayerGame, 'scope' | 'timeLimitMs'>)
   return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} per side`
 }
 
-function getGameRuleLabel(game: MultiplayerGame): string {
+function getGameRuleLabel(game: {
+  readonly hardMode?: boolean
+  readonly scope: PlayScope
+  readonly timeLimitMs?: number | null
+  readonly wordLength: number
+}): string {
   if (game.scope === 'daily') {
     return `UTC daily · ${game.wordLength} letters · no clock`
   }
@@ -204,6 +233,8 @@ function toLiveGameViewModel(game: MultiplayerGame, viewerUserId: string): Multi
   const active = toActiveGameViewModel(game, viewerUserId)
   return {
     actionLabel: 'Resume live game',
+    canResume: true,
+    canSpectate: false,
     detailLabel: active.detailLabel,
     id: active.id,
     mode: active.mode,
@@ -215,35 +246,104 @@ function toLiveGameViewModel(game: MultiplayerGame, viewerUserId: string): Multi
     title: active.title,
     turnLabel: active.turnLabel,
     updatedAt: active.updatedAt,
+    viewerRole: 'participant',
+  }
+}
+
+function getSpectatorTurnLabel(row: AuthenticatedLiveSpectatorGame): string {
+  const activePlayer = row.players.find((player) => player.seat === row.currentTurnSeat)
+  return activePlayer ? `${activePlayer.label}'s turn` : 'Turn in progress'
+}
+
+function getSpectatorOpponentLabel(row: AuthenticatedLiveSpectatorGame): string {
+  return row.players.map((player) => player.label).join(' vs ')
+}
+
+function getSpectatorProgressLabel(row: AuthenticatedLiveSpectatorGame): string {
+  const moveLabel = `${row.progress.moveCount} ${row.progress.moveCount === 1 ? 'turn' : 'turns'} submitted`
+  if (row.mode === 'go') {
+    return `${moveLabel} · puzzle ${row.progress.currentPuzzleIndex + 1} of ${row.goPuzzleCount ?? 5}`
+  }
+  return moveLabel
+}
+
+function toSpectatorMoveViewModel(
+  move: AuthenticatedLiveSpectatorMove,
+  players: readonly AuthenticatedLiveSpectatorPlayer[],
+): MultiplayerLiveSpectatorMoveViewModel {
+  return {
+    createdAt: move.createdAt,
+    guess: move.guess,
+    playerLabel: players.find((player) => player.seat === move.seat)?.label ?? (move.seat === 'player-one' ? 'Player one' : 'Player two'),
+    puzzleLabel: `Puzzle ${move.puzzleIndex + 1}`,
+    tiles: move.tiles,
+  }
+}
+
+function toSpectatorLiveGameViewModel(row: AuthenticatedLiveSpectatorGame): MultiplayerLiveGameViewModel {
+  const detailLabel = `Read-only · ${getSpectatorProgressLabel(row)}`
+  return {
+    actionLabel: 'Spectate live game',
+    canResume: false,
+    canSpectate: true,
+    detailLabel,
+    id: row.id,
+    mode: row.mode,
+    modeLabel: getMultiplayerModeLabel(row.mode),
+    opponentLabel: getSpectatorOpponentLabel(row),
+    ruleLabel: getGameRuleLabel(row),
+    scope: row.scope,
+    scopeLabel: getMultiplayerScopeLabel(row.scope),
+    spectatorDetails: {
+      capabilityLabel: 'Read-only spectator view. Guessing, joining, forfeiting, cancelling, timers, ratings, and claims are unavailable.',
+      moves: row.moves.map((move) => toSpectatorMoveViewModel(move, row.players)),
+      players: row.players,
+      progressLabel: getSpectatorProgressLabel(row),
+    },
+    title: getGameTitle(row),
+    turnLabel: getSpectatorTurnLabel(row),
+    updatedAt: row.updatedAt,
+    viewerRole: 'spectator',
   }
 }
 
 export function selectLiveMultiplayerRows(
   state: MultiplayerState | undefined,
   viewerUserId?: string,
+  spectatorRows: readonly AuthenticatedLiveSpectatorGame[] = [],
 ): readonly MultiplayerLiveGameViewModel[] {
   if (!viewerUserId) {
     return []
   }
 
-  return normalizeMultiplayerState(state).games
+  const participantRows = normalizeMultiplayerState(state).games
     .filter((game) => game.status === 'playing')
     .filter((game) => Boolean(getViewerMultiplayerPlayerId(game, viewerUserId)))
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
     .map((game) => toLiveGameViewModel(game, viewerUserId))
+  const participantIds = new Set(participantRows.map((row) => row.id))
+  const readOnlySpectatorRows = spectatorRows
+    .filter((row) => row.status === 'playing')
+    .filter((row) => !participantIds.has(row.id))
+    .map(toSpectatorLiveGameViewModel)
+
+  return [...participantRows, ...readOnlySpectatorRows]
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
 }
 
 export function selectRestrictedLiveMultiplayerCount(
   state: MultiplayerState | undefined,
   viewerUserId?: string,
+  spectatorRows: readonly AuthenticatedLiveSpectatorGame[] = [],
 ): number {
   if (!viewerUserId) {
     return 0
   }
 
+  const visibleSpectatorIds = new Set(spectatorRows.map((row) => row.id))
   return normalizeMultiplayerState(state).games
     .filter((game) => game.status === 'playing')
     .filter((game) => !getViewerMultiplayerPlayerId(game, viewerUserId))
+    .filter((game) => !visibleSpectatorIds.has(game.id))
     .length
 }
 

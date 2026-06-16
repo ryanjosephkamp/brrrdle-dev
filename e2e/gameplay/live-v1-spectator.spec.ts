@@ -1,0 +1,134 @@
+import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test'
+import { expectNoConsoleFailures, installConsoleGuards } from '../fixtures/assertions'
+import { getValidWrongGuess, projectionFromRow } from '../fixtures/answers'
+import { cleanupE2eRun } from '../fixtures/cleanup'
+import {
+  joinMultiplayerMatch,
+  navigateToPracticeMultiplayer,
+  openMultiplayerMatch,
+  selectMultiplayerGame,
+  submitGuessWithKeyboard,
+  waitForTurn,
+} from '../fixtures/gameActions'
+import { waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
+import { createE2eUser, createRunId, signInThroughUi, type E2eUser } from '../fixtures/testUsers'
+
+interface BrowserSeat {
+  readonly consoleFailures: readonly string[]
+  readonly context: BrowserContext
+  readonly page: Page
+  readonly user: E2eUser
+}
+
+const LIVE_SMOKE_VIEWPORTS = [
+  { height: 900, label: 'desktop', width: 1440 },
+  { height: 1180, label: 'tablet', width: 820 },
+  { height: 844, label: 'mobile', width: 390 },
+] as const
+
+async function createSignedInSeat(browser: Browser, label: string, runId: string): Promise<BrowserSeat> {
+  const user = await createE2eUser(label, runId)
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  const consoleFailures = installConsoleGuards(page)
+  await signInThroughUi(page, user)
+  return {
+    consoleFailures,
+    context,
+    page,
+    user,
+  }
+}
+
+async function expectParticipantLiveResume(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^Multiplayer$/i }).click()
+  await page.getByRole('tab', { name: /^Live$/i }).click()
+  await expect(page.getByRole('button', { name: /^Resume live game$/i })).toBeVisible({ timeout: 30_000 })
+}
+
+async function expectSpectatorLiveReadOnly(page: Page, submittedGuess: string): Promise<void> {
+  await page.getByRole('button', { name: /^Multiplayer$/i }).click()
+  await page.getByRole('tab', { name: /^Live$/i }).click()
+  await expect(page.getByRole('button', { name: /^Spectate live game$/i })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/^Spectator view$/i)).toBeVisible()
+  await expect(page.getByText(/^Read-only$/i)).toBeVisible()
+  await expect(page.getByText(/Read-only spectator view/i)).toBeVisible()
+  await expect(page.getByLabel(/submitted/i)).toContainText(submittedGuess.toLocaleUpperCase('en-US'))
+  await expect(page.getByRole('button', { name: /^Submit guess$/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Forfeit$/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Cancel game$/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Join multiplayer match$/i })).toHaveCount(0)
+}
+
+async function expectSignedOutLiveRestricted(page: Page): Promise<void> {
+  await page.goto('/')
+  await page.getByRole('button', { name: /^Multiplayer$/i }).click()
+  await page.getByRole('tab', { name: /^Live$/i }).click()
+  await expect(page.getByText(/^Sign in to view Live games\.$/i)).toBeVisible()
+  await expect(page.getByText(/Public and guest spectation remain unavailable/i)).toBeVisible()
+}
+
+test.describe('Live v1 spectator @multiplayer', () => {
+  test('lets an authenticated nonparticipant spectate a live match read-only', async ({ browser }) => {
+    const runId = createRunId()
+    const seats: BrowserSeat[] = []
+    const signedOutContext = await browser.newContext()
+    const signedOutPage = await signedOutContext.newPage()
+    const signedOutConsoleFailures = installConsoleGuards(signedOutPage)
+
+    try {
+      const host = await createSignedInSeat(browser, 'host', runId)
+      const rival = await createSignedInSeat(browser, 'rival', runId)
+      seats.push(host, rival)
+
+      await navigateToPracticeMultiplayer(host.page)
+      await openMultiplayerMatch(host.page)
+      const waitingRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'waiting',
+        userIds: [host.user.id],
+      })
+
+      await navigateToPracticeMultiplayer(rival.page)
+      await selectMultiplayerGame(rival.page, waitingRow.id)
+      await joinMultiplayerMatch(rival.page)
+      const playingRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [host.user.id, rival.user.id],
+      })
+      const game = projectionFromRow(playingRow)
+      const wrongGuess = getValidWrongGuess(game)
+
+      await selectMultiplayerGame(host.page, playingRow.id)
+      await waitForTurn(host.page)
+      await submitGuessWithKeyboard(host.page, wrongGuess)
+      await waitForTurn(rival.page)
+
+      const spectator = await createSignedInSeat(browser, 'spectator', runId)
+      seats.push(spectator)
+
+      for (const viewport of LIVE_SMOKE_VIEWPORTS) {
+        await host.page.setViewportSize(viewport)
+        await spectator.page.setViewportSize(viewport)
+        await signedOutPage.setViewportSize(viewport)
+        await expectParticipantLiveResume(host.page)
+        await expectSpectatorLiveReadOnly(spectator.page, wrongGuess)
+        await expectSignedOutLiveRestricted(signedOutPage)
+      }
+
+      await expectNoConsoleFailures(host.consoleFailures)
+      await expectNoConsoleFailures(rival.consoleFailures)
+      await expectNoConsoleFailures(spectator.consoleFailures)
+      await expectNoConsoleFailures(signedOutConsoleFailures)
+    } finally {
+      await Promise.allSettled([
+        ...seats.map((seat) => seat.context.close()),
+        signedOutContext.close(),
+      ])
+      await cleanupE2eRun(seats.map((seat) => seat.user))
+    }
+  })
+})

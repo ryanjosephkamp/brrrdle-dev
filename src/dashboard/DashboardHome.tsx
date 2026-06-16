@@ -52,16 +52,16 @@ function SummaryMetric({
     : 'border-white/10 bg-black/30 text-slate-100'
 
   return (
-    <div className={`rounded-lg border p-3 ${toneClasses}`}>
+    <div className={`min-w-0 rounded-lg border p-3 ${toneClasses}`}>
       <p className="text-2xl font-black text-white">{value}</p>
-      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</p>
+      <p className="mt-1 break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
     </div>
   )
 }
 
 function EmptyState({ children }: { readonly children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-white/15 bg-black/20 p-4 text-sm leading-6 text-slate-400">
+    <div className="min-w-0 rounded-lg border border-dashed border-white/15 bg-black/20 p-4 text-sm leading-6 text-slate-400">
       {children}
     </div>
   )
@@ -78,9 +78,9 @@ function SectionHeader({
 }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
+      <div className="min-w-0">
         <h3 className="text-lg font-bold text-white">{title}</h3>
-        {children ? <p className="mt-1 text-sm leading-6 text-slate-400">{children}</p> : null}
+        {children ? <p className="mt-1 break-words text-sm leading-6 text-slate-400">{children}</p> : null}
       </div>
       {action}
     </div>
@@ -95,7 +95,7 @@ function QuickActions({
   readonly onAction: (target: DashboardActionTarget) => void
 }) {
   return (
-    <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6" aria-label="Dashboard quick actions">
+    <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6" aria-label="Dashboard quick actions">
       {actions.map((action) => (
         <Button
           className="h-full min-h-20 flex-col items-start justify-center text-left"
@@ -103,8 +103,8 @@ function QuickActions({
           onClick={() => onAction(action.actionTarget)}
           variant={action.attentionCount > 0 ? 'primary' : 'secondary'}
         >
-          <span>{action.label}</span>
-          <span className="text-xs font-normal opacity-80">
+          <span className="min-w-0 max-w-full break-words">{action.label}</span>
+          <span className="min-w-0 max-w-full break-words text-xs font-normal opacity-80">
             {action.attentionCount > 0 ? `${action.attentionCount} attention` : action.detailLabel}
           </span>
         </Button>
@@ -121,23 +121,23 @@ function DailyStatus({
   readonly onAction: (target: DashboardActionTarget) => void
 }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid min-w-0 gap-3 2xl:grid-cols-2">
       {daily.map((card) => (
-        <article className="rounded-lg border border-white/10 bg-black/30 p-4" key={card.id}>
+        <article className="min-w-0 rounded-lg border border-white/10 bg-black/30 p-4" key={card.id}>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-ice-200)]">
                 {card.ready ? 'Ready' : 'Daily'}
               </p>
-              <h4 className="mt-1 text-lg font-bold text-white">{card.title}</h4>
+              <h4 className="mt-1 break-words text-lg font-bold text-white">{card.title}</h4>
             </div>
             <Button onClick={() => onAction(card.actionTarget)} size="sm" variant={card.ready ? 'primary' : 'secondary'}>
               {card.actionLabel}
             </Button>
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-300">{card.detailLabel}</p>
+          <p className="mt-3 break-words text-sm leading-6 text-slate-300">{card.detailLabel}</p>
           {card.resetAt ? (
-            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <p className="mt-2 break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
               Reset {formatDateTime(card.resetAt)}
             </p>
           ) : null}
@@ -159,13 +159,13 @@ function ActiveSoloList({
   }
 
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
+    <div className="grid min-w-0 gap-3 2xl:grid-cols-2">
       {games.map((game) => (
-        <article className="rounded-lg border border-white/10 bg-black/30 p-4" key={game.key}>
+        <article className="min-w-0 rounded-lg border border-white/10 bg-black/30 p-4" key={game.key}>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-ice-200)]">{game.scopeLabel}</p>
-              <h4 className="mt-1 text-lg font-bold text-white">{game.title}</h4>
+              <h4 className="mt-1 break-words text-lg font-bold text-white">{game.title}</h4>
             </div>
             <Button onClick={() => onAction(game.actionTarget)} size="sm" variant="secondary">Open</Button>
           </div>
@@ -201,13 +201,13 @@ function ActiveMultiplayerList({
   }
 
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
+    <div className="grid min-w-0 gap-3 2xl:grid-cols-2">
       {games.map((game) => (
-        <article className="rounded-lg border border-white/10 bg-black/30 p-4" key={game.id}>
+        <article className="min-w-0 rounded-lg border border-white/10 bg-black/30 p-4" key={game.id}>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-ice-200)]">{game.scopeLabel}</p>
-              <h4 className="mt-1 text-lg font-bold text-white">{game.title}</h4>
+              <h4 className="mt-1 break-words text-lg font-bold text-white">{game.title}</h4>
             </div>
             <Button onClick={() => onAction(game.actionTarget)} size="sm" variant={game.turnLabel === 'Your turn' ? 'primary' : 'secondary'}>
               Open
@@ -245,19 +245,19 @@ function LobbyPreview({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid min-w-0 gap-3">
       {rows.map((row) => (
-        <article className="rounded-lg border border-white/10 bg-black/30 p-4" key={row.id}>
+        <article className="min-w-0 rounded-lg border border-white/10 bg-black/30 p-4" key={row.id}>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-ice-200)]">{row.scopeLabel}</p>
-              <h4 className="mt-1 text-base font-bold text-white">{row.title} hosted by {row.hostLabel}</h4>
+              <h4 className="mt-1 break-words text-base font-bold text-white">{row.title} hosted by {row.hostLabel}</h4>
             </div>
             <Button disabled={!row.canJoin && !row.canCancel} onClick={() => onAction(row.actionTarget)} size="sm" variant={row.canJoin ? 'primary' : 'secondary'}>
               {row.actionLabel}
             </Button>
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-300">{row.detailLabel}</p>
+          <p className="mt-3 break-words text-sm leading-6 text-slate-300">{row.detailLabel}</p>
         </article>
       ))}
     </div>
@@ -277,29 +277,29 @@ function LivePreview({
     return (
       <EmptyState>
         {restrictedCount > 0
-          ? `${restrictedCount} nonparticipant game${restrictedCount === 1 ? '' : 's'} hidden by Live v0 privacy rules.`
-          : 'No participant Live games.'}
+          ? `${restrictedCount} nonparticipant game${restrictedCount === 1 ? '' : 's'} hidden by Live v1 privacy rules.`
+          : 'No Live games.'}
       </EmptyState>
     )
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid min-w-0 gap-3">
       {games.map((game) => (
-        <article className="rounded-lg border border-white/10 bg-black/30 p-4" key={game.id}>
+        <article className="min-w-0 rounded-lg border border-white/10 bg-black/30 p-4" key={game.id}>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-ice-200)]">{game.scopeLabel}</p>
-              <h4 className="mt-1 text-base font-bold text-white">{game.title} live</h4>
+              <h4 className="mt-1 break-words text-base font-bold text-white">{game.title} live</h4>
             </div>
             <Button onClick={() => onAction(game.actionTarget)} size="sm" variant="secondary">{game.actionLabel}</Button>
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-300">{game.detailLabel}</p>
+          <p className="mt-3 break-words text-sm leading-6 text-slate-300">{game.detailLabel}</p>
         </article>
       ))}
       {restrictedCount > 0 ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-          {restrictedCount} nonparticipant game{restrictedCount === 1 ? '' : 's'} hidden by Live v0 privacy rules.
+        <p className="break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+          {restrictedCount} nonparticipant game{restrictedCount === 1 ? '' : 's'} hidden by Live v1 privacy rules.
         </p>
       ) : null}
     </div>
@@ -339,7 +339,7 @@ function RecentResults({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-w-full overflow-x-auto">
       <table className="w-full min-w-[40rem] border-separate border-spacing-y-2 text-left text-sm">
         <thead className="text-xs uppercase tracking-[0.18em] text-slate-400">
           <tr>
@@ -370,18 +370,18 @@ function RecentResults({
 
 export function DashboardHome({ dashboard, onAction }: DashboardHomeProps) {
   return (
-    <section className="space-y-5" aria-labelledby="dashboard-home-title">
+    <section className="min-w-0 space-y-5" aria-labelledby="dashboard-home-title">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">Home</p>
-          <h2 id="dashboard-home-title" className="mt-2 text-3xl font-bold text-white">Dashboard</h2>
+          <h2 id="dashboard-home-title" className="mt-2 break-words text-3xl font-bold text-white">Dashboard</h2>
         </div>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+        <p className="break-words text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
           Updated {formatDateTime(dashboard.generatedAt)}
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
         <SummaryMetric label="Active Solo" value={dashboard.summary.activeSoloCount} />
         <SummaryMetric label="Active Multiplayer" value={dashboard.summary.activeMultiplayerCount} />
         <SummaryMetric label="Your Turn" tone={dashboard.summary.yourTurnMultiplayerCount > 0 ? 'attention' : 'neutral'} value={dashboard.summary.yourTurnMultiplayerCount} />
@@ -390,8 +390,8 @@ export function DashboardHome({ dashboard, onAction }: DashboardHomeProps) {
 
       <QuickActions actions={dashboard.quickActions} onAction={onAction} />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.82fr)]">
-        <div className="space-y-5">
+      <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.82fr)]">
+        <div className="min-w-0 space-y-5">
           <Panel className="space-y-4" tone="muted">
             <SectionHeader title="Daily Status">Solo and Multiplayer daily entry points.</SectionHeader>
             <DailyStatus daily={dashboard.daily} onAction={onAction} />
@@ -418,7 +418,7 @@ export function DashboardHome({ dashboard, onAction }: DashboardHomeProps) {
           </Panel>
         </div>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Panel className="space-y-4" tone="muted">
             <SectionHeader
               action={<Button onClick={() => onAction({ multiplayerSubtab: 'lobby', routeId: 'multiplayer' })} size="sm" variant="ghost">Open Lobby</Button>}
@@ -432,9 +432,9 @@ export function DashboardHome({ dashboard, onAction }: DashboardHomeProps) {
           <Panel className="space-y-4" tone="muted">
             <SectionHeader
               action={<Button onClick={() => onAction({ multiplayerSubtab: 'live', routeId: 'multiplayer' })} size="sm" variant="ghost">Open Live</Button>}
-              title="Live v0"
+              title="Live v1"
             >
-              Participant-safe active Multiplayer visibility.
+              Participant resume and authenticated read-only spectator visibility.
             </SectionHeader>
             <LivePreview games={dashboard.livePreview} onAction={onAction} restrictedCount={dashboard.summary.restrictedLiveGameCount} />
           </Panel>
