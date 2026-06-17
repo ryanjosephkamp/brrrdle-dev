@@ -22,7 +22,7 @@ Completed outcomes:
 
 Phase 26 did not include:
 
-- Phase 27 theme proposal/template modernization or full theme work;
+- Phase 31 theme proposal/template modernization or Phase 32+ full theme work;
 - public or guest spectation;
 - service workers, push infrastructure, background notification delivery, or cross-device notification delivery;
 - Elo/ranking, ranked matchmaking, leaderboards, public player profiles, or social/community systems;
@@ -44,4 +44,4 @@ The canonical verification evidence remains in the progress ledger, especially:
 
 - Keep the original stable `brrrdle` repository untouched.
 - Treat the applied migration `supabase/migrations/20260615235440_phase26_live_v1_authenticated_spectator_projection.sql` as part of the Phase 26 handoff.
-- Phase 27 should start from theme proposal/template modernization, not additional Phase 26 feature work.
+- Phase 27 should start from competitive ranking and ranked matchmaking planning, not additional Phase 26 feature work or theme work.

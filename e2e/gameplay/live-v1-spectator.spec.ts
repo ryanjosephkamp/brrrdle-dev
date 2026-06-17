@@ -49,7 +49,10 @@ async function expectParticipantLiveResume(page: Page): Promise<void> {
 async function expectSpectatorLiveReadOnly(page: Page, submittedGuess: string): Promise<void> {
   await page.getByRole('button', { name: /^Multiplayer$/i }).click()
   await page.getByRole('tab', { name: /^Live$/i }).click()
-  await expect(page.getByRole('button', { name: /^Spectate live game$/i })).toBeVisible({ timeout: 30_000 })
+  const liveGame = page.getByLabel(/^Practice Multiplayer OG$/i)
+  const spectateButton = liveGame.getByRole('button', { name: /^Spectate live game$/i })
+  await expect(spectateButton).toBeVisible({ timeout: 30_000 })
+  await spectateButton.click()
   await expect(page.getByText(/^Spectator view$/i)).toBeVisible()
   await expect(page.getByText(/^Read-only$/i)).toBeVisible()
   await expect(page.getByText(/Read-only spectator view/i)).toBeVisible()

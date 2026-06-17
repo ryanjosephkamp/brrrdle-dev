@@ -28,24 +28,52 @@ describe('MultiplayerStatsPanel', () => {
               userId: 'user-a',
               wins: 1,
             }],
-            transactions: [],
+            transactions: [{
+              bucket: 'multiplayer:og',
+              createdAt: '2026-06-04T12:05:00.000Z',
+              expectedScore: 0.5,
+              id: 'transaction-1',
+              matchId: 'match-1',
+              newRating: 1220,
+              oldRating: 1200,
+              opponentUserId: 'user-b',
+              outcome: 'win',
+              ratingDelta: 20,
+              userId: 'user-a',
+            }],
           },
-          results: [{
-            bucket: 'multiplayer:og',
-            mode: 'og',
-            players: [],
-            ranked: true,
-            scope: 'practice',
-            sourceMatchId: 'match-1',
-            status: 'completed',
-            summary: 'You won the multiplayer match',
-          }],
+          results: [
+            {
+              bucket: 'multiplayer:og',
+              mode: 'og',
+              players: [],
+              ranked: true,
+              scope: 'practice',
+              sourceMatchId: 'match-1',
+              status: 'completed',
+              summary: 'You won the multiplayer match',
+            },
+            {
+              bucket: 'multiplayer:og',
+              mode: 'og',
+              players: [],
+              ranked: false,
+              scope: 'practice',
+              sourceMatchId: 'match-2',
+              status: 'completed',
+              summary: 'You won an unranked multiplayer match',
+            },
+          ],
         }}
       />,
     )
 
     expect(html).toContain('1220')
     expect(html).toContain('MULTIPLAYER OG')
+    expect(html).toContain('Provisional · 9 matches until established')
     expect(html).toContain('You won the multiplayer match')
+    expect(html).toContain('Points decide match results; Elo changes only after trusted settlement')
+    expect(html).toContain('Unranked, custom, Daily, timed Practice, guest, corrupt, or spectator-only outcomes do not move Elo.')
+    expect(html).toContain('These rows come from trusted settlement transactions.')
   })
 })

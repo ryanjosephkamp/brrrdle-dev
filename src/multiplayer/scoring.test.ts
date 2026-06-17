@@ -10,6 +10,7 @@ import {
 } from './multiplayer'
 import {
   createRatedEvidenceFromPerformance,
+  getCompetitiveRatingEligibility,
   projectMultiplayerPerformance,
 } from './scoring'
 
@@ -35,6 +36,78 @@ describe('multiplayer scoring projections', () => {
     expect(performance?.summary).toContain('won the multiplayer match')
     expect(performance?.players.find((player) => player.playerId === 'player-one')?.outcome).toBe('win')
     expect(createRatedEvidenceFromPerformance(performance!, { authenticated: true, durableResult: true }).playerResults).toHaveLength(2)
+  })
+
+  it('keeps deferred ranked categories out of rating evidence without changing point projection', () => {
+    const practiceRanked = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'user-a', 'player-two': 'user-b' },
+      ranked: true,
+      scope: 'practice',
+      seed: 1,
+      wordLength: 5,
+    })
+    const dailyRanked = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      dailyDateKey: '2026-06-04',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'user-a', 'player-two': 'user-b' },
+      ranked: true,
+      scope: 'daily',
+      seed: 1,
+      wordLength: 5,
+    })
+    const timedPracticeRanked = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'user-a', 'player-two': 'user-b' },
+      ranked: true,
+      scope: 'practice',
+      seed: 1,
+      timeLimitMs: 30_000,
+      wordLength: 5,
+    })
+    const customRanked = {
+      ...practiceRanked,
+      customGameCode: 'ABC123',
+      id: 'custom-ranked',
+    }
+    const terminalPractice = {
+      ...practiceRanked,
+      endedAt: '2026-06-04T12:01:00.000Z',
+      status: 'lost' as const,
+      winnerId: 'player-one' as const,
+    }
+    const terminalDaily = {
+      ...dailyRanked,
+      endedAt: '2026-06-04T12:01:00.000Z',
+      status: 'lost' as const,
+      winnerId: 'player-one' as const,
+    }
+    const terminalTimed = {
+      ...timedPracticeRanked,
+      endedAt: '2026-06-04T12:01:00.000Z',
+      status: 'lost' as const,
+      winnerId: 'player-one' as const,
+    }
+    const terminalCustom = {
+      ...customRanked,
+      endedAt: '2026-06-04T12:01:00.000Z',
+      status: 'lost' as const,
+      winnerId: 'player-one' as const,
+    }
+
+    expect(getCompetitiveRatingEligibility(practiceRanked)).toMatchObject({ eligible: true })
+    expect(projectMultiplayerPerformance(terminalPractice)?.ranked).toBe(true)
+    expect(projectMultiplayerPerformance(terminalPractice)?.players[0].points).toBeGreaterThanOrEqual(0)
+
+    for (const terminalGame of [terminalDaily, terminalTimed, terminalCustom]) {
+      const performance = projectMultiplayerPerformance(terminalGame)
+      expect(performance?.ranked).toBe(false)
+      expect(createRatedEvidenceFromPerformance(performance!, { authenticated: true, durableResult: true }).ranked).toBe(false)
+      expect(performance?.players[0].points).toBeGreaterThanOrEqual(0)
+    }
   })
 
   it('projects multiplayer forfeits as rating losses', () => {

@@ -77,11 +77,16 @@ implemented**, `full_proposals/` and `themes/themes.csv` are untouched, and the
 minimalist default surface plus the Lunar Signal Deck layout/tab structure remain
 intact.
 
-## Phase 27 Modernization Note
+## Later-Phase Modernization Note
 
-The Phase 26 scope revision defers all theme-template modernization and full
-theme work to a new Phase 27. Until Phase 27 is explicitly authorized, the
-individual template proposal Markdown files and `theme_proposals.csv` should be
-treated as historical proposal inputs, not current implementation-ready specs.
-Phase 27 should revise these templates against the post-Phase-26 app surface
-before any concrete full theme is implemented.
+The post-Phase-26 roadmap revision defers theme work until later in the workflow:
+
+- Phase 31 should modernize the theme template proposal Markdown files and
+  `theme_proposals.csv` after competitive, profile, leaderboard, and spectator
+  surfaces are more stable.
+- Phase 32 or a later separately authorized phase should create and implement
+  concrete full themes, including assets, sounds, and theme-specific QA.
+
+Until Phase 31 is explicitly authorized, the individual template proposal
+Markdown files and `theme_proposals.csv` should be treated as historical
+proposal inputs, not current implementation-ready specs.

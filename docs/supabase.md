@@ -67,6 +67,16 @@ For Phase 23 Stage 3 competitive multiplayer, also apply `supabase/migrations/20
 
 Stage 3 rating rows are intentionally stricter than live projections. Browser clients can read permitted profile/result/transaction rows and can create their own queue/custom-lobby requests, but the migration does not grant direct client insert/update policies for rating profiles, match results, player results, or rating transactions. Production rating settlement should happen through trusted RPC/server-side code with idempotency keys so clients cannot forge old/new ELO values.
 
+Phase 27 keeps ranked foundations private. Trusted settlement and ranked Practice queue RPCs may update authenticated rating profiles and transactions, but Phase 27 leaderboard-ready projections are app-internal/private seams only. Those projections can summarize current rating, ranked games played, win/loss/draw counts, latest rating movement, and peak rating from trusted cache data, but they must not expose raw auth emails, raw public profile decisions, private account metadata, raw game projections, serialized/player sessions, answers, seeds, service ids, or tokens. Public player identity belongs to Phase 28, and public leaderboard UI/API work belongs to Phase 29 or a later separately authorized phase.
+
+Phase 27 ranked Practice v1 uses the following additive migration sequence in `brrrdle-dev`:
+
+- `supabase/migrations/20260616054019_phase27_trusted_settlement_ranked_queue.sql`
+- `supabase/migrations/20260616055149_phase27_settlement_rpc_unambiguous_profile_upsert.sql`
+- `supabase/migrations/20260616165434_phase27_ranked_queue_game_finalization.sql`
+
+These migrations add authenticated-only trusted RPC authority for ranked Practice queue creation, cancellation, compatible pair claiming, queue status/seat assignment, game finalization, and idempotent ranked settlement from durable `async_multiplayer_games` rows. They preserve Daily ranked deferral, timed Practice ranked deferral, Hard Mode matching requirements, raw nonparticipant read denial, and the Phase 26 Live v1 spectator sanitized projection boundary. Browser clients should continue to call the trusted RPC seams rather than directly writing rating profile, result, transaction, or ranked queue authority state.
+
 For the Phase 23 Stage 3 online-multiplayer stabilization, also apply `supabase/migrations/20260604050824_phase23_online_multiplayer_fixes.sql` after the live and competitive migrations. It creates:
 
 - `async_multiplayer_games`

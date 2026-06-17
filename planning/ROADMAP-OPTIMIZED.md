@@ -1,7 +1,7 @@
 # brrrdle Optimized Development Roadmap
 
 **Status**: Active optimized roadmap for staged execution
-**Last Updated**: 2026-06-15
+**Last Updated**: 2026-06-16
 **Repository Target**: `brrrdle-dev`
 **Source Roadmap**: `planning/ROADMAP.md`
 **Purpose**: Refine the long-term roadmap into lower-risk gated phases with clear deferrals, verification expectations, and protected-action boundaries.
@@ -30,14 +30,16 @@ All Phase 24+ development targets `brrrdle-dev`. The original stable `brrrdle` r
 | --- | --- | --- | --- |
 | Phase 24 | Navigation and playable workspaces | Solo, Multiplayer, History, Lobby, and Live v0 become first-class app areas | Complete |
 | Phase 25 | Dashboard and in-app engagement | Home Dashboard v1, Notification Center v0, badges, attention cues, and freshness labels | Complete |
-| Phase 26 | Current polish, notification controls, and Live v1 | Chrome zoom/narrow-width hardening, cloud-synced notification preferences, important-only sounds, authenticated spectation | Execute next in gated stages |
-| Phase 27 | Theme proposal/template modernization | Update theme templates and planning artifacts for the current app before full theme implementation | Defer theme-specific work from Phase 26 |
-| Phase 28 | Elo/ranking and ranked matchmaking | Careful competitive rating model with Elo/rank independent from game points | Dedicated modeling and migration-aware phase |
-| Phase 29 | Public player profiles | Privacy-safe public identity foundations for future social and leaderboard surfaces | Build after ranking direction is clear |
-| Phase 30 | Leaderboards | Elo/rank, streak, games-played, and approved metric leaderboards | Build after profiles and ranking foundations |
-| Later phases | Public spectation and expansion | Sanitized public/guest spectation, social/community systems, marketplace, additional modes | Keep separately gated |
+| Phase 26 | Current polish, notification controls, and Live v1 | Chrome zoom/narrow-width hardening, cloud-synced notification preferences, important-only sounds, authenticated spectation | Complete |
+| Phase 27 | Competitive ranking and ranked matchmaking | Elo/rank model, ranked/unranked boundaries, matchmaking strategy, competitive data foundations | Execute next in planning/spec gates |
+| Phase 28 | Public player profiles | Privacy-safe public identity foundations for future social and leaderboard surfaces | Build after ranking direction is clear |
+| Phase 29 | Leaderboards | Elo/rank, streak, games-played, and approved metric leaderboards | Build after profiles and ranking foundations |
+| Phase 30 | Public/guest spectation | Sanitized public projection for public or guest Live discovery/spectation | Keep separately gated |
+| Phase 31 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
+| Phase 32 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
+| Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-The key optimization after Phase 25 is to keep Phase 26 practical and current-surface-focused. Theme templates, Elo/ranking, profiles, and leaderboards are important but large enough to deserve dedicated phases instead of being folded into the immediate polish and Live/notification work.
+The key optimization after Phase 26 is to move feature-foundation work before theme work. Themes are valuable but mostly cosmetic; implementing them before ranking, profiles, leaderboards, and public spectator surfaces would create avoidable compatibility churn after each major feature phase.
 
 ---
 
@@ -52,7 +54,7 @@ Phase 26 should make the current app feel sturdy under real use:
 - authenticated nonparticipant Live v1 spectation with read-only guarantees;
 - no public/guest spectation unless a sanitized public projection is separately specified and authorized.
 
-Phase 26 should not revise individual theme template proposal docs or create full themes. That work moves to Phase 27.
+Phase 26 did not revise individual theme template proposal docs or create full themes. That work now moves to Phase 31 and Phase 32 or later.
 
 ---
 
@@ -84,7 +86,7 @@ Add authenticated nonparticipant Live discovery and read-only spectation. If mig
 
 ### Stage 26.6 - Current Visual Polish And Accessibility Cleanup
 
-Polish the existing visual system, focus states, spacing, empty states, and readability without entering Phase 27 theme-template modernization.
+Polish the existing visual system, focus states, spacing, empty states, and readability without entering later theme-template modernization.
 
 ### Stage 26.7 - Cleanup And Final Hardening
 
@@ -92,43 +94,25 @@ Run focused tests, full final gate, browser smoke, resource checks, progress upd
 
 ---
 
-## Phase 27 Theme Strategy
+## Phase 27 Competitive Ranking Strategy
 
-Phase 27 should modernize theme proposal artifacts before broad theme implementation.
-
-Required review surfaces:
-
-- `themes/proposals/template_proposals/`
-- `themes/proposals/theme_proposals.csv`
-- `themes/proposals/README.md`
-- current app UI surfaces after Phase 26
-
-Goal:
-
-- preserve the original theme template concepts;
-- remove antiquated assumptions from the pre-Phase-24/25 UI;
-- account for Home Dashboard, Notification Center, badges, Live, Lobby, History, Settings, responsive shell behavior, and sound preferences;
-- decide which concrete full themes should be created and implemented first.
-
----
-
-## Phase 28 Ranking Strategy
-
-Phase 28 should model competitive ranking carefully before implementation.
+Phase 27 should model and implement the competitive foundation before broader public social surfaces.
 
 Core requirements:
 
-- game points and Elo/rank are independent;
-- ranked matchmaking uses rank/Elo rather than raw game points;
-- rating changes should account for opponent strength and game outcome quality;
-- existing gameplay result rules remain stable unless a later spec explicitly changes them;
-- Supabase schema/RLS implications must be separately planned and gated.
+- choose and justify an Elo/rank model for brrrdle multiplayer;
+- keep match points independent from Elo/rank movement;
+- define ranked versus unranked multiplayer behavior;
+- define ranked matchmaking compatibility windows, queue widening, and fallback behavior;
+- make rating transactions auditable and idempotent;
+- plan schema/RLS changes separately before execution;
+- create leaderboard-ready projections where useful without building full leaderboards in Phase 27.
 
 ---
 
-## Phase 29 Profile Strategy
+## Phase 28 Profile Strategy
 
-Phase 29 should define privacy-safe public player profile foundations.
+Phase 28 should define privacy-safe public player profile foundations.
 
 Core requirements:
 
@@ -139,9 +123,9 @@ Core requirements:
 
 ---
 
-## Phase 30 Leaderboard Strategy
+## Phase 29 Leaderboard Strategy
 
-Phase 30 should add leaderboards after ranking and profile identity are stable.
+Phase 29 should add leaderboards after ranking and profile identity are stable.
 
 Candidate leaderboard classes:
 
@@ -151,6 +135,52 @@ Candidate leaderboard classes:
 - approved achievements or performance metrics.
 
 Leaderboard work should include abuse resistance, privacy review, RLS/schema planning, and real data verification.
+
+---
+
+## Phase 30 Public/Guest Spectation Strategy
+
+Phase 30 may add public or guest Live spectation if a sanitized public projection remains product-desirable.
+
+Core requirements:
+
+- do not expose raw answers, seeds, serialized sessions, raw auth ids, emails, private profile data, or participant-only mutable state;
+- separate public/guest spectation from authenticated participant and authenticated spectator flows;
+- keep spectation read-only and unable to affect ratings, claims, timers, results, or game state;
+- require explicit Supabase schema/RLS planning and authorization before implementation.
+
+---
+
+## Phase 31 Theme Strategy
+
+Phase 31 should modernize theme proposal artifacts before broad theme implementation.
+
+Required review surfaces:
+
+- `themes/proposals/template_proposals/`
+- `themes/proposals/theme_proposals.csv`
+- `themes/proposals/README.md`
+- current app UI surfaces after ranking, profile, leaderboard, and public spectator planning
+
+Goal:
+
+- preserve the original theme template concepts;
+- remove antiquated assumptions from the pre-Phase-24/25 UI;
+- account for Home Dashboard, Notification Center, badges, Live, Lobby, History, Settings, responsive shell behavior, sound preferences, ranked multiplayer, profiles, leaderboards, and any approved public spectator surfaces;
+- decide which concrete full themes should be created and implemented first.
+
+---
+
+## Phase 32+ Full Theme Implementation Strategy
+
+Phase 32 or later should implement concrete themes only after the templates are modernized.
+
+Candidate work:
+
+- concrete theme specs derived from modernized templates;
+- palettes, surfaces, effects, sounds, and assets;
+- theme-specific accessibility and responsive QA across all current app surfaces;
+- strict preservation of tile-state semantics and gameplay legibility.
 
 ---
 

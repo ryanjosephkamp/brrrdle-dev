@@ -1,7 +1,7 @@
 # brrrdle Development Roadmap
 
 **Status**: Active long-term roadmap for `brrrdle-dev`
-**Last Updated**: 2026-06-15
+**Last Updated**: 2026-06-16
 **Purpose**: This document records the long-term product direction for `brrrdle-dev` while keeping implementation gated by the constitution, phase specs, progress records, and explicit user authorization.
 
 ---
@@ -20,13 +20,14 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 
 ---
 
-## Current State After Phase 25
+## Current State After Phase 26
 
 - Phase 23 stabilized the core Solo and Multiplayer gameplay model and added broad local plus real Supabase-backed E2E coverage.
 - Phase 24 made Solo, Multiplayer, History, Lobby, and Live v0 first-class app areas.
 - A pre-Phase-25 bugfix added the missing Multiplayer OG solved-row hold before final results.
 - Phase 25 added Home Dashboard v1, in-app Notifications v0, navigation badges, workspace attention cues, and Lobby/Live freshness while deferring browser notifications.
-- Phase 26 planning is active. Implementation has not begun.
+- Phase 26 completed current UI polish/hardening, Chrome zoom and narrow-width overflow fixes, cloud-synced notification preferences, important-only notification sounds, safe local browser-notification controls, and authenticated Live v1 spectation.
+- After Phase 26, theme-specific work is intentionally deferred until later in the workflow so core competitive, profile, leaderboard, and spectator systems can stabilize first.
 
 ---
 
@@ -38,18 +39,20 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 | Phase 24 | Navigation and workspaces | Solo, Multiplayer, History, Lobby, Live v0, route/subtab model | Complete |
 | Pre-Phase-25 | Multiplayer OG solved-row hold | Cosmetic terminal all-green hold for Practice/Daily Multiplayer OG | Complete |
 | Phase 25 | Dashboard and notifications | Home dashboard, in-app notifications, badges, attention cues | Complete |
-| Phase 26 | Polish, notification controls, and Live v1 | Chrome zoom/narrow-width layout fixes, notification Settings/sounds, authenticated spectation | Planning |
-| Phase 27 | Theme modernization | Revise theme templates/proposals and plan full theme implementations | Future |
-| Phase 28 | Elo/ranking and ranked matchmaking | Comprehensive Elo/rank model, matchmaking strategy, points independent from Elo | Future |
-| Phase 29 | Public player profiles | Privacy-safe public identity, bios/flair/featured games foundations | Future |
-| Phase 30 | Leaderboards | Elo/rank, streaks, total games played, and approved performance metrics | Future |
-| Later phases | Expansion | Public/guest spectation with sanitized projections, social/community, marketplace, additional modes | Future |
+| Phase 26 | Polish, notification controls, and Live v1 | Chrome zoom/narrow-width layout fixes, notification Settings/sounds, authenticated spectation | Complete |
+| Phase 27 | Competitive ranking and ranked matchmaking | Elo/rank model, ranked/unranked boundaries, matchmaking strategy, leaderboard-ready data foundations | Future / next planning target |
+| Phase 28 | Public player profiles | Privacy-safe public identity, bios/flair/featured games foundations | Future |
+| Phase 29 | Leaderboards | Elo/rank, streaks, total games played, and approved performance metrics | Future |
+| Phase 30 | Public/guest spectation | Sanitized public projections for public or guest Live discovery/spectation, if still desired | Future |
+| Phase 31 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
+| Phase 32 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
+| Later phases | Expansion | Deeper social/community systems, marketplace, additional modes, and other expansion work | Future |
 
 ---
 
 ## Phase 26 - Polish, Notification Controls, And Live v1
 
-Recommended Phase 26 scope:
+Completed Phase 26 scope:
 
 - current UI visual polish and hardening;
 - Chrome zoom and narrow-width text/container overflow fixes based on user screenshots;
@@ -60,44 +63,34 @@ Recommended Phase 26 scope:
 - authenticated nonparticipant Live v1 spectation, with a separately authorized Supabase schema/RLS stage if required;
 - preservation of Phase 24 navigation/workspace behavior, Phase 25 dashboard/notification behavior, and all gameplay invariants.
 
-Explicit Phase 26 deferrals:
+Explicit post-Phase-26 deferrals:
 
-- theme-template modernization and full theme implementation move to Phase 27;
 - public/guest spectation is deferred unless a sanitized public projection is built and explicitly authorized;
-- Elo/ranking, leaderboards, and public profiles move to later dedicated phases.
+- theme-template modernization and full theme implementation move to Phase 31 and Phase 32 or later;
+- broader social/community, marketplace, additional modes, and deeper expansion work remain separately gated.
 
 ---
 
-## Phase 27 - Theme Proposal And Template Modernization
+## Phase 27 - Competitive Ranking And Ranked Matchmaking
 
-Phase 27 should review and modernize the theme proposal system under:
-
-- `themes/proposals/template_proposals/`
-- `themes/proposals/theme_proposals.csv`
-- `themes/proposals/README.md`
-
-The goal is to preserve the original template ideas while updating them for the current and planned app surfaces after Phases 24-26. Phase 27 should decide which templates become full concrete theme proposals and which specific themes should be implemented first.
-
-Full theme implementation may be included in Phase 27 only if the approved Phase 27 spec keeps the scope safe; otherwise, implementation can be staged after template modernization.
-
----
-
-## Phase 28 - Elo/Ranking And Ranked Matchmaking
-
-Phase 28 should define and implement a comprehensive Elo/ranking model inspired by mature chess platforms such as chess.com and lichess, adapted carefully for brrrdle.
+Phase 27 should define and implement the competitive foundation for ranked multiplayer. It should include a comprehensive Elo/ranking model inspired by mature chess platforms such as chess.com and lichess, adapted carefully for brrrdle.
 
 Requirements to preserve:
 
 - multiplayer game points and Elo/rank are independent quantities;
 - a player may earn game points but lose Elo if their relative performance warrants it;
 - ranked matchmaking should depend on the ranking model, not the existing point score alone;
+- ranked and unranked multiplayer boundaries should be explicit;
+- rating transactions should be auditable and idempotent;
+- any schema/RLS migration must be separately planned and explicitly authorized;
+- leaderboard-ready projections may be prepared without building full public leaderboards yet;
 - existing scoring, timeout, forfeit, Daily claim, GO transition, and keyboard-state rules should not be changed accidentally.
 
 ---
 
-## Phase 29 - Public Player Profiles
+## Phase 28 - Public Player Profiles
 
-Phase 29 should introduce privacy-safe public player profile foundations.
+Phase 28 should introduce privacy-safe public player profile foundations.
 
 Candidate features:
 
@@ -111,9 +104,9 @@ Profile work should not expose private auth emails, internal ids, raw account me
 
 ---
 
-## Phase 30 - Leaderboards
+## Phase 29 - Leaderboards
 
-Phase 30 should add leaderboards after profiles and ranking foundations exist.
+Phase 29 should add leaderboards after profiles and ranking foundations exist.
 
 Candidate leaderboard categories:
 
@@ -126,11 +119,50 @@ Leaderboards should be privacy-safe, resistant to obvious abuse, and backed by a
 
 ---
 
+## Phase 30 - Public/Guest Spectation
+
+Phase 30 may add public or guest Live spectation if the product still wants it and a sanitized public projection can be approved.
+
+Requirements to preserve:
+
+- never expose raw answers, seeds, serialized sessions, raw auth ids, emails, private profile data, or participant-only mutable state;
+- keep public/guest access separate from authenticated participant and authenticated spectator flows;
+- use explicit Supabase schema/RLS planning and authorization before implementation;
+- keep public spectation read-only and unable to affect ratings, claims, timers, results, or game state.
+
+---
+
+## Phase 31 - Theme Proposal And Template Modernization
+
+Phase 31 should review and modernize the theme proposal system under:
+
+- `themes/proposals/template_proposals/`
+- `themes/proposals/theme_proposals.csv`
+- `themes/proposals/README.md`
+
+The goal is to preserve the original template ideas while updating them for the post-Phase-30 app surface. This late routing avoids repeated compatibility churn while competitive, profile, leaderboard, and spectator systems are still changing.
+
+Phase 31 should decide which templates become full concrete theme proposals and which specific themes should be implemented first. It should not be treated as full theme implementation unless a later approved spec explicitly includes that work.
+
+---
+
+## Phase 32 Or Later - Full Concrete Themes
+
+Phase 32 or a later dedicated phase should create and implement concrete themes after the template system has been modernized.
+
+Candidate work:
+
+- copy and specialize approved templates into full concrete theme specs;
+- implement palettes, surfaces, effects, sounds, and assets;
+- verify every implemented theme against Dashboard, Notifications, Live, Lobby, Profiles, Leaderboards, Settings, History, Calendar, Solo, and Multiplayer surfaces;
+- preserve tile-state color semantics and gameplay legibility.
+
+---
+
 ## Later Expansion
 
 Later phases may include:
 
-- public/guest spectation through sanitized public projections;
 - deeper social and community systems;
 - marketplace or cosmetic unlocks;
 - additional game modes and variants;

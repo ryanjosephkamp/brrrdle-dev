@@ -16,7 +16,7 @@ The phase combines four related outcomes:
 - important-only notification sounds and local browser-notification controls where safe;
 - authenticated Live v1 spectation, with any required Supabase schema/RLS work handled through separately authorized gates.
 
-Theme proposal/template modernization is explicitly deferred to Phase 27. Elo/ranking, public player profiles, and leaderboards are routed to later phases.
+Theme proposal/template modernization is explicitly deferred until Phase 31, with full concrete theme work routed to Phase 32 or later. Competitive ranking/ranked matchmaking, public player profiles, leaderboards, and public/guest spectation are routed to earlier dedicated phases after Phase 26.
 
 ## 2. Source Inputs
 
@@ -52,7 +52,7 @@ Phase 26 must:
 
 Phase 26 must not include:
 
-- Phase 27 theme proposal/template modernization or full theme implementation;
+- Phase 31 theme proposal/template modernization or Phase 32+ full theme implementation;
 - public/guest spectation unless a sanitized public projection is separately specified and authorized in a later phase;
 - comprehensive Elo/ranking or ranked matchmaking;
 - public player profile pages;
@@ -306,7 +306,7 @@ Phase 26 is successful when:
 
 - Tighten labels, empty states, status copy, focus behavior, and accessible names.
 - Keep polish scoped to existing current themes.
-- Do not begin Phase 27 theme-template modernization.
+- Do not begin later theme-template modernization.
 
 ### Stage 26.7 - Cleanup And Final Hardening
 
@@ -331,7 +331,7 @@ Avoid:
 - duplicating gameplay logic in dashboard, notification, or Live spectator code;
 - making route/subtab state part of gameplay state;
 - giving spectator code write paths;
-- broad theme/token rewrites before Phase 27.
+- broad theme/token rewrites before the later theme phases.
 
 ## 10. State And Persistence Strategy
 
@@ -433,11 +433,13 @@ If Live v1 changes Supabase RLS/realtime behavior, run real multi-client Supabas
 
 ## 14. Future Phase Routing
 
-- Phase 27: theme proposal/template modernization and full theme implementation planning, using `themes/proposals/template_proposals/` and `themes/proposals/theme_proposals.csv`.
-- Phase 28: comprehensive Elo/ranking and ranked matchmaking model, keeping game points independent from Elo/rank.
-- Phase 29: public player profile foundations and privacy-safe public identity.
-- Phase 30: leaderboards for Elo/rank, streaks, total games played, and approved achievements/metrics.
-- Later phases: public/guest spectation through sanitized public projections, deeper social/community systems, marketplace, additional modes, and other expansions.
+- Phase 27: competitive ranking foundations, Elo/rank model, ranked multiplayer, ranked matchmaking, competitive scoring boundaries, and leaderboard-ready data foundations.
+- Phase 28: public player profile foundations and privacy-safe public identity.
+- Phase 29: leaderboards for Elo/rank, streaks, total games played, and approved achievements/metrics.
+- Phase 30: public/guest spectation through sanitized public projections, if still desired and separately authorized.
+- Phase 31: theme proposal/template modernization using `themes/proposals/template_proposals/` and `themes/proposals/theme_proposals.csv`.
+- Phase 32 or later: full concrete theme creation, implementation, asset/sound work, and theme QA.
+- Later phases: deeper social/community systems, marketplace, additional modes, and other expansions.
 
 ## 15. Open Decisions
 
@@ -447,7 +449,7 @@ Major user decisions are resolved:
 - notification preferences should sync through guest/cloud progress if safe;
 - authenticated nonparticipant spectation belongs in Phase 26 even if it requires a separately authorized migration/RLS stage;
 - public/guest spectation is deferred unless a sanitized public projection is separately approved;
-- theme-specific work is deferred to Phase 27.
+- theme-specific modernization is deferred to Phase 31, with full concrete theme work deferred to Phase 32 or later.
 
 Remaining implementation-plan decisions:
 

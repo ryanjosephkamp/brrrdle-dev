@@ -42,6 +42,11 @@ export interface MultiplayerMatchPerformance {
   readonly players: readonly MultiplayerPlayerPerformance[]
 }
 
+export interface CompetitiveRatingEligibility {
+  readonly eligible: boolean
+  readonly reason: string
+}
+
 function otherPlayer(playerId: MultiplayerResultPlayerId): MultiplayerResultPlayerId {
   return playerId === 'player-one' ? 'player-two' : 'player-one'
 }
@@ -141,6 +146,22 @@ function winnerReason(game: MultiplayerGame, players: readonly MultiplayerPlayer
   return 'points'
 }
 
+export function getCompetitiveRatingEligibility(game: Pick<MultiplayerGame, 'customGameCode' | 'ranked' | 'scope' | 'timeLimitMs'>): CompetitiveRatingEligibility {
+  if (game.ranked !== true) {
+    return { eligible: false, reason: 'Unranked matches do not affect rating.' }
+  }
+  if (game.customGameCode) {
+    return { eligible: false, reason: 'Ranked custom games are deferred.' }
+  }
+  if (game.scope !== 'practice') {
+    return { eligible: false, reason: 'Daily ranked multiplayer is deferred.' }
+  }
+  if (typeof game.timeLimitMs === 'number' && game.timeLimitMs > 0) {
+    return { eligible: false, reason: 'Timed Practice ranked multiplayer is deferred.' }
+  }
+  return { eligible: true, reason: 'Eligible for Practice ranked rating.' }
+}
+
 export function projectMultiplayerPerformance(game: MultiplayerGame): MultiplayerMatchPerformance | undefined {
   if (game.status === 'waiting' || game.status === 'playing' || game.status === 'cancelled') {
     return undefined
@@ -148,6 +169,7 @@ export function projectMultiplayerPerformance(game: MultiplayerGame): Multiplaye
   const lastMove = game.moves[game.moves.length - 1]
   const status: MultiplayerResultStatus = game.status === 'expired' ? 'expired' : 'completed'
   const bucket = game.ratingBucket ?? getRatingBucket(game.mode)
+  const ratingEligibility = getCompetitiveRatingEligibility(game)
   const scoredPlayers = game.players.map((player): MultiplayerPlayerPerformance => {
     const moves = game.moves.filter((move) => move.playerId === player.id)
     const score = projectPlayerScore(game, player.id)
@@ -187,7 +209,7 @@ export function projectMultiplayerPerformance(game: MultiplayerGame): Multiplaye
     endedAt: game.endedAt,
     mode: game.mode,
     players,
-    ranked: game.ranked === true,
+    ranked: ratingEligibility.eligible,
     scope: game.scope,
     sourceMatchId: game.id,
     status,

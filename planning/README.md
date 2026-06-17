@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan, currently [planning/phase-26/PLANNING-BRIEF.md](phase-26/PLANNING-BRIEF.md) for the revised Phase 26 scope.
+7. The active or next phase plan. Phase 27 competitive ranking and ranked matchmaking is complete pending separately authorized Git handoff preparation.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -25,10 +25,12 @@ For normal future work, read:
 - `planning/phase-24/`: active Phase 24 planning and changelog area.
 - `planning/phase-25/`: Phase 25 planning brief and implementation plan.
 - `planning/phase-26/`: revised Phase 26 planning brief, implementation plan, and changelog for responsive polish, notification controls, and Live v1 spectation.
+- `planning/phase-27/`: Phase 27 planning brief, implementation plan, and changelog for competitive ranking, Elo/rank, ranked matchmaking, and leaderboard-ready data foundations.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
 - `planning/specs/phase-26/`: Phase 26 responsive polish, notification controls, and Live v1 specs.
+- `planning/specs/phase-27/`: Phase 27 competitive ranking, Elo/rank, ranked matchmaking, and leaderboard-ready data foundation specs.
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.
@@ -36,7 +38,7 @@ For normal future work, read:
 - `planning/governance/PROMPT-PACKAGE-STANDARD.md`: standard for Codex-generated prompt packages and next-step handoff prompts.
 - `planning/testing/`: testing-suite strategy and verification philosophy.
 
-Theme proposal modernization is intentionally deferred to Phase 27 and remains under `themes/proposals/`, outside this `planning/` directory.
+Theme proposal modernization is intentionally deferred until Phase 31, with full concrete theme implementation routed to Phase 32 or later. Theme materials remain under `themes/proposals/`, outside this `planning/` directory.
 
 ## Planning Rules
 

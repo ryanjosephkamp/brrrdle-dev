@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, PasswordResetModal, ProfilePanel, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type PracticeSeedState, type ProfileAccentColor, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, PasswordResetModal, ProfilePanel, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type GuestProgressState, type PracticeSeedState, type ProfileAccentColor, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -38,7 +38,9 @@ import {
   createSupabaseMultiplayerRepository,
   expireStaleDailyMultiplayerGames,
   expireTimedOutPracticeMultiplayerGames,
+  isTrustedRankedPracticeSettlementCandidate,
   loadMultiplayerState,
+  applyTrustedSettlementResult,
   normalizeCompetitiveMultiplayerState,
   saveMultiplayerState,
   settleMultiplayerStateResults,
@@ -62,6 +64,14 @@ import { getPrimaryNavigationRoutes, getRouteById, type AppRoute, type AppRouteI
 import { loadNavigationState, saveNavigationState, type HistoryFilters, type LegacyPracticeMode, type MultiplayerSubtabId, type SoloSubtabId } from './navigationState'
 
 type PracticeMode = LegacyPracticeMode
+type RankedQueueActions = Pick<
+  MultiplayerRepository,
+  'cancelRankedQueueRequest'
+  | 'claimRankedQueuePair'
+  | 'createRankedQueueRequest'
+  | 'finalizeRankedQueueGame'
+  | 'getRankedQueueStatus'
+>
 
 function isSameResumeSlot(left: ResumeSlot | undefined, right: ResumeSlot): boolean {
   if (!left) {
@@ -95,6 +105,7 @@ function PracticeGameSwitcher({
   onSpendCoins,
   practiceMode,
   practiceSeeds,
+  rankedQueueActions,
   resumeSlots,
   authStatus,
   viewerUserId,
@@ -119,6 +130,7 @@ function PracticeGameSwitcher({
   readonly onSpendCoins: (amount: number) => boolean
   readonly practiceMode: PracticeMode
   readonly practiceSeeds: PracticeSeedState
+  readonly rankedQueueActions?: RankedQueueActions
   readonly resumeSlots: ResumeSlotCollection
   readonly viewerUserId?: string
   readonly viewerProfile?: MultiplayerProfileSummary
@@ -142,6 +154,7 @@ function PracticeGameSwitcher({
         defaultGoPuzzleCount={defaultGoPuzzleCount}
         onChange={onMultiplayerChange}
         onCompetitiveChange={onCompetitiveMultiplayerChange}
+        rankedQueueActions={rankedQueueActions}
         scope="practice"
         state={multiplayer}
         viewerProfile={viewerProfile}
@@ -247,6 +260,7 @@ function RoutePanel({
   onMarkPastDailyUnlocked,
   calendarLaunch,
   onCalendarLaunchConsumed,
+  rankedQueueActions,
 }: {
   readonly authState: AuthState
   readonly authMessage?: string
@@ -302,6 +316,7 @@ function RoutePanel({
   readonly onMarkPastDailyUnlocked: (mode: 'og' | 'go', dateKey: string) => void
   readonly calendarLaunch: CalendarLaunchRequest | null
   readonly onCalendarLaunchConsumed: () => void
+  readonly rankedQueueActions?: RankedQueueActions
 }) {
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
     ? createMultiplayerProfileSummary(authState.user.profile, 'Player')
@@ -373,16 +388,17 @@ function RoutePanel({
       />
     )
   const renderMultiplayerPanel = (scope: 'daily' | 'practice') => (
-    <MultiplayerPanel
-      authStatus={authState.status}
+      <MultiplayerPanel
+        authStatus={authState.status}
       competitiveState={guestProgress.competitiveMultiplayer}
       dailyDateKey={scope === 'daily' ? multiplayerDailyDateKey : undefined}
       defaultDifficulty={guestProgress.settings.difficultyDefault}
       defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
-      onChange={onMultiplayerChange}
-      onCompetitiveChange={onCompetitiveMultiplayerChange}
-      onSelectedGameChange={onSelectMultiplayerGame}
-      scope={scope}
+        onChange={onMultiplayerChange}
+        onCompetitiveChange={onCompetitiveMultiplayerChange}
+        onSelectedGameChange={onSelectMultiplayerGame}
+        rankedQueueActions={rankedQueueActions}
+        scope={scope}
       selectedGameId={selectedMultiplayerGameId}
       state={multiplayer}
       viewerProfile={viewerProfile}
@@ -450,7 +466,7 @@ function RoutePanel({
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} resumeSlots={resumeSlots} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
+    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
   }
 
   if (route.id === 'multiplayer') {
@@ -568,6 +584,8 @@ function AppInner() {
     [authenticatedMultiplayerUserId, initialMultiplayerSeed, supabaseClient],
   )
   const multiplayerRepositoryRef = useRef(multiplayerRepository)
+  const trustedRankedSettlementInFlightRef = useRef(new Set<string>())
+  const trustedRankedSettlementCompletedRef = useRef(new Set<string>())
   const [authMessage, setAuthMessage] = useState<string | undefined>(undefined)
   const [authBusy, setAuthBusy] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
@@ -785,31 +803,87 @@ function AppInner() {
     setMultiplayerSubtab('daily')
     saveNavigationState({ activeRouteId: 'multiplayer', multiplayerSubtab: 'daily' })
   }, [])
+  const cacheMultiplayerProgress = useCallback((currentProgress: GuestProgressState, nextMultiplayer: MultiplayerState): GuestProgressState => {
+    const competitiveMultiplayer = settleMultiplayerStateResults(
+      currentProgress.competitiveMultiplayer,
+      nextMultiplayer,
+      authState,
+      { applyLocalRating: false },
+    )
+    return { ...currentProgress, multiplayer: nextMultiplayer, competitiveMultiplayer }
+  }, [authState])
+  const settleTrustedRankedGames = useCallback((nextMultiplayer: MultiplayerState) => {
+    if (authState.status !== 'authenticated') {
+      return
+    }
+    for (const game of nextMultiplayer.games) {
+      if (!isTrustedRankedPracticeSettlementCandidate(game)) {
+        continue
+      }
+      if (trustedRankedSettlementCompletedRef.current.has(game.id)) {
+        continue
+      }
+      const settlementKey = `${game.id}:${game.updatedAt}`
+      if (trustedRankedSettlementInFlightRef.current.has(settlementKey)) {
+        continue
+      }
+      trustedRankedSettlementInFlightRef.current.add(settlementKey)
+      void multiplayerRepositoryRef.current.settleRankedGame(game)
+        .then((settlement) => {
+          if (!settlement || settlement.transactions.length === 0) {
+            trustedRankedSettlementCompletedRef.current.add(game.id)
+            return
+          }
+          trustedRankedSettlementCompletedRef.current.add(game.id)
+          setGuestProgress((currentProgress) => {
+            const competitiveMultiplayer = applyTrustedSettlementResult(
+              currentProgress.competitiveMultiplayer,
+              game,
+              settlement.transactions,
+            )
+            const nextProgress = { ...currentProgress, competitiveMultiplayer }
+            saveGuestProgress(nextProgress)
+            return nextProgress
+          })
+        })
+        .catch(() => {
+          // Trusted settlement can retry from the next durable snapshot.
+        })
+        .finally(() => {
+          trustedRankedSettlementInFlightRef.current.delete(settlementKey)
+        })
+    }
+  }, [authState.status])
+  useEffect(() => {
+    trustedRankedSettlementInFlightRef.current.clear()
+    trustedRankedSettlementCompletedRef.current.clear()
+  }, [authenticatedMultiplayerUserId])
   const handleMultiplayerChange = useCallback((multiplayer: MultiplayerState) => {
     setMultiplayer(multiplayer)
     setGuestProgress((currentProgress) => {
-      const competitiveMultiplayer = settleMultiplayerStateResults(currentProgress.competitiveMultiplayer, multiplayer, authState)
-      const nextProgress = { ...currentProgress, multiplayer, competitiveMultiplayer }
+      const nextProgress = cacheMultiplayerProgress(currentProgress, multiplayer)
       saveGuestProgress(nextProgress)
       return nextProgress
     })
-    void multiplayerRepositoryRef.current.save(multiplayer).catch(() => {
+    void multiplayerRepositoryRef.current.save(multiplayer).then((snapshot) => {
+      settleTrustedRankedGames(snapshot.state)
+    }).catch(() => {
       if (authState.status === 'authenticated') {
         void multiplayerRepositoryRef.current.load().then((snapshot) => {
           setMultiplayer(snapshot.state)
           saveMultiplayerState(snapshot.state)
           setGuestProgress((currentProgress) => {
-            const competitiveMultiplayer = settleMultiplayerStateResults(currentProgress.competitiveMultiplayer, snapshot.state, authState)
-            const nextProgress = { ...currentProgress, multiplayer: snapshot.state, competitiveMultiplayer }
+            const nextProgress = cacheMultiplayerProgress(currentProgress, snapshot.state)
             saveGuestProgress(nextProgress)
             return nextProgress
           })
+          settleTrustedRankedGames(snapshot.state)
         })
         return
       }
       saveMultiplayerState(multiplayer)
     })
-  }, [authState])
+  }, [authState.status, cacheMultiplayerProgress, settleTrustedRankedGames])
   const handleCompetitiveMultiplayerChange = useCallback((competitiveMultiplayer: MultiplayerCompetitiveState) => {
     setGuestProgress((currentProgress) => {
       const nextProgress = { ...currentProgress, competitiveMultiplayer: normalizeCompetitiveMultiplayerState(competitiveMultiplayer) }
@@ -1214,11 +1288,11 @@ function AppInner() {
       setMultiplayer(snapshotState)
       saveMultiplayerState(snapshotState)
       setGuestProgress((currentProgress) => {
-        const competitiveMultiplayer = settleMultiplayerStateResults(currentProgress.competitiveMultiplayer, snapshotState, authState)
-        const nextProgress = { ...currentProgress, multiplayer: snapshotState, competitiveMultiplayer }
+        const nextProgress = cacheMultiplayerProgress(currentProgress, snapshotState)
         saveGuestProgress(nextProgress)
         return nextProgress
       })
+      settleTrustedRankedGames(snapshotState)
     }
     const unsubscribe = multiplayerRepository.subscribe((snapshot) => {
       applySnapshot(snapshot.state)
@@ -1230,7 +1304,7 @@ function AppInner() {
       isActive = false
       unsubscribe()
     }
-  }, [authState, multiplayerRepository])
+  }, [authState, cacheMultiplayerProgress, multiplayerRepository, settleTrustedRankedGames])
 
   useEffect(() => {
     if (!authenticatedMultiplayerUserId || !supabaseClient) {
@@ -1285,18 +1359,19 @@ function AppInner() {
         return
       }
       setMultiplayer(expired)
-      void multiplayerRepositoryRef.current.save(expired).catch(() => {
+      void multiplayerRepositoryRef.current.save(expired).then((snapshot) => {
+        settleTrustedRankedGames(snapshot.state)
+      }).catch(() => {
         saveMultiplayerState(expired)
       })
       setGuestProgress((currentProgress) => {
-        const competitiveMultiplayer = settleMultiplayerStateResults(currentProgress.competitiveMultiplayer, expired, authState)
-        const nextProgress = { ...currentProgress, multiplayer: expired, competitiveMultiplayer }
+        const nextProgress = cacheMultiplayerProgress(currentProgress, expired)
         saveGuestProgress(nextProgress)
         return nextProgress
       })
     }, 0)
     return () => clearTimeout(timeoutId)
-  }, [authState, multiplayer, dailyMultiplayer.dateKey])
+  }, [cacheMultiplayerProgress, multiplayer, dailyMultiplayer.dateKey, settleTrustedRankedGames])
 
   const hasTimedPracticeMultiplayerGames = multiplayer.games.some((game) => (
     game.scope === 'practice'
@@ -1315,12 +1390,13 @@ function AppInner() {
         if (JSON.stringify(expired) === JSON.stringify(currentState)) {
           return currentState
         }
-        void multiplayerRepositoryRef.current.save(expired).catch(() => {
+        void multiplayerRepositoryRef.current.save(expired).then((snapshot) => {
+          settleTrustedRankedGames(snapshot.state)
+        }).catch(() => {
           saveMultiplayerState(expired)
         })
         setGuestProgress((currentProgress) => {
-          const competitiveMultiplayer = settleMultiplayerStateResults(currentProgress.competitiveMultiplayer, expired, authState)
-          const nextProgress = { ...currentProgress, multiplayer: expired, competitiveMultiplayer }
+          const nextProgress = cacheMultiplayerProgress(currentProgress, expired)
           saveGuestProgress(nextProgress)
           return nextProgress
         })
@@ -1328,7 +1404,7 @@ function AppInner() {
       })
     }, 1000)
     return () => clearInterval(intervalId)
-  }, [authState, authenticatedMultiplayerUserId, hasTimedPracticeMultiplayerGames])
+  }, [authenticatedMultiplayerUserId, cacheMultiplayerProgress, hasTimedPracticeMultiplayerGames, settleTrustedRankedGames])
 
   useEffect(() => {
     applyTheme(guestProgress.settings.themeDefault)
@@ -1519,6 +1595,7 @@ function AppInner() {
             onToggleSound={sound.setEnabled}
             onUpdateSettings={handleUpdateSettings}
             practiceMode={practiceMode}
+            rankedQueueActions={multiplayerRepository}
             multiplayerSubtab={multiplayerSubtab}
             resumeSlots={resumeSlots}
             route={activeRoute}

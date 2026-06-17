@@ -24,24 +24,40 @@ import {
   normalizeMultiplayerState,
   submitMultiplayerGuess,
   type MultiplayerGame,
+  type MultiplayerPlayerId,
   type MultiplayerState,
   type PracticeMultiplayerTimeLimitMs,
 } from './multiplayer'
 import { createCustomGameLobby } from './customGames'
 import type { MultiplayerProfileSummary } from './dailyMultiplayer'
 import { normalizeCompetitiveMultiplayerState, upsertCustomGameLobby, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
-import { createMatchmakingRequest, findBestMatchForRequest } from './matchmaking'
 import { MultiplayerGameSurface } from './MultiplayerGameSurface'
-import { getRatingBucket, getRatingProfile } from './rating'
+import { getRatingBucket } from './rating'
+import type { MultiplayerRepository, RankedQueueStatusResult } from './multiplayerRepository'
 import { RivalIdentityCard } from './RivalIdentityCard'
 import { projectMultiplayerPerformance } from './scoring'
 
 type MultiplayerMatchKind = 'unranked' | 'ranked' | 'custom'
+type RankedQueueActions = Pick<
+  MultiplayerRepository,
+  'cancelRankedQueueRequest'
+  | 'claimRankedQueuePair'
+  | 'createRankedQueueRequest'
+  | 'finalizeRankedQueueGame'
+  | 'getRankedQueueStatus'
+>
 
 interface LocalStatusMessage {
   readonly gameId: string | undefined
   readonly text: string
   readonly updatedAt: string | undefined
+}
+
+interface RankedQueueUiState {
+  readonly matchedGameId?: string
+  readonly message: string
+  readonly requestId?: string
+  readonly status: 'idle' | 'queued' | 'matched' | 'cancelled' | 'error'
 }
 
 interface MultiplayerPanelProps {
@@ -53,6 +69,7 @@ interface MultiplayerPanelProps {
   readonly onChange: (state: MultiplayerState) => void
   readonly onCompetitiveChange?: (state: MultiplayerCompetitiveState) => void
   readonly onSelectedGameChange?: (gameId: string) => void
+  readonly rankedQueueActions?: RankedQueueActions
   readonly readOnly?: boolean
   readonly selectedGameId?: string
   readonly scope: PlayScope
@@ -65,6 +82,18 @@ function getGameTitle(game: MultiplayerGame): string {
   const scope = game.scope === 'daily' ? `Daily ${game.dailyDateKey}` : `${game.wordLength} letters`
   const mode = game.mode.toUpperCase()
   return `${mode} multiplayer · ${scope}`
+}
+
+function getGameMatchLabel(game: MultiplayerGame): string {
+  if (game.ranked) {
+    return game.status === 'won' || game.status === 'lost' || game.status === 'expired'
+      ? 'Ranked · trusted settlement eligible'
+      : 'Ranked · trusted settlement after terminal result'
+  }
+  if (game.customGameCode) {
+    return `Custom ${game.customGameCode} · unrated`
+  }
+  return 'Unranked'
 }
 
 function formatClock(ms: number): string {
@@ -216,6 +245,7 @@ export function MultiplayerPanel({
   onChange,
   onCompetitiveChange,
   onSelectedGameChange,
+  rankedQueueActions,
   readOnly = false,
   selectedGameId,
   scope,
@@ -236,6 +266,8 @@ export function MultiplayerPanel({
   const [timeLimitMs, setTimeLimitMs] = useState<PracticeMultiplayerTimeLimitMs | null>(null)
   const [wordLength, setWordLength] = useState(5)
   const [localMessage, setLocalMessage] = useState<LocalStatusMessage | undefined>(undefined)
+  const [rankedQueue, setRankedQueue] = useState<RankedQueueUiState>({ message: '', status: 'idle' })
+  const [rankedQueueBusy, setRankedQueueBusy] = useState(false)
   const [clockNow, setClockNow] = useState(() => new Date())
   const needsClock = useMemo(
     () => visibleGames.some((game) => game.scope === 'practice' && game.timeLimitMs && game.status === 'playing'),
@@ -315,7 +347,221 @@ export function MultiplayerPanel({
       && selectedGame.currentTurn === viewerPlayerId
       && !readOnly,
   )
-  const canCreate = canCreateMultiplayerGame(normalized, viewerUserId) && !readOnly && onlineReady && !dailyClaimedForMode
+  const rankedQueueUnavailableReason = matchKind === 'ranked'
+    ? scope !== 'practice'
+      ? 'Daily ranked matchmaking is deferred.'
+      : timeLimitMs
+        ? 'Timed Practice ranked matchmaking is deferred.'
+        : !rankedQueueActions
+          ? 'Ranked queue requires authenticated Supabase multiplayer.'
+          : undefined
+    : undefined
+  const canCreate = canCreateMultiplayerGame(normalized, viewerUserId)
+    && !readOnly
+    && onlineReady
+    && !dailyClaimedForMode
+    && !rankedQueueUnavailableReason
+    && !rankedQueueBusy
+    && !(matchKind === 'ranked' && rankedQueue.status === 'queued')
+
+  const upsertFinalizedRankedGame = (game: MultiplayerGame) => {
+    onChange({
+      games: [
+        game,
+        ...normalized.games.filter((entry) => entry.id !== game.id),
+      ],
+    })
+    selectGame(game.id)
+  }
+
+  const getRankedQueueErrorMessage = (error: unknown): string => (
+    error instanceof Error && error.message.trim()
+      ? error.message
+      : 'Unable to update ranked queue.'
+  )
+
+  const buildFinalizedRankedGame = (status: RankedQueueStatusResult): MultiplayerGame | undefined => {
+    if (
+      status.requestStatus !== 'matched'
+      || !status.matchedGameId
+      || !status.mode
+      || status.scope !== 'practice'
+      || !status.ratingBucket
+      || !status.wordLength
+      || status.hardMode === undefined
+      || status.timeLimitMs !== undefined
+      || !status.playerOneUserId
+      || !status.playerTwoUserId
+      || status.playerOneUserId === status.playerTwoUserId
+      || !status.viewerSeat
+    ) {
+      return undefined
+    }
+    const playerProfiles: Partial<Record<MultiplayerPlayerId, MultiplayerProfileSummary>> | undefined = viewerProfile
+      ? { [status.viewerSeat]: viewerProfile }
+      : undefined
+    return createMultiplayerGame({
+      createdAt: status.matchedAt ?? status.queuedAt,
+      difficulty: defaultDifficulty,
+      goPuzzleCount: defaultGoPuzzleCount,
+      hardMode: status.hardMode,
+      id: status.matchedGameId,
+      matchmakingRequestId: status.requestId,
+      mode: status.mode,
+      playerProfiles,
+      playerUserIds: {
+        'player-one': status.playerOneUserId,
+        'player-two': status.playerTwoUserId,
+      },
+      ranked: true,
+      ratingBucket: status.ratingBucket,
+      scope: 'practice',
+      timeLimitMs: null,
+      wordLength: status.wordLength,
+    })
+  }
+
+  const finalizeRankedQueueMatch = async (requestId: string) => {
+    if (!rankedQueueActions) {
+      throw new Error('Ranked queue requires authenticated Supabase multiplayer.')
+    }
+    const status = await rankedQueueActions.getRankedQueueStatus(requestId)
+    if (status.requestStatus !== 'matched' || !status.matchedGameId) {
+      setRankedQueue({
+        message: 'Ranked queue request is waiting for a compatible signed-in rival.',
+        requestId: status.requestId,
+        status: status.requestStatus === 'queued' ? 'queued' : 'idle',
+      })
+      return
+    }
+    const game = buildFinalizedRankedGame(status)
+    if (!game) {
+      throw new Error('Unable to build a valid ranked Practice game from queue status.')
+    }
+    const finalization = await rankedQueueActions.finalizeRankedQueueGame({
+      game,
+      idempotencyKey: `phase27-ranked-v1:finalize:${status.matchedGameId}`,
+      matchedGameId: status.matchedGameId,
+      requestId: status.requestId,
+    })
+    if (finalization.gameId !== game.id) {
+      throw new Error('Ranked queue finalization returned an unexpected game id.')
+    }
+    upsertFinalizedRankedGame(game)
+    setRankedQueue({
+      matchedGameId: game.id,
+      message: finalization.idempotent
+        ? 'Ranked match already finalized. Opening the durable game.'
+        : 'Ranked match created. Opening the durable game.',
+      requestId: status.requestId,
+      status: 'matched',
+    })
+  }
+
+  const enterRankedQueue = async () => {
+    if (!rankedQueueActions || !viewerUserId || rankedQueueUnavailableReason) {
+      setRankedQueue({
+        message: rankedQueueUnavailableReason ?? 'Sign in to enter ranked Practice matchmaking.',
+        status: 'error',
+      })
+      return
+    }
+    setRankedQueueBusy(true)
+    try {
+      const request = await rankedQueueActions.createRankedQueueRequest({
+        hardMode,
+        mode,
+        wordLength,
+      })
+      const claim = await rankedQueueActions.claimRankedQueuePair({ requestId: request.requestId })
+      if (claim.requestStatus !== 'matched' || !claim.matchedGameId) {
+        setRankedQueue({
+          message: 'Ranked queue request created. Waiting for a compatible signed-in rival.',
+          requestId: request.requestId,
+          status: 'queued',
+        })
+        return
+      }
+      setRankedQueue({
+        matchedGameId: claim.matchedGameId,
+        message: 'Compatible ranked rival found. Creating durable game.',
+        requestId: claim.requestId,
+        status: 'matched',
+      })
+      await finalizeRankedQueueMatch(claim.requestId)
+    } catch (error) {
+      setRankedQueue({
+        message: getRankedQueueErrorMessage(error),
+        requestId: rankedQueue.requestId,
+        status: 'error',
+      })
+    } finally {
+      setRankedQueueBusy(false)
+    }
+  }
+
+  const refreshRankedQueue = async () => {
+    if (!rankedQueueActions || !rankedQueue.requestId) {
+      return
+    }
+    setRankedQueueBusy(true)
+    try {
+      const status = await rankedQueueActions.getRankedQueueStatus(rankedQueue.requestId)
+      if (status.requestStatus === 'matched') {
+        await finalizeRankedQueueMatch(status.requestId)
+        return
+      }
+      if (status.requestStatus !== 'queued') {
+        setRankedQueue({
+          message: `Ranked queue request is ${status.requestStatus}.`,
+          requestId: status.requestId,
+          status: status.requestStatus === 'cancelled' ? 'cancelled' : 'idle',
+        })
+        return
+      }
+      const claim = await rankedQueueActions.claimRankedQueuePair({ requestId: status.requestId })
+      if (claim.requestStatus === 'matched') {
+        await finalizeRankedQueueMatch(claim.requestId)
+        return
+      }
+      setRankedQueue({
+        message: 'Still waiting for a compatible signed-in rival.',
+        requestId: status.requestId,
+        status: 'queued',
+      })
+    } catch (error) {
+      setRankedQueue({
+        message: getRankedQueueErrorMessage(error),
+        requestId: rankedQueue.requestId,
+        status: 'error',
+      })
+    } finally {
+      setRankedQueueBusy(false)
+    }
+  }
+
+  const cancelRankedQueue = async () => {
+    if (!rankedQueueActions || !rankedQueue.requestId) {
+      return
+    }
+    setRankedQueueBusy(true)
+    try {
+      const cancellation = await rankedQueueActions.cancelRankedQueueRequest(rankedQueue.requestId)
+      setRankedQueue({
+        message: 'Ranked queue request cancelled.',
+        requestId: cancellation.requestId,
+        status: 'cancelled',
+      })
+    } catch (error) {
+      setRankedQueue({
+        message: getRankedQueueErrorMessage(error),
+        requestId: rankedQueue.requestId,
+        status: 'error',
+      })
+    } finally {
+      setRankedQueueBusy(false)
+    }
+  }
 
   const createGame = () => {
     if (existingDailyClaim) {
@@ -332,8 +578,11 @@ export function MultiplayerPanel({
     }
     const ratingBucket = getRatingBucket(mode)
     const ranked = matchKind === 'ranked' && authStatus === 'authenticated' && Boolean(viewerUserId)
+    if (ranked) {
+      void enterRankedQueue()
+      return
+    }
     let customGameCode: string | undefined
-    let matchmakingRequestId: string | undefined
     if (matchKind === 'custom') {
       const lobby = createCustomGameLobby({
         createdByUserId: viewerUserId,
@@ -344,34 +593,12 @@ export function MultiplayerPanel({
       customGameCode = lobby.code
       onCompetitiveChange?.(upsertCustomGameLobby(competitive, lobby))
     }
-    if (ranked && viewerUserId) {
-      const profile = getRatingProfile(competitive.rating, viewerUserId, ratingBucket)
-      const request = createMatchmakingRequest({
-        dailyDateKey,
-        mode,
-        rating: profile.rating,
-        scope,
-        userId: viewerUserId,
-        wordLength: scope === 'practice' ? wordLength : undefined,
-      })
-      const rival = createMatchmakingRequest({
-        dailyDateKey,
-        id: `${request.id}-preview-rival`,
-        mode,
-        rating: profile.rating + 20,
-        scope,
-        userId: `preview-rival-${request.id}`,
-        wordLength: scope === 'practice' ? wordLength : undefined,
-      })
-      matchmakingRequestId = findBestMatchForRequest(request, [rival])?.left.id ?? request.id
-    }
     const game = createMultiplayerGame({
       customGameCode,
       dailyDateKey,
       difficulty: defaultDifficulty,
       goPuzzleCount: defaultGoPuzzleCount,
       hardMode: scope === 'practice' ? hardMode : undefined,
-      matchmakingRequestId,
       mode,
       playerProfiles: viewerProfile ? { 'player-one': viewerProfile } : undefined,
       playerUserIds: viewerUserId ? { 'player-one': viewerUserId } : undefined,
@@ -498,7 +725,8 @@ export function MultiplayerPanel({
       </div>
 
       {!readOnly ? (
-        <div className="grid min-w-0 gap-3 rounded-lg border border-white/10 bg-black/30 p-3 2xl:grid-cols-[minmax(0,1fr)_minmax(11rem,14rem)]">
+        <div className="space-y-3 rounded-lg border border-white/10 bg-black/30 p-3">
+          <div className="grid min-w-0 gap-3 2xl:grid-cols-[minmax(0,1fr)_minmax(11rem,14rem)]">
           <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-5">
             <label className="grid min-w-0 gap-1 font-semibold text-cyan-100">
               Mode
@@ -573,8 +801,37 @@ export function MultiplayerPanel({
             </div>
           </div>
           <Button className="min-h-14 w-full px-4" disabled={!canCreate} onClick={createGame} variant="primary">
-            {canCreate ? 'Open multiplayer match' : dailyClaimedForMode ? 'Daily multiplayer already claimed' : onlineReady ? 'Active limit reached' : 'Sign in required'}
+            {canCreate
+              ? matchKind === 'ranked' ? 'Enter ranked queue' : 'Open multiplayer match'
+              : rankedQueueBusy
+                ? 'Ranked queue working'
+                : matchKind === 'ranked' && rankedQueue.status === 'queued'
+                  ? 'Already queued'
+                  : rankedQueueUnavailableReason
+                    ? rankedQueueUnavailableReason
+                    : dailyClaimedForMode
+                      ? 'Daily multiplayer already claimed'
+                      : onlineReady ? 'Active limit reached' : 'Sign in required'}
           </Button>
+          </div>
+          {scope === 'practice' ? (
+            <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-50">
+              <p className="font-bold uppercase tracking-wide">Ranked Practice v1</p>
+              <p className="mt-1">
+                Ranked is signed-in, untimed Practice only. The queue matches mode, word length, Hard Mode, and rating bucket; Daily ranked and timed Practice ranked remain deferred.
+              </p>
+              <p className="mt-1">
+                Points decide the match result. Elo changes only after trusted settlement confirms durable ranked evidence against your rival&apos;s rating.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-50">
+              <p className="font-bold uppercase tracking-wide">Daily ranked deferred</p>
+              <p className="mt-1">
+                Daily Multiplayer stays asynchronous, five-letter, UTC-day keyed, claim-safe, and unrated while ranked launches through Practice first.
+              </p>
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -582,6 +839,32 @@ export function MultiplayerPanel({
         <p className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm font-semibold text-amber-50">
           Sign in to enter ranked multiplayer queues. Guest and local-preview games remain unranked.
         </p>
+      ) : null}
+
+      {matchKind === 'ranked' && authStatus === 'authenticated' && !readOnly && rankedQueue.message ? (
+        <div
+          className={classNames(
+            'rounded-lg border p-3 text-sm font-semibold',
+            rankedQueue.status === 'error'
+              ? 'border-rose-300/30 bg-rose-400/10 text-rose-50'
+              : rankedQueue.status === 'cancelled'
+                ? 'border-slate-400/30 bg-slate-400/10 text-slate-100'
+                : 'border-cyan-300/30 bg-cyan-300/10 text-cyan-50',
+          )}
+          data-testid="ranked-queue-status"
+        >
+          <p>{rankedQueue.message}</p>
+          {rankedQueue.status === 'queued' && rankedQueue.requestId ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button disabled={rankedQueueBusy} onClick={() => { void refreshRankedQueue() }} size="sm" variant="primary">
+                Check ranked queue
+              </Button>
+              <Button disabled={rankedQueueBusy} onClick={() => { void cancelRankedQueue() }} size="sm" variant="secondary">
+                Cancel ranked queue
+              </Button>
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {visibleGames.length > 0 ? (
@@ -617,7 +900,7 @@ export function MultiplayerPanel({
           <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
             <div className="min-w-0">
               <p className="break-words font-semibold text-cyan-100">{getGameTitle(selectedGame)}</p>
-              <p className="break-words capitalize">Status: {selectedGame.status} · {selectedGame.ranked ? 'Ranked pending settlement' : selectedGame.customGameCode ? `Custom ${selectedGame.customGameCode}` : 'Unranked'}</p>
+              <p className="break-words capitalize">Status: {selectedGame.status} · {getGameMatchLabel(selectedGame)}</p>
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-cyan-100">Turn</p>
@@ -681,7 +964,11 @@ export function MultiplayerPanel({
           {!readOnly && viewerPlayerId && selectedGame.status === 'playing' ? (
             <div className="rounded-lg border border-rose-300/30 bg-rose-400/10 p-3 text-sm leading-6 text-rose-50">
               <p className="font-bold">Forfeit match</p>
-              <p>Forfeiting ends this multiplayer game and counts as a loss for rating purposes when both players are present.</p>
+              <p>
+                {selectedGame.ranked
+                  ? 'Forfeiting ends this ranked game and can settle as a ranked loss once trusted settlement confirms both participants.'
+                  : 'Forfeiting ends this multiplayer game. Unranked and custom games do not move Elo.'}
+              </p>
               <Button className="mt-2" onClick={forfeitGame} variant="secondary">Forfeit</Button>
             </div>
           ) : null}
@@ -703,7 +990,7 @@ export function MultiplayerPanel({
                 ))}
               </div>
               {selectedGame.ranked ? (
-                <p className="text-xs text-violet-100">ELO updates only after authenticated durable result evidence; local preview rivals stay unrated.</p>
+                <p className="text-xs text-violet-100">Points decide this result. Elo updates only after trusted settlement confirms authenticated durable ranked evidence; local preview, spectator, custom, Daily, and timed Practice rows stay unrated.</p>
               ) : null}
             </div>
           ) : null}

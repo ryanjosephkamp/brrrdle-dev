@@ -227,6 +227,37 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('Time per side')
     expect(html).toContain('No time limit')
     expect(html).toContain('30 seconds')
+    expect(html).toContain('Ranked Practice v1')
+    expect(html).toContain('Points decide the match result. Elo changes only after trusted settlement')
+  })
+
+  it('explains ranked selected-game settlement and forfeit behavior', () => {
+    const lobby = createMultiplayerGame({
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user' },
+      ranked: true,
+      ratingBucket: 'multiplayer:og',
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const joined = joinMultiplayerGame(addMultiplayerGame(createEmptyMultiplayerState(), lobby), {
+      gameId: lobby.id,
+      userId: 'rival-user',
+    })
+    const html = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        scope="practice"
+        state={joined.state}
+        viewerUserId="host-user"
+      />,
+    )
+
+    expect(html).toContain('Ranked · trusted settlement after terminal result')
+    expect(html).toContain('Forfeiting ends this ranked game and can settle as a ranked loss once trusted settlement confirms both participants.')
   })
 
   it('shows Practice Hard Mode creation controls and rival-visible lobby status', () => {
