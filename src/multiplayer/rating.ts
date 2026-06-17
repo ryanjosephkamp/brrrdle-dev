@@ -90,6 +90,17 @@ function clampCount(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0
 }
 
+function normalizeRatingValue(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : INITIAL_MULTIPLAYER_RATING
+}
+
+function normalizeExpectedScore(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0.5
+  }
+  return Math.max(0, Math.min(1, value))
+}
+
 function normalizeOutcome(value: unknown): RatingOutcome | undefined {
   return value === 'win' || value === 'loss' || value === 'draw' ? value : undefined
 }
@@ -117,15 +128,16 @@ export function normalizeRatingProfile(value: unknown): MultiplayerRatingProfile
     return undefined
   }
   const gamesPlayed = clampCount(record.gamesPlayed)
+  const inferredProvisional = gamesPlayed < MULTIPLAYER_PROVISIONAL_GAMES
   return {
     bucket: normalizeRatingBucket(record.bucket),
     draws: clampCount(record.draws),
     gamesPlayed,
     losses: clampCount(record.losses),
-    provisional: typeof record.provisional === 'boolean' ? record.provisional : gamesPlayed < MULTIPLAYER_PROVISIONAL_GAMES,
-    rating: typeof record.rating === 'number' && Number.isFinite(record.rating) ? Math.round(record.rating) : INITIAL_MULTIPLAYER_RATING,
+    provisional: typeof record.provisional === 'boolean' ? record.provisional && inferredProvisional : inferredProvisional,
+    rating: normalizeRatingValue(record.rating),
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date(0).toISOString(),
-    userId: record.userId,
+    userId: record.userId.trim(),
     wins: clampCount(record.wins),
   }
 }
@@ -155,15 +167,15 @@ export function normalizeRatingState(value: unknown): MultiplayerRatingState {
         return [{
           bucket: normalizeRatingBucket(row.bucket),
           createdAt: typeof row.createdAt === 'string' ? row.createdAt : new Date(0).toISOString(),
-          expectedScore: typeof row.expectedScore === 'number' ? row.expectedScore : 0.5,
-          id: row.id,
-          matchId: row.matchId,
-          newRating: typeof row.newRating === 'number' ? Math.round(row.newRating) : INITIAL_MULTIPLAYER_RATING,
-          oldRating: typeof row.oldRating === 'number' ? Math.round(row.oldRating) : INITIAL_MULTIPLAYER_RATING,
-          opponentUserId: row.opponentUserId,
+          expectedScore: normalizeExpectedScore(row.expectedScore),
+          id: row.id.trim(),
+          matchId: row.matchId.trim(),
+          newRating: normalizeRatingValue(row.newRating),
+          oldRating: normalizeRatingValue(row.oldRating),
+          opponentUserId: row.opponentUserId.trim(),
           outcome,
-          ratingDelta: typeof row.ratingDelta === 'number' ? Math.round(row.ratingDelta) : 0,
-          userId: row.userId,
+          ratingDelta: typeof row.ratingDelta === 'number' && Number.isFinite(row.ratingDelta) ? Math.round(row.ratingDelta) : 0,
+          userId: row.userId.trim(),
         }]
       })
     : []
@@ -180,11 +192,14 @@ export function getRatingProfile(state: MultiplayerRatingState, userId: string, 
 }
 
 export function calculateExpectedScore(playerRating: number, opponentRating: number): number {
-  return 1 / (1 + 10 ** ((opponentRating - playerRating) / 400))
+  const player = normalizeRatingValue(playerRating)
+  const opponent = normalizeRatingValue(opponentRating)
+  const exponent = Math.max(-10, Math.min(10, (opponent - player) / 400))
+  return normalizeExpectedScore(1 / (1 + 10 ** exponent))
 }
 
 export function getRatingKFactor(profile: Pick<MultiplayerRatingProfile, 'gamesPlayed' | 'provisional'>): number {
-  return profile.provisional || profile.gamesPlayed < MULTIPLAYER_PROVISIONAL_GAMES
+  return clampCount(profile.gamesPlayed) < MULTIPLAYER_PROVISIONAL_GAMES
     ? MULTIPLAYER_PROVISIONAL_K
     : MULTIPLAYER_ESTABLISHED_K
 }
@@ -208,6 +223,9 @@ export function getRatedMatchEligibility(evidence: RatedMatchEvidence): RatedEli
   if (!evidence.ranked) {
     return { eligible: false, reason: 'Unranked match.' }
   }
+  if (!evidence.matchId.trim()) {
+    return { eligible: false, reason: 'Rated matches require a match id.' }
+  }
   if (!evidence.authenticated) {
     return { eligible: false, reason: 'Ranked matches require authenticated players.' }
   }
@@ -220,9 +238,16 @@ export function getRatedMatchEligibility(evidence: RatedMatchEvidence): RatedEli
   if (evidence.playerResults.length !== 2) {
     return { eligible: false, reason: 'Exactly two rated player results are required.' }
   }
+  const playerIds = evidence.playerResults.map((result) => result.playerId)
+  if (playerIds.some((playerId) => !playerId.trim() || playerId !== playerId.trim())) {
+    return { eligible: false, reason: 'Every rated player must have a clean player id.' }
+  }
+  if (new Set(playerIds).size !== 2) {
+    return { eligible: false, reason: 'Rated matches require two distinct players.' }
+  }
   const userIds = evidence.playerResults.map((result) => result.userId)
-  if (userIds.some((userId) => !userId.trim())) {
-    return { eligible: false, reason: 'Every rated player must have a user id.' }
+  if (userIds.some((userId) => !userId.trim() || userId !== userId.trim())) {
+    return { eligible: false, reason: 'Every rated player must have a clean user id.' }
   }
   if (new Set(userIds).size !== 2) {
     return { eligible: false, reason: 'Rated matches require two distinct users.' }

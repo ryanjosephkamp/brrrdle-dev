@@ -5,7 +5,7 @@
 
 ## 1. Current Snapshot
 
-- Phase 26 scope was revised under `phase_id = 169`: Phase 26 is planned as current UI polish/hardening, Chrome zoom/narrow-width overflow fixes, notification preferences/sounds, and authenticated Live v1 spectation. Theme-specific template modernization moves to Phase 27; Elo/ranking, public profiles, and leaderboards move to Phases 28-30.
+- Post-Phase-26 roadmap routing was revised under `phase_id = 183`: Phase 27 is now competitive ranking, Elo/rank, ranked multiplayer, ranked matchmaking, competitive scoring boundaries, and leaderboard-ready data foundations. Phase 28 is public profiles, Phase 29 is leaderboards, Phase 30 is public/guest spectation through sanitized projections if still desired, Phase 31 is theme proposal/template modernization, and Phase 32 or later is full concrete theme implementation.
 - Repository: `brrrdle`.
 - Primary remote: `https://github.com/ryanjosephkamp/brrrdle`.
 - Current local branch during Stage 2 completion: `codex/phase-23-stage-1`.

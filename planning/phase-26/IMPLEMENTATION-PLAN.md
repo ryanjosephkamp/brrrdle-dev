@@ -36,10 +36,12 @@ All stages must preserve:
 - Phase 25 Home Dashboard, Notification Center, local read/dismiss metadata, route badges, and workspace attention cues remain intact.
 - Notification, sound, dashboard, theme, and spectator state must not become gameplay authority.
 - Public/guest spectation remains deferred unless a later sanitized public projection is explicitly approved.
-- Theme proposal/template modernization remains deferred to Phase 27.
-- Elo/ranking and ranked matchmaking remain routed to Phase 28.
-- Public player profiles remain routed to Phase 29.
-- Leaderboards remain routed to Phase 30.
+- Competitive ranking and ranked matchmaking are routed to Phase 27.
+- Public player profiles remain routed to Phase 28.
+- Leaderboards remain routed to Phase 29.
+- Public/guest spectation remains routed to Phase 30 unless a later approved plan changes it.
+- Theme proposal/template modernization remains deferred to Phase 31.
+- Full concrete theme implementation remains deferred to Phase 32 or later.
 
 ## 3. Success Criteria
 
@@ -709,7 +711,7 @@ Browser smoke:
 
 ### Purpose
 
-Clean up current Phase 26 surfaces for readability, accessibility, and polish without entering Phase 27 theme work.
+Clean up current Phase 26 surfaces for readability, accessibility, and polish without entering later theme work.
 
 ### Deliverables
 
@@ -756,7 +758,7 @@ Browser smoke:
 ### Exit Gate
 
 - Current UI is coherent and accessible.
-- No Phase 27 theme-template modernization has started.
+- No later theme-template modernization has started.
 
 ### Stop Conditions
 
@@ -891,7 +893,7 @@ These Stage 26 implementation decisions have been resolved by the completed Stag
 - the Stage 26.5 migration/RLS work was separately planned, separately authorized, applied to the intended `brrrdle-dev` Supabase project, and verified before app implementation;
 - responsive smoke and source hardening covered the screenshot-driven Chrome zoom/narrow-width shell, dashboard, and multiplayer surfaces.
 
-Remaining post-Phase-26 decisions are intentionally deferred: Phase 27 theme modernization, Phase 28 Elo/ranking and ranked matchmaking, Phase 29 public player profiles, Phase 30 leaderboards, and later public/guest spectation through a separately approved sanitized public projection.
+Remaining post-Phase-26 decisions are intentionally deferred: Phase 27 competitive ranking and ranked matchmaking, Phase 28 public player profiles, Phase 29 leaderboards, Phase 30 public/guest spectation through a separately approved sanitized public projection, Phase 31 theme modernization, and Phase 32+ full concrete theme implementation.
 
 ## 22. Recommended Next Gated Action
 

@@ -3,7 +3,7 @@
 **Status**: Revised planning brief for review
 **Repository**: `brrrdle-dev`
 **Created**: 2026-06-15
-**Revised**: 2026-06-15
+**Revised**: 2026-06-16
 **Authority**: This document is a planning artifact only. It does not authorize implementation, source changes, test changes, Supabase migrations, deployment, PR work, release work, or work against the original stable `brrrdle` repository.
 
 ## 1. Context After Phase 24 And Phase 25
@@ -24,7 +24,7 @@ These decisions are resolved for Phase 26 planning:
 - Notification preferences should be **cloud-synced through guest progress** when implemented.
 - Phase 26 should implement **authenticated nonparticipant spectation** even if a separately authorized Supabase schema/RLS stage is required.
 - Public/guest spectation is **deferred beyond Phase 26** unless a sanitized public projection is built and explicitly authorized.
-- Theme-specific work is **deferred to a new Phase 27**, including modernization of `themes/proposals/template_proposals/` and `themes/proposals/theme_proposals.csv`.
+- Theme-specific work is **deferred until Phase 31 and Phase 32 or later**, including modernization of `themes/proposals/template_proposals/`, `themes/proposals/theme_proposals.csv`, and later concrete theme implementation.
 
 ## 3. Recommended Product Outcome
 
@@ -44,7 +44,7 @@ By the end of Phase 26, the app should ideally have:
 
 Phase 26 should become a polish/hardening plus notification/Live expansion phase.
 
-This is safer than trying to modernize all theme templates in the same pass. Theme templates need a full review against the post-Phase-25 app surface and deserve a dedicated Phase 27. Phase 26 should instead fix visible current UI issues, harden responsive behavior, complete notification preference/sound foundations, and expand Live only as far as authenticated privacy-safe spectation.
+This is safer than trying to modernize all theme templates in the same pass. Theme templates need a full review against a more stable future app surface and now belong near the end of the planned workflow. Phase 26 should instead fix visible current UI issues, harden responsive behavior, complete notification preference/sound foundations, and expand Live only as far as authenticated privacy-safe spectation.
 
 ## 5. Proposed In-Scope Work
 
@@ -182,11 +182,13 @@ Phase 26 does not include:
 Recommended future sequence:
 
 - **Phase 26**: current UI polish/hardening, Chrome zoom/narrow-width overflow fixes, notification preferences/sounds, local browser-notification controls where safe, authenticated Live v1 spectation.
-- **Phase 27**: theme proposal/template modernization and theme implementation planning using `themes/proposals/template_proposals/` and `themes/proposals/theme_proposals.csv`; full theme implementation may be staged after template modernization.
-- **Phase 28**: comprehensive Elo/ranking and ranked matchmaking model, with game points independent from Elo/rank.
-- **Phase 29**: public player profile foundations and privacy-safe public identity.
-- **Phase 30**: leaderboards for Elo/rank, streaks, total games played, and other approved metrics.
-- **Later phases**: public/guest spectation through sanitized public projections, deeper social/community systems, marketplace, additional modes, and other expansion work.
+- **Phase 27**: competitive ranking foundations, Elo/rank model, ranked multiplayer, ranked matchmaking, competitive scoring boundaries, and leaderboard-ready data foundations.
+- **Phase 28**: public player profile foundations and privacy-safe public identity.
+- **Phase 29**: leaderboards for Elo/rank, streaks, total games played, and other approved metrics.
+- **Phase 30**: public/guest spectation through sanitized public projections, if still desired and separately authorized.
+- **Phase 31**: theme proposal/template modernization using `themes/proposals/template_proposals/` and `themes/proposals/theme_proposals.csv`.
+- **Phase 32 or later**: full concrete theme creation, implementation, asset/sound work, and theme QA.
+- **Later phases**: deeper social/community systems, marketplace, additional modes, and other expansion work.
 
 ## 8. Recommended Stage Breakdown
 
@@ -296,7 +298,7 @@ Exit gate:
 
 Purpose:
 
-- Apply final current-theme polish across the post-Phase-25 app without entering Phase 27 theme-template work.
+- Apply final current-theme polish across the post-Phase-25 app without entering later theme-template modernization.
 
 Deliverables:
 
@@ -438,7 +440,7 @@ Mitigation: Keep browser notifications optional and separate from in-app notific
 
 Risk: Theme-template modernization could balloon Phase 26 and obscure urgent polish and Live work.
 
-Mitigation: Route all theme-template modernization and full theme implementation planning to Phase 27.
+Mitigation: Route theme-template modernization to Phase 31 and full concrete theme implementation to Phase 32 or later.
 
 ## 15. Open Decisions For The Full Spec
 
@@ -448,7 +450,7 @@ The major user decisions are resolved. The unified Phase 26 spec should still de
 - the exact notification preference fields and defaults;
 - whether browser notification controls request permission in Phase 26 or only expose a deferral/preference placeholder;
 - the exact Live v1 data access path and whether a migration/RLS stage is required;
-- the boundaries between Phase 26 current-theme polish and Phase 27 theme-template modernization.
+- the boundaries between Phase 26 current-theme polish and later Phase 31/32 theme modernization and implementation.
 
 ## 16. Recommended Next Gated Action
 
@@ -458,6 +460,6 @@ Create a unified Phase 26 specification that turns this revised brief into an im
 - notification Settings, cloud-synced preference persistence, and important-only sound behavior;
 - browser notification control boundaries;
 - authenticated Live v1 spectation and any separately gated migration/RLS requirements;
-- Phase 27 theme-template modernization deferral and future phase routing.
+- later theme-template modernization deferral and future phase routing.
 
 After the spec is reviewed, create a detailed Phase 26 implementation plan, then run a Stage 26.0 protected baseline before any source/runtime implementation begins.

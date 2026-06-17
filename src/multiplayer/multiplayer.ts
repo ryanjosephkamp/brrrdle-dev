@@ -108,6 +108,7 @@ export interface CreateMultiplayerGameInput {
   readonly dailyDateKey?: string
   readonly difficulty?: DifficultyTier
   readonly goPuzzleCount?: GoPuzzleCount
+  readonly id?: string
   readonly matchmakingRequestId?: string
   readonly mode: GameMode
   readonly playerUserIds?: Partial<Record<MultiplayerPlayerId, string>>
@@ -531,7 +532,7 @@ export function createMultiplayerGame(input: CreateMultiplayerGameInput): Multip
     difficulty: normalizedInput.difficulty,
     goPuzzleCount: input.mode === 'go' ? normalizedInput.goPuzzleCount : undefined,
     hardMode,
-    id: createId(`multiplayer-${input.scope}-${input.mode}`),
+    id: input.id ?? createId(`multiplayer-${input.scope}-${input.mode}`),
     matchmakingRequestId: input.matchmakingRequestId,
     mode: input.mode,
     moves: [],
