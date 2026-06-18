@@ -9,6 +9,13 @@ describe('MultiplayerStatsPanel', () => {
     expect(html).toContain('Competitive multiplayer')
     expect(html).toContain('No rated results yet')
     expect(html).toContain('No multiplayer results recorded yet')
+    expect(html).toContain('How ranked Elo works')
+    expect(html).toContain('Ranked Practice starts each rating bucket at 1200')
+    expect(html).toContain('first 10 ranked Practice games are provisional and move faster with K=40')
+    expect(html).toContain('established ratings use K=24')
+    expect(html).toContain('standard 400-point expected-score curve')
+    expect(html).toContain('wins count as 1, draws as 0.5, and losses as 0')
+    expect(html).toContain('Only eligible ranked Practice v1 games affect Elo')
   })
 
   it('renders rating profiles and recent result summaries', () => {

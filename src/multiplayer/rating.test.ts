@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE,
   MULTIPLAYER_ESTABLISHED_K,
   MULTIPLAYER_PROVISIONAL_K,
   applyRatedMatch,
@@ -29,6 +30,7 @@ describe('multiplayer rating model', () => {
   })
 
   it('calculates expected score from rating difference', () => {
+    expect(MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE).toBe(400)
     expect(calculateExpectedScore(1200, 1200)).toBeCloseTo(0.5)
     expect(calculateExpectedScore(1400, 1200)).toBeGreaterThan(0.75)
     expect(calculateExpectedScore(Number.NaN, 1200)).toBeCloseTo(0.5)

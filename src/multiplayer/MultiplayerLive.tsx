@@ -26,7 +26,7 @@ function LiveStateNotice({ children }: { readonly children: ReactNode }) {
   )
 }
 
-function MultiplayerLiveSpectatorDetails({
+export function MultiplayerLiveSpectatorDetails({
   details,
   id,
 }: {
@@ -44,6 +44,17 @@ function MultiplayerLiveSpectatorDetails({
           Read-only
         </span>
       </div>
+
+      {details.terminalLabel ? (
+        <div className="rounded border border-emerald-200/25 bg-emerald-400/10 p-3 text-emerald-50">
+          <p className="font-semibold">{details.terminalLabel}</p>
+          {details.terminalHoldUntil ? (
+            <p className="mt-1 text-xs uppercase tracking-[0.12em] text-emerald-100">
+              Visible until {formatDateTime(details.terminalHoldUntil)}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="grid gap-2 sm:grid-cols-2">
         {details.players.map((player) => (
@@ -98,11 +109,13 @@ function MultiplayerLiveSpectatorDetails({
 
 function MultiplayerLiveCard({
   game,
+  onOpenFocusedSpectatorGame,
   onResumeGame,
   onSelectGame,
   selected,
 }: {
   readonly game: MultiplayerLiveGameViewModel
+  readonly onOpenFocusedSpectatorGame?: (id: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame?: (id: string) => void
   readonly selected: boolean
@@ -110,6 +123,7 @@ function MultiplayerLiveCard({
   const handleAction = () => {
     if (game.viewerRole === 'spectator') {
       onSelectGame?.(game.id)
+      onOpenFocusedSpectatorGame?.(game.id)
       return
     }
     onResumeGame(game.id)
@@ -155,8 +169,8 @@ function MultiplayerLiveCard({
       </dl>
       <div className="mt-4">
         <Button
-          aria-controls={spectatorDetailsId}
-          aria-expanded={game.viewerRole === 'spectator' ? selected : undefined}
+          aria-controls={game.viewerRole === 'spectator' && !onOpenFocusedSpectatorGame ? spectatorDetailsId : undefined}
+          aria-expanded={game.viewerRole === 'spectator' && !onOpenFocusedSpectatorGame ? selected : undefined}
           onClick={handleAction}
           size="sm"
           variant={game.viewerRole === 'spectator' ? 'secondary' : 'primary'}
@@ -171,6 +185,7 @@ function MultiplayerLiveCard({
 
 export function MultiplayerLive({
   liveGames,
+  onOpenFocusedSpectatorGame,
   onResumeGame,
   onSelectGame,
   restrictedGameCount,
@@ -178,6 +193,7 @@ export function MultiplayerLive({
   viewerUserId,
 }: {
   readonly liveGames: readonly MultiplayerLiveGameViewModel[]
+  readonly onOpenFocusedSpectatorGame?: (id: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame?: (id: string) => void
   readonly restrictedGameCount: number
@@ -221,6 +237,7 @@ export function MultiplayerLive({
           <MultiplayerLiveCard
             game={game}
             key={game.id}
+            onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame}
             onResumeGame={onResumeGame}
             onSelectGame={onSelectGame}
             selected={game.viewerRole === 'spectator' && (selectedGameId === game.id || (!selectedGameId && spectatorGameCount === 1))}

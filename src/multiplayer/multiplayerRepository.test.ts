@@ -56,6 +56,11 @@ function createSanitizedSpectatorRow(overrides: Record<string, unknown> = {}) {
         ],
       },
     ],
+    outcome: {
+      label: 'In progress',
+      status: 'playing',
+      terminal: false,
+    },
     players: [
       { label: 'Host', profile: { displayName: 'Host player', initials: 'H' }, seat: 'player-one' },
       { label: 'Rival', profile: { displayName: 'Rival player', initials: 'R' }, seat: 'player-two' },
@@ -77,6 +82,9 @@ function createSanitizedSpectatorRow(overrides: Record<string, unknown> = {}) {
       canSubmitGuess: false,
     },
     status: 'playing',
+    ended_at: null,
+    terminal_at: null,
+    terminal_hold_until: null,
     time_limit_ms: 300000,
     updated_at: '2026-06-15T23:52:00.000Z',
     word_length: 5,
@@ -206,6 +214,58 @@ describe('multiplayer repository seam', () => {
     expect(rows[0].moves[0].tiles.map((tile) => tile.state)).toEqual(['absent', 'present', 'absent', 'correct', 'correct'])
   })
 
+  it('normalizes sanitized terminal Live spectator rows during the bounded hold window', () => {
+    const rows = normalizeAuthenticatedLiveSpectatorRows([
+      createSanitizedSpectatorRow({
+        current_turn_seat: null,
+        ended_at: '2026-06-15T23:55:00.000Z',
+        outcome: {
+          label: 'Player one won',
+          status: 'won',
+          terminal: true,
+          terminalAt: '2026-06-15T23:55:00.000Z',
+          winnerSeat: 'player-one',
+        },
+        status: 'won',
+        terminal_at: '2026-06-15T23:55:00.000Z',
+        terminal_hold_until: '2026-06-15T23:55:15.000Z',
+      }),
+    ])
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      currentTurnSeat: undefined,
+      endedAt: '2026-06-15T23:55:00.000Z',
+      outcome: {
+        label: 'Player one won',
+        status: 'won',
+        terminal: true,
+        terminalAt: '2026-06-15T23:55:00.000Z',
+        winnerSeat: 'player-one',
+      },
+      status: 'won',
+      terminalAt: '2026-06-15T23:55:00.000Z',
+      terminalHoldUntil: '2026-06-15T23:55:15.000Z',
+    })
+  })
+
+  it('filters current Daily spectator rows as an app-side defense in depth', () => {
+    const rows = normalizeAuthenticatedLiveSpectatorRows([
+      createSanitizedSpectatorRow({
+        daily_date_key: '2026-06-18',
+        id: 'current-daily-game',
+        scope: 'daily',
+      }),
+      createSanitizedSpectatorRow({
+        daily_date_key: '2026-06-17',
+        id: 'past-daily-game',
+        scope: 'daily',
+      }),
+    ], new Date('2026-06-18T12:00:00.000Z'))
+
+    expect(rows.map((row) => row.id)).toEqual(['past-daily-game'])
+  })
+
   it('rejects Live spectator rows that contain forbidden raw projection or identity fields', () => {
     const rawProjection = createSanitizedSpectatorRow({
       projection: {
@@ -228,7 +288,10 @@ describe('multiplayer repository seam', () => {
 
     const rows = await loadAuthenticatedLiveSpectatorRows(client, 25)
 
-    expect(rpc).toHaveBeenCalledWith('get_authenticated_live_v1_spectator_games', { p_limit: 25 })
+    expect(rpc).toHaveBeenCalledWith('get_authenticated_live_v1_spectator_games_v2', {
+      p_limit: 25,
+      p_terminal_window_seconds: 15,
+    })
     expect(rows).toHaveLength(1)
     expect(rows[0].id).toBe('spectator-game-1')
   })

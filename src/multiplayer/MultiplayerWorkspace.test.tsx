@@ -29,6 +29,11 @@ const spectatorGame: AuthenticatedLiveSpectatorGame = {
       ],
     },
   ],
+  outcome: {
+    label: 'In progress',
+    status: 'playing',
+    terminal: false,
+  },
   players: [
     { label: 'Host', profile: { displayName: 'Host player' }, seat: 'player-one' },
     { label: 'Rival', profile: { displayName: 'Rival player' }, seat: 'player-two' },
@@ -146,6 +151,38 @@ describe('MultiplayerWorkspace', () => {
     expect(html).toContain('Spectator view')
     expect(html).toContain('Read-only')
     expect(html).toContain('Host player')
+    expect(html).not.toContain('Submit guess')
+    expect(html).not.toContain('Forfeit')
+    expect(html).not.toContain('Cancel game')
+    expect(html).not.toContain('Join game')
+  })
+
+  it('renders a focused read-only spectator view when a spectator game is opened', () => {
+    const html = renderToStaticMarkup(
+      <MultiplayerWorkspace
+        activeSubtab="live"
+        dailyDateKey="2026-06-14"
+        focusedSpectatorGameId="spectator-game-1"
+        liveSpectatorRows={[spectatorGame]}
+        onCloseFocusedSpectatorGame={() => undefined}
+        onOpenHistory={() => undefined}
+        onOpenFocusedSpectatorGame={() => undefined}
+        onResumeGame={() => undefined}
+        onSelectGame={() => undefined}
+        onSubtabChange={() => undefined}
+        renderDailyPanel={() => <div>Daily panel</div>}
+        renderPracticePanel={() => <div>Practice panel</div>}
+        state={{ games: [] }}
+        viewerUserId="spectator-user"
+      />,
+    )
+
+    expect(html).toContain('Focused spectator view')
+    expect(html).toContain('Practice Multiplayer OG')
+    expect(html).toContain('Host vs Rival')
+    expect(html).toContain('Back to Live list')
+    expect(html).toContain('focused-live-spectator-details-spectator-game-1')
+    expect(html).not.toContain('Multiplayer workspace sections')
     expect(html).not.toContain('Submit guess')
     expect(html).not.toContain('Forfeit')
     expect(html).not.toContain('Cancel game')

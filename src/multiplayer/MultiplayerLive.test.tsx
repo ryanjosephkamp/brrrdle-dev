@@ -57,6 +57,7 @@ const spectatorGame: MultiplayerLiveGameViewModel = {
       { label: 'Rival', profile: { displayName: 'Rival player' }, seat: 'player-two' },
     ],
     progressLabel: '1 turn submitted',
+    terminal: false,
   },
   title: 'Practice Multiplayer OG',
   turnLabel: "Rival's turn",

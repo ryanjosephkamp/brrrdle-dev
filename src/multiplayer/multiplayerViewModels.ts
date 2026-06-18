@@ -99,8 +99,12 @@ export interface MultiplayerLiveSpectatorMoveViewModel {
 export interface MultiplayerLiveSpectatorDetailsViewModel {
   readonly capabilityLabel: string
   readonly moves: readonly MultiplayerLiveSpectatorMoveViewModel[]
+  readonly outcomeLabel?: string
   readonly players: readonly AuthenticatedLiveSpectatorPlayer[]
   readonly progressLabel: string
+  readonly terminal: boolean
+  readonly terminalHoldUntil?: string
+  readonly terminalLabel?: string
 }
 
 export function getMultiplayerModeLabel(mode: GameMode): string {
@@ -251,6 +255,9 @@ function toLiveGameViewModel(game: MultiplayerGame, viewerUserId: string): Multi
 }
 
 function getSpectatorTurnLabel(row: AuthenticatedLiveSpectatorGame): string {
+  if (row.status !== 'playing') {
+    return row.outcome.label
+  }
   const activePlayer = row.players.find((player) => player.seat === row.currentTurnSeat)
   return activePlayer ? `${activePlayer.label}'s turn` : 'Turn in progress'
 }
@@ -261,10 +268,16 @@ function getSpectatorOpponentLabel(row: AuthenticatedLiveSpectatorGame): string 
 
 function getSpectatorProgressLabel(row: AuthenticatedLiveSpectatorGame): string {
   const moveLabel = `${row.progress.moveCount} ${row.progress.moveCount === 1 ? 'turn' : 'turns'} submitted`
-  if (row.mode === 'go') {
-    return `${moveLabel} · puzzle ${row.progress.currentPuzzleIndex + 1} of ${row.goPuzzleCount ?? 5}`
+  const puzzleLabel = row.mode === 'go' ? ` · puzzle ${row.progress.currentPuzzleIndex + 1} of ${row.goPuzzleCount ?? 5}` : ''
+  const progressLabel = `${moveLabel}${puzzleLabel}`
+  return row.status === 'playing' ? progressLabel : `Final · ${progressLabel}`
+}
+
+function getSpectatorTerminalLabel(row: AuthenticatedLiveSpectatorGame): string | undefined {
+  if (row.status === 'playing') {
+    return undefined
   }
-  return moveLabel
+  return `${row.outcome.label}. Final board visible briefly.`
 }
 
 function toSpectatorMoveViewModel(
@@ -281,7 +294,9 @@ function toSpectatorMoveViewModel(
 }
 
 function toSpectatorLiveGameViewModel(row: AuthenticatedLiveSpectatorGame): MultiplayerLiveGameViewModel {
-  const detailLabel = `Read-only · ${getSpectatorProgressLabel(row)}`
+  const terminalLabel = getSpectatorTerminalLabel(row)
+  const progressLabel = getSpectatorProgressLabel(row)
+  const detailLabel = terminalLabel ? `Read-only · ${row.outcome.label} · ${progressLabel}` : `Read-only · ${progressLabel}`
   return {
     actionLabel: 'Spectate live game',
     canResume: false,
@@ -297,12 +312,16 @@ function toSpectatorLiveGameViewModel(row: AuthenticatedLiveSpectatorGame): Mult
     spectatorDetails: {
       capabilityLabel: 'Read-only spectator view. Guessing, joining, forfeiting, cancelling, timers, ratings, and claims are unavailable.',
       moves: row.moves.map((move) => toSpectatorMoveViewModel(move, row.players)),
+      outcomeLabel: row.outcome.label,
       players: row.players,
-      progressLabel: getSpectatorProgressLabel(row),
+      progressLabel,
+      terminal: row.status !== 'playing',
+      terminalHoldUntil: row.terminalHoldUntil,
+      terminalLabel,
     },
     title: getGameTitle(row),
     turnLabel: getSpectatorTurnLabel(row),
-    updatedAt: row.updatedAt,
+    updatedAt: row.terminalAt ?? row.updatedAt,
     viewerRole: 'spectator',
   }
 }
@@ -322,7 +341,6 @@ export function selectLiveMultiplayerRows(
     .map((game) => toLiveGameViewModel(game, viewerUserId))
   const participantIds = new Set(participantRows.map((row) => row.id))
   const readOnlySpectatorRows = spectatorRows
-    .filter((row) => row.status === 'playing')
     .filter((row) => !participantIds.has(row.id))
     .map(toSpectatorLiveGameViewModel)
 

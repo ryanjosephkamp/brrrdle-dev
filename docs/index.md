@@ -18,6 +18,7 @@ title: brrrdle docs
 
 - [Deployment guide](deployment.md): local commands, Vercel game deployment, GitHub Pages docs deployment, and verification.
 - [Supabase setup](supabase.md): public environment variables, schema/RLS setup, account sync, and admin role assignment.
+- [Ranked multiplayer and Elo](ranked-multiplayer.md): current ranked Practice boundaries, Elo formula, provisional ratings, and trusted settlement rules.
 
 ## Development quick start
 

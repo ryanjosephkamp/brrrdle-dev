@@ -32,7 +32,14 @@ import { createCustomGameLobby } from './customGames'
 import type { MultiplayerProfileSummary } from './dailyMultiplayer'
 import { normalizeCompetitiveMultiplayerState, upsertCustomGameLobby, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
 import { MultiplayerGameSurface } from './MultiplayerGameSurface'
-import { getRatingBucket } from './rating'
+import {
+  INITIAL_MULTIPLAYER_RATING,
+  MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE,
+  MULTIPLAYER_ESTABLISHED_K,
+  MULTIPLAYER_PROVISIONAL_GAMES,
+  MULTIPLAYER_PROVISIONAL_K,
+  getRatingBucket,
+} from './rating'
 import type { MultiplayerRepository, RankedQueueStatusResult } from './multiplayerRepository'
 import { RivalIdentityCard } from './RivalIdentityCard'
 import { projectMultiplayerPerformance } from './scoring'
@@ -822,6 +829,9 @@ export function MultiplayerPanel({
               </p>
               <p className="mt-1">
                 Points decide the match result. Elo changes only after trusted settlement confirms durable ranked evidence against your rival&apos;s rating.
+              </p>
+              <p className="mt-1">
+                Each ranked bucket starts at {INITIAL_MULTIPLAYER_RATING}. Your first {MULTIPLAYER_PROVISIONAL_GAMES} ranked Practice games are provisional with K={MULTIPLAYER_PROVISIONAL_K}; established games use K={MULTIPLAYER_ESTABLISHED_K}. Expected score uses the standard {MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE}-point Elo curve, and win/draw/loss count as 1/0.5/0 for rating movement.
               </p>
             </div>
           ) : (
