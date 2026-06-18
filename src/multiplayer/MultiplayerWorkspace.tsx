@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import type { MultiplayerWorkspaceAttentionMap } from '../app/attentionViewModels'
 import type { MultiplayerSubtabId } from '../app/navigationState'
 import { Button, Panel, SubtabBar, type SubtabOption } from '../ui'
@@ -7,7 +7,7 @@ import type { MultiplayerCompetitiveState } from './competitiveMultiplayer'
 import type { AuthenticatedLiveSpectatorGame } from './multiplayerRepository'
 import { MultiplayerActiveGames } from './MultiplayerActiveGames'
 import { MultiplayerLobby } from './MultiplayerLobby'
-import { MultiplayerLive } from './MultiplayerLive'
+import { MultiplayerLive, MultiplayerLiveSpectatorDetails } from './MultiplayerLive'
 import {
   selectActiveMultiplayerGameRows,
   selectLiveMultiplayerRows,
@@ -31,7 +31,11 @@ interface MultiplayerWorkspaceProps {
   readonly attention?: MultiplayerWorkspaceAttentionMap
   readonly competitiveState?: MultiplayerCompetitiveState
   readonly dailyDateKey: string
+  readonly focusedSpectatorGameId?: string
   readonly onOpenHistory: () => void
+  readonly onCloseFocusedSpectatorGame?: () => void
+  readonly onLiveSurfaceActiveChange?: (active: boolean) => void
+  readonly onOpenFocusedSpectatorGame?: (id: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame: (id: string) => void
   readonly onSubtabChange: (subtab: MultiplayerSubtabId) => void
@@ -104,11 +108,78 @@ function RecentResultsList({
   )
 }
 
+function FocusedSpectatorView({
+  game,
+  onBack,
+}: {
+  readonly game?: ReturnType<typeof selectLiveMultiplayerRows>[number]
+  readonly onBack?: () => void
+}) {
+  if (!game || game.viewerRole !== 'spectator' || !game.spectatorDetails) {
+    return (
+      <Panel className="space-y-4" tone="muted">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100">Focused spectator view</p>
+            <h3 className="mt-2 break-words text-2xl font-bold text-white">Live game no longer visible</h3>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+              This authenticated read-only Live view has expired or is no longer eligible for spectator discovery.
+            </p>
+          </div>
+          <Button onClick={onBack} size="sm" variant="secondary">Back to Live list</Button>
+        </div>
+      </Panel>
+    )
+  }
+
+  return (
+    <Panel className="space-y-5" tone="muted">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-2">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100">Focused spectator view</p>
+          <h3 className="break-words text-2xl font-bold text-white">{game.title}</h3>
+          <p className="break-words text-sm leading-6 text-slate-300">
+            {game.opponentLabel} · {game.turnLabel}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded border border-cyan-200/30 bg-cyan-400/10 px-2 py-1 text-xs font-semibold text-cyan-100">
+            Read-only
+          </span>
+          <Button onClick={onBack} size="sm" variant="secondary">Back to Live list</Button>
+        </div>
+      </div>
+
+      <dl className="grid gap-3 text-sm text-slate-300 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded border border-white/10 bg-black/20 p-3">
+          <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Mode</dt>
+          <dd className="mt-1 font-semibold text-white">{game.scopeLabel} {game.modeLabel}</dd>
+        </div>
+        <div className="rounded border border-white/10 bg-black/20 p-3">
+          <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Rules</dt>
+          <dd className="mt-1 font-semibold text-white">{game.ruleLabel}</dd>
+        </div>
+        <div className="rounded border border-white/10 bg-black/20 p-3">
+          <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Progress</dt>
+          <dd className="mt-1 font-semibold text-white">{game.detailLabel}</dd>
+        </div>
+        <div className="rounded border border-white/10 bg-black/20 p-3">
+          <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Updated</dt>
+          <dd className="mt-1 font-semibold text-white">{formatDateTime(game.updatedAt)}</dd>
+        </div>
+      </dl>
+
+      <MultiplayerLiveSpectatorDetails details={game.spectatorDetails} id={`focused-live-spectator-details-${game.id}`} />
+    </Panel>
+  )
+}
+
 function MultiplayerOverview({
   activeGames,
   lobbyRows,
   liveRows,
   onOpenHistory,
+  onOpenFocusedSpectatorGame,
   onResumeGame,
   onSelectGame,
   onSubtabChange,
@@ -121,6 +192,7 @@ function MultiplayerOverview({
   readonly lobbyRows: ReturnType<typeof selectMultiplayerLobbyRows>
   readonly liveRows: ReturnType<typeof selectLiveMultiplayerRows>
   readonly onOpenHistory: () => void
+  readonly onOpenFocusedSpectatorGame?: (id: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame: (id: string) => void
   readonly onSubtabChange: (subtab: MultiplayerSubtabId) => void
@@ -179,7 +251,7 @@ function MultiplayerOverview({
           </div>
           <Button onClick={() => onSubtabChange('live')} size="sm" variant="ghost">Open Live</Button>
         </div>
-        <MultiplayerLive liveGames={liveRows.slice(0, 4)} onResumeGame={onResumeGame} onSelectGame={onSelectGame} restrictedGameCount={restrictedLiveCount} selectedGameId={selectedGameId} viewerUserId={viewerUserId} />
+        <MultiplayerLive liveGames={liveRows.slice(0, 4)} onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame} onResumeGame={onResumeGame} onSelectGame={onSelectGame} restrictedGameCount={restrictedLiveCount} selectedGameId={selectedGameId} viewerUserId={viewerUserId} />
       </Panel>
 
       <Panel className="space-y-4" tone="muted">
@@ -201,6 +273,10 @@ export function MultiplayerWorkspace({
   attention,
   competitiveState,
   dailyDateKey,
+  focusedSpectatorGameId,
+  onCloseFocusedSpectatorGame,
+  onLiveSurfaceActiveChange,
+  onOpenFocusedSpectatorGame,
   onOpenHistory,
   onResumeGame,
   onSelectGame,
@@ -217,10 +293,21 @@ export function MultiplayerWorkspace({
   const liveRows = selectLiveMultiplayerRows(state, viewerUserId, liveSpectatorRows)
   const restrictedLiveCount = selectRestrictedLiveMultiplayerCount(state, viewerUserId, liveSpectatorRows)
   const recentResults = selectRecentMultiplayerResults(competitiveState, viewerUserId, 5)
+  const focusedSpectatorGame = focusedSpectatorGameId
+    ? liveRows.find((row) => row.viewerRole === 'spectator' && row.id === focusedSpectatorGameId)
+    : undefined
+  const liveSurfaceActive = activeSubtab === 'live' || Boolean(focusedSpectatorGameId)
   const subtabs = MULTIPLAYER_SUBTABS.map((subtab) => ({
     ...subtab,
     attention: attention?.[subtab.id],
   }))
+
+  useEffect(() => {
+    onLiveSurfaceActiveChange?.(liveSurfaceActive)
+    return () => {
+      onLiveSurfaceActiveChange?.(false)
+    }
+  }, [liveSurfaceActive, onLiveSurfaceActiveChange])
 
   return (
     <section className="min-w-0 space-y-5" aria-labelledby="multiplayer-workspace-title">
@@ -228,8 +315,12 @@ export function MultiplayerWorkspace({
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">Multiplayer</p>
         <h2 id="multiplayer-workspace-title" className="break-words text-3xl font-bold text-white">Multiplayer</h2>
       </div>
-      <SubtabBar activeId={activeSubtab} label="Multiplayer workspace sections" onSelect={onSubtabChange} options={subtabs} />
-      {activeSubtab === 'daily' ? (
+      {focusedSpectatorGameId ? (
+        <FocusedSpectatorView game={focusedSpectatorGame} onBack={onCloseFocusedSpectatorGame} />
+      ) : (
+        <SubtabBar activeId={activeSubtab} label="Multiplayer workspace sections" onSelect={onSubtabChange} options={subtabs} />
+      )}
+      {focusedSpectatorGameId ? null : activeSubtab === 'daily' ? (
         renderDailyPanel()
       ) : activeSubtab === 'practice' ? (
         renderPracticePanel()
@@ -260,7 +351,7 @@ export function MultiplayerWorkspace({
               Participant resume and authenticated read-only spectator visibility. {liveRows.length} visible{restrictedLiveCount > 0 ? ` · ${restrictedLiveCount} restricted` : ''}{liveRows[0] ? ` · Freshest ${formatDateTime(liveRows[0].updatedAt)}` : ''}
             </p>
           </div>
-          <MultiplayerLive liveGames={liveRows} onResumeGame={onResumeGame} onSelectGame={onSelectGame} restrictedGameCount={restrictedLiveCount} selectedGameId={selectedGameId} viewerUserId={viewerUserId} />
+          <MultiplayerLive liveGames={liveRows} onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame} onResumeGame={onResumeGame} onSelectGame={onSelectGame} restrictedGameCount={restrictedLiveCount} selectedGameId={selectedGameId} viewerUserId={viewerUserId} />
         </Panel>
       ) : (
         <MultiplayerOverview
@@ -268,6 +359,7 @@ export function MultiplayerWorkspace({
           lobbyRows={lobbyRows}
           liveRows={liveRows}
           onOpenHistory={onOpenHistory}
+          onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame}
           onResumeGame={onResumeGame}
           onSelectGame={onSelectGame}
           onSubtabChange={onSubtabChange}

@@ -7,6 +7,7 @@ export const INITIAL_MULTIPLAYER_RATING = 1200
 export const MULTIPLAYER_PROVISIONAL_GAMES = 10
 export const MULTIPLAYER_PROVISIONAL_K = 40
 export const MULTIPLAYER_ESTABLISHED_K = 24
+export const MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE = 400
 
 export interface MultiplayerRatingProfile {
   readonly bucket: RatingBucketId
@@ -194,7 +195,7 @@ export function getRatingProfile(state: MultiplayerRatingState, userId: string, 
 export function calculateExpectedScore(playerRating: number, opponentRating: number): number {
   const player = normalizeRatingValue(playerRating)
   const opponent = normalizeRatingValue(opponentRating)
-  const exponent = Math.max(-10, Math.min(10, (opponent - player) / 400))
+  const exponent = Math.max(-10, Math.min(10, (opponent - player) / MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE))
   return normalizeExpectedScore(1 / (1 + 10 ** exponent))
 }
 

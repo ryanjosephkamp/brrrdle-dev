@@ -53,14 +53,18 @@ async function expectSpectatorLiveReadOnly(page: Page, submittedGuess: string): 
   const spectateButton = liveGame.getByRole('button', { name: /^Spectate live game$/i })
   await expect(spectateButton).toBeVisible({ timeout: 30_000 })
   await spectateButton.click()
+  await expect(page.getByText(/^Focused spectator view$/i)).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Back to Live list$/i })).toBeVisible()
   await expect(page.getByText(/^Spectator view$/i)).toBeVisible()
-  await expect(page.getByText(/^Read-only$/i)).toBeVisible()
+  await expect(page.getByText(/^Read-only$/i).first()).toBeVisible()
   await expect(page.getByText(/Read-only spectator view/i)).toBeVisible()
   await expect(page.getByLabel(/submitted/i)).toContainText(submittedGuess.toLocaleUpperCase('en-US'))
   await expect(page.getByRole('button', { name: /^Submit guess$/i })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^Forfeit$/i })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^Cancel game$/i })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^Join multiplayer match$/i })).toHaveCount(0)
+  await page.getByRole('button', { name: /^Back to Live list$/i }).click()
+  await expect(page.getByRole('tab', { name: /^Live$/i })).toBeVisible()
 }
 
 async function expectSignedOutLiveRestricted(page: Page): Promise<void> {

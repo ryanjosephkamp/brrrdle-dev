@@ -5,7 +5,9 @@
 
 ## 1. Current Snapshot
 
-- Post-Phase-26 roadmap routing was revised under `phase_id = 183`: Phase 27 is now competitive ranking, Elo/rank, ranked multiplayer, ranked matchmaking, competitive scoring boundaries, and leaderboard-ready data foundations. Phase 28 is public profiles, Phase 29 is leaderboards, Phase 30 is public/guest spectation through sanitized projections if still desired, Phase 31 is theme proposal/template modernization, and Phase 32 or later is full concrete theme implementation.
+- Post-Phase-27 roadmap routing was revised under `phase_id = 200`: Phase 28 is now Live v1 spectator and notification stabilization, current Daily spectation integrity, and low-risk Elo transparency. Public profiles move to Phase 29, leaderboards to Phase 30, multiplayer postgame actions to Phase 31, public/guest spectation to Phase 32, theme proposal/template modernization to Phase 33, and full concrete theme implementation to Phase 34 or later.
+- Phase 28 implementation and final hardening are complete under `phase_id = 211`; the next safe action is Phase 28 Git handoff preparation, not Phase 29 implementation.
+- Post-Phase-26 roadmap routing was revised under `phase_id = 183`: Phase 27 became competitive ranking, Elo/rank, ranked multiplayer, ranked matchmaking, competitive scoring boundaries, and leaderboard-ready data foundations. Its later-phase routing was superseded by the post-Phase-27 `phase_id = 200` routing above.
 - Repository: `brrrdle`.
 - Primary remote: `https://github.com/ryanjosephkamp/brrrdle`.
 - Current local branch during Stage 2 completion: `codex/phase-23-stage-1`.

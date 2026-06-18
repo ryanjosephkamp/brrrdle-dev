@@ -52,6 +52,11 @@ const spectatorGame: AuthenticatedLiveSpectatorGame = {
       ],
     },
   ],
+  outcome: {
+    label: 'In progress',
+    status: 'playing',
+    terminal: false,
+  },
   players: [
     { label: 'Host', profile: { displayName: 'Host player', initials: 'H' }, seat: 'player-one' },
     { label: 'Rival', profile: { displayName: 'Rival player', initials: 'R' }, seat: 'player-two' },
@@ -313,6 +318,42 @@ describe('multiplayer view models', () => {
     expect(selectRestrictedLiveMultiplayerCount({
       games: [participant, { ...matchingRestricted, id: spectatorGame.id }],
     }, 'host-user', [spectatorGame])).toBe(0)
+  })
+
+  it('keeps sanitized terminal spectator hold rows visible briefly with outcome copy', () => {
+    const terminalSpectatorGame: AuthenticatedLiveSpectatorGame = {
+      ...spectatorGame,
+      currentTurnSeat: undefined,
+      endedAt: '2026-06-04T15:05:00.000Z',
+      outcome: {
+        label: 'Player one won',
+        status: 'won',
+        terminal: true,
+        terminalAt: '2026-06-04T15:05:00.000Z',
+        winnerSeat: 'player-one',
+      },
+      status: 'won',
+      terminalAt: '2026-06-04T15:05:00.000Z',
+      terminalHoldUntil: '2026-06-04T15:05:15.000Z',
+      updatedAt: '2026-06-04T15:05:00.000Z',
+    }
+
+    const rows = selectLiveMultiplayerRows({ games: [] }, 'spectator-user', [terminalSpectatorGame])
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      detailLabel: 'Read-only · Player one won · Final · 1 turn submitted',
+      turnLabel: 'Player one won',
+      updatedAt: '2026-06-04T15:05:00.000Z',
+      viewerRole: 'spectator',
+    })
+    expect(rows[0].spectatorDetails).toMatchObject({
+      outcomeLabel: 'Player one won',
+      progressLabel: 'Final · 1 turn submitted',
+      terminal: true,
+      terminalHoldUntil: '2026-06-04T15:05:15.000Z',
+      terminalLabel: 'Player one won. Final board visible briefly.',
+    })
   })
 
   it('keeps Live v1 closed to anonymous users and nonparticipant terminal data', () => {

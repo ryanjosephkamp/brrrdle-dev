@@ -1,6 +1,13 @@
 import { Panel } from '../ui'
 import { normalizeCompetitiveMultiplayerState, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
-import { MULTIPLAYER_PROVISIONAL_GAMES, type MultiplayerRatingProfile } from './rating'
+import {
+  INITIAL_MULTIPLAYER_RATING,
+  MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE,
+  MULTIPLAYER_ESTABLISHED_K,
+  MULTIPLAYER_PROVISIONAL_GAMES,
+  MULTIPLAYER_PROVISIONAL_K,
+  type MultiplayerRatingProfile,
+} from './rating'
 
 interface MultiplayerStatsPanelProps {
   readonly state?: MultiplayerCompetitiveState
@@ -35,6 +42,21 @@ export function MultiplayerStatsPanel({ state }: MultiplayerStatsPanelProps) {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
+        <Panel className="space-y-3 text-sm text-slate-300 lg:col-span-2" tone="muted">
+          <h4 className="text-lg font-bold text-white">How ranked Elo works</h4>
+          <div className="grid gap-2 md:grid-cols-2">
+            <p className="rounded-lg border border-white/10 bg-black/30 p-3">
+              Ranked Practice starts each rating bucket at {INITIAL_MULTIPLAYER_RATING}. The first {MULTIPLAYER_PROVISIONAL_GAMES} ranked Practice games are provisional and move faster with K={MULTIPLAYER_PROVISIONAL_K}; established ratings use K={MULTIPLAYER_ESTABLISHED_K}.
+            </p>
+            <p className="rounded-lg border border-white/10 bg-black/30 p-3">
+              Elo movement uses the standard {MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE}-point expected-score curve: wins count as 1, draws as 0.5, and losses as 0. Match points decide the result first; trusted settlement moves Elo afterward.
+            </p>
+          </div>
+          <p className="text-xs leading-5 text-slate-400">
+            Only eligible ranked Practice v1 games affect Elo. Daily ranked, timed Practice ranked, public leaderboards, and public profiles remain deferred.
+          </p>
+        </Panel>
+
         <Panel className="space-y-3 text-sm text-slate-300" tone="muted">
           <h4 className="text-lg font-bold text-white">Rating buckets</h4>
           {competitive.rating.profiles.length > 0 ? (

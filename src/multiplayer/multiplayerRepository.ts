@@ -136,6 +136,7 @@ interface MultiplayerGameRow {
 }
 
 export type AuthenticatedLiveSpectatorSeat = 'player-one' | 'player-two'
+export type AuthenticatedLiveSpectatorStatus = 'playing' | 'won' | 'lost' | 'expired'
 
 export interface AuthenticatedLiveSpectatorPlayer {
   readonly seat: AuthenticatedLiveSpectatorSeat
@@ -171,24 +172,36 @@ export interface AuthenticatedLiveSpectatorCapabilities {
   readonly canSubmitGuess: false
 }
 
+export interface AuthenticatedLiveSpectatorOutcome {
+  readonly label: string
+  readonly status: AuthenticatedLiveSpectatorStatus
+  readonly terminal: boolean
+  readonly terminalAt?: string
+  readonly winnerSeat?: AuthenticatedLiveSpectatorSeat
+}
+
 export interface AuthenticatedLiveSpectatorGame {
   readonly createdAt: string
   readonly currentTurnSeat?: AuthenticatedLiveSpectatorSeat
   readonly dailyDateKey?: string
   readonly deadlineAt?: string
   readonly difficulty: DifficultyTier
+  readonly endedAt?: string
   readonly goPuzzleCount?: number
   readonly hardMode: boolean
   readonly id: string
   readonly mode: GameMode
   readonly moves: readonly AuthenticatedLiveSpectatorMove[]
+  readonly outcome: AuthenticatedLiveSpectatorOutcome
   readonly players: readonly AuthenticatedLiveSpectatorPlayer[]
   readonly progress: AuthenticatedLiveSpectatorProgress
   readonly ranked: boolean
   readonly ratingBucket?: string
   readonly scope: PlayScope
   readonly spectatorCapabilities: AuthenticatedLiveSpectatorCapabilities
-  readonly status: 'playing'
+  readonly status: AuthenticatedLiveSpectatorStatus
+  readonly terminalAt?: string
+  readonly terminalHoldUntil?: string
   readonly timeLimitMs?: number
   readonly updatedAt: string
   readonly wordLength: number
@@ -435,6 +448,10 @@ function parseDifficulty(value: unknown): DifficultyTier | undefined {
 
 function parseSeat(value: unknown): AuthenticatedLiveSpectatorSeat | undefined {
   return value === 'player-one' || value === 'player-two' ? value : undefined
+}
+
+function parseSpectatorStatus(value: unknown): AuthenticatedLiveSpectatorStatus | undefined {
+  return value === 'playing' || value === 'won' || value === 'lost' || value === 'expired' ? value : undefined
 }
 
 function parseTile(value: unknown): TileResult | undefined {
@@ -727,6 +744,25 @@ function parseSpectatorCapabilities(value: unknown): AuthenticatedLiveSpectatorC
   }
 }
 
+function parseSpectatorOutcome(value: unknown): AuthenticatedLiveSpectatorOutcome | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  const label = getString(value, 'label')
+  const status = parseSpectatorStatus(value.status)
+  const terminal = getBoolean(value, 'terminal')
+  if (!label || !status || terminal === undefined) {
+    return undefined
+  }
+  return {
+    label,
+    status,
+    terminal,
+    terminalAt: getString(value, 'terminalAt'),
+    winnerSeat: parseSeat(value.winnerSeat),
+  }
+}
+
 function parseAuthenticatedLiveSpectatorRow(row: unknown): AuthenticatedLiveSpectatorGame | undefined {
   if (!isRecord(row) || hasForbiddenSpectatorKey(row)) {
     return undefined
@@ -734,22 +770,33 @@ function parseAuthenticatedLiveSpectatorRow(row: unknown): AuthenticatedLiveSpec
   const id = getString(row, 'id')
   const scope = parseScope(row.scope)
   const mode = parseMode(row.mode)
-  const status = row.status === 'playing' ? row.status : undefined
+  const status = parseSpectatorStatus(row.status)
   const wordLength = getPositiveInteger(row, 'word_length')
   const difficulty = parseDifficulty(row.difficulty)
   const hardMode = getBoolean(row, 'hard_mode')
   const ranked = getBoolean(row, 'ranked')
   const createdAt = getString(row, 'created_at')
   const updatedAt = getString(row, 'updated_at')
+  const endedAt = getString(row, 'ended_at')
+  const terminalAt = getString(row, 'terminal_at')
+  const terminalHoldUntil = getString(row, 'terminal_hold_until')
   const players = parseSpectatorPlayers(row.players)
   const moves = parseSpectatorMoves(row.moves)
+  const outcome = parseSpectatorOutcome(row.outcome)
   const progress = parseSpectatorProgress(row.progress)
   const spectatorCapabilities = parseSpectatorCapabilities(row.spectator_capabilities)
+  const terminal = status !== undefined && status !== 'playing'
   if (
     !id || !scope || !mode || !status || !wordLength || !difficulty
     || hardMode === undefined || ranked === undefined || !createdAt || !updatedAt
-    || !players || !moves || !progress || !spectatorCapabilities
+    || !players || !moves || !outcome || !progress || !spectatorCapabilities
   ) {
+    return undefined
+  }
+  if (outcome.status !== status || outcome.terminal !== terminal) {
+    return undefined
+  }
+  if (terminal && (!terminalAt || !terminalHoldUntil)) {
     return undefined
   }
   return {
@@ -758,11 +805,13 @@ function parseAuthenticatedLiveSpectatorRow(row: unknown): AuthenticatedLiveSpec
     dailyDateKey: getString(row, 'daily_date_key'),
     deadlineAt: getString(row, 'deadline_at'),
     difficulty,
+    endedAt,
     goPuzzleCount: getPositiveInteger(row, 'go_puzzle_count'),
     hardMode,
     id,
     mode,
     moves,
+    outcome,
     players,
     progress,
     ranked,
@@ -770,17 +819,32 @@ function parseAuthenticatedLiveSpectatorRow(row: unknown): AuthenticatedLiveSpec
     scope,
     spectatorCapabilities,
     status,
+    terminalAt,
+    terminalHoldUntil,
     timeLimitMs: getPositiveInteger(row, 'time_limit_ms'),
     updatedAt,
     wordLength,
   }
 }
 
-export function normalizeAuthenticatedLiveSpectatorRows(value: unknown): readonly AuthenticatedLiveSpectatorGame[] {
+function getUtcDateKey(now: Date): string {
+  return Number.isNaN(now.getTime()) ? new Date().toISOString().slice(0, 10) : now.toISOString().slice(0, 10)
+}
+
+function isCurrentDailyLiveSpectatorRow(row: AuthenticatedLiveSpectatorGame, now: Date): boolean {
+  return row.scope === 'daily' && row.dailyDateKey === getUtcDateKey(now)
+}
+
+export function normalizeAuthenticatedLiveSpectatorRows(
+  value: unknown,
+  now = new Date(),
+): readonly AuthenticatedLiveSpectatorGame[] {
   if (!Array.isArray(value)) {
     return []
   }
-  return value.flatMap((row) => parseAuthenticatedLiveSpectatorRow(row) ?? [])
+  return value
+    .flatMap((row) => parseAuthenticatedLiveSpectatorRow(row) ?? [])
+    .filter((row) => !isCurrentDailyLiveSpectatorRow(row, now))
 }
 
 export function normalizeTrustedRankedSettlementRows(
@@ -796,14 +860,17 @@ export function normalizeTrustedRankedSettlementRows(
 export async function loadAuthenticatedLiveSpectatorRows(
   client: BrrrdleSupabaseClient,
   limit = 50,
+  terminalWindowSeconds = 15,
+  now = new Date(),
 ): Promise<readonly AuthenticatedLiveSpectatorGame[]> {
-  const { data, error } = await client.rpc('get_authenticated_live_v1_spectator_games', {
+  const { data, error } = await client.rpc('get_authenticated_live_v1_spectator_games_v2', {
     p_limit: Math.max(0, Math.min(100, Math.floor(limit))),
+    p_terminal_window_seconds: Math.max(0, Math.min(60, Math.floor(terminalWindowSeconds))),
   })
   if (error) {
     return []
   }
-  return normalizeAuthenticatedLiveSpectatorRows(data)
+  return normalizeAuthenticatedLiveSpectatorRows(data, now)
 }
 
 function getStorageRatingBucket(game: MultiplayerGame): 'async:og' | 'async:go' | null {

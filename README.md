@@ -55,6 +55,7 @@ It ships with guest progress, optional cloud accounts, post-game definitions, em
 - 👤 **Guest play** with full local progress, coins, levels, stats, settings, and history.
 - ☁️ **Optional Supabase accounts** with email verification, cloud sync, and a guest-to-account transfer prompt.
 - 🟦🟨⬜ **Classic emoji sharing** generated from canonical tile states.
+- 🏁 **Ranked Practice Multiplayer** with a transparent Elo model documented in [`docs/ranked-multiplayer.md`](docs/ranked-multiplayer.md).
 - 📱 **PWA shell** with offline caching where reasonable.
 - 🔊 **Toggleable sound effects** and a **Feedback** tab.
 - 🛡️ **Protected admin route** (`/api/admin-refresh`) for word-list refresh, gated by Supabase auth + an `admin` role.

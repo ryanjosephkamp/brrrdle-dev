@@ -21,12 +21,16 @@ import {
 import {
   activateNotificationItem,
   createNotificationViewModel,
+  dispatchBrowserNotification,
   dismissNotificationItem,
+  getBrowserNotificationFingerprints,
+  getBrowserNotificationPermissionState,
   getNotificationSoundFingerprints,
   loadNotificationMetadata,
   markNotificationItemRead,
   NotificationCenter,
   saveNotificationMetadata,
+  selectBrowserNotificationDispatches,
   selectNotificationSoundDecision,
   type NotificationItemViewModel,
   type NotificationMetadataState,
@@ -72,6 +76,9 @@ type RankedQueueActions = Pick<
   | 'finalizeRankedQueueGame'
   | 'getRankedQueueStatus'
 >
+
+const LIVE_SPECTATOR_ACTIVE_POLL_INTERVAL_MS = 5_000
+const LIVE_SPECTATOR_IDLE_POLL_INTERVAL_MS = 30_000
 
 function isSameResumeSlot(left: ResumeSlot | undefined, right: ResumeSlot): boolean {
   if (!left) {
@@ -226,6 +233,9 @@ function RoutePanel({
   onSoloDailyModeChange,
   onOpenSoloHistory,
   onOpenMultiplayerHistory,
+  onOpenFocusedLiveSpectatorGame,
+  onCloseFocusedLiveSpectatorGame,
+  onLiveSurfaceActiveChange,
   onHistoryFiltersChange,
   onResumeSoloGame,
   onResumeMultiplayerGame,
@@ -246,6 +256,7 @@ function RoutePanel({
   soloSubtab,
   selectedSoloGameKey,
   selectedMultiplayerGameId,
+  focusedLiveSpectatorGameId,
   multiplayerSubtab,
   historyFilters,
   resumeSlots,
@@ -282,6 +293,9 @@ function RoutePanel({
   readonly onSoloDailyModeChange: (mode: SoloMode) => void
   readonly onOpenSoloHistory: (filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => void
   readonly onOpenMultiplayerHistory: () => void
+  readonly onOpenFocusedLiveSpectatorGame: (id: string) => void
+  readonly onCloseFocusedLiveSpectatorGame: () => void
+  readonly onLiveSurfaceActiveChange: (active: boolean) => void
   readonly onHistoryFiltersChange: (filters: HistoryFilters) => void
   readonly onResumeSoloGame: (key: SoloActiveGameKey) => void
   readonly onResumeMultiplayerGame: (id: string) => void
@@ -296,6 +310,7 @@ function RoutePanel({
   readonly soloDailyMode: SoloMode
   readonly selectedSoloGameKey?: SoloActiveGameKey
   readonly selectedMultiplayerGameId?: string
+  readonly focusedLiveSpectatorGameId?: string
   readonly resumeSlots: ResumeSlotCollection
   readonly route: AppRoute
   readonly onSelectRoute: (routeId: AppRouteId) => void
@@ -476,7 +491,11 @@ function RoutePanel({
         attention={workspaceAttention.multiplayer}
         competitiveState={guestProgress.competitiveMultiplayer}
         dailyDateKey={multiplayerDailyDateKey}
+        focusedSpectatorGameId={focusedLiveSpectatorGameId}
+        onCloseFocusedSpectatorGame={onCloseFocusedLiveSpectatorGame}
+        onLiveSurfaceActiveChange={onLiveSurfaceActiveChange}
         onOpenHistory={onOpenMultiplayerHistory}
+        onOpenFocusedSpectatorGame={onOpenFocusedLiveSpectatorGame}
         onResumeGame={onResumeMultiplayerGame}
         onSelectGame={onSelectMultiplayerGame}
         onSubtabChange={onMultiplayerSubtabChange}
@@ -596,6 +615,7 @@ function AppInner() {
   const [profileBusy, setProfileBusy] = useState(false)
   const [syncStatus, setSyncStatus] = useState(() => createSyncStatus(supabaseClient ? 'idle' : 'error'))
   const [notificationMetadata, setNotificationMetadata] = useState(() => loadNotificationMetadata())
+  const browserNotificationFingerprintsRef = useRef<Set<string> | undefined>(undefined)
   const notificationSoundFingerprintsRef = useRef<Set<string> | undefined>(undefined)
   const [practiceMode, setPracticeModeState] = useState<PracticeMode>(() => initialNavigation.legacyPracticeMode)
   const [selectedSoloGameKey, setSelectedSoloGameKey] = useState<SoloActiveGameKey | undefined>(() => (
@@ -605,6 +625,8 @@ function AppInner() {
   const [soloSubtab, setSoloSubtab] = useState<SoloSubtabId>(() => initialNavigation.soloSubtab)
   const [multiplayerSubtab, setMultiplayerSubtab] = useState<MultiplayerSubtabId>(() => initialNavigation.multiplayerSubtab)
   const [selectedMultiplayerGameId, setSelectedMultiplayerGameId] = useState<string | undefined>(() => initialNavigation.selectedMultiplayerGameId)
+  const [focusedLiveSpectatorGameId, setFocusedLiveSpectatorGameId] = useState<string | undefined>(undefined)
+  const [multiplayerLiveSurfaceActive, setMultiplayerLiveSurfaceActive] = useState(false)
   const [historyFilters, setHistoryFilters] = useState(() => initialNavigation.historyFilters)
   const [dailyAlerting, setDailyAlerting] = useState(false)
   const [dailyMultiplayerAlerting, setDailyMultiplayerAlerting] = useState(false)
@@ -613,6 +635,8 @@ function AppInner() {
   const autoResumedRef = useRef(false)
   const guestProgressRef = useRef(guestProgress)
   const activeRoute = getRouteById(activeRouteId)
+  const liveSpectatorSurfaceActive = activeRouteId === 'multiplayer'
+    && (multiplayerLiveSurfaceActive || Boolean(focusedLiveSpectatorGameId))
   const resumeSlots = useMemo(() => normalizeResumeSlots(guestProgress.resumeSlots), [guestProgress.resumeSlots])
   const isAdmin = authState.user?.roles.includes('admin') ?? false
   const prismRoutes = useMemo(() => getPrimaryNavigationRoutes(isAdmin), [isAdmin])
@@ -735,6 +759,47 @@ function AppInner() {
       ...currentFingerprints,
     ])
   }, [guestProgress.settings, notifications.items, sound])
+  useEffect(() => {
+    const currentFingerprints = getBrowserNotificationFingerprints(notifications.items)
+    const previousFingerprints = browserNotificationFingerprintsRef.current
+
+    if (!previousFingerprints) {
+      browserNotificationFingerprintsRef.current = new Set(currentFingerprints)
+      return
+    }
+
+    const decisions = selectBrowserNotificationDispatches({
+      documentHidden: typeof document !== 'undefined' && document.visibilityState === 'hidden',
+      items: notifications.items,
+      permission: getBrowserNotificationPermissionState(),
+      preferences: guestProgress.settings,
+      previousFingerprints: Array.from(previousFingerprints),
+      routeContext: {
+        activeRouteId,
+        multiplayerSubtab,
+        selectedMultiplayerGameId,
+        selectedSoloGameKey,
+        soloSubtab,
+      },
+    })
+
+    decisions.forEach((decision) => {
+      dispatchBrowserNotification(decision.item)
+    })
+
+    browserNotificationFingerprintsRef.current = new Set([
+      ...Array.from(previousFingerprints),
+      ...currentFingerprints,
+    ])
+  }, [
+    activeRouteId,
+    guestProgress.settings,
+    multiplayerSubtab,
+    notifications.items,
+    selectedMultiplayerGameId,
+    selectedSoloGameKey,
+    soloSubtab,
+  ])
   const handlePracticeModeChange = useCallback((mode: PracticeMode) => {
     setPracticeModeState(mode)
     setSoloSubtab('practice')
@@ -754,12 +819,35 @@ function AppInner() {
     saveNavigationState({ selectedSoloGameKey: key })
   }, [])
   const handleMultiplayerSubtabChange = useCallback((subtab: MultiplayerSubtabId) => {
+    if (subtab !== 'live') {
+      setFocusedLiveSpectatorGameId(undefined)
+    }
     setMultiplayerSubtab(subtab)
     saveNavigationState({ multiplayerSubtab: subtab })
   }, [])
   const handleSelectMultiplayerGame = useCallback((id: string) => {
+    setFocusedLiveSpectatorGameId(undefined)
     setSelectedMultiplayerGameId(id)
     saveNavigationState({ selectedMultiplayerGameId: id })
+  }, [])
+  const handleOpenFocusedLiveSpectatorGame = useCallback((id: string) => {
+    setFocusedLiveSpectatorGameId(id)
+    setSelectedMultiplayerGameId(id)
+    setActiveRouteId('multiplayer')
+    setMultiplayerSubtab('live')
+    saveNavigationState({
+      activeRouteId: 'multiplayer',
+      multiplayerSubtab: 'live',
+      selectedMultiplayerGameId: id,
+    })
+  }, [])
+  const handleCloseFocusedLiveSpectatorGame = useCallback(() => {
+    setFocusedLiveSpectatorGameId(undefined)
+    setMultiplayerSubtab('live')
+    saveNavigationState({ multiplayerSubtab: 'live' })
+  }, [])
+  const handleLiveSurfaceActiveChange = useCallback((active: boolean) => {
+    setMultiplayerLiveSurfaceActive(active)
   }, [])
   const handlePracticeSeedAdvance = useCallback((mode: PracticeMode) => {
     setGuestProgress((currentProgress) => {
@@ -774,6 +862,7 @@ function AppInner() {
     // deep link to them gracefully redirects into the Calendar with today's
     // daily for the requested mode pre-launched.
     if (routeId === 'og-daily' || routeId === 'go-daily') {
+      setFocusedLiveSpectatorGameId(undefined)
       setCalendarLaunch({ mode: routeId === 'og-daily' ? 'og' : 'go', dateKey: daily.dateKey })
       setActiveRouteId('calendar')
       setSoloSubtab('daily')
@@ -781,10 +870,14 @@ function AppInner() {
       return
     }
     if (routeId === 'practice') {
+      setFocusedLiveSpectatorGameId(undefined)
       setSoloSubtab('practice')
       saveNavigationState({ activeRouteId: 'solo', soloSubtab: 'practice' })
       setActiveRouteId('solo')
       return
+    }
+    if (routeId !== 'multiplayer') {
+      setFocusedLiveSpectatorGameId(undefined)
     }
     setActiveRouteId(routeId)
     saveNavigationState({ activeRouteId: routeId })
@@ -1014,6 +1107,7 @@ function AppInner() {
       return
     }
     const nextSubtab: MultiplayerSubtabId = game.scope === 'daily' ? 'daily' : 'practice'
+    setFocusedLiveSpectatorGameId(undefined)
     setSelectedMultiplayerGameId(id)
     setActiveRouteId('multiplayer')
     setMultiplayerSubtab(nextSubtab)
@@ -1308,14 +1402,19 @@ function AppInner() {
 
   useEffect(() => {
     if (!authenticatedMultiplayerUserId || !supabaseClient) {
-      const timeoutId = setTimeout(() => setLiveSpectatorRows([]), 0)
+      const timeoutId = setTimeout(() => {
+        setLiveSpectatorRows([])
+        setFocusedLiveSpectatorGameId(undefined)
+      }, 0)
       return () => clearTimeout(timeoutId)
     }
 
     let isActive = true
     let inFlight = false
+    let intervalId: ReturnType<typeof setInterval> | undefined
+    const isDocumentVisible = () => typeof document === 'undefined' || document.visibilityState === 'visible'
     const refresh = () => {
-      if (inFlight) {
+      if (inFlight || !isDocumentVisible()) {
         return
       }
       inFlight = true
@@ -1334,14 +1433,42 @@ function AppInner() {
           inFlight = false
         })
     }
+    const clearScheduledRefresh = () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = undefined
+      }
+    }
+    const scheduleRefresh = () => {
+      clearScheduledRefresh()
+      if (!isDocumentVisible()) {
+        return
+      }
+      const intervalMs = liveSpectatorSurfaceActive
+        ? LIVE_SPECTATOR_ACTIVE_POLL_INTERVAL_MS
+        : LIVE_SPECTATOR_IDLE_POLL_INTERVAL_MS
+      intervalId = setInterval(refresh, intervalMs)
+    }
+    const handleVisibilityChange = () => {
+      if (isDocumentVisible()) {
+        refresh()
+      }
+      scheduleRefresh()
+    }
 
     refresh()
-    const intervalId = setInterval(refresh, 30_000)
+    scheduleRefresh()
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
     return () => {
       isActive = false
-      clearInterval(intervalId)
+      clearScheduledRefresh()
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
     }
-  }, [authenticatedMultiplayerUserId, supabaseClient])
+  }, [authenticatedMultiplayerUserId, liveSpectatorSurfaceActive, supabaseClient])
 
   useEffect(() => () => {
     if (dailyAlertTimeoutRef.current) {
@@ -1572,7 +1699,10 @@ function AppInner() {
             onMarkPastDailyUnlocked={handleMarkPastDailyUnlocked}
             onMultiplayerSubtabChange={handleMultiplayerSubtabChange}
             onOpenAuthModal={handleOpenAuthModal}
+            onCloseFocusedLiveSpectatorGame={handleCloseFocusedLiveSpectatorGame}
+            onLiveSurfaceActiveChange={handleLiveSurfaceActiveChange}
             onOpenMultiplayerHistory={handleOpenMultiplayerHistory}
+            onOpenFocusedLiveSpectatorGame={handleOpenFocusedLiveSpectatorGame}
             onOpenProfilePanel={handleOpenProfilePanel}
             onOpenSoloHistory={handleOpenSoloHistory}
             onPracticeModeChange={handlePracticeModeChange}
@@ -1599,6 +1729,7 @@ function AppInner() {
             multiplayerSubtab={multiplayerSubtab}
             resumeSlots={resumeSlots}
             route={activeRoute}
+            focusedLiveSpectatorGameId={focusedLiveSpectatorGameId}
             selectedMultiplayerGameId={selectedMultiplayerGameId}
             selectedSoloGameKey={selectedSoloGameKey}
             soundEnabled={sound.enabled}
