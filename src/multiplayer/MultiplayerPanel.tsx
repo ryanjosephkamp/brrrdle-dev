@@ -33,11 +33,6 @@ import type { MultiplayerProfileSummary } from './dailyMultiplayer'
 import { normalizeCompetitiveMultiplayerState, upsertCustomGameLobby, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
 import { MultiplayerGameSurface } from './MultiplayerGameSurface'
 import {
-  INITIAL_MULTIPLAYER_RATING,
-  MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE,
-  MULTIPLAYER_ESTABLISHED_K,
-  MULTIPLAYER_PROVISIONAL_GAMES,
-  MULTIPLAYER_PROVISIONAL_K,
   getRatingBucket,
 } from './rating'
 import type { MultiplayerRepository, RankedQueueStatusResult } from './multiplayerRepository'
@@ -75,6 +70,7 @@ interface MultiplayerPanelProps {
   readonly defaultGoPuzzleCount: GoPuzzleCount
   readonly onChange: (state: MultiplayerState) => void
   readonly onCompetitiveChange?: (state: MultiplayerCompetitiveState) => void
+  readonly onOpenEloAbout?: () => void
   readonly onSelectedGameChange?: (gameId: string) => void
   readonly rankedQueueActions?: RankedQueueActions
   readonly readOnly?: boolean
@@ -251,6 +247,7 @@ export function MultiplayerPanel({
   defaultGoPuzzleCount,
   onChange,
   onCompetitiveChange,
+  onOpenEloAbout,
   onSelectedGameChange,
   rankedQueueActions,
   readOnly = false,
@@ -823,15 +820,17 @@ export function MultiplayerPanel({
           </div>
           {scope === 'practice' ? (
             <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-50">
-              <p className="font-bold uppercase tracking-wide">Ranked Practice v1</p>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="font-bold uppercase tracking-wide">Ranked Practice v1</p>
+                {onOpenEloAbout ? (
+                  <Button onClick={onOpenEloAbout} size="sm" variant="ghost">How is Elo calculated?</Button>
+                ) : null}
+              </div>
               <p className="mt-1">
                 Ranked is signed-in, untimed Practice only. The queue matches mode, word length, Hard Mode, and rating bucket; Daily ranked and timed Practice ranked remain deferred.
               </p>
               <p className="mt-1">
-                Points decide the match result. Elo changes only after trusted settlement confirms durable ranked evidence against your rival&apos;s rating.
-              </p>
-              <p className="mt-1">
-                Each ranked bucket starts at {INITIAL_MULTIPLAYER_RATING}. Your first {MULTIPLAYER_PROVISIONAL_GAMES} ranked Practice games are provisional with K={MULTIPLAYER_PROVISIONAL_K}; established games use K={MULTIPLAYER_ESTABLISHED_K}. Expected score uses the standard {MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE}-point Elo curve, and win/draw/loss count as 1/0.5/0 for rating movement.
+                Points decide the match result first. Elo changes afterward only after trusted settlement confirms durable ranked evidence.
               </p>
             </div>
           ) : (

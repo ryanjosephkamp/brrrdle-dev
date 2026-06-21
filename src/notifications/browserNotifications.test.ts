@@ -244,4 +244,49 @@ describe('browser notification helpers', () => {
     expect(dispatchBrowserNotification(item('multiplayer-completed'), runtime)).toBe(false)
     expect(calls).toHaveLength(1)
   })
+
+  it('routes foreground browser notification clicks through the live page callback and best-effort focus', () => {
+    const calls: Array<{ readonly title: string; readonly options?: NotificationOptions }> = []
+    const clicks: NotificationItemViewModel[] = []
+    let focusCalls = 0
+    let closeCalls = 0
+
+    class FakeNotification {
+      static latest: FakeNotification | undefined
+      static permission: NotificationPermission = 'granted'
+      static requestPermission = async () => 'granted' as NotificationPermission
+      onclick: ((event: Event) => void) | null = null
+
+      constructor(title: string, options?: NotificationOptions) {
+        calls.push({ options, title })
+        FakeNotification.latest = this
+      }
+
+      close() {
+        closeCalls += 1
+      }
+    }
+
+    const turn = item('multiplayer-your-turn')
+
+    expect(dispatchBrowserNotification(turn, {
+      Notification: FakeNotification,
+      focus: () => {
+        focusCalls += 1
+      },
+    }, {
+      onClick: (clickedItem) => {
+        clicks.push(clickedItem)
+      },
+    })).toBe(true)
+
+    expect(calls).toHaveLength(1)
+    expect(FakeNotification.latest?.onclick).toBeTypeOf('function')
+
+    FakeNotification.latest?.onclick?.(new Event('click'))
+
+    expect(focusCalls).toBe(1)
+    expect(closeCalls).toBe(1)
+    expect(clicks).toEqual([turn])
+  })
 })

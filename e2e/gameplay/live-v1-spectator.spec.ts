@@ -46,10 +46,19 @@ async function expectParticipantLiveResume(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: /^Resume live game$/i })).toBeVisible({ timeout: 30_000 })
 }
 
-async function expectSpectatorLiveReadOnly(page: Page, submittedGuess: string): Promise<void> {
+async function expectSpectatorLiveReadOnly(
+  page: Page,
+  submittedGuess: string,
+  participantDisplayNames: readonly [string, string],
+): Promise<void> {
   await page.getByRole('button', { name: /^Multiplayer$/i }).click()
   await page.getByRole('tab', { name: /^Live$/i }).click()
-  const liveGame = page.getByLabel(/^Practice Multiplayer OG$/i)
+  const submittedGuessLabel = submittedGuess.toLocaleUpperCase('en-US')
+  const liveGame = page
+    .getByLabel(/^Practice Multiplayer OG$/i)
+    .filter({ hasText: participantDisplayNames[0] })
+    .filter({ hasText: participantDisplayNames[1] })
+    .first()
   const spectateButton = liveGame.getByRole('button', { name: /^Spectate live game$/i })
   await expect(spectateButton).toBeVisible({ timeout: 30_000 })
   await spectateButton.click()
@@ -58,7 +67,7 @@ async function expectSpectatorLiveReadOnly(page: Page, submittedGuess: string): 
   await expect(page.getByText(/^Spectator view$/i)).toBeVisible()
   await expect(page.getByText(/^Read-only$/i).first()).toBeVisible()
   await expect(page.getByText(/Read-only spectator view/i)).toBeVisible()
-  await expect(page.getByLabel(/submitted/i)).toContainText(submittedGuess.toLocaleUpperCase('en-US'))
+  await expect(page.getByLabel(/submitted/i)).toContainText(submittedGuessLabel)
   await expect(page.getByRole('button', { name: /^Submit guess$/i })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^Forfeit$/i })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^Cancel game$/i })).toHaveCount(0)
@@ -122,7 +131,7 @@ test.describe('Live v1 spectator @multiplayer', () => {
         await spectator.page.setViewportSize(viewport)
         await signedOutPage.setViewportSize(viewport)
         await expectParticipantLiveResume(host.page)
-        await expectSpectatorLiveReadOnly(spectator.page, wrongGuess)
+        await expectSpectatorLiveReadOnly(spectator.page, wrongGuess, [host.user.displayName, rival.user.displayName])
         await expectSignedOutLiveRestricted(signedOutPage)
       }
 

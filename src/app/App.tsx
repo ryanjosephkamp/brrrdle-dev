@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, PasswordResetModal, ProfilePanel, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type GuestProgressState, type PracticeSeedState, type ProfileAccentColor, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, PasswordResetModal, ProfilePanel, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -28,6 +28,7 @@ import {
   getNotificationSoundFingerprints,
   loadNotificationMetadata,
   markNotificationItemRead,
+  markVisibleNotificationItemsRead,
   NotificationCenter,
   saveNotificationMetadata,
   selectBrowserNotificationDispatches,
@@ -36,6 +37,11 @@ import {
   type NotificationMetadataState,
 } from '../notifications'
 import {
+  INITIAL_MULTIPLAYER_RATING,
+  MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE,
+  MULTIPLAYER_ESTABLISHED_K,
+  MULTIPLAYER_PROVISIONAL_GAMES,
+  MULTIPLAYER_PROVISIONAL_K,
   createLocalStorageMultiplayerRepository,
   loadAuthenticatedLiveSpectatorRows,
   createMultiplayerProfileSummary,
@@ -79,6 +85,7 @@ type RankedQueueActions = Pick<
 
 const LIVE_SPECTATOR_ACTIVE_POLL_INTERVAL_MS = 5_000
 const LIVE_SPECTATOR_IDLE_POLL_INTERVAL_MS = 30_000
+export const RANKED_ELO_ABOUT_SECTION_ID = 'ranked-elo-about'
 
 function isSameResumeSlot(left: ResumeSlot | undefined, right: ResumeSlot): boolean {
   if (!left) {
@@ -110,6 +117,7 @@ function PracticeGameSwitcher({
   onSaveDifficultyDefault,
   onSaveGoPuzzleCountDefault,
   onSpendCoins,
+  onOpenEloAbout,
   practiceMode,
   practiceSeeds,
   rankedQueueActions,
@@ -141,6 +149,7 @@ function PracticeGameSwitcher({
   readonly resumeSlots: ResumeSlotCollection
   readonly viewerUserId?: string
   readonly viewerProfile?: MultiplayerProfileSummary
+  readonly onOpenEloAbout?: () => void
 }) {
   const practiceOgResume = resumeSlots['practice-og']
   const practiceGoResume = resumeSlots['practice-go']
@@ -161,6 +170,7 @@ function PracticeGameSwitcher({
         defaultGoPuzzleCount={defaultGoPuzzleCount}
         onChange={onMultiplayerChange}
         onCompetitiveChange={onCompetitiveMultiplayerChange}
+        onOpenEloAbout={onOpenEloAbout}
         rankedQueueActions={rankedQueueActions}
         scope="practice"
         state={multiplayer}
@@ -183,7 +193,7 @@ function getAuthDisplay(authState: AuthState): string {
   return 'Guest'
 }
 
-function AboutBrrrdlePanel() {
+export function AboutBrrrdlePanel() {
   return (
     <section className="space-y-5" aria-labelledby="about-brrrdle-title">
       <div className="space-y-2">
@@ -207,6 +217,54 @@ function AboutBrrrdlePanel() {
           <p className="font-semibold text-cyan-100">Credits</p>
           <p>Release notes, design notes, feedback, and account controls live in their dedicated workspaces.</p>
         </div>
+      </Panel>
+
+      <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
+        <section
+          aria-labelledby="ranked-elo-about-title"
+          className="space-y-4"
+          id={RANKED_ELO_ABOUT_SECTION_ID}
+          tabIndex={-1}
+        >
+          <div className="space-y-2">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100">Ranked transparency</p>
+            <h3 id="ranked-elo-about-title" className="text-2xl font-bold text-white">How Elo is calculated</h3>
+            <p>
+              Ranked Practice v1 is signed-in, untimed Practice only. Daily ranked and timed Practice ranked remain deferred, and public leaderboards are planned separately.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+              <p className="font-semibold text-cyan-100">Rating buckets</p>
+              <p className="mt-1">
+                Each mode has its own ranked bucket, such as multiplayer OG or multiplayer GO. Every bucket starts at {INITIAL_MULTIPLAYER_RATING}, so an OG rating and a GO rating can move independently.
+              </p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+              <p className="font-semibold text-cyan-100">Provisional games and K factor</p>
+              <p className="mt-1">
+                K is the rating-movement multiplier. Your first {MULTIPLAYER_PROVISIONAL_GAMES} ranked Practice games in a bucket are provisional and use K={MULTIPLAYER_PROVISIONAL_K}; established games use K={MULTIPLAYER_ESTABLISHED_K} for steadier movement.
+              </p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+              <p className="font-semibold text-cyan-100">Expected score</p>
+              <p className="mt-1">
+                brrrdle uses the standard {MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE}-point Elo curve: expected score = 1 / (1 + 10 ^ ((opponent rating - your rating) / {MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE})).
+              </p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+              <p className="font-semibold text-cyan-100">Outcome scores</p>
+              <p className="mt-1">
+                Wins count as 1, draws count as 0.5, and losses count as 0. Your rating delta is K times the difference between your actual outcome score and your expected score, rounded to a whole number.
+              </p>
+            </div>
+          </div>
+
+          <p className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-cyan-50">
+            Match points decide the match result first. Elo movement happens afterward only when trusted settlement confirms durable ranked Practice evidence against your rival's rating. Local previews, spectators, custom games, Daily games, timed Practice games, guest games, corrupt evidence, and unranked games do not move Elo.
+          </p>
+        </section>
       </Panel>
     </section>
   )
@@ -272,6 +330,7 @@ function RoutePanel({
   calendarLaunch,
   onCalendarLaunchConsumed,
   rankedQueueActions,
+  onOpenEloAbout,
 }: {
   readonly authState: AuthState
   readonly authMessage?: string
@@ -332,6 +391,7 @@ function RoutePanel({
   readonly calendarLaunch: CalendarLaunchRequest | null
   readonly onCalendarLaunchConsumed: () => void
   readonly rankedQueueActions?: RankedQueueActions
+  readonly onOpenEloAbout?: () => void
 }) {
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
     ? createMultiplayerProfileSummary(authState.user.profile, 'Player')
@@ -411,6 +471,7 @@ function RoutePanel({
       defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
         onChange={onMultiplayerChange}
         onCompetitiveChange={onCompetitiveMultiplayerChange}
+        onOpenEloAbout={onOpenEloAbout}
         onSelectedGameChange={onSelectMultiplayerGame}
         rankedQueueActions={rankedQueueActions}
         scope={scope}
@@ -481,7 +542,7 @@ function RoutePanel({
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
+    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
   }
 
   if (route.id === 'multiplayer') {
@@ -530,7 +591,7 @@ function RoutePanel({
   }
 
   if (route.id === 'stats') {
-    return <StatsDashboard competitiveMultiplayer={guestProgress.competitiveMultiplayer} history={guestProgress.history} progression={guestProgress.progression} stats={guestProgress.stats} />
+    return <StatsDashboard competitiveMultiplayer={guestProgress.competitiveMultiplayer} history={guestProgress.history} onOpenEloAbout={onOpenEloAbout} progression={guestProgress.progression} stats={guestProgress.stats} />
   }
 
   if (route.id === 'settings') {
@@ -613,6 +674,9 @@ function AppInner() {
   const [profilePanelOpen, setProfilePanelOpen] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | undefined>(undefined)
   const [profileBusy, setProfileBusy] = useState(false)
+  const [publicProfile, setPublicProfile] = useState<OwnerPublicProfile | undefined>(undefined)
+  const [publicProfileMessage, setPublicProfileMessage] = useState<string | undefined>(undefined)
+  const [publicProfileBusy, setPublicProfileBusy] = useState(false)
   const [syncStatus, setSyncStatus] = useState(() => createSyncStatus(supabaseClient ? 'idle' : 'error'))
   const [notificationMetadata, setNotificationMetadata] = useState(() => loadNotificationMetadata())
   const browserNotificationFingerprintsRef = useRef<Set<string> | undefined>(undefined)
@@ -759,47 +823,6 @@ function AppInner() {
       ...currentFingerprints,
     ])
   }, [guestProgress.settings, notifications.items, sound])
-  useEffect(() => {
-    const currentFingerprints = getBrowserNotificationFingerprints(notifications.items)
-    const previousFingerprints = browserNotificationFingerprintsRef.current
-
-    if (!previousFingerprints) {
-      browserNotificationFingerprintsRef.current = new Set(currentFingerprints)
-      return
-    }
-
-    const decisions = selectBrowserNotificationDispatches({
-      documentHidden: typeof document !== 'undefined' && document.visibilityState === 'hidden',
-      items: notifications.items,
-      permission: getBrowserNotificationPermissionState(),
-      preferences: guestProgress.settings,
-      previousFingerprints: Array.from(previousFingerprints),
-      routeContext: {
-        activeRouteId,
-        multiplayerSubtab,
-        selectedMultiplayerGameId,
-        selectedSoloGameKey,
-        soloSubtab,
-      },
-    })
-
-    decisions.forEach((decision) => {
-      dispatchBrowserNotification(decision.item)
-    })
-
-    browserNotificationFingerprintsRef.current = new Set([
-      ...Array.from(previousFingerprints),
-      ...currentFingerprints,
-    ])
-  }, [
-    activeRouteId,
-    guestProgress.settings,
-    multiplayerSubtab,
-    notifications.items,
-    selectedMultiplayerGameId,
-    selectedSoloGameKey,
-    soloSubtab,
-  ])
   const handlePracticeModeChange = useCallback((mode: PracticeMode) => {
     setPracticeModeState(mode)
     setSoloSubtab('practice')
@@ -882,6 +905,22 @@ function AppInner() {
     setActiveRouteId(routeId)
     saveNavigationState({ activeRouteId: routeId })
   }, [daily.dateKey])
+  const handleOpenEloAbout = useCallback(() => {
+    handleNavigate('about')
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return
+    }
+    window.setTimeout(() => {
+      const section = document.getElementById(RANKED_ELO_ABOUT_SECTION_ID)
+      if (!section) {
+        return
+      }
+      section.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      if (section instanceof HTMLElement) {
+        section.focus({ preventScroll: true })
+      }
+    }, 0)
+  }, [handleNavigate])
   const handleCountdownActivate = useCallback(() => {
     setDailyAlerting(false)
     setCalendarLaunch({ mode: 'og', dateKey: daily.dateKey })
@@ -1064,6 +1103,9 @@ function AppInner() {
   const handleMarkNotificationRead = useCallback((item: NotificationItemViewModel) => {
     markNotificationItemRead(item, updateNotificationMetadata)
   }, [updateNotificationMetadata])
+  const handleMarkAllNotificationsRead = useCallback((items: readonly NotificationItemViewModel[]) => {
+    markVisibleNotificationItemsRead(items, updateNotificationMetadata)
+  }, [updateNotificationMetadata])
   const handleDismissNotification = useCallback((item: NotificationItemViewModel) => {
     dismissNotificationItem(item, updateNotificationMetadata)
   }, [updateNotificationMetadata])
@@ -1073,6 +1115,50 @@ function AppInner() {
       updateMetadata: updateNotificationMetadata,
     })
   }, [dashboardActionHandlers, updateNotificationMetadata])
+  useEffect(() => {
+    const currentFingerprints = getBrowserNotificationFingerprints(notifications.items)
+    const previousFingerprints = browserNotificationFingerprintsRef.current
+
+    if (!previousFingerprints) {
+      browserNotificationFingerprintsRef.current = new Set(currentFingerprints)
+      return
+    }
+
+    const decisions = selectBrowserNotificationDispatches({
+      documentHidden: typeof document !== 'undefined' && document.visibilityState === 'hidden',
+      items: notifications.items,
+      permission: getBrowserNotificationPermissionState(),
+      preferences: guestProgress.settings,
+      previousFingerprints: Array.from(previousFingerprints),
+      routeContext: {
+        activeRouteId,
+        multiplayerSubtab,
+        selectedMultiplayerGameId,
+        selectedSoloGameKey,
+        soloSubtab,
+      },
+    })
+
+    decisions.forEach((decision) => {
+      dispatchBrowserNotification(decision.item, undefined, {
+        onClick: handleNotificationAction,
+      })
+    })
+
+    browserNotificationFingerprintsRef.current = new Set([
+      ...Array.from(previousFingerprints),
+      ...currentFingerprints,
+    ])
+  }, [
+    activeRouteId,
+    guestProgress.settings,
+    handleNotificationAction,
+    multiplayerSubtab,
+    notifications.items,
+    selectedMultiplayerGameId,
+    selectedSoloGameKey,
+    soloSubtab,
+  ])
   const handleResumeSoloGame = useCallback((key: SoloActiveGameKey) => {
     const slot = resumeSlots[key]
     if (!slot) {
@@ -1293,6 +1379,7 @@ function AppInner() {
       }
 
       setAuthState({ status: 'anonymous' })
+      setPublicProfile(undefined)
       setAuthModalOpen(false)
       setPasswordResetOpen(false)
       setProfilePanelOpen(false)
@@ -1307,11 +1394,52 @@ function AppInner() {
   }, [])
   const handleOpenProfilePanel = useCallback(() => {
     setProfileMessage(undefined)
+    setPublicProfileMessage(undefined)
     setProfilePanelOpen(true)
   }, [])
   const handleCloseProfilePanel = useCallback(() => {
     setProfilePanelOpen(false)
   }, [])
+  useEffect(() => {
+    if (!profilePanelOpen) {
+      return
+    }
+    if (authState.status !== 'authenticated' || !authState.user || !supabaseClient) {
+      return
+    }
+
+    let cancelled = false
+    const repository = createSupabasePublicProfileRepository(supabaseClient)
+    void Promise.resolve()
+      .then(() => {
+        if (!cancelled) {
+          setPublicProfileBusy(true)
+          setPublicProfileMessage(undefined)
+        }
+        return repository.loadMine()
+      })
+      .then((profile) => {
+        if (cancelled) {
+          return
+        }
+        setPublicProfile(profile)
+        setPublicProfileMessage(profile ? undefined : 'No public profile saved yet. Visibility starts private.')
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPublicProfileMessage('Unable to load public profile right now.')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPublicProfileBusy(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [authState.status, authState.user, profilePanelOpen, supabaseClient])
   const handleAccountHudClick = useCallback(() => {
     if (authState.status === 'authenticated') {
       handleOpenProfilePanel()
@@ -1367,6 +1495,26 @@ function AppInner() {
     setAuthState(fresh)
     setProfilePanelOpen(false)
   }, [supabaseClient])
+  const handleSavePublicProfile = useCallback(async (input: PublicProfileUpdateInput) => {
+    if (!supabaseClient || authState.status !== 'authenticated' || !authState.user) {
+      setPublicProfileMessage('Sign in to save a public profile.')
+      return
+    }
+    setPublicProfileMessage(undefined)
+    setPublicProfileBusy(true)
+    try {
+      const repository = createSupabasePublicProfileRepository(supabaseClient)
+      const saved = await repository.saveMine(input, authState.user.id)
+      setPublicProfile(saved)
+      setPublicProfileMessage(saved.visibility === 'public'
+        ? 'Public profile saved and visible.'
+        : 'Public profile saved privately.')
+    } catch (error) {
+      setPublicProfileMessage(error instanceof Error ? error.message : 'Unable to save public profile right now.')
+    } finally {
+      setPublicProfileBusy(false)
+    }
+  }, [authState, supabaseClient])
 
   useEffect(() => {
     guestProgressRef.current = guestProgress
@@ -1587,6 +1735,7 @@ function AppInner() {
             <NotificationCenter
               onActivate={handleNotificationAction}
               onDismiss={handleDismissNotification}
+              onMarkAllRead={handleMarkAllNotificationsRead}
               onMarkRead={handleMarkNotificationRead}
               viewModel={notifications}
             />
@@ -1698,6 +1847,7 @@ function AppInner() {
             onHistoryFiltersChange={handleHistoryFiltersChange}
             onMarkPastDailyUnlocked={handleMarkPastDailyUnlocked}
             onMultiplayerSubtabChange={handleMultiplayerSubtabChange}
+            onOpenEloAbout={handleOpenEloAbout}
             onOpenAuthModal={handleOpenAuthModal}
             onCloseFocusedLiveSpectatorGame={handleCloseFocusedLiveSpectatorGame}
             onLiveSurfaceActiveChange={handleLiveSurfaceActiveChange}
@@ -1771,7 +1921,11 @@ function AppInner() {
         isOpen={profilePanelOpen}
         onClose={handleCloseProfilePanel}
         onSave={handleSaveProfile}
+        onSavePublicProfile={handleSavePublicProfile}
         onSignOut={handleSignOut}
+        publicProfile={publicProfile}
+        publicProfileBusy={publicProfileBusy}
+        publicProfileStatusMessage={publicProfileMessage}
         statusMessage={profileMessage}
         supabaseClient={supabaseClient}
       />

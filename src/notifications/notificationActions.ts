@@ -31,6 +31,26 @@ export function markNotificationItemRead(
   )
 }
 
+export function markVisibleNotificationItemsRead(
+  items: readonly NotificationItemViewModel[],
+  updateMetadata: NotificationMetadataUpdater,
+  now?: () => string,
+): void {
+  const visibleUnreadItems = items.filter((item) => !item.dismissed && !item.read)
+  if (visibleUnreadItems.length === 0) {
+    return
+  }
+
+  const readAt = getTimestamp(now)
+  updateMetadata((current) =>
+    visibleUnreadItems.reduce((next, item) => markNotificationRead(next, {
+      fingerprint: item.fingerprint,
+      id: item.id,
+      readAt,
+    }), current),
+  )
+}
+
 export function dismissNotificationItem(
   item: NotificationItemViewModel,
   updateMetadata: NotificationMetadataUpdater,

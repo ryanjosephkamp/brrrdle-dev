@@ -3,6 +3,7 @@ import { expect } from '@playwright/test'
 import { createAdminSupabaseClient } from './supabaseAdmin'
 
 export interface E2eUser {
+  readonly displayName: string
   readonly email: string
   readonly id: string
   readonly label: string
@@ -17,18 +18,19 @@ export async function createE2eUser(label: string, runId = createRunId()): Promi
   const admin = createAdminSupabaseClient()
   const email = `brrrdle-e2e-${label}-${runId}@example.test`.toLocaleLowerCase('en-US')
   const password = `Brrrdle-e2e-${runId}-A1!`
+  const displayName = `E2E ${label} ${runId}`
   const { data, error } = await admin.auth.admin.createUser({
     email,
     email_confirm: true,
     password,
     user_metadata: {
-      displayName: `E2E ${label}`,
+      displayName,
     },
   })
   if (error || !data.user?.id) {
     throw new Error(`Unable to create E2E user ${label}: ${error?.message ?? 'missing user id'}`)
   }
-  return { email, id: data.user.id, label, password }
+  return { displayName, email, id: data.user.id, label, password }
 }
 
 export async function deleteE2eUser(user: E2eUser | undefined): Promise<void> {

@@ -218,6 +218,7 @@ describe('MultiplayerPanel', () => {
         defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
         defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
         onChange={noop}
+        onOpenEloAbout={noop}
         scope="practice"
         state={createEmptyMultiplayerState()}
         viewerUserId="host-user"
@@ -228,12 +229,11 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('No time limit')
     expect(html).toContain('30 seconds')
     expect(html).toContain('Ranked Practice v1')
-    expect(html).toContain('Points decide the match result. Elo changes only after trusted settlement')
-    expect(html).toContain('Each ranked bucket starts at 1200')
-    expect(html).toContain('Your first 10 ranked Practice games are provisional with K=40')
-    expect(html).toContain('established games use K=24')
-    expect(html).toContain('standard 400-point Elo curve')
-    expect(html).toContain('win/draw/loss count as 1/0.5/0')
+    expect(html).toContain('How is Elo calculated?')
+    expect(html).toContain('Points decide the match result first. Elo changes afterward only after trusted settlement')
+    expect(html).not.toContain('Each ranked bucket starts at 1200')
+    expect(html).not.toContain('Your first 10 ranked Practice games are provisional with K=40')
+    expect(html).not.toContain('standard 400-point Elo curve')
   })
 
   it('explains ranked selected-game settlement and forfeit behavior', () => {
