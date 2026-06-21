@@ -18,11 +18,17 @@ interface BrowserNotificationRuntime {
   readonly Notification?: BrowserNotificationPermissionLike
 }
 
+interface BrowserNotificationInstanceLike {
+  close?: () => void
+  onclick?: ((event: Event) => void) | null
+}
+
 interface BrowserNotificationConstructorLike extends BrowserNotificationPermissionLike {
-  new(title: string, options?: NotificationOptions): unknown
+  new(title: string, options?: NotificationOptions): BrowserNotificationInstanceLike
 }
 
 interface BrowserNotificationDispatchRuntime {
+  focus?: () => void
   readonly Notification?: BrowserNotificationConstructorLike
 }
 
@@ -184,6 +190,9 @@ export function createBrowserNotificationPayload(item: NotificationItemViewModel
 export function dispatchBrowserNotification(
   item: NotificationItemViewModel,
   runtime: BrowserNotificationDispatchRuntime = getDefaultRuntime() as BrowserNotificationDispatchRuntime,
+  options: {
+    readonly onClick?: (item: NotificationItemViewModel) => void
+  } = {},
 ): boolean {
   if (!runtime.Notification || getBrowserNotificationPermissionState(runtime) !== 'granted') {
     return false
@@ -191,7 +200,24 @@ export function dispatchBrowserNotification(
 
   const payload = createBrowserNotificationPayload(item)
   try {
-    new runtime.Notification(payload.title, payload.options)
+    const notification = new runtime.Notification(payload.title, payload.options)
+    if (options.onClick) {
+      notification.onclick = () => {
+        try {
+          runtime.focus?.()
+        } catch {
+          // Best-effort focus only; routing should still run when the page context is alive.
+        }
+
+        options.onClick?.(item)
+
+        try {
+          notification.close?.()
+        } catch {
+          // Best-effort local cleanup only.
+        }
+      }
+    }
     return true
   } catch {
     return false

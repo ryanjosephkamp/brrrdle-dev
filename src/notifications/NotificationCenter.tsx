@@ -51,6 +51,7 @@ export interface NotificationCenterProps {
   readonly defaultOpen?: boolean
   readonly onActivate: (item: NotificationItemViewModel) => void
   readonly onDismiss: (item: NotificationItemViewModel) => void
+  readonly onMarkAllRead: (items: readonly NotificationItemViewModel[]) => void
   readonly onMarkRead: (item: NotificationItemViewModel) => void
   readonly viewModel: NotificationCenterViewModel
 }
@@ -59,11 +60,13 @@ export function NotificationCenter({
   defaultOpen = false,
   onActivate,
   onDismiss,
+  onMarkAllRead,
   onMarkRead,
   viewModel,
 }: NotificationCenterProps) {
   const [open, setOpen] = useState(defaultOpen)
   const { items, readCount, unreadCount } = viewModel
+  const unreadVisibleItems = items.filter((item) => !item.dismissed && !item.read)
   const panelId = 'brrrdle-notification-center-panel'
   const summaryText =
     unreadCount === 1 ? '1 unread notification' : `${unreadCount} unread notifications`
@@ -97,6 +100,15 @@ export function NotificationCenter({
                 {unreadCount} unread · {readCount} read
               </p>
             </div>
+            {unreadVisibleItems.length > 0 ? (
+              <button
+                className="brrrdle-notification-mark-all"
+                onClick={() => onMarkAllRead(unreadVisibleItems)}
+                type="button"
+              >
+                Mark all read
+              </button>
+            ) : null}
           </div>
 
           {items.length > 0 ? (
@@ -121,8 +133,13 @@ export function NotificationCenter({
                         Mark read
                       </button>
                     ) : null}
-                    <button onClick={() => onDismiss(item)} type="button">
-                      Dismiss
+                    <button
+                      className="brrrdle-notification-hide-action"
+                      onClick={() => onDismiss(item)}
+                      title="Hide this item locally until its source changes."
+                      type="button"
+                    >
+                      Hide
                     </button>
                   </div>
                 </li>

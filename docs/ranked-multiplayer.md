@@ -5,7 +5,7 @@ title: Ranked multiplayer and Elo
 
 # Ranked multiplayer and Elo
 
-Ranked multiplayer in brrrdle currently means ranked Practice Multiplayer v1. Daily ranked, timed Practice ranked, public leaderboards, public player profiles, and public ranking pages are deferred until later approved phases.
+Ranked multiplayer in brrrdle currently means ranked Practice Multiplayer v1. Daily ranked, timed Practice ranked, public leaderboards, and public ranking pages are deferred until later approved phases. Public profile foundations are separate identity work and do not change Elo.
 
 ## What affects Elo
 
@@ -52,5 +52,5 @@ Ranked Practice v1 preserves these boundaries:
 - The ranked queue matches compatible mode, word length, Hard Mode setting, and rating bucket.
 - Daily ranked remains deferred.
 - Timed Practice ranked remains deferred.
-- Public leaderboards and public player profiles are not part of Phase 28.
+- Public profile identity is separate from rating authority; public leaderboards remain a later approved phase.
 - Browser clients do not directly write rating profiles or rating transactions; trusted settlement is the rating authority.

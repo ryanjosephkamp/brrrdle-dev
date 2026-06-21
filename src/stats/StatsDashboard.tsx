@@ -15,6 +15,7 @@ import type { StatisticsState } from './types'
 interface StatsDashboardProps {
   readonly competitiveMultiplayer?: MultiplayerCompetitiveState
   readonly history?: readonly GameHistoryEntry[]
+  readonly onOpenEloAbout?: () => void
   readonly progression?: GuestProgressionState
   readonly stats: StatisticsState
 }
@@ -34,7 +35,7 @@ const EMPTY_PROGRESSION: GuestProgressionState = {
   xp: 0,
 }
 
-export function StatsDashboard({ competitiveMultiplayer, history = EMPTY_HISTORY, progression = EMPTY_PROGRESSION, stats }: StatsDashboardProps) {
+export function StatsDashboard({ competitiveMultiplayer, history = EMPTY_HISTORY, onOpenEloAbout, progression = EMPTY_PROGRESSION, stats }: StatsDashboardProps) {
   const winRateByScope = selectWinRateByScope(stats)
   const winRateByLength = selectWinRateByLength(stats)
   const winRateByTier = selectWinRateByTier(history)
@@ -91,7 +92,7 @@ export function StatsDashboard({ competitiveMultiplayer, history = EMPTY_HISTORY
         </article>
       </div>
 
-      <MultiplayerStatsPanel state={competitiveMultiplayer} />
+      <MultiplayerStatsPanel onOpenEloAbout={onOpenEloAbout} state={competitiveMultiplayer} />
     </section>
   )
 }

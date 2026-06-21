@@ -5,12 +5,12 @@
 
 ## 1. Current Snapshot
 
-- Post-Phase-27 roadmap routing was revised under `phase_id = 200`: Phase 28 is now Live v1 spectator and notification stabilization, current Daily spectation integrity, and low-risk Elo transparency. Public profiles move to Phase 29, leaderboards to Phase 30, multiplayer postgame actions to Phase 31, public/guest spectation to Phase 32, theme proposal/template modernization to Phase 33, and full concrete theme implementation to Phase 34 or later.
-- Phase 28 implementation and final hardening are complete under `phase_id = 211`; the next safe action is Phase 28 Git handoff preparation, not Phase 29 implementation.
+- Active development repository for the current phase workflow: `brrrdle-dev` at `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`.
+- Phase 29 implementation and final hardening are complete under `phase_id = 222`; the next safe action is Phase 29 Git handoff preparation, not Phase 30 implementation.
+- Phase 29 added default-private public profile foundations, notification click routing, Notification Center `Mark all read` plus secondary `Hide` semantics, and About-tab Elo transparency relocation while preserving Phase 28 Live behavior and Phase 27 ranked Practice boundaries.
+- Post-Phase-27 roadmap routing was revised under `phase_id = 200`: public profiles moved to Phase 29, leaderboards to Phase 30, multiplayer postgame actions to Phase 31, public/guest spectation to Phase 32, theme proposal/template modernization to Phase 33, and full concrete theme implementation to Phase 34 or later.
 - Post-Phase-26 roadmap routing was revised under `phase_id = 183`: Phase 27 became competitive ranking, Elo/rank, ranked multiplayer, ranked matchmaking, competitive scoring boundaries, and leaderboard-ready data foundations. Its later-phase routing was superseded by the post-Phase-27 `phase_id = 200` routing above.
-- Repository: `brrrdle`.
-- Primary remote: `https://github.com/ryanjosephkamp/brrrdle`.
-- Current local branch during Stage 2 completion: `codex/phase-23-stage-1`.
+- The original stable `brrrdle` repository remains separate and should not be touched during `brrrdle-dev` phase work unless the user explicitly changes that boundary.
 - Current phase area: Phase 23, Multiplayer Foundations and Polish.
 - Stage 1 is complete and tracked as `phase_id = 69`.
 - Stage 2 planning is documented and tracked as `phase_id = 70`.

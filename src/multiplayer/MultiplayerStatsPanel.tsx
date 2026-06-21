@@ -1,15 +1,12 @@
-import { Panel } from '../ui'
+import { Button, Panel } from '../ui'
 import { normalizeCompetitiveMultiplayerState, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
 import {
-  INITIAL_MULTIPLAYER_RATING,
-  MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE,
-  MULTIPLAYER_ESTABLISHED_K,
   MULTIPLAYER_PROVISIONAL_GAMES,
-  MULTIPLAYER_PROVISIONAL_K,
   type MultiplayerRatingProfile,
 } from './rating'
 
 interface MultiplayerStatsPanelProps {
+  readonly onOpenEloAbout?: () => void
   readonly state?: MultiplayerCompetitiveState
 }
 
@@ -26,7 +23,7 @@ function provisionalLabel(profile: MultiplayerRatingProfile): string {
   return `Provisional · ${remaining} ${remaining === 1 ? 'match' : 'matches'} until established`
 }
 
-export function MultiplayerStatsPanel({ state }: MultiplayerStatsPanelProps) {
+export function MultiplayerStatsPanel({ onOpenEloAbout, state }: MultiplayerStatsPanelProps) {
   const competitive = normalizeCompetitiveMultiplayerState(state)
   const recentResults = competitive.results.slice(0, 6)
   const recentTransactions = competitive.rating.transactions.slice(0, 6)
@@ -43,17 +40,19 @@ export function MultiplayerStatsPanel({ state }: MultiplayerStatsPanelProps) {
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Panel className="space-y-3 text-sm text-slate-300 lg:col-span-2" tone="muted">
-          <h4 className="text-lg font-bold text-white">How ranked Elo works</h4>
-          <div className="grid gap-2 md:grid-cols-2">
-            <p className="rounded-lg border border-white/10 bg-black/30 p-3">
-              Ranked Practice starts each rating bucket at {INITIAL_MULTIPLAYER_RATING}. The first {MULTIPLAYER_PROVISIONAL_GAMES} ranked Practice games are provisional and move faster with K={MULTIPLAYER_PROVISIONAL_K}; established ratings use K={MULTIPLAYER_ESTABLISHED_K}.
-            </p>
-            <p className="rounded-lg border border-white/10 bg-black/30 p-3">
-              Elo movement uses the standard {MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE}-point expected-score curve: wins count as 1, draws as 0.5, and losses as 0. Match points decide the result first; trusted settlement moves Elo afterward.
-            </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h4 className="text-lg font-bold text-white">Ranked Elo</h4>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300">
+                Rating buckets show trusted settlement state only. The full formula and ranked Practice boundaries now live in About.
+              </p>
+            </div>
+            {onOpenEloAbout ? (
+              <Button onClick={onOpenEloAbout} size="sm" variant="secondary">How is Elo calculated?</Button>
+            ) : null}
           </div>
           <p className="text-xs leading-5 text-slate-400">
-            Only eligible ranked Practice v1 games affect Elo. Daily ranked, timed Practice ranked, public leaderboards, and public profiles remain deferred.
+            Only eligible ranked Practice v1 games affect Elo. Daily ranked, timed Practice ranked, and public leaderboards remain deferred.
           </p>
         </Panel>
 

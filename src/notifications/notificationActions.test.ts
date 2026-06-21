@@ -7,6 +7,7 @@ import {
   activateNotificationItem,
   dismissNotificationItem,
   markNotificationItemRead,
+  markVisibleNotificationItemsRead,
   type NotificationMetadataUpdater,
 } from './notificationActions'
 import type { NotificationItemViewModel } from './notificationViewModels'
@@ -115,6 +116,48 @@ describe('notification actions', () => {
       readAt: '2026-06-14T06:33:00.000Z',
     })
     expect(calls).toEqual(['route:multiplayer', 'multiplayer:active', 'game:match-1'])
+  })
+
+  it('marks all visible unread notification items read with one local timestamp', () => {
+    const first = createNotificationFixture()
+    const read = createNotificationFixture({
+      multiplayerSubtab: 'active',
+      routeId: 'multiplayer',
+      selectedMultiplayerGameId: 'match-read',
+    })
+    const dismissed = createNotificationFixture({
+      multiplayerSubtab: 'active',
+      routeId: 'multiplayer',
+      selectedMultiplayerGameId: 'match-dismissed',
+    })
+    const metadata = createMetadataHarness()
+
+    markVisibleNotificationItemsRead([
+      first,
+      {
+        ...read,
+        fingerprint: 'turn:match-read:2026-06-14T06:00:00.000Z',
+        id: 'multiplayer:match-read:your-turn',
+        read: true,
+      },
+      {
+        ...dismissed,
+        dismissed: true,
+        fingerprint: 'turn:match-dismissed:2026-06-14T06:00:00.000Z',
+        id: 'multiplayer:match-dismissed:your-turn',
+      },
+    ], metadata.updateMetadata, () => '2026-06-14T06:35:00.000Z')
+
+    expect(metadata.current).toEqual({
+      records: [
+        {
+          fingerprint: first.fingerprint,
+          id: first.id,
+          readAt: '2026-06-14T06:35:00.000Z',
+        },
+      ],
+      version: 1,
+    })
   })
 
   it('routes history notification actions without inventing notification-specific navigation', () => {

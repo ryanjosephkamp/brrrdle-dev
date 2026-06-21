@@ -58,6 +58,7 @@ describe('NotificationCenter', () => {
         defaultOpen
         onActivate={() => undefined}
         onDismiss={() => undefined}
+        onMarkAllRead={() => undefined}
         onMarkRead={() => undefined}
         viewModel={createNotificationCenterFixture()}
       />,
@@ -70,9 +71,12 @@ describe('NotificationCenter', () => {
     expect(html).toContain('Your turn')
     expect(html).toContain('Daily Multiplayer OG is waiting for your guess.')
     expect(html).toContain('Daily Solo is ready')
+    expect(html).toContain('Mark all read')
     expect(html).toContain('Open')
     expect(html).toContain('Mark read')
-    expect(html).toContain('Dismiss')
+    expect(html).toContain('Hide')
+    expect(html).toContain('Hide this item locally until its source changes.')
+    expect(html).not.toContain('Dismiss')
   })
 
   it('renders a quiet empty state without phantom notification items', () => {
@@ -81,6 +85,7 @@ describe('NotificationCenter', () => {
         defaultOpen
         onActivate={() => undefined}
         onDismiss={() => undefined}
+        onMarkAllRead={() => undefined}
         onMarkRead={() => undefined}
         viewModel={createNotificationCenterFixture({
           items: [],

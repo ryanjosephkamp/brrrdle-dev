@@ -60,4 +60,40 @@ describe('ProfilePanel', () => {
     expect(html).toContain('ice')
     expect(html).toContain('aurora')
   })
+
+  it('renders public profile controls only when the public save seam is supplied', () => {
+    const hiddenHtml = renderToStaticMarkup(
+      <ProfilePanel authState={authState} isOpen onClose={noop} onSave={noop} onSignOut={noop} />,
+    )
+    expect(hiddenHtml).not.toContain('Public profile')
+
+    const html = renderToStaticMarkup(
+      <ProfilePanel
+        authState={authState}
+        isOpen
+        onClose={noop}
+        onSave={noop}
+        onSavePublicProfile={noop}
+        onSignOut={noop}
+        publicProfile={{
+          accentColor: 'cyan',
+          bio: 'Word-game enjoyer',
+          createdAt: '2026-06-21T00:00:00.000Z',
+          displayName: 'Public Ada',
+          flairKey: 'none',
+          moderationStatus: 'active',
+          publicProfileId: '123e4567-e89b-42d3-a456-426614174000',
+          updatedAt: '2026-06-21T00:01:00.000Z',
+          visibility: 'public',
+        }}
+      />,
+    )
+    expect(html).toContain('Public profile')
+    expect(html).toContain('Public display name')
+    expect(html).toContain('Bio')
+    expect(html).toContain('Public Ada')
+    expect(html).toContain('from-sky-400 to-cyan-700')
+    expect(html).toContain('123e4567-e89b-42d3-a456-426614174000')
+    expect(html).toContain('Save public profile')
+  })
 })
