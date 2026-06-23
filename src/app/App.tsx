@@ -5,6 +5,7 @@ import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, 
 import { Button, Panel } from '../ui'
 import { AdminPanel } from '../admin'
 import { StatsDashboard } from '../stats'
+import { createSupabasePublicRankedLeaderboardRepository, type PublicRankedLeaderboardRepository } from '../leaderboards'
 import { WordExplorerPanel } from '../wordExplorer'
 import { FeedbackPanel } from '../feedback'
 import { SoundProvider, useSound } from '../sound'
@@ -331,6 +332,7 @@ function RoutePanel({
   onCalendarLaunchConsumed,
   rankedQueueActions,
   onOpenEloAbout,
+  publicRankedLeaderboardRepository,
 }: {
   readonly authState: AuthState
   readonly authMessage?: string
@@ -392,6 +394,7 @@ function RoutePanel({
   readonly onCalendarLaunchConsumed: () => void
   readonly rankedQueueActions?: RankedQueueActions
   readonly onOpenEloAbout?: () => void
+  readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
 }) {
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
     ? createMultiplayerProfileSummary(authState.user.profile, 'Player')
@@ -591,7 +594,17 @@ function RoutePanel({
   }
 
   if (route.id === 'stats') {
-    return <StatsDashboard competitiveMultiplayer={guestProgress.competitiveMultiplayer} history={guestProgress.history} onOpenEloAbout={onOpenEloAbout} progression={guestProgress.progression} stats={guestProgress.stats} />
+    return (
+      <StatsDashboard
+        authStatus={authState.status}
+        competitiveMultiplayer={guestProgress.competitiveMultiplayer}
+        history={guestProgress.history}
+        onOpenEloAbout={onOpenEloAbout}
+        progression={guestProgress.progression}
+        publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
+        stats={guestProgress.stats}
+      />
+    )
   }
 
   if (route.id === 'settings') {
@@ -662,6 +675,12 @@ function AppInner() {
       ? createSupabaseMultiplayerRepository({ client: supabaseClient, userId: authenticatedMultiplayerUserId })
       : createLocalStorageMultiplayerRepository(undefined, initialMultiplayerSeed),
     [authenticatedMultiplayerUserId, initialMultiplayerSeed, supabaseClient],
+  )
+  const publicRankedLeaderboardRepository = useMemo<PublicRankedLeaderboardRepository | undefined>(
+    () => authState.status === 'authenticated' && supabaseClient
+      ? createSupabasePublicRankedLeaderboardRepository(supabaseClient)
+      : undefined,
+    [authState.status, supabaseClient],
   )
   const multiplayerRepositoryRef = useRef(multiplayerRepository)
   const trustedRankedSettlementInFlightRef = useRef(new Set<string>())
@@ -1875,6 +1894,7 @@ function AppInner() {
             onToggleSound={sound.setEnabled}
             onUpdateSettings={handleUpdateSettings}
             practiceMode={practiceMode}
+            publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
             rankedQueueActions={multiplayerRepository}
             multiplayerSubtab={multiplayerSubtab}
             resumeSlots={resumeSlots}

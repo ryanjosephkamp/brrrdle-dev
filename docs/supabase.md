@@ -75,7 +75,7 @@ Phase 27 ranked Practice v1 uses the following additive migration sequence in `b
 - `supabase/migrations/20260616055149_phase27_settlement_rpc_unambiguous_profile_upsert.sql`
 - `supabase/migrations/20260616165434_phase27_ranked_queue_game_finalization.sql`
 
-These migrations add authenticated-only trusted RPC authority for ranked Practice queue creation, cancellation, compatible pair claiming, queue status/seat assignment, game finalization, and idempotent ranked settlement from durable `async_multiplayer_games` rows. They preserve Daily ranked deferral, timed Practice ranked deferral, Hard Mode matching requirements, raw nonparticipant read denial, and the Phase 26 Live v1 spectator sanitized projection boundary. Browser clients should continue to call the trusted RPC seams rather than directly writing rating profile, result, transaction, or ranked queue authority state.
+These migrations add authenticated-only trusted RPC authority for ranked Practice queue creation, cancellation, compatible pair claiming, queue status/seat assignment, game finalization, and idempotent ranked settlement from durable `async_multiplayer_games` rows. They preserve Daily ranked deferral, timed Practice ranked deferral, Hard Mode matching requirements, raw nonparticipant read denial, and the Phase 26 Live v1 spectator sanitized projection boundary. After the Phase 30 deferred ranked-mode routing pass, timed Practice ranked and Daily ranked are assigned to Phase 32 competitive ladder v2 planning, not Phase 30 leaderboard work. Browser clients should continue to call the trusted RPC seams rather than directly writing rating profile, result, transaction, or ranked queue authority state.
 
 Phase 29 public profile foundations use the additive migration:
 
@@ -84,6 +84,14 @@ Phase 29 public profile foundations use the additive migration:
 This migration creates `public.public_player_profiles` as a public-safe projection separate from private `profiles` rows and Supabase auth metadata. Profiles are private by default, use an opaque `public_profile_id`, and expose public data only through allow-listed RPCs. Browser clients should use `get_my_public_player_profile`, `upsert_my_public_player_profile`, `get_public_player_profile`, and `get_public_player_profiles`; they should not directly read or write `public_player_profiles`.
 
 Public profile reads may return only `public_profile_id`, `display_name`, `accent_color`, `flair_key`, `avatar_url`, `bio`, `created_at`, and `updated_at` for profiles where `visibility='public'` and `moderation_status='active'`. Public profile payloads must never expose raw auth emails, raw auth ids, auth metadata, private account metadata, progress, settings, history, ranked private projections, raw rating transactions, game/session projections, answers, seeds, tokens, or local/session artifacts. Existing private avatar uploads are not automatically public profile avatars because their storage paths may contain raw user ids.
+
+Phase 30 public ranked Practice leaderboards use the additive migration:
+
+- `supabase/migrations/20260623011923_phase30_public_ranked_leaderboard_rpc.sql`
+
+This migration adds authenticated-only RPC `public.get_public_ranked_leaderboard(p_bucket text default null, p_limit integer default 50, p_offset integer default 0)`. The RPC is a `security definer` allow-listed projection over trusted rating data and active public profiles for ranked Practice v1 buckets only. It returns public leaderboard fields for `multiplayer:og` and `multiplayer:go`, omits private/hidden/suspended/missing-profile/zero-game users, and does not grant direct browser access to raw rating or profile tables.
+
+Public leaderboard payloads may include only public profile identity fields and aggregate rating fields such as rank, bucket, rating, games played, wins, losses, draws, provisional status, latest safe rating movement, peak rating, and freshness timestamps. They must never expose raw auth emails, raw auth ids, private profile metadata, private progress, answer-bearing data, seeds, sessions, raw game projections, local artifacts, private ranked projections, raw rating transaction ids, match ids, queue ids, settlement ids, or unapproved rating transaction internals. Public leaderboards are display-only and do not change Elo, trusted settlement, Daily claims, profile visibility, or gameplay authority.
 
 For the Phase 23 Stage 3 online-multiplayer stabilization, also apply `supabase/migrations/20260604050824_phase23_online_multiplayer_fixes.sql` after the live and competitive migrations. It creates:
 
