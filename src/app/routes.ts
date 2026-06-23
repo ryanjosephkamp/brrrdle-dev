@@ -144,6 +144,7 @@ export const PRIMARY_NAVIGATION_ROUTE_IDS = [
   'multiplayer',
   'calendar',
   'history',
+  'stats',
   'word-explorer',
   'settings',
   'feedback',

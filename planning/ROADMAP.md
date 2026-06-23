@@ -46,9 +46,10 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 | Phase 29 | Public player profiles | Privacy-safe public identity, bios/flair/featured games foundations | Future |
 | Phase 30 | Leaderboards | Elo/rank, streaks, total games played, and approved performance metrics | Future |
 | Phase 31 | Multiplayer postgame actions | Practice rematch request/accept and same-settings play-again/search-again flows | Future |
-| Phase 32 | Public/guest spectation | Sanitized public projections for public or guest Live discovery/spectation, if still desired | Future |
-| Phase 33 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
-| Phase 34 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
+| Phase 32 | Ranked mode expansion / competitive ladder v2 | Timed Practice ranked first, Daily ranked only after claim-safety proof, optional display-only rank labels | Future |
+| Phase 33 | Public/guest spectation | Sanitized public projections for public or guest Live discovery/spectation, if still desired | Future |
+| Phase 34 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
+| Phase 35 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
 | Later phases | Expansion | Deeper social/community systems, marketplace, additional modes, and other expansion work | Future |
 
 ---
@@ -69,7 +70,7 @@ Completed Phase 26 scope:
 Explicit post-Phase-26 deferrals:
 
 - public/guest spectation is deferred unless a sanitized public projection is built and explicitly authorized;
-- theme-template modernization and full theme implementation remain late; after the post-Phase-27 scope revision they are routed to Phase 33 and Phase 34 or later;
+- theme-template modernization and full theme implementation remain late; after the Phase 30 deferred ranked-mode routing pass they are routed to Phase 34 and Phase 35 or later;
 - broader social/community, marketplace, additional modes, and deeper expansion work remain separately gated.
 
 ---
@@ -164,9 +165,24 @@ This phase may require durable mutual-intent state, timeout/cancel rules, queue/
 
 ---
 
-## Phase 32 - Public/Guest Spectation
+## Phase 32 - Ranked Mode Expansion / Competitive Ladder v2
 
-Phase 32 may add public or guest Live spectation if the product still wants it and a sanitized public projection can be approved.
+Phase 32 should revisit deferred ranked multiplayer options after Phase 30 public leaderboards and Phase 31 postgame actions are stable.
+
+Candidate features:
+
+- timed Practice ranked first, only after clock fairness, trusted timeout settlement, queue compatibility, RLS, and two-client verification are planned;
+- Daily ranked only after Daily claim safety, UTC-day uniqueness, answer separation, no-clock behavior, and anti-cheat implications are proven;
+- optional rank labels or bands as rating-derived display labels only, never rating authority;
+- ranked custom/private-code games remain deferred unless a later approved spec proves ladder-integrity and anti-abuse rules.
+
+Phase 32 must preserve ranked Practice v1 behavior, Daily Multiplayer integrity, match-points-versus-Elo separation, trusted settlement authority, and all gameplay rules unless a later approved spec explicitly changes them.
+
+---
+
+## Phase 33 - Public/Guest Spectation
+
+Phase 33 may add public or guest Live spectation if the product still wants it and a sanitized public projection can be approved.
 
 Requirements to preserve:
 
@@ -177,23 +193,23 @@ Requirements to preserve:
 
 ---
 
-## Phase 33 - Theme Proposal And Template Modernization
+## Phase 34 - Theme Proposal And Template Modernization
 
-Phase 33 should review and modernize the theme proposal system under:
+Phase 34 should review and modernize the theme proposal system under:
 
 - `themes/proposals/template_proposals/`
 - `themes/proposals/theme_proposals.csv`
 - `themes/proposals/README.md`
 
-The goal is to preserve the original template ideas while updating them for the post-Phase-32 app surface. This late routing avoids repeated compatibility churn while profile, leaderboard, public spectator, and multiplayer postgame systems are still changing.
+The goal is to preserve the original template ideas while updating them for the post-Phase-33 app surface. This late routing avoids repeated compatibility churn while profile, leaderboard, ranked expansion, public spectator, and multiplayer postgame systems are still changing.
 
-Phase 33 should decide which templates become full concrete theme proposals and which specific themes should be implemented first. It should not be treated as full theme implementation unless a later approved spec explicitly includes that work.
+Phase 34 should decide which templates become full concrete theme proposals and which specific themes should be implemented first. It should not be treated as full theme implementation unless a later approved spec explicitly includes that work.
 
 ---
 
-## Phase 34 Or Later - Full Concrete Themes
+## Phase 35 Or Later - Full Concrete Themes
 
-Phase 34 or a later dedicated phase should create and implement concrete themes after the template system has been modernized.
+Phase 35 or a later dedicated phase should create and implement concrete themes after the template system has been modernized.
 
 Candidate work:
 

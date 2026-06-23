@@ -128,6 +128,29 @@ describe('MultiplayerWorkspace', () => {
     expect(html).toContain('Live v1')
   })
 
+  it('uses the main subtab row only on Overview while keeping section actions', () => {
+    const html = renderToStaticMarkup(
+      <MultiplayerWorkspace
+        activeSubtab="overview"
+        dailyDateKey="2026-06-14"
+        onOpenHistory={() => undefined}
+        onResumeGame={() => undefined}
+        onSelectGame={() => undefined}
+        onSubtabChange={() => undefined}
+        renderDailyPanel={() => <div>Daily panel</div>}
+        renderPracticePanel={() => <div>Practice panel</div>}
+        state={{ games: [] }}
+        viewerUserId="viewer-user"
+      />,
+    )
+
+    expect(html).toContain('Multiplayer workspace sections')
+    expect(html).not.toContain('grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5')
+    expect(html).toContain('View Active')
+    expect(html).toContain('Open Lobby')
+    expect(html).toContain('Open Live')
+  })
+
   it('renders authenticated spectator Live v1 rows as read-only in the Live subtab', () => {
     const html = renderToStaticMarkup(
       <MultiplayerWorkspace

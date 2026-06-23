@@ -207,14 +207,6 @@ function MultiplayerOverview({
 
   return (
     <div className="min-w-0 space-y-5">
-      <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Button onClick={() => onSubtabChange('daily')} variant="primary">Daily Multiplayer</Button>
-        <Button onClick={() => onSubtabChange('practice')} variant="secondary">Practice Multiplayer</Button>
-        <Button onClick={() => onSubtabChange('lobby')} variant="secondary">Lobby</Button>
-        <Button onClick={() => onSubtabChange('active')} variant="secondary">Active Games</Button>
-        <Button onClick={() => onSubtabChange('live')} variant="secondary">Live</Button>
-      </div>
-
       <Panel className="space-y-4" tone="muted">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
@@ -225,7 +217,7 @@ function MultiplayerOverview({
           </div>
           <Button onClick={() => onSubtabChange('active')} size="sm" variant="ghost">View Active</Button>
         </div>
-        <MultiplayerActiveGames activeGames={activeGames} limit={4} onResumeGame={onResumeGame} onSelectGame={onSelectGame} selectedGameId={selectedGameId} />
+        <MultiplayerActiveGames activeGames={activeGames} limit={4} onResumeGame={onResumeGame} selectedGameId={selectedGameId} />
       </Panel>
 
       <Panel className="space-y-4" tone="muted">
@@ -330,7 +322,7 @@ export function MultiplayerWorkspace({
             <h3 className="text-lg font-bold text-white">Active Multiplayer Games</h3>
             <p className="text-sm text-slate-400">{activeGames.length} active{activeGames.some((game) => game.turnLabel === 'Your turn') ? ' · turn attention' : ''}</p>
           </div>
-          <MultiplayerActiveGames activeGames={activeGames} onResumeGame={onResumeGame} onSelectGame={onSelectGame} selectedGameId={selectedGameId} />
+          <MultiplayerActiveGames activeGames={activeGames} onResumeGame={onResumeGame} selectedGameId={selectedGameId} />
         </Panel>
       ) : activeSubtab === 'lobby' ? (
         <div className="min-w-0 space-y-5">

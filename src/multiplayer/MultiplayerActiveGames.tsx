@@ -29,17 +29,16 @@ function EmptyState({ children }: { readonly children: ReactNode }) {
 function MultiplayerActiveGameCard({
   game,
   onResume,
-  onSelect,
   selected,
 }: {
   readonly game: MultiplayerActiveGameViewModel
   readonly onResume: (id: string) => void
-  readonly onSelect: (id: string) => void
   readonly selected: boolean
 }) {
   return (
     <article
       aria-label={game.title}
+      aria-current={selected ? 'true' : undefined}
       className={`rounded-lg border bg-black/30 p-4 shadow-xl shadow-black/20 ${selected ? 'border-[var(--color-ice-300)]/70' : 'border-white/10'}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -69,7 +68,6 @@ function MultiplayerActiveGameCard({
       </dl>
       <div className="mt-4 flex flex-wrap gap-2">
         <Button data-testid={`multiplayer-active-resume-${game.id}`} disabled={!game.canResume} onClick={() => onResume(game.id)} size="sm" variant="primary">{game.actionLabel}</Button>
-        <Button aria-pressed={selected} data-testid={`multiplayer-active-select-${game.id}`} onClick={() => onSelect(game.id)} size="sm" variant="ghost">{selected ? 'Selected' : 'Select'}</Button>
       </div>
     </article>
   )
@@ -79,13 +77,11 @@ export function MultiplayerActiveGames({
   activeGames,
   limit,
   onResumeGame,
-  onSelectGame,
   selectedGameId,
 }: {
   readonly activeGames: readonly MultiplayerActiveGameViewModel[]
   readonly limit?: number
   readonly onResumeGame: (id: string) => void
-  readonly onSelectGame: (id: string) => void
   readonly selectedGameId?: string
 }) {
   const visibleGames = typeof limit === 'number' ? activeGames.slice(0, Math.max(0, limit)) : activeGames
@@ -100,7 +96,6 @@ export function MultiplayerActiveGames({
           game={game}
           key={game.id}
           onResume={onResumeGame}
-          onSelect={onSelectGame}
           selected={game.id === selectedGameId}
         />
       ))}

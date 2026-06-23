@@ -1,4 +1,5 @@
 import type { GameHistoryEntry, GuestProgressionState } from '../account/storageSchema'
+import { PublicRankedLeaderboardPanel, type PublicRankedLeaderboardAuthStatus, type PublicRankedLeaderboardRepository } from '../leaderboards'
 import { MultiplayerStatsPanel, type MultiplayerCompetitiveState } from '../multiplayer'
 import { BarChart, CalendarHeatmap, ProgressMeter, TrendSparkline } from './charts'
 import { getAverageAttempts, getStatsBucket, getWinRate } from './statistics'
@@ -13,10 +14,12 @@ import {
 import type { StatisticsState } from './types'
 
 interface StatsDashboardProps {
+  readonly authStatus?: PublicRankedLeaderboardAuthStatus
   readonly competitiveMultiplayer?: MultiplayerCompetitiveState
   readonly history?: readonly GameHistoryEntry[]
   readonly onOpenEloAbout?: () => void
   readonly progression?: GuestProgressionState
+  readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
   readonly stats: StatisticsState
 }
 
@@ -35,7 +38,15 @@ const EMPTY_PROGRESSION: GuestProgressionState = {
   xp: 0,
 }
 
-export function StatsDashboard({ competitiveMultiplayer, history = EMPTY_HISTORY, onOpenEloAbout, progression = EMPTY_PROGRESSION, stats }: StatsDashboardProps) {
+export function StatsDashboard({
+  authStatus = 'unconfigured',
+  competitiveMultiplayer,
+  history = EMPTY_HISTORY,
+  onOpenEloAbout,
+  progression = EMPTY_PROGRESSION,
+  publicRankedLeaderboardRepository,
+  stats,
+}: StatsDashboardProps) {
   const winRateByScope = selectWinRateByScope(stats)
   const winRateByLength = selectWinRateByLength(stats)
   const winRateByTier = selectWinRateByTier(history)
@@ -47,9 +58,14 @@ export function StatsDashboard({ competitiveMultiplayer, history = EMPTY_HISTORY
     <section className="space-y-6" aria-labelledby="stats-dashboard-title">
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">local stats</p>
-        <h2 id="stats-dashboard-title" className="text-3xl font-bold text-white">Guest statistics</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Stats are tracked locally by mode and scope, with per-length buckets and interactive, accessible charts derived from your play history.</p>
+        <h2 id="stats-dashboard-title" className="text-3xl font-bold text-white">Statistics</h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Local stats stay private on this device. Public ranked leaderboards use only opted-in public profiles and trusted ranked Practice aggregates.</p>
       </div>
+
+      <PublicRankedLeaderboardPanel
+        authStatus={authStatus}
+        repository={publicRankedLeaderboardRepository}
+      />
 
       <div className="grid gap-3 md:grid-cols-2">
         {buckets.map((item) => {
