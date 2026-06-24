@@ -36,8 +36,15 @@ import {
   getRatingBucket,
 } from './rating'
 import type { MultiplayerRepository, RankedQueueStatusResult } from './multiplayerRepository'
+import type { PracticeRematchRequestResult } from './multiplayerRepository'
 import { RivalIdentityCard } from './RivalIdentityCard'
 import { projectMultiplayerPerformance } from './scoring'
+import {
+  createPracticeRematchGameProjection,
+  getPracticePostgameActions,
+  type PracticePostgameActions,
+  type PracticePostgameSettings,
+} from './postgameActions'
 
 type MultiplayerMatchKind = 'unranked' | 'ranked' | 'custom'
 type RankedQueueActions = Pick<
@@ -48,11 +55,24 @@ type RankedQueueActions = Pick<
   | 'finalizeRankedQueueGame'
   | 'getRankedQueueStatus'
 >
+type PracticeRematchActions = Pick<
+  MultiplayerRepository,
+  'acceptPracticeRematch'
+  | 'cancelPracticeRematch'
+  | 'declinePracticeRematch'
+  | 'listPracticeRematchRequests'
+  | 'requestPracticeRematch'
+>
 
 interface LocalStatusMessage {
   readonly gameId: string | undefined
   readonly text: string
   readonly updatedAt: string | undefined
+}
+
+interface PostgameStatusMessage {
+  readonly gameId: string
+  readonly text: string
 }
 
 interface RankedQueueUiState {
@@ -72,6 +92,7 @@ interface MultiplayerPanelProps {
   readonly onCompetitiveChange?: (state: MultiplayerCompetitiveState) => void
   readonly onOpenEloAbout?: () => void
   readonly onSelectedGameChange?: (gameId: string) => void
+  readonly postgameActions?: PracticeRematchActions
   readonly rankedQueueActions?: RankedQueueActions
   readonly readOnly?: boolean
   readonly selectedGameId?: string
@@ -169,6 +190,7 @@ function moveStateClass(state: string): string {
 }
 
 const TERMINAL_SOLVED_SURFACE_HOLD_MS = 2000
+const PRACTICE_REMATCH_REQUEST_LIMIT = 10
 
 function getLatestSolvedMoveId(game: MultiplayerGame | undefined): string | undefined {
   if (!game) {
@@ -239,6 +261,147 @@ function getMultiplayerStatusMessage(game: MultiplayerGame, viewerPlayerId: 'pla
   return 'Match finished.'
 }
 
+function formatPostgameSettings(settings: PracticePostgameSettings): string {
+  const mode = settings.mode.toUpperCase()
+  const length = `${settings.wordLength} ${settings.wordLength === 1 ? 'letter' : 'letters'}`
+  const hardMode = settings.hardMode ? 'Hard Mode on' : 'Hard Mode off'
+  const clock = settings.timeLimitMs ? `${formatClock(settings.timeLimitMs)} per side` : 'no clock'
+  return `${mode}, ${length}, ${hardMode}, ${clock}`
+}
+
+function getActivePracticeRematchRequest(
+  gameId: string,
+  requests: readonly PracticeRematchRequestResult[],
+): PracticeRematchRequestResult | undefined {
+  return requests.find((request) => (
+    request.sourceGameId === gameId
+    && !request.expired
+    && (request.requestStatus === 'requested' || request.requestStatus === 'created')
+  ))
+}
+
+function getPostgameErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message.trim() ? error.message : fallback
+}
+
+interface PracticePostgameActionsPanelProps {
+  readonly actions: PracticePostgameActions
+  readonly busy: boolean
+  readonly gameId: string
+  readonly isOnlineReady: boolean
+  readonly message?: string
+  readonly onAcceptRematch: (request: PracticeRematchRequestResult) => void
+  readonly onCancelRematch: (request: PracticeRematchRequestResult) => void
+  readonly onDeclineRematch: (request: PracticeRematchRequestResult) => void
+  readonly onPlayAgain: () => void
+  readonly onRequestRematch: () => void
+  readonly onSearchAgain: () => void
+  readonly rematchActionsAvailable: boolean
+  readonly rematchRequests: readonly PracticeRematchRequestResult[]
+}
+
+export function PracticePostgameActionsPanel({
+  actions,
+  busy,
+  gameId,
+  isOnlineReady,
+  message,
+  onAcceptRematch,
+  onCancelRematch,
+  onDeclineRematch,
+  onPlayAgain,
+  onRequestRematch,
+  onSearchAgain,
+  rematchActionsAvailable,
+  rematchRequests,
+}: PracticePostgameActionsPanelProps) {
+  const activeRematchRequest = getActivePracticeRematchRequest(gameId, rematchRequests)
+  const hasVisibleAction = actions.canPlayAgain || actions.canRequestRematch || actions.canSearchAgain || Boolean(activeRematchRequest)
+  if (!actions.settings || (!hasVisibleAction && !actions.unavailableReason)) {
+    return null
+  }
+
+  const rematchDisabled = busy || !isOnlineReady || !rematchActionsAvailable
+  const rematchDisabledReason = !isOnlineReady
+    ? 'Sign in to request a rematch.'
+    : !rematchActionsAvailable
+      ? 'Practice rematch requests require authenticated Supabase multiplayer.'
+      : undefined
+  const playAgainLabel = actions.continuationKind === 'custom-play-again'
+    ? 'Set up custom play again'
+    : 'Open new unranked match'
+
+  return (
+    <section
+      className="space-y-3 rounded-lg border border-emerald-300/30 bg-emerald-300/10 p-3 text-sm leading-6 text-emerald-50"
+      data-testid={`practice-postgame-actions-${gameId}`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-bold">Postgame actions</p>
+          <p className="break-words text-emerald-100">Same settings: {formatPostgameSettings(actions.settings)}</p>
+        </div>
+        {actions.canSearchAgain ? (
+          <span className="rounded border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-50">
+            Ranked queue
+          </span>
+        ) : null}
+      </div>
+
+      {actions.rematchUnavailableReason ? (
+        <p className="rounded-md border border-white/10 bg-black/20 p-2 text-xs text-emerald-100">
+          {actions.rematchUnavailableReason}
+        </p>
+      ) : null}
+
+      {activeRematchRequest?.viewerCanAccept ? (
+        <div className="rounded-md border border-cyan-300/30 bg-cyan-300/10 p-3">
+          <p className="font-semibold text-cyan-50">Rival requested a rematch.</p>
+          <p className="text-xs text-cyan-100">Accepting creates a fresh unranked Practice game with the same settings and same seats.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button disabled={busy} onClick={() => onAcceptRematch(activeRematchRequest)} size="sm" variant="primary">Accept rematch</Button>
+            <Button disabled={busy} onClick={() => onDeclineRematch(activeRematchRequest)} size="sm" variant="secondary">Decline</Button>
+          </div>
+        </div>
+      ) : activeRematchRequest?.viewerCanCancel ? (
+        <div className="rounded-md border border-cyan-300/30 bg-cyan-300/10 p-3">
+          <p className="font-semibold text-cyan-50">Waiting for rival to accept.</p>
+          <p className="text-xs text-cyan-100">The request expires automatically if your rival does not accept.</p>
+          <Button className="mt-2" disabled={busy} onClick={() => onCancelRematch(activeRematchRequest)} size="sm" variant="secondary">Cancel request</Button>
+        </div>
+      ) : activeRematchRequest?.requestStatus === 'created' ? (
+        <p className="rounded-md border border-cyan-300/30 bg-cyan-300/10 p-3 font-semibold text-cyan-50">
+          Rematch game created.
+        </p>
+      ) : actions.canRequestRematch ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button disabled={rematchDisabled} onClick={onRequestRematch} size="sm" variant="primary">Request rematch</Button>
+          {rematchDisabledReason ? <p className="text-xs text-emerald-100">{rematchDisabledReason}</p> : null}
+        </div>
+      ) : null}
+
+      {actions.canSearchAgain ? (
+        <div className="rounded-md border border-white/10 bg-black/20 p-3">
+          <p className="text-xs text-cyan-100">This uses the trusted ranked queue instead of direct rematch.</p>
+          <Button className="mt-2" disabled={busy || !isOnlineReady} onClick={onSearchAgain} size="sm" variant="primary">
+            Search ranked Practice again
+          </Button>
+        </div>
+      ) : actions.canPlayAgain ? (
+        <Button disabled={busy || !isOnlineReady} onClick={onPlayAgain} size="sm" variant="secondary">{playAgainLabel}</Button>
+      ) : null}
+
+      {!hasVisibleAction && actions.unavailableReason ? (
+        <p className="rounded-md border border-white/10 bg-black/20 p-2 text-xs text-emerald-100">{actions.unavailableReason}</p>
+      ) : null}
+
+      {message ? (
+        <p className="rounded-md border border-white/10 bg-black/20 p-2 font-semibold text-emerald-50">{message}</p>
+      ) : null}
+    </section>
+  )
+}
+
 export function MultiplayerPanel({
   authStatus = 'unconfigured',
   competitiveState,
@@ -249,6 +412,7 @@ export function MultiplayerPanel({
   onCompetitiveChange,
   onOpenEloAbout,
   onSelectedGameChange,
+  postgameActions,
   rankedQueueActions,
   readOnly = false,
   selectedGameId,
@@ -270,6 +434,9 @@ export function MultiplayerPanel({
   const [timeLimitMs, setTimeLimitMs] = useState<PracticeMultiplayerTimeLimitMs | null>(null)
   const [wordLength, setWordLength] = useState(5)
   const [localMessage, setLocalMessage] = useState<LocalStatusMessage | undefined>(undefined)
+  const [postgameMessage, setPostgameMessage] = useState<PostgameStatusMessage | undefined>(undefined)
+  const [postgameBusy, setPostgameBusy] = useState(false)
+  const [practiceRematchRequests, setPracticeRematchRequests] = useState<readonly PracticeRematchRequestResult[]>([])
   const [rankedQueue, setRankedQueue] = useState<RankedQueueUiState>({ message: '', status: 'idle' })
   const [rankedQueueBusy, setRankedQueueBusy] = useState(false)
   const [clockNow, setClockNow] = useState(() => new Date())
@@ -336,6 +503,7 @@ export function MultiplayerPanel({
     ? localMessage.text
     : undefined
   const displayStatusMessage = localStatusMessage ?? sharedStatusMessage
+  const selectedPostgameMessage = postgameMessage && postgameMessage.gameId === selectedGame?.id ? postgameMessage.text : undefined
   const canJoinSelectedGame = selectedGame ? canViewerJoinMultiplayerGame(selectedGame, viewerUserId) : false
   const canCancelSelectedGame = selectedGame ? canViewerCancelMultiplayerGame(selectedGame, viewerUserId) && !readOnly : false
   const joiningWouldClaimDuplicateDaily = Boolean(
@@ -462,10 +630,18 @@ export function MultiplayerPanel({
     })
   }
 
-  const enterRankedQueue = async () => {
-    if (!rankedQueueActions || !viewerUserId || rankedQueueUnavailableReason) {
+  const enterRankedQueue = async (override?: Pick<PracticePostgameSettings, 'hardMode' | 'mode' | 'wordLength'>) => {
+    const queueMode = override?.mode ?? mode
+    const queueWordLength = override?.wordLength ?? wordLength
+    const queueHardMode = override?.hardMode ?? hardMode
+    const unavailableReason = scope !== 'practice'
+      ? 'Daily ranked matchmaking is deferred.'
+      : !rankedQueueActions
+        ? 'Ranked queue requires authenticated Supabase multiplayer.'
+        : undefined
+    if (!rankedQueueActions || !viewerUserId || unavailableReason) {
       setRankedQueue({
-        message: rankedQueueUnavailableReason ?? 'Sign in to enter ranked Practice matchmaking.',
+        message: unavailableReason ?? 'Sign in to enter ranked Practice matchmaking.',
         status: 'error',
       })
       return
@@ -473,9 +649,9 @@ export function MultiplayerPanel({
     setRankedQueueBusy(true)
     try {
       const request = await rankedQueueActions.createRankedQueueRequest({
-        hardMode,
-        mode,
-        wordLength,
+        hardMode: queueHardMode,
+        mode: queueMode,
+        wordLength: queueWordLength,
       })
       const claim = await rankedQueueActions.claimRankedQueuePair({ requestId: request.requestId })
       if (claim.requestStatus !== 'matched' || !claim.matchedGameId) {
@@ -708,6 +884,200 @@ export function MultiplayerPanel({
     }
     setLocalMessage(undefined)
     onChange(result.state)
+  }
+  const selectedPostgameActions = selectedGame ? getPracticePostgameActions(selectedGame, viewerUserId) : undefined
+  const selectedGameIdForRematches = selectedGame?.id
+  const canLoadSelectedRematchRequests = Boolean(selectedGame && selectedPostgameActions?.settings)
+  useEffect(() => {
+    if (!selectedGameIdForRematches || !canLoadSelectedRematchRequests || !postgameActions || readOnly) {
+      return undefined
+    }
+    let active = true
+    void postgameActions.listPracticeRematchRequests({
+      limit: PRACTICE_REMATCH_REQUEST_LIMIT,
+      sourceGameId: selectedGameIdForRematches,
+    }).then((requests) => {
+      if (active) {
+        setPracticeRematchRequests(requests)
+      }
+    }).catch(() => {
+      if (active) {
+        setPracticeRematchRequests([])
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [
+    canLoadSelectedRematchRequests,
+    postgameActions,
+    readOnly,
+    selectedGameIdForRematches,
+    selectedGame?.status,
+    selectedGame?.updatedAt,
+  ])
+
+  const upsertPracticeRematchRequest = (request: PracticeRematchRequestResult) => {
+    setPracticeRematchRequests((current) => [
+      request,
+      ...current.filter((entry) => entry.requestId !== request.requestId),
+    ])
+  }
+
+  const applyPostgameSettingsToControls = (settings: PracticePostgameSettings, nextMatchKind: MultiplayerMatchKind) => {
+    setMode(settings.mode)
+    setMatchKind(nextMatchKind)
+    setHardMode(settings.hardMode)
+    setTimeLimitMs(settings.timeLimitMs ?? null)
+    setWordLength(settings.wordLength)
+  }
+
+  const requestPracticeRematch = async () => {
+    if (!selectedGame || !postgameActions || !viewerUserId || !selectedPostgameActions?.canRequestRematch) {
+      return
+    }
+    setPostgameBusy(true)
+    try {
+      const request = await postgameActions.requestPracticeRematch({
+        idempotencyKey: `phase31-rematch:request:${selectedGame.id}:${viewerUserId}`,
+        sourceGameId: selectedGame.id,
+      })
+      upsertPracticeRematchRequest(request)
+      setPostgameMessage({ gameId: selectedGame.id, text: 'Rematch request sent.' })
+    } catch (error) {
+      setPostgameMessage({
+        gameId: selectedGame.id,
+        text: getPostgameErrorMessage(error, 'Unable to request rematch.'),
+      })
+    } finally {
+      setPostgameBusy(false)
+    }
+  }
+
+  const cancelPracticeRematch = async (request: PracticeRematchRequestResult) => {
+    if (!selectedGame || !postgameActions) {
+      return
+    }
+    setPostgameBusy(true)
+    try {
+      const cancelled = await postgameActions.cancelPracticeRematch(request.requestId)
+      upsertPracticeRematchRequest(cancelled)
+      setPostgameMessage({ gameId: selectedGame.id, text: 'Rematch request cancelled.' })
+    } catch (error) {
+      setPostgameMessage({
+        gameId: selectedGame.id,
+        text: getPostgameErrorMessage(error, 'Unable to cancel rematch request.'),
+      })
+    } finally {
+      setPostgameBusy(false)
+    }
+  }
+
+  const declinePracticeRematch = async (request: PracticeRematchRequestResult) => {
+    if (!selectedGame || !postgameActions) {
+      return
+    }
+    setPostgameBusy(true)
+    try {
+      const declined = await postgameActions.declinePracticeRematch(request.requestId)
+      upsertPracticeRematchRequest(declined)
+      setPostgameMessage({ gameId: selectedGame.id, text: 'Rematch request declined.' })
+    } catch (error) {
+      setPostgameMessage({
+        gameId: selectedGame.id,
+        text: getPostgameErrorMessage(error, 'Unable to decline rematch request.'),
+      })
+    } finally {
+      setPostgameBusy(false)
+    }
+  }
+
+  const acceptPracticeRematch = async (request: PracticeRematchRequestResult) => {
+    if (!selectedGame || !postgameActions) {
+      return
+    }
+    const projection = createPracticeRematchGameProjection(selectedGame)
+    if (!projection) {
+      setPostgameMessage({ gameId: selectedGame.id, text: 'Unable to create a safe rematch game from this result.' })
+      return
+    }
+    setPostgameBusy(true)
+    try {
+      const accepted = await postgameActions.acceptPracticeRematch({
+        game: projection,
+        idempotencyKey: `phase31-rematch:accept:${request.requestId}:${projection.id}`,
+        requestId: request.requestId,
+      })
+      const rematchGame = accepted.createdGameId && accepted.createdGameId !== projection.id
+        ? { ...projection, id: accepted.createdGameId }
+        : projection
+      const next = addMultiplayerGame(normalized, rematchGame)
+      if (!next.games.some((entry) => entry.id === rematchGame.id)) {
+        setPostgameMessage({ gameId: selectedGame.id, text: 'You already have five active multiplayer games.' })
+        return
+      }
+      upsertPracticeRematchRequest(accepted)
+      onChange(next)
+      selectGame(rematchGame.id)
+      setPostgameMessage({ gameId: rematchGame.id, text: accepted.idempotent ? 'Opening existing rematch game.' : 'Rematch game created.' })
+    } catch (error) {
+      setPostgameMessage({
+        gameId: selectedGame.id,
+        text: getPostgameErrorMessage(error, 'Unable to accept rematch request.'),
+      })
+    } finally {
+      setPostgameBusy(false)
+    }
+  }
+
+  const playAgainWithSameSettings = () => {
+    if (!selectedGame || !viewerUserId || !selectedPostgameActions?.settings) {
+      return
+    }
+    const settings = selectedPostgameActions.settings
+    if (selectedPostgameActions.continuationKind === 'custom-play-again') {
+      applyPostgameSettingsToControls(settings, 'custom')
+      setPostgameMessage({
+        gameId: selectedGame.id,
+        text: 'Same custom settings loaded. Open a new custom-code lobby when ready.',
+      })
+      return
+    }
+    const nextGame = createMultiplayerGame({
+      difficulty: defaultDifficulty,
+      goPuzzleCount: settings.mode === 'go' ? settings.goPuzzleCount ?? defaultGoPuzzleCount : undefined,
+      hardMode: settings.hardMode,
+      mode: settings.mode,
+      playerProfiles: viewerProfile ? { 'player-one': viewerProfile } : undefined,
+      playerUserIds: { 'player-one': viewerUserId },
+      ranked: false,
+      scope: 'practice',
+      timeLimitMs: settings.timeLimitMs ?? null,
+      wordLength: settings.wordLength,
+    })
+    const next = addMultiplayerGame(normalized, nextGame)
+    if (!next.games.some((entry) => entry.id === nextGame.id)) {
+      setPostgameMessage({ gameId: selectedGame.id, text: 'You already have five active multiplayer games.' })
+      return
+    }
+    applyPostgameSettingsToControls(settings, 'unranked')
+    onChange(next)
+    selectGame(nextGame.id)
+    setPostgameMessage({ gameId: nextGame.id, text: 'New same-settings Practice match opened.' })
+  }
+
+  const searchRankedAgain = () => {
+    if (!selectedPostgameActions?.settings || !selectedPostgameActions.canSearchAgain) {
+      return
+    }
+    const settings = selectedPostgameActions.settings
+    applyPostgameSettingsToControls(settings, 'ranked')
+    setPostgameMessage(undefined)
+    void enterRankedQueue({
+      hardMode: settings.hardMode,
+      mode: settings.mode,
+      wordLength: settings.wordLength,
+    })
   }
 
   return (
@@ -1002,6 +1372,24 @@ export function MultiplayerPanel({
                 <p className="text-xs text-violet-100">Points decide this result. Elo updates only after trusted settlement confirms authenticated durable ranked evidence; local preview, spectator, custom, Daily, and timed Practice rows stay unrated.</p>
               ) : null}
             </div>
+          ) : null}
+
+          {!readOnly && selectedPostgameActions && !showTerminalSolvedSurface ? (
+            <PracticePostgameActionsPanel
+              actions={selectedPostgameActions}
+              busy={postgameBusy || rankedQueueBusy}
+              gameId={selectedGame.id}
+              isOnlineReady={onlineReady}
+              message={selectedPostgameMessage}
+              onAcceptRematch={(request) => { void acceptPracticeRematch(request) }}
+              onCancelRematch={(request) => { void cancelPracticeRematch(request) }}
+              onDeclineRematch={(request) => { void declinePracticeRematch(request) }}
+              onPlayAgain={playAgainWithSameSettings}
+              onRequestRematch={() => { void requestPracticeRematch() }}
+              onSearchAgain={searchRankedAgain}
+              rematchActionsAvailable={Boolean(postgameActions)}
+              rematchRequests={practiceRematchRequests}
+            />
           ) : null}
 
           <div className="space-y-2">

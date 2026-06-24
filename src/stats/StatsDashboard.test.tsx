@@ -16,4 +16,15 @@ describe('StatsDashboard', () => {
     expect(html).toContain('og daily')
     expect(html).toContain('Competitive multiplayer')
   })
+
+  it('keeps chart accessibility tables visually hidden with the project helper', () => {
+    const html = renderToStaticMarkup(
+      <StatsDashboard authStatus="anonymous" stats={createEmptyStatistics()} />,
+    )
+
+    expect(html).toContain('<table class="brrrdle-visually-hidden">')
+    expect(html).not.toContain('<table class="sr-only">')
+    expect(html).toContain('<caption>Win rate by mode &amp; scope</caption>')
+    expect(html).toContain('<caption>Recent activity</caption>')
+  })
 })

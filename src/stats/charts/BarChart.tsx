@@ -33,7 +33,7 @@ export function BarChart({ caption, data, emptyMessage }: BarChartProps) {
           </li>
         ))}
       </ul>
-      <table className="sr-only">
+      <table className="brrrdle-visually-hidden">
         <caption>{caption}</caption>
         <thead>
           <tr><th scope="col">Group</th><th scope="col">Win rate</th><th scope="col">Played</th><th scope="col">Won</th></tr>

@@ -47,7 +47,7 @@ const ACCENT_SWATCHES: Record<ProfileAccentColor, string> = {
   amber: 'bg-amber-300',
 }
 
-const PUBLIC_ACCENT_AVATAR_BACKGROUNDS: Record<ProfileAccentColor, string> = {
+const ACCENT_AVATAR_BACKGROUNDS: Record<ProfileAccentColor, string> = {
   ice: 'from-cyan-300 to-sky-600',
   aurora: 'from-emerald-300 to-teal-700',
   cyan: 'from-sky-400 to-cyan-700',
@@ -221,7 +221,7 @@ export function ProfilePanel({
             aria-hidden="true"
             className={classNames(
               'inline-grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-gradient-to-br text-sm font-bold text-white shadow-inner',
-              profile?.gradient ?? 'from-cyan-500 to-sky-700',
+              ACCENT_AVATAR_BACKGROUNDS[accentColor],
             )}
           >
             {avatarUrl ? (
@@ -400,7 +400,7 @@ export function ProfilePanel({
                   aria-hidden="true"
                   className={classNames(
                     'inline-grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gradient-to-br text-xs font-bold text-white shadow-inner',
-                    PUBLIC_ACCENT_AVATAR_BACKGROUNDS[publicAccentColor],
+                    ACCENT_AVATAR_BACKGROUNDS[publicAccentColor],
                   )}
                 >
                   {publicAvatarPreviewUrl ? <img alt="" src={publicAvatarPreviewUrl} className="h-full w-full object-cover" /> : publicProfilePreviewInitials}

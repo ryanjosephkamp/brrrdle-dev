@@ -61,6 +61,31 @@ describe('ProfilePanel', () => {
     expect(html).toContain('aurora')
   })
 
+  it('uses the selected private accent for the initials avatar preview', () => {
+    const html = renderToStaticMarkup(
+      <ProfilePanel
+        authState={{
+          ...authState,
+          user: {
+            ...authState.user!,
+            profile: {
+              ...authState.user!.profile!,
+              accentColor: 'rose',
+              gradient: 'from-emerald-500 to-teal-700',
+            },
+          },
+        }}
+        isOpen
+        onClose={noop}
+        onSave={noop}
+        onSignOut={noop}
+      />,
+    )
+
+    expect(html).toContain('from-rose-300 to-pink-700')
+    expect(html).not.toContain('from-emerald-500 to-teal-700')
+  })
+
   it('renders public profile controls only when the public save seam is supplied', () => {
     const hiddenHtml = renderToStaticMarkup(
       <ProfilePanel authState={authState} isOpen onClose={noop} onSave={noop} onSignOut={noop} />,

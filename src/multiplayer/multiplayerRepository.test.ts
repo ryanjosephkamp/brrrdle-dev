@@ -16,6 +16,7 @@ import {
   loadAuthenticatedLiveSpectatorRows,
   loadMultiplayerState,
   normalizeAuthenticatedLiveSpectatorRows,
+  normalizePracticeRematchRequestRows,
   normalizeTrustedRankedSettlementRows,
 } from './multiplayerRepository'
 
@@ -161,6 +162,32 @@ function createRankedQueueFinalizationRow(overrides: Record<string, unknown> = {
     opponent_request_id: 'queue-request-2',
     request_id: 'queue-request-1',
     request_status: 'matched',
+    ...overrides,
+  }
+}
+
+function createPracticeRematchRequestRow(overrides: Record<string, unknown> = {}) {
+  return {
+    created: false,
+    created_at: '2026-06-24T00:10:00.000Z',
+    created_game_id: null,
+    expires_at: '2026-06-24T01:20:00.000Z',
+    go_puzzle_count: null,
+    hard_mode: false,
+    idempotent: false,
+    mode: 'og',
+    opponent_seat: 'player-two',
+    request_id: 'rematch-request-1',
+    request_status: 'requested',
+    requester_seat: 'player-one',
+    responded_at: null,
+    source_game_id: 'source-game-1',
+    time_limit_ms: null,
+    updated_at: '2026-06-24T00:10:00.000Z',
+    viewer_can_accept: false,
+    viewer_can_cancel: true,
+    viewer_role: 'requester',
+    word_length: 5,
     ...overrides,
   }
 }
@@ -585,6 +612,161 @@ describe('multiplayer repository seam', () => {
       p_request_id: 'queue-request-1',
     })
     expect(cancellation).toEqual({ requestId: 'queue-request-1', requestStatus: 'cancelled' })
+  })
+
+  it('normalizes Stage 31.3 Practice rematch RPC rows and stale request state', () => {
+    const rows = normalizePracticeRematchRequestRows([
+      createPracticeRematchRequestRow(),
+      createPracticeRematchRequestRow({
+        created: true,
+        created_game_id: 'rematch-game-1',
+        idempotent: true,
+        request_id: 'rematch-request-2',
+        request_status: 'created',
+        responded_at: '2026-06-24T00:12:00.000Z',
+        viewer_can_cancel: false,
+        viewer_role: 'opponent',
+      }),
+      createPracticeRematchRequestRow({
+        expires_at: '2026-06-23T23:59:00.000Z',
+        request_id: 'rematch-request-3',
+      }),
+    ], new Date('2026-06-24T00:00:00.000Z'))
+
+    expect(rows).toHaveLength(3)
+    expect(rows[0]).toMatchObject({
+      created: false,
+      expired: false,
+      mode: 'og',
+      requestId: 'rematch-request-1',
+      requestStatus: 'requested',
+      sourceGameId: 'source-game-1',
+      viewerCanAccept: false,
+      viewerCanCancel: true,
+      viewerRole: 'requester',
+      wordLength: 5,
+    })
+    expect(rows[1]).toMatchObject({
+      created: true,
+      createdGameId: 'rematch-game-1',
+      idempotent: true,
+      requestStatus: 'created',
+      respondedAt: '2026-06-24T00:12:00.000Z',
+    })
+    expect(rows[2]).toMatchObject({
+      expired: true,
+      viewerCanAccept: false,
+    })
+  })
+
+  it('rejects Practice rematch RPC rows that include private or unknown fields', () => {
+    expect(normalizePracticeRematchRequestRows([
+      createPracticeRematchRequestRow({ requester_user_id: 'raw-user-id' }),
+      createPracticeRematchRequestRow({ projection: { serializedSession: { answer: 'crane' } } }),
+      createPracticeRematchRequestRow({ unknown_field: 'surprise' }),
+    ])).toEqual([])
+  })
+
+  it('requests, lists, cancels, declines, and accepts Practice rematches through Stage 31.3 RPCs', async () => {
+    const acceptedGame = createMultiplayerGame({
+      id: 'rematch-game-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'user-1', 'player-two': 'user-2' },
+      scope: 'practice',
+      seed: 2,
+      wordLength: 5,
+    })
+    const rpc = vi.fn(async (name: string) => {
+      if (name === 'request_practice_multiplayer_rematch') {
+        return { data: [createPracticeRematchRequestRow()], error: null }
+      }
+      if (name === 'get_practice_multiplayer_rematch_requests') {
+        return { data: [createPracticeRematchRequestRow({ viewer_can_accept: true, viewer_can_cancel: false, viewer_role: 'opponent' })], error: null }
+      }
+      if (name === 'cancel_practice_multiplayer_rematch') {
+        return { data: [createPracticeRematchRequestRow({ request_status: 'cancelled', viewer_can_cancel: false })], error: null }
+      }
+      if (name === 'decline_practice_multiplayer_rematch') {
+        return { data: [createPracticeRematchRequestRow({ request_status: 'declined', viewer_can_accept: false, viewer_role: 'opponent' })], error: null }
+      }
+      if (name === 'accept_practice_multiplayer_rematch') {
+        return {
+          data: [createPracticeRematchRequestRow({
+            created: true,
+            created_game_id: 'rematch-game-1',
+            idempotent: false,
+            request_status: 'created',
+            responded_at: '2026-06-24T00:15:00.000Z',
+            viewer_can_accept: false,
+            viewer_can_cancel: false,
+            viewer_role: 'opponent',
+          })],
+          error: null,
+        }
+      }
+      return { data: null, error: { message: `Unexpected RPC ${name}` } }
+    })
+    const client = { rpc } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'user-1' })
+
+    const requested = await repository.requestPracticeRematch({
+      expiresAt: '2026-06-24T00:20:00.000Z',
+      idempotencyKey: 'phase31-rematch:request:source-game-1:user-1',
+      sourceGameId: 'source-game-1',
+    })
+    const listed = await repository.listPracticeRematchRequests({ limit: 10, sourceGameId: 'source-game-1' })
+    const cancelled = await repository.cancelPracticeRematch('rematch-request-1')
+    const declined = await repository.declinePracticeRematch('rematch-request-1')
+    const accepted = await repository.acceptPracticeRematch({
+      game: acceptedGame,
+      idempotencyKey: 'phase31-rematch:accept:rematch-request-1:rematch-game-1',
+      requestId: 'rematch-request-1',
+    })
+
+    expect(requested.requestId).toBe('rematch-request-1')
+    expect(listed[0]).toMatchObject({ viewerCanAccept: true, viewerRole: 'opponent' })
+    expect(cancelled.requestStatus).toBe('cancelled')
+    expect(declined.requestStatus).toBe('declined')
+    expect(accepted).toMatchObject({
+      created: true,
+      createdGameId: 'rematch-game-1',
+      requestStatus: 'created',
+    })
+    expect(rpc).toHaveBeenCalledWith('request_practice_multiplayer_rematch', {
+      p_expires_at: '2026-06-24T00:20:00.000Z',
+      p_idempotency_key: 'phase31-rematch:request:source-game-1:user-1',
+      p_source_game_id: 'source-game-1',
+    })
+    expect(rpc).toHaveBeenCalledWith('get_practice_multiplayer_rematch_requests', {
+      p_limit: 10,
+      p_source_game_id: 'source-game-1',
+    })
+    expect(rpc).toHaveBeenCalledWith('accept_practice_multiplayer_rematch', {
+      p_game_projection: acceptedGame,
+      p_idempotency_key: 'phase31-rematch:accept:rematch-request-1:rematch-game-1',
+      p_request_id: 'rematch-request-1',
+    })
+  })
+
+  it('throws for mutating Practice rematch RPC errors and unparsable results', async () => {
+    const authErrorRpc = vi.fn(async () => ({ data: null, error: { message: 'Authentication required.' } }))
+    const corruptRpc = vi.fn(async () => ({
+      data: [createPracticeRematchRequestRow({ projection: { serializedSession: { answer: 'crane' } } })],
+      error: null,
+    }))
+
+    await expect(
+      createSupabaseMultiplayerRepository({
+        client: { rpc: authErrorRpc } as unknown as BrrrdleSupabaseClient,
+        userId: 'user-1',
+      }).requestPracticeRematch({ sourceGameId: 'source-game-1' }),
+    ).rejects.toThrow('Unable to request Practice rematch: Authentication required.')
+    await expect(
+      createSupabaseMultiplayerRepository({
+        client: { rpc: corruptRpc } as unknown as BrrrdleSupabaseClient,
+        userId: 'user-1',
+      }).requestPracticeRematch({ sourceGameId: 'source-game-1' }),
+    ).rejects.toThrow('Unable to parse Practice rematch request result.')
   })
 
   it('saves only the current user multiplayer games through the Supabase adapter', async () => {

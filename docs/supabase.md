@@ -93,6 +93,14 @@ This migration adds authenticated-only RPC `public.get_public_ranked_leaderboard
 
 Public leaderboard payloads may include only public profile identity fields and aggregate rating fields such as rank, bucket, rating, games played, wins, losses, draws, provisional status, latest safe rating movement, peak rating, and freshness timestamps. They must never expose raw auth emails, raw auth ids, private profile metadata, private progress, answer-bearing data, seeds, sessions, raw game projections, local artifacts, private ranked projections, raw rating transaction ids, match ids, queue ids, settlement ids, or unapproved rating transaction internals. Public leaderboards are display-only and do not change Elo, trusted settlement, Daily claims, profile visibility, or gameplay authority.
 
+Phase 31 Practice-only rematch mutual intent uses the additive migration:
+
+- `supabase/migrations/20260623235121_phase31_practice_rematch_requests.sql`
+
+This migration creates `public.multiplayer_practice_rematch_requests` and authenticated-only participant-scoped RPCs for requesting, listing, cancelling, declining, and accepting Practice rematches. Direct same-opponent rematch v1 is limited to completed unranked non-custom Practice Multiplayer games. Ranked Practice continuation remains same-settings search-again through the trusted ranked queue path, and Daily Multiplayer remains excluded from rematch, replay, or search-again shortcuts.
+
+Rematch RPC payloads may include only allow-listed request lifecycle and same-settings fields such as request id, source game id, request status, viewer capabilities, mode, word length, Hard Mode, time limit, GO puzzle count, created game id, timestamps, and idempotency booleans. They must never return raw auth emails, raw auth ids, private profile metadata, public profile drafts, answers, seeds, serialized sessions, player sessions, source projections, move history, rating transaction ids, queue ids, settlement ids, tokens, or local/session artifacts. The rematch table does not make postgame intent gameplay, Elo, public leaderboard, profile, notification, spectator, or Daily claim authority.
+
 For the Phase 23 Stage 3 online-multiplayer stabilization, also apply `supabase/migrations/20260604050824_phase23_online_multiplayer_fixes.sql` after the live and competitive migrations. It creates:
 
 - `async_multiplayer_games`
