@@ -12,11 +12,140 @@ import {
   getMultiplayerAnswerWords,
   joinMultiplayerGame,
   submitMultiplayerGuess,
+  type MultiplayerGame,
 } from './multiplayer'
 import { createDailyMultiplayerGoSetup } from './dailyMultiplayer'
-import { MultiplayerPanel } from './MultiplayerPanel'
+import { getPracticePostgameActions } from './postgameActions'
+import { MultiplayerPanel, PracticePostgameActionsPanel } from './MultiplayerPanel'
+import type {
+  MultiplayerRepository,
+  PracticeRematchRequestResult,
+  RankedQueueCancellationResult,
+  RankedQueueClaimResult,
+  RankedQueueFinalizationResult,
+  RankedQueueRequestResult,
+  RankedQueueStatusResult,
+} from './multiplayerRepository'
 
 function noop() {}
+
+type RankedQueueActionsFixture = Pick<
+  MultiplayerRepository,
+  'cancelRankedQueueRequest'
+  | 'claimRankedQueuePair'
+  | 'createRankedQueueRequest'
+  | 'finalizeRankedQueueGame'
+  | 'getRankedQueueStatus'
+>
+
+type PracticeRematchActionsFixture = Pick<
+  MultiplayerRepository,
+  'acceptPracticeRematch'
+  | 'cancelPracticeRematch'
+  | 'declinePracticeRematch'
+  | 'listPracticeRematchRequests'
+  | 'requestPracticeRematch'
+>
+
+function terminalPracticeGame(overrides: Partial<MultiplayerGame> = {}): MultiplayerGame {
+  const game = createMultiplayerGame({
+    hardMode: true,
+    mode: 'og',
+    playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+    scope: 'practice',
+    seed: 31,
+    wordLength: 6,
+    ...overrides,
+  })
+  return {
+    ...game,
+    endedAt: '2026-06-24T00:20:00.000Z',
+    status: 'won',
+    updatedAt: '2026-06-24T00:20:00.000Z',
+    winnerId: 'player-one',
+    ...overrides,
+  }
+}
+
+function createPracticeRematchRequestFixture(
+  overrides: Partial<PracticeRematchRequestResult> = {},
+): PracticeRematchRequestResult {
+  return {
+    created: false,
+    createdAt: '2026-06-24T00:21:00.000Z',
+    expired: false,
+    expiresAt: '2026-06-24T00:31:00.000Z',
+    hardMode: true,
+    idempotent: false,
+    mode: 'og',
+    opponentSeat: 'player-two',
+    requestId: 'rematch-request-1',
+    requesterSeat: 'player-one',
+    requestStatus: 'requested',
+    sourceGameId: 'terminal-practice-1',
+    updatedAt: '2026-06-24T00:21:00.000Z',
+    viewerCanAccept: false,
+    viewerCanCancel: true,
+    viewerRole: 'requester',
+    wordLength: 6,
+    ...overrides,
+  }
+}
+
+function createPracticeRematchActionsFixture(): PracticeRematchActionsFixture {
+  const result = createPracticeRematchRequestFixture()
+  return {
+    acceptPracticeRematch: async () => ({
+      ...result,
+      created: true,
+      createdGameId: 'rematch-game-1',
+      requestStatus: 'created',
+    }),
+    cancelPracticeRematch: async () => ({ ...result, requestStatus: 'cancelled' }),
+    declinePracticeRematch: async () => ({ ...result, requestStatus: 'declined' }),
+    listPracticeRematchRequests: async () => [],
+    requestPracticeRematch: async () => result,
+  }
+}
+
+function createRankedQueueActionsFixture(): RankedQueueActionsFixture {
+  const request: RankedQueueRequestResult = {
+    hardMode: true,
+    queuedAt: '2026-06-24T00:25:00.000Z',
+    ratingBucket: 'multiplayer:og',
+    ratingSnapshot: 1200,
+    requestId: 'queue-request-1',
+    requestStatus: 'queued',
+    wordLength: 6,
+  }
+  const cancellation: RankedQueueCancellationResult = {
+    requestId: request.requestId,
+    requestStatus: 'cancelled',
+  }
+  const claim: RankedQueueClaimResult = {
+    requestId: request.requestId,
+    requestStatus: 'queued',
+  }
+  const status: RankedQueueStatusResult = {
+    queuedAt: request.queuedAt,
+    requestId: request.requestId,
+    requestStatus: 'queued',
+  }
+  const finalization: RankedQueueFinalizationResult = {
+    created: false,
+    gameId: 'ranked-rematch-game-1',
+    idempotent: false,
+    requestId: request.requestId,
+    requestStatus: 'queued',
+  }
+  return {
+    cancelRankedQueueRequest: async () => cancellation,
+    claimRankedQueuePair: async () => claim,
+    createRankedQueueRequest: async () => request,
+    finalizeRankedQueueGame: async () => finalization,
+    getRankedQueueStatus: async () => status,
+  }
+}
 
 describe('MultiplayerPanel', () => {
   it('shows creator-only cancellation for an unjoined multiplayer lobby', () => {
@@ -451,5 +580,172 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('Status: playing')
     expect(html).not.toContain('Multiplayer guess grid')
     expect(html).not.toContain('Forfeit match')
+  })
+
+  it('renders terminal unranked Practice postgame rematch and same-settings actions for participants', () => {
+    const game = terminalPracticeGame({ id: 'terminal-practice-1' })
+    const html = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        postgameActions={createPracticeRematchActionsFixture()}
+        scope="practice"
+        state={{ games: [game] }}
+        viewerUserId="host-user"
+      />,
+    )
+
+    expect(html).toContain('Postgame actions')
+    expect(html).toContain('Request rematch')
+    expect(html).toContain('Open new unranked match')
+    expect(html).toContain('Same settings')
+    expect(html).not.toContain('Search ranked Practice again')
+    expect(html).not.toContain('Daily Multiplayer does not support rematch')
+  })
+
+  it('keeps ranked Practice postgame continuation on the ranked queue path', () => {
+    const ranked = terminalPracticeGame({
+      id: 'ranked-terminal-1',
+      matchmakingRequestId: 'queue-request-original',
+      ranked: true,
+      ratingBucket: 'multiplayer:og',
+      timeLimitMs: null,
+    })
+    const html = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        postgameActions={createPracticeRematchActionsFixture()}
+        rankedQueueActions={createRankedQueueActionsFixture()}
+        scope="practice"
+        state={{ games: [ranked] }}
+        viewerUserId="host-user"
+      />,
+    )
+
+    expect(html).toContain('Postgame actions')
+    expect(html).toContain('Search ranked Practice again')
+    expect(html).toContain('trusted ranked queue')
+    expect(html).not.toContain('Request rematch')
+    expect(html).not.toContain('Open new unranked match')
+  })
+
+  it('renders custom Practice postgame setup-prefill without direct rematch', () => {
+    const custom = terminalPracticeGame({
+      customGameCode: 'ABC123',
+      id: 'custom-terminal-1',
+    })
+    const html = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        postgameActions={createPracticeRematchActionsFixture()}
+        scope="practice"
+        state={{ games: [custom] }}
+        viewerUserId="host-user"
+      />,
+    )
+
+    expect(html).toContain('Postgame actions')
+    expect(html).toContain('Set up custom play again')
+    expect(html).toContain('Custom Practice games use setup-prefill instead of direct rematch.')
+    expect(html).not.toContain('Request rematch')
+  })
+
+  it('keeps postgame actions hidden for Daily games and nonparticipants', () => {
+    const daily = terminalPracticeGame({
+      dailyDateKey: '2026-06-24',
+      id: 'daily-terminal-1',
+      scope: 'daily',
+    })
+    const practice = terminalPracticeGame({ id: 'terminal-practice-1' })
+    const dailyHtml = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        dailyDateKey="2026-06-24"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        postgameActions={createPracticeRematchActionsFixture()}
+        scope="daily"
+        state={{ games: [daily] }}
+        viewerUserId="host-user"
+      />,
+    )
+    const observerHtml = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        postgameActions={createPracticeRematchActionsFixture()}
+        scope="practice"
+        state={{ games: [practice] }}
+        viewerUserId="observer-user"
+      />,
+    )
+
+    expect(dailyHtml).not.toContain('Postgame actions')
+    expect(observerHtml).not.toContain('Postgame actions')
+  })
+
+  it('renders rematch request lifecycle controls from sanitized request rows', () => {
+    const game = terminalPracticeGame({ id: 'terminal-practice-1' })
+    const opponentRequest = createPracticeRematchRequestFixture({
+      opponentSeat: 'player-one',
+      requesterSeat: 'player-two',
+      viewerCanAccept: true,
+      viewerCanCancel: false,
+      viewerRole: 'opponent',
+    })
+    const requesterRequest = createPracticeRematchRequestFixture()
+
+    const opponentHtml = renderToStaticMarkup(
+      <PracticePostgameActionsPanel
+        actions={getPracticePostgameActions(game, 'host-user')}
+        busy={false}
+        gameId={game.id}
+        isOnlineReady
+        message={undefined}
+        onAcceptRematch={noop}
+        onCancelRematch={noop}
+        onDeclineRematch={noop}
+        onPlayAgain={noop}
+        onRequestRematch={noop}
+        onSearchAgain={noop}
+        rematchActionsAvailable
+        rematchRequests={[opponentRequest]}
+      />,
+    )
+    const requesterHtml = renderToStaticMarkup(
+      <PracticePostgameActionsPanel
+        actions={getPracticePostgameActions(game, 'host-user')}
+        busy={false}
+        gameId={game.id}
+        isOnlineReady
+        message="Rematch request sent."
+        onAcceptRematch={noop}
+        onCancelRematch={noop}
+        onDeclineRematch={noop}
+        onPlayAgain={noop}
+        onRequestRematch={noop}
+        onSearchAgain={noop}
+        rematchActionsAvailable
+        rematchRequests={[requesterRequest]}
+      />,
+    )
+
+    expect(opponentHtml).toContain('Rival requested a rematch.')
+    expect(opponentHtml).toContain('Accept rematch')
+    expect(opponentHtml).toContain('Decline')
+    expect(requesterHtml).toContain('Waiting for rival to accept.')
+    expect(requesterHtml).toContain('Cancel request')
+    expect(requesterHtml).toContain('Rematch request sent.')
   })
 })

@@ -83,6 +83,16 @@ export function normalizeRatingBucket(value: unknown, fallback: RatingBucketId =
   return fallback
 }
 
+function parseRatingBucket(value: unknown): RatingBucketId | undefined {
+  if (value === 'multiplayer:og' || value === 'async:og' || value === 'live:og') {
+    return 'multiplayer:og'
+  }
+  if (value === 'multiplayer:go' || value === 'async:go' || value === 'live:go') {
+    return 'multiplayer:go'
+  }
+  return undefined
+}
+
 export function createEmptyRatingState(): MultiplayerRatingState {
   return { profiles: [], transactions: [] }
 }
@@ -128,10 +138,14 @@ export function normalizeRatingProfile(value: unknown): MultiplayerRatingProfile
   if (typeof record.userId !== 'string' || !record.userId.trim()) {
     return undefined
   }
+  const bucket = parseRatingBucket(record.bucket)
+  if (!bucket) {
+    return undefined
+  }
   const gamesPlayed = clampCount(record.gamesPlayed)
   const inferredProvisional = gamesPlayed < MULTIPLAYER_PROVISIONAL_GAMES
   return {
-    bucket: normalizeRatingBucket(record.bucket),
+    bucket,
     draws: clampCount(record.draws),
     gamesPlayed,
     losses: clampCount(record.losses),
@@ -156,17 +170,19 @@ export function normalizeRatingState(value: unknown): MultiplayerRatingState {
         }
         const row = transaction as Record<string, unknown>
         const outcome = normalizeOutcome(row.outcome)
+        const bucket = parseRatingBucket(row.bucket)
         if (
           typeof row.id !== 'string'
           || typeof row.matchId !== 'string'
           || typeof row.userId !== 'string'
           || typeof row.opponentUserId !== 'string'
+          || !bucket
           || !outcome
         ) {
           return []
         }
         return [{
-          bucket: normalizeRatingBucket(row.bucket),
+          bucket,
           createdAt: typeof row.createdAt === 'string' ? row.createdAt : new Date(0).toISOString(),
           expectedScore: normalizeExpectedScore(row.expectedScore),
           id: row.id.trim(),

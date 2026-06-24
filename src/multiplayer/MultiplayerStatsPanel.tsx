@@ -2,17 +2,47 @@ import { Button, Panel } from '../ui'
 import { normalizeCompetitiveMultiplayerState, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
 import {
   MULTIPLAYER_PROVISIONAL_GAMES,
+  type RatingBucketId,
   type MultiplayerRatingProfile,
 } from './rating'
 
 interface MultiplayerStatsPanelProps {
   readonly onOpenEloAbout?: () => void
   readonly state?: MultiplayerCompetitiveState
+  readonly viewerUserId?: string
 }
 
-function bucketLabel(bucket: string): string {
-  const [, mode = 'og'] = bucket.split(':')
-  return `multiplayer ${mode}`.toUpperCase()
+const BUCKET_LABELS: Record<RatingBucketId, string> = {
+  'multiplayer:go': 'Ranked Practice GO',
+  'multiplayer:og': 'Ranked Practice OG',
+}
+
+function bucketLabel(bucket: RatingBucketId): string {
+  return BUCKET_LABELS[bucket]
+}
+
+function ratingProfileKey(profile: Pick<MultiplayerRatingProfile, 'bucket' | 'userId'>): string {
+  return `${profile.bucket}:${profile.userId}`
+}
+
+function selectDisplayRatingProfiles(
+  profiles: readonly MultiplayerRatingProfile[],
+  viewerUserId?: string,
+): readonly MultiplayerRatingProfile[] {
+  const trimmedViewerUserId = typeof viewerUserId === 'string' ? viewerUserId.trim() : ''
+  const eligibleProfiles = trimmedViewerUserId
+    ? profiles.filter((profile) => profile.userId === trimmedViewerUserId)
+    : profiles
+  const profileMap = new Map<string, MultiplayerRatingProfile>()
+  for (const profile of eligibleProfiles) {
+    const key = ratingProfileKey(profile)
+    const existing = profileMap.get(key)
+    if (!existing || profile.updatedAt > existing.updatedAt) {
+      profileMap.set(key, profile)
+    }
+  }
+  return Array.from(profileMap.values())
+    .sort((left, right) => left.bucket.localeCompare(right.bucket) || left.userId.localeCompare(right.userId))
 }
 
 function provisionalLabel(profile: MultiplayerRatingProfile): string {
@@ -23,10 +53,11 @@ function provisionalLabel(profile: MultiplayerRatingProfile): string {
   return `Provisional · ${remaining} ${remaining === 1 ? 'match' : 'matches'} until established`
 }
 
-export function MultiplayerStatsPanel({ onOpenEloAbout, state }: MultiplayerStatsPanelProps) {
+export function MultiplayerStatsPanel({ onOpenEloAbout, state, viewerUserId }: MultiplayerStatsPanelProps) {
   const competitive = normalizeCompetitiveMultiplayerState(state)
   const recentResults = competitive.results.slice(0, 6)
   const recentTransactions = competitive.rating.transactions.slice(0, 6)
+  const displayRatingProfiles = selectDisplayRatingProfiles(competitive.rating.profiles, viewerUserId)
 
   return (
     <section className="space-y-4" aria-labelledby="multiplayer-stats-title">
@@ -34,7 +65,7 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state }: MultiplayerStat
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">multiplayer ratings</p>
         <h3 id="multiplayer-stats-title" className="text-2xl font-bold text-white">Competitive multiplayer</h3>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-          Ranked results are tracked separately from solo stats. Points decide match results; Elo changes only after trusted settlement confirms authenticated durable ranked evidence.
+          Ranked results are tracked separately from solo stats. Points decide match results; Elo changes only after confirmed ranked results are recorded.
         </p>
       </div>
 
@@ -44,7 +75,7 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state }: MultiplayerStat
             <div>
               <h4 className="text-lg font-bold text-white">Ranked Elo</h4>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300">
-                Rating buckets show trusted settlement state only. The full formula and ranked Practice boundaries now live in About.
+                Rating buckets are separate Elo tracks for ranked Practice OG and ranked Practice GO. The full formula and ranked Practice boundaries live in About.
               </p>
             </div>
             {onOpenEloAbout ? (
@@ -52,15 +83,15 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state }: MultiplayerStat
             ) : null}
           </div>
           <p className="text-xs leading-5 text-slate-400">
-            Only eligible ranked Practice v1 games affect Elo. Daily ranked, timed Practice ranked, and public leaderboards remain deferred.
+            Only eligible ranked Practice v1 games affect Elo. Daily ranked and timed Practice ranked remain deferred; public leaderboards are display-only.
           </p>
         </Panel>
 
         <Panel className="space-y-3 text-sm text-slate-300" tone="muted">
           <h4 className="text-lg font-bold text-white">Rating buckets</h4>
-          {competitive.rating.profiles.length > 0 ? (
+          {displayRatingProfiles.length > 0 ? (
             <div className="grid gap-2">
-              {competitive.rating.profiles.map((profile) => (
+              {displayRatingProfiles.map((profile) => (
                 <article className="rounded-lg border border-white/10 bg-black/30 p-3" key={`${profile.bucket}-${profile.userId}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-semibold text-cyan-100">{bucketLabel(profile.bucket)}</p>
@@ -74,7 +105,7 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state }: MultiplayerStat
             </div>
           ) : (
             <p className="rounded-lg border border-white/10 bg-black/30 p-3">
-              No rated results yet. Ranked matches need two authenticated players, Practice queue finalization, and trusted settlement before Elo changes.
+              No rated results yet. Ranked matches need two authenticated players, Practice queue finalization, and a confirmed ranked result before Elo changes.
             </p>
           )}
         </Panel>
@@ -106,7 +137,7 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state }: MultiplayerStat
         <Panel className="space-y-3 text-sm text-slate-300" tone="muted">
           <h4 className="text-lg font-bold text-white">Rating changes</h4>
           <p className="text-xs leading-5 text-slate-400">
-            These rows come from trusted settlement transactions. Local preview state is display/cache only and is not rating authority.
+            These rows come from confirmed ranked rating changes. Local preview state is display/cache only and is not rating authority.
           </p>
           <div className="grid gap-2 md:grid-cols-2">
             {recentTransactions.map((transaction) => (

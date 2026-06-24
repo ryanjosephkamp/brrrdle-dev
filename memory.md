@@ -6,7 +6,9 @@
 ## 1. Current Snapshot
 
 - Active development repository for the current phase workflow: `brrrdle-dev` at `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`.
-- Phase 30 implementation and final hardening are complete under `phase_id = 234`; the next safe action is Phase 30 Git handoff preparation, not Phase 31 implementation.
+- Phase 31 implementation and final hardening are complete under `phase_id = 245`; the next safe action is Phase 31 Git handoff preparation, not Phase 32 implementation.
+- Phase 31 added Practice-only postgame actions: durable direct rematch request/accept for completed unranked non-custom Practice games, ranked same-settings search-again through the trusted queue path, unranked/custom same-settings continuation where safe, and explicit Daily exclusion.
+- Phase 31 also fixed private profile accent previews, Stats hidden accessibility text overlap, About expected-score formula formatting, and Competitive multiplayer rating-bucket clarity/dedupe/stale copy.
 - Phase 30 added authenticated-only public ranked Practice leaderboards using opted-in public profiles and trusted aggregate rating data, plus Multiplayer Overview cleanup that removed the redundant secondary shortcut row and confusing `Select`/`Selected` active-game affordance.
 - Phase 29 added default-private public profile foundations, notification click routing, Notification Center `Mark all read` plus secondary `Hide` semantics, and About-tab Elo transparency relocation while preserving Phase 28 Live behavior and Phase 27 ranked Practice boundaries.
 - Phase 30 deferred ranked-mode routing is documented under `phase_id = 226`: Phase 30 stays public leaderboards and Multiplayer Overview cleanup; Phase 31 stays multiplayer postgame actions; Phase 32 becomes ranked mode expansion / competitive ladder v2 for timed Practice ranked first and Daily ranked only after claim-safety proof; Phase 33 moves to public/guest spectation; Phase 34 moves to theme proposal/template modernization; Phase 35 or later moves to full concrete themes.

@@ -40,7 +40,7 @@ export function CalendarHeatmap({ caption, data }: CalendarHeatmapProps) {
           />
         ))}
       </div>
-      <table className="sr-only">
+      <table className="brrrdle-visually-hidden">
         <caption>{caption}</caption>
         <thead>
           <tr><th scope="col">Date</th><th scope="col">Played</th><th scope="col">Won</th></tr>

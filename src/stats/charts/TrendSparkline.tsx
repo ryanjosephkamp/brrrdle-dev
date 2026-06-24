@@ -40,7 +40,7 @@ export function TrendSparkline({ caption, data, emptyMessage }: TrendSparklinePr
         <polyline fill="none" points={points} stroke="currentColor" strokeWidth={2} />
       </svg>
       <p className="text-xs text-slate-400">{lastPoint.cumulative} coins earned across the last {data.length} games.</p>
-      <table className="sr-only">
+      <table className="brrrdle-visually-hidden">
         <caption>{caption}</caption>
         <thead>
           <tr><th scope="col">Completed at</th><th scope="col">Coins earned</th><th scope="col">Cumulative</th></tr>

@@ -30,6 +30,11 @@ export interface MultiplayerRepository {
   readonly claimRankedQueuePair: (input: ClaimRankedQueuePairInput) => Promise<RankedQueueClaimResult>
   readonly getRankedQueueStatus: (requestId: string) => Promise<RankedQueueStatusResult>
   readonly finalizeRankedQueueGame: (input: FinalizeRankedQueueGameInput) => Promise<RankedQueueFinalizationResult>
+  readonly requestPracticeRematch: (input: RequestPracticeRematchInput) => Promise<PracticeRematchRequestResult>
+  readonly listPracticeRematchRequests: (input?: ListPracticeRematchRequestsInput) => Promise<readonly PracticeRematchRequestResult[]>
+  readonly cancelPracticeRematch: (requestId: string) => Promise<PracticeRematchRequestResult>
+  readonly declinePracticeRematch: (requestId: string) => Promise<PracticeRematchRequestResult>
+  readonly acceptPracticeRematch: (input: AcceptPracticeRematchInput) => Promise<PracticeRematchRequestResult>
   readonly subscribe: (listener: (snapshot: MultiplayerRepositorySnapshot) => void) => () => void
 }
 
@@ -112,6 +117,19 @@ export function createLocalStorageMultiplayerRepository(
     },
     finalizeRankedQueueGame: async () => {
       throw new Error('Ranked queue requires authenticated Supabase multiplayer.')
+    },
+    requestPracticeRematch: async () => {
+      throw new Error('Practice rematch requests require authenticated Supabase multiplayer.')
+    },
+    listPracticeRematchRequests: async () => [],
+    cancelPracticeRematch: async () => {
+      throw new Error('Practice rematch requests require authenticated Supabase multiplayer.')
+    },
+    declinePracticeRematch: async () => {
+      throw new Error('Practice rematch requests require authenticated Supabase multiplayer.')
+    },
+    acceptPracticeRematch: async () => {
+      throw new Error('Practice rematch requests require authenticated Supabase multiplayer.')
     },
     subscribe: (listener) => {
       listeners.add(listener)
@@ -279,6 +297,50 @@ export interface FinalizeRankedQueueGameInput {
   readonly requestId: string
 }
 
+export type PracticeRematchRequestStatus = 'cancelled' | 'created' | 'declined' | 'expired' | 'requested'
+export type PracticeRematchViewerRole = 'opponent' | 'participant' | 'requester'
+
+export interface PracticeRematchRequestResult {
+  readonly created: boolean
+  readonly createdAt: string
+  readonly createdGameId?: string
+  readonly expired: boolean
+  readonly expiresAt: string
+  readonly goPuzzleCount?: number
+  readonly hardMode: boolean
+  readonly idempotent: boolean
+  readonly mode: GameMode
+  readonly opponentSeat: RankedQueueViewerSeat
+  readonly requestId: string
+  readonly requesterSeat: RankedQueueViewerSeat
+  readonly requestStatus: PracticeRematchRequestStatus
+  readonly respondedAt?: string
+  readonly sourceGameId: string
+  readonly timeLimitMs?: number
+  readonly updatedAt: string
+  readonly viewerCanAccept: boolean
+  readonly viewerCanCancel: boolean
+  readonly viewerRole: PracticeRematchViewerRole
+  readonly wordLength: number
+}
+
+export interface RequestPracticeRematchInput {
+  readonly expiresAt?: string
+  readonly idempotencyKey?: string
+  readonly sourceGameId: string
+}
+
+export interface ListPracticeRematchRequestsInput {
+  readonly limit?: number
+  readonly sourceGameId?: string | null
+}
+
+export interface AcceptPracticeRematchInput {
+  readonly game: MultiplayerGame
+  readonly idempotencyKey?: string
+  readonly requestId: string
+}
+
 export interface RankedQueueFinalizationResult {
   readonly created: boolean
   readonly gameId: string
@@ -353,6 +415,74 @@ const FORBIDDEN_RANKED_QUEUE_KEYS = new Set([
   'serialized_session',
 ])
 
+const PRACTICE_REMATCH_ALLOWED_KEYS = new Set([
+  'created',
+  'created_at',
+  'created_game_id',
+  'expires_at',
+  'go_puzzle_count',
+  'hard_mode',
+  'idempotent',
+  'mode',
+  'opponent_seat',
+  'request_id',
+  'request_status',
+  'requester_seat',
+  'responded_at',
+  'source_game_id',
+  'time_limit_ms',
+  'updated_at',
+  'viewer_can_accept',
+  'viewer_can_cancel',
+  'viewer_role',
+  'word_length',
+])
+
+const FORBIDDEN_PRACTICE_REMATCH_KEYS = new Set([
+  'accept_idempotency_key',
+  'answer',
+  'answers',
+  'answerWord',
+  'answerWords',
+  'authId',
+  'auth_id',
+  'auth_user_id',
+  'daily_claim_id',
+  'email',
+  'hostUserId',
+  'host_user_id',
+  'match_id',
+  'matchmaking_request_id',
+  'opponent_user_id',
+  'playerOneUserId',
+  'playerSessions',
+  'playerTwoUserId',
+  'playerUserIds',
+  'player_one_user_id',
+  'player_sessions',
+  'player_two_user_id',
+  'player_user_ids',
+  'projection',
+  'queue_id',
+  'rating_bucket',
+  'rating_transaction_id',
+  'rawMoveId',
+  'raw_move_id',
+  'request_idempotency_key',
+  'requester_user_id',
+  'seed',
+  'seeds',
+  'serializedSession',
+  'serialized_session',
+  'session',
+  'sessions',
+  'settlement_id',
+  'token',
+  'tokens',
+  'userId',
+  'user_id',
+])
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -391,6 +521,22 @@ function hasForbiddenRankedQueueKey(value: unknown): boolean {
   return Object.entries(value).some(([key, child]) => (
     FORBIDDEN_RANKED_QUEUE_KEYS.has(key) || hasForbiddenRankedQueueKey(child)
   ))
+}
+
+function hasForbiddenPracticeRematchKey(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.some(hasForbiddenPracticeRematchKey)
+  }
+  if (!isRecord(value)) {
+    return false
+  }
+  return Object.entries(value).some(([key, child]) => (
+    FORBIDDEN_PRACTICE_REMATCH_KEYS.has(key) || hasForbiddenPracticeRematchKey(child)
+  ))
+}
+
+function hasOnlyPracticeRematchKeys(record: Record<string, unknown>): boolean {
+  return Object.keys(record).every((key) => PRACTICE_REMATCH_ALLOWED_KEYS.has(key))
 }
 
 function getString(record: Record<string, unknown>, key: string): string | undefined {
@@ -491,6 +637,23 @@ function parseRankedQueueRequestStatus(value: unknown): RankedQueueRequestStatus
 
 function parseRankedQueueViewerSeat(value: unknown): RankedQueueViewerSeat | undefined {
   return value === 'player-one' || value === 'player-two' ? value : undefined
+}
+
+function parsePracticeRematchRequestStatus(value: unknown): PracticeRematchRequestStatus | undefined {
+  return value === 'requested' || value === 'created' || value === 'declined' || value === 'cancelled' || value === 'expired'
+    ? value
+    : undefined
+}
+
+function parsePracticeRematchViewerRole(value: unknown): PracticeRematchViewerRole | undefined {
+  return value === 'requester' || value === 'opponent' || value === 'participant' ? value : undefined
+}
+
+function parseTimestamp(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !value.trim()) {
+    return undefined
+  }
+  return Number.isNaN(Date.parse(value)) ? undefined : value
 }
 
 function parseRankedQueueBucket(value: unknown): RatingBucketId | undefined {
@@ -597,6 +760,84 @@ function parseRankedQueueFinalizationRow(row: unknown): RankedQueueFinalizationR
     opponentRequestId: getString(row, 'opponent_request_id'),
     requestId,
     requestStatus,
+  }
+}
+
+function parsePracticeRematchRequestRow(row: unknown, now = new Date()): PracticeRematchRequestResult | undefined {
+  if (!isRecord(row) || !hasOnlyPracticeRematchKeys(row) || hasForbiddenPracticeRematchKey(row)) {
+    return undefined
+  }
+  const requestId = getString(row, 'request_id')
+  const sourceGameId = getString(row, 'source_game_id')
+  const requestStatus = parsePracticeRematchRequestStatus(row.request_status)
+  const requesterSeat = parseRankedQueueViewerSeat(row.requester_seat)
+  const opponentSeat = parseRankedQueueViewerSeat(row.opponent_seat)
+  const viewerRole = parsePracticeRematchViewerRole(row.viewer_role)
+  const viewerCanAccept = getBoolean(row, 'viewer_can_accept')
+  const viewerCanCancel = getBoolean(row, 'viewer_can_cancel')
+  const mode = parseMode(row.mode)
+  const wordLength = getPositiveInteger(row, 'word_length')
+  const hardMode = getBoolean(row, 'hard_mode')
+  const timeLimitMs = getPositiveInteger(row, 'time_limit_ms')
+  const goPuzzleCount = getPositiveInteger(row, 'go_puzzle_count')
+  const createdAt = parseTimestamp(row.created_at)
+  const expiresAt = parseTimestamp(row.expires_at)
+  const respondedAt = parseTimestamp(row.responded_at)
+  const updatedAt = parseTimestamp(row.updated_at)
+  const created = getBoolean(row, 'created')
+  const idempotent = getBoolean(row, 'idempotent')
+  const createdGameId = getString(row, 'created_game_id')
+
+  if (
+    !requestId || !sourceGameId || !requestStatus || !requesterSeat || !opponentSeat || !viewerRole
+    || viewerCanAccept === undefined || viewerCanCancel === undefined || !mode || !wordLength
+    || hardMode === undefined || !createdAt || !expiresAt || !updatedAt
+    || created === undefined || idempotent === undefined
+  ) {
+    return undefined
+  }
+  if (requesterSeat === opponentSeat) {
+    return undefined
+  }
+  if (mode === 'go' && goPuzzleCount === undefined) {
+    return undefined
+  }
+  if (mode === 'og' && goPuzzleCount !== undefined) {
+    return undefined
+  }
+  if (requestStatus === 'created' && !createdGameId) {
+    return undefined
+  }
+  if (created !== (requestStatus === 'created')) {
+    return undefined
+  }
+
+  const expiresAtMs = Date.parse(expiresAt)
+  const nowMs = Number.isFinite(now.getTime()) ? now.getTime() : Date.now()
+  const expired = requestStatus === 'expired' || expiresAtMs <= nowMs
+
+  return {
+    created,
+    createdAt,
+    createdGameId,
+    expired,
+    expiresAt,
+    goPuzzleCount,
+    hardMode,
+    idempotent,
+    mode,
+    opponentSeat,
+    requestId,
+    requesterSeat,
+    requestStatus,
+    respondedAt,
+    sourceGameId,
+    timeLimitMs,
+    updatedAt,
+    viewerCanAccept: expired ? false : viewerCanAccept,
+    viewerCanCancel,
+    viewerRole,
+    wordLength,
   }
 }
 
@@ -855,6 +1096,16 @@ export function normalizeTrustedRankedSettlementRows(
     return []
   }
   return value.flatMap((row) => parseTrustedRankedSettlementRow(row, now) ?? [])
+}
+
+export function normalizePracticeRematchRequestRows(
+  value: unknown,
+  now = new Date(),
+): readonly PracticeRematchRequestResult[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.flatMap((row) => parsePracticeRematchRequestRow(row, now) ?? [])
 }
 
 export async function loadAuthenticatedLiveSpectatorRows(
@@ -1159,6 +1410,76 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
         throw new Error(`Unable to finalize ranked queue game: ${error.message}`)
       }
       return parseSingleRpcRow(data, parseRankedQueueFinalizationRow, 'Unable to parse ranked queue finalization result.')
+    },
+    requestPracticeRematch: async (input) => {
+      const { data, error } = await client.rpc('request_practice_multiplayer_rematch', {
+        p_expires_at: input.expiresAt ?? null,
+        p_idempotency_key: input.idempotencyKey ?? null,
+        p_source_game_id: input.sourceGameId,
+      })
+      if (error) {
+        throw new Error(`Unable to request Practice rematch: ${error.message}`)
+      }
+      return parseSingleRpcRow(
+        data,
+        (row) => parsePracticeRematchRequestRow(row),
+        'Unable to parse Practice rematch request result.',
+      )
+    },
+    listPracticeRematchRequests: async (input = {}) => {
+      const limit = input.limit ?? 50
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        throw new Error('Practice rematch request limit must be between 1 and 100.')
+      }
+      const { data, error } = await client.rpc('get_practice_multiplayer_rematch_requests', {
+        p_limit: limit,
+        p_source_game_id: input.sourceGameId ?? null,
+      })
+      if (error) {
+        return []
+      }
+      return normalizePracticeRematchRequestRows(data)
+    },
+    cancelPracticeRematch: async (requestId) => {
+      const { data, error } = await client.rpc('cancel_practice_multiplayer_rematch', {
+        p_request_id: requestId,
+      })
+      if (error) {
+        throw new Error(`Unable to cancel Practice rematch: ${error.message}`)
+      }
+      return parseSingleRpcRow(
+        data,
+        (row) => parsePracticeRematchRequestRow(row),
+        'Unable to parse Practice rematch cancellation result.',
+      )
+    },
+    declinePracticeRematch: async (requestId) => {
+      const { data, error } = await client.rpc('decline_practice_multiplayer_rematch', {
+        p_request_id: requestId,
+      })
+      if (error) {
+        throw new Error(`Unable to decline Practice rematch: ${error.message}`)
+      }
+      return parseSingleRpcRow(
+        data,
+        (row) => parsePracticeRematchRequestRow(row),
+        'Unable to parse Practice rematch decline result.',
+      )
+    },
+    acceptPracticeRematch: async (input) => {
+      const { data, error } = await client.rpc('accept_practice_multiplayer_rematch', {
+        p_game_projection: input.game,
+        p_idempotency_key: input.idempotencyKey ?? null,
+        p_request_id: input.requestId,
+      })
+      if (error) {
+        throw new Error(`Unable to accept Practice rematch: ${error.message}`)
+      }
+      return parseSingleRpcRow(
+        data,
+        (row) => parsePracticeRematchRequestRow(row),
+        'Unable to parse Practice rematch accept result.',
+      )
     },
     subscribe: (listener) => {
       listeners.add(listener)

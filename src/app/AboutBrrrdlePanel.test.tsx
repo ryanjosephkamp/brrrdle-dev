@@ -15,6 +15,8 @@ describe('AboutBrrrdlePanel', () => {
     expect(html).toContain('provisional and use K=40')
     expect(html).toContain('established games use K=24')
     expect(html).toContain('standard 400-point Elo curve')
+    expect(html).toContain('aria-label="Expected score formula"')
+    expect(html).toContain('expected score = 1 / (1 + 10 ^ ((opponent rating - your rating) / 400))')
     expect(html).toContain('Wins count as 1, draws count as 0.5, and losses count as 0')
     expect(html).toContain('Match points decide the match result first')
     expect(html).toContain('trusted settlement confirms durable ranked Practice evidence')

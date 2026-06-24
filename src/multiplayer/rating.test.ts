@@ -95,6 +95,41 @@ describe('multiplayer rating model', () => {
     })
   })
 
+  it('drops malformed rating buckets instead of turning them into valid OG rows', () => {
+    expect(normalizeRatingProfile({
+      bucket: 'broken:og',
+      draws: 0,
+      gamesPlayed: 99,
+      losses: 0,
+      provisional: false,
+      rating: 1999,
+      updatedAt: '2026-06-04T12:00:00.000Z',
+      userId: 'user-a',
+      wins: 99,
+    })).toBeUndefined()
+
+    expect(normalizeRatingState({
+      profiles: [{
+        bucket: 'broken:og',
+        gamesPlayed: 99,
+        rating: 1999,
+        userId: 'user-a',
+      }],
+      transactions: [{
+        bucket: 'broken:og',
+        expectedScore: 0.5,
+        id: 'bad-transaction',
+        matchId: 'match-1',
+        newRating: 1999,
+        oldRating: 1200,
+        opponentUserId: 'user-b',
+        outcome: 'win',
+        ratingDelta: 799,
+        userId: 'user-a',
+      }],
+    })).toEqual({ profiles: [], transactions: [] })
+  })
+
   it('rejects unranked, anonymous, non-durable, and duplicate-user evidence', () => {
     const base = {
       authenticated: true,

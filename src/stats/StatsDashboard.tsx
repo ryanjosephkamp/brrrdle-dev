@@ -21,6 +21,7 @@ interface StatsDashboardProps {
   readonly progression?: GuestProgressionState
   readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
   readonly stats: StatisticsState
+  readonly viewerUserId?: string
 }
 
 const buckets = [
@@ -46,6 +47,7 @@ export function StatsDashboard({
   progression = EMPTY_PROGRESSION,
   publicRankedLeaderboardRepository,
   stats,
+  viewerUserId,
 }: StatsDashboardProps) {
   const winRateByScope = selectWinRateByScope(stats)
   const winRateByLength = selectWinRateByLength(stats)
@@ -108,7 +110,7 @@ export function StatsDashboard({
         </article>
       </div>
 
-      <MultiplayerStatsPanel onOpenEloAbout={onOpenEloAbout} state={competitiveMultiplayer} />
+      <MultiplayerStatsPanel onOpenEloAbout={onOpenEloAbout} state={competitiveMultiplayer} viewerUserId={viewerUserId} />
     </section>
   )
 }
