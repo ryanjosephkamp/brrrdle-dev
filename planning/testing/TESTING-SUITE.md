@@ -177,6 +177,28 @@ Visual review should not become broad screenshot-diff testing by default.
 Promote a screenshot into automated visual regression only after the surface is
 stable, deterministic, and worth the maintenance cost.
 
+## Manual Phase Review Checklists
+
+When a completed phase changes visible behavior, Codex may create a committed
+manual review checklist before Git handoff or before starting the next phase if
+the user explicitly authorizes it.
+
+Recommended flow:
+
+1. Run the phase's required automated verification first.
+2. Run any authorized visual handoff review separately when useful.
+3. Read the phase planning brief, spec, implementation plan, changelog, final
+   progress reports, and visual manifest when present.
+4. Write `planning/phase-<N>/REVIEW-CHECKLIST.md` with user-testable checkbox
+   items, expected behavior, suggested manual steps, evidence references,
+   preserved invariants, and known deferred/out-of-scope work.
+5. Keep checklist content free of secrets, auth state, raw IDs, private data,
+   screenshots, videos, traces, tokens, and local session artifacts.
+
+Manual review checklists are a human review aid. They do not replace unit tests,
+integration tests, real two-client E2E, migration/RLS probes, visual handoff
+review, or any required phase verification gate.
+
 ## Known Gaps
 
 - The E2E suite intentionally avoids visual regression testing so Phase 24 UI
