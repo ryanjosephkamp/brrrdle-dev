@@ -46,6 +46,7 @@ For normal future work, read:
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.
 - `planning/governance/`: guidance for active governance file locations.
 - `planning/governance/PROMPT-PACKAGE-STANDARD.md`: standard for Codex-generated prompt packages and next-step handoff prompts.
+- `planning/skills/`: documentation for brrrdle-specific local Codex workflow skills; the actual skills live under `/Users/noir/.codex/skills/` and are not committed.
 - `planning/testing/`: testing-suite strategy and verification philosophy.
 
 Theme proposal modernization is intentionally deferred until Phase 35, with full concrete theme implementation routed to Phase 36 or later after the post-Phase-31 stabilization and competitive ladder v2 routing changes. Theme materials remain under `themes/proposals/`, outside this `planning/` directory.
