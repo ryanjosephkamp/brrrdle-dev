@@ -183,6 +183,18 @@ Emphasize:
 - no staging or committing screenshots, videos, traces, auth state, secrets, tokens, or local session artifacts;
 - stop-and-report behavior when a visual state cannot be captured or appears wrong.
 
+### 4.9 Manual Phase Review Checklist Work
+
+Emphasize:
+
+- a committed human-review checklist at `planning/phase-<N>/REVIEW-CHECKLIST.md`;
+- generation after final automated verification and any visual handoff review, usually before Git handoff or before starting the next phase;
+- user-testable checkboxes with expected behavior, suggested manual steps, and evidence references;
+- clear separation between required manual checks, optional nice-to-check items, preserved invariants, known deferred work, and out-of-scope work;
+- a reminder that manual checklists are not replacements for automated tests, real multiplayer E2E, migration probes, or visual handoff review;
+- no screenshots, videos, traces, auth state, tokens, secrets, private data, or local session artifacts in committed checklist content;
+- stop-and-report behavior when phase evidence is too incomplete or contradictory to produce a trustworthy checklist.
+
 ## 5. Next Prompt Package Rule
 
 At meaningful review gates, Codex should include one of the following in the final report:

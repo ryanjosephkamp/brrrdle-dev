@@ -30,7 +30,7 @@ For normal future work, read:
 - `planning/phase-29/`: Phase 29 planning brief, implementation plan, and changelog for public player profile foundations, privacy-safe public identity, notification action cleanup, and About-tab Elo transparency relocation.
 - `planning/phase-30/`: Phase 30 planning brief, implementation plan, changelog, and deferred ranked-mode routing note for privacy-safe public leaderboards, small Multiplayer Overview cleanup items, and future competitive ladder v2 scope assignment.
 - `planning/phase-31/`: Phase 31 planning brief, implementation plan, and changelog for Practice-only multiplayer postgame actions plus narrow profile, Stats, About, and rating-bucket cleanup items.
-- `planning/phase-32/`: Phase 32 planning brief, implementation plan, and changelog for post-Phase-31 multiplayer stabilization, identity routing, global account avatar accent propagation, no-comma rating displays, and explicit rerouting of competitive ladder v2.
+- `planning/phase-32/`: Phase 32 planning brief, implementation plan, changelog, and review checklist for post-Phase-31 multiplayer stabilization, identity routing, global account avatar accent propagation, no-comma rating displays, and explicit rerouting of competitive ladder v2.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
@@ -58,6 +58,7 @@ Theme proposal modernization is intentionally deferred until Phase 35, with full
 - Keep long historical material under `planning/history/`.
 - Do not treat planning documents as implementation authorization unless the user explicitly authorizes execution.
 - Keep `progress/` at the repository root as the canonical progress ledger.
+- For completed user-visible phases, use `planning/phase-<N>/REVIEW-CHECKLIST.md` as the committed manual review aid when explicitly authorized. It is not a replacement for automated verification.
 
 ## Testing Strategy
 
