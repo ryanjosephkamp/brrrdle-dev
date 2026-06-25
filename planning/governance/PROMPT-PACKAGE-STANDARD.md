@@ -195,6 +195,18 @@ Emphasize:
 - no screenshots, videos, traces, auth state, tokens, secrets, private data, or local session artifacts in committed checklist content;
 - stop-and-report behavior when phase evidence is too incomplete or contradictory to produce a trustworthy checklist.
 
+### 4.10 GitHub Backup Skill Work
+
+Emphasize:
+
+- all-in-one backup authorization must be explicit in the current prompt;
+- the target repository must be confirmed as `brrrdle-dev`, with the original stable `brrrdle` repository out of scope;
+- GitHub backup means GitHub `main` becomes tree-equivalent to the reviewed local branch after PR merge, not necessarily commit-hash identical after squash merge;
+- preflight, staging, commit, push, draft PR, ready/merge, post-merge sanity, and branch cleanup are protected actions that must be named in the authorization;
+- local Codex skills under `/Users/noir/.codex/skills/` remain local-only and must not be committed;
+- secret/artifact scans, ignored-artifact checks, visible PR checks, PR metadata checks, and tree-equivalence checks are required stop gates;
+- never force-push `main`, bypass visible check failures, or delete a branch whose merge safety cannot be proven.
+
 ## 5. Next Prompt Package Rule
 
 At meaningful review gates, Codex should include one of the following in the final report:
@@ -270,6 +282,8 @@ Local Codex skills may help generate prompt packages, but they are convenience h
 The repository governance remains authoritative. If a local skill conflicts with `CONSTITUTION.md`, this prompt-package standard, the active phase spec, or the current user prompt, follow the higher-authority repo/user source and report the conflict.
 
 Local skills must not store secrets, credentials, project tokens, private account data, or deployment access details.
+
+Repo-tracked documentation for brrrdle-specific local skills lives under `planning/skills/` when present. That documentation is descriptive; it does not make local skills authoritative or self-authorizing.
 
 ## 10. Minimum Prompt Package Template
 
