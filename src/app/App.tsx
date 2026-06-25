@@ -91,6 +91,10 @@ type PracticeRematchActions = Pick<
   | 'listPracticeRematchRequests'
   | 'requestPracticeRematch'
 >
+type ParticipantIdentityActions = Pick<
+  MultiplayerRepository,
+  'getParticipantIdentitySummaries'
+>
 
 const LIVE_SPECTATOR_ACTIVE_POLL_INTERVAL_MS = 5_000
 const LIVE_SPECTATOR_IDLE_POLL_INTERVAL_MS = 30_000
@@ -130,6 +134,7 @@ function PracticeGameSwitcher({
   practiceMode,
   practiceSeeds,
   postgameActions,
+  participantIdentityActions,
   rankedQueueActions,
   resumeSlots,
   authStatus,
@@ -156,6 +161,7 @@ function PracticeGameSwitcher({
   readonly practiceMode: PracticeMode
   readonly practiceSeeds: PracticeSeedState
   readonly postgameActions?: PracticeRematchActions
+  readonly participantIdentityActions?: ParticipantIdentityActions
   readonly rankedQueueActions?: RankedQueueActions
   readonly resumeSlots: ResumeSlotCollection
   readonly viewerUserId?: string
@@ -183,6 +189,7 @@ function PracticeGameSwitcher({
         onCompetitiveChange={onCompetitiveMultiplayerChange}
         onOpenEloAbout={onOpenEloAbout}
         postgameActions={postgameActions}
+        participantIdentityActions={participantIdentityActions}
         rankedQueueActions={rankedQueueActions}
         scope="practice"
         state={multiplayer}
@@ -348,6 +355,7 @@ function RoutePanel({
   calendarLaunch,
   onCalendarLaunchConsumed,
   postgameActions,
+  participantIdentityActions,
   rankedQueueActions,
   onOpenEloAbout,
   publicRankedLeaderboardRepository,
@@ -411,6 +419,7 @@ function RoutePanel({
   readonly calendarLaunch: CalendarLaunchRequest | null
   readonly onCalendarLaunchConsumed: () => void
   readonly postgameActions?: PracticeRematchActions
+  readonly participantIdentityActions?: ParticipantIdentityActions
   readonly rankedQueueActions?: RankedQueueActions
   readonly onOpenEloAbout?: () => void
   readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
@@ -496,6 +505,7 @@ function RoutePanel({
         onOpenEloAbout={onOpenEloAbout}
         onSelectedGameChange={onSelectMultiplayerGame}
         postgameActions={postgameActions}
+        participantIdentityActions={participantIdentityActions}
         rankedQueueActions={rankedQueueActions}
         scope={scope}
       selectedGameId={selectedMultiplayerGameId}
@@ -565,7 +575,7 @@ function RoutePanel({
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
+    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
   }
 
   if (route.id === 'multiplayer') {
@@ -1917,6 +1927,7 @@ function AppInner() {
             practiceMode={practiceMode}
             publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
             postgameActions={multiplayerRepository}
+            participantIdentityActions={multiplayerRepository}
             rankedQueueActions={multiplayerRepository}
             multiplayerSubtab={multiplayerSubtab}
             resumeSlots={resumeSlots}

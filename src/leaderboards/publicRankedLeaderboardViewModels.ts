@@ -54,8 +54,12 @@ export const PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS: readonly PublicRankedLead
 
 export const PUBLIC_RANKED_LEADERBOARD_LIMIT_OPTIONS = [25, 50, 100] as const
 
-function formatNumber(value: number): string {
+function formatCount(value: number): string {
   return new Intl.NumberFormat('en-US').format(value)
+}
+
+function formatRatingNumber(value: number): string {
+  return `${Math.round(value)}`
 }
 
 export function formatPublicRankedLeaderboardBucket(bucket: PublicRankedLeaderboardBucket | null): string {
@@ -90,18 +94,18 @@ export function createPublicRankedLeaderboardViewRows(
     bucket: row.bucket,
     bucketLabel: formatPublicRankedLeaderboardBucket(row.bucket),
     displayName: row.displayName,
-    gamesLabel: `${formatNumber(row.gamesPlayed)} rated`,
+    gamesLabel: `${formatCount(row.gamesPlayed)} rated`,
     latestMovementLabel: row.latestRatingMovementAt
       ? `${formatPublicRankedLeaderboardDelta(row.latestRatingDelta)} from last settlement`
       : 'No settled movement yet',
-    peakLabel: `Peak ${formatNumber(row.peakRating)}`,
+    peakLabel: `Peak ${formatRatingNumber(row.peakRating)}`,
     provisionalLabel: row.provisional ? 'Provisional' : 'Established',
     publicProfileId: row.publicProfileId,
     rank: row.rank,
-    rankLabel: `#${formatNumber(row.rank)}`,
+    rankLabel: `#${formatRatingNumber(row.rank)}`,
     rating: row.rating,
-    ratingLabel: formatNumber(row.rating),
-    recordLabel: `${formatNumber(row.wins)}-${formatNumber(row.losses)}-${formatNumber(row.draws)}`,
+    ratingLabel: formatRatingNumber(row.rating),
+    recordLabel: `${formatCount(row.wins)}-${formatCount(row.losses)}-${formatCount(row.draws)}`,
     updatedLabel: formatPublicRankedLeaderboardDate(row.leaderboardUpdatedAt),
   }))
 }

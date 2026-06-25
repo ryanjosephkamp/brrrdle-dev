@@ -1,11 +1,13 @@
 # Phase 30 Deferred Ranked Modes Routing
 
-**Status**: Planning/routing note for review.
+**Status**: Historical planning/routing note; Phase 32 routing superseded by `planning/phase-32/PLANNING-BRIEF.md`.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-06-22.
 **Authority**: Current user authorization, `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, completed Phase 27 ranked Practice foundations, current Phase 30 planning/spec/implementation materials, current roadmap surfaces, ranked multiplayer documentation, and the current progress ledger.
 
 This note does not authorize source/runtime implementation, test implementation, Supabase migration creation or execution, Vercel configuration, deployment, commits, pushes, pull requests, merges, releases, branch deletion, Phase 30 implementation, Phase 31 implementation, Phase 32 implementation, public/guest spectation implementation, service workers, push infrastructure, Elo algorithm changes, gameplay-rule changes, new custom skills, force-push, secret printing, or work in the original stable `brrrdle` repository.
+
+**Supersession note (2026-06-24)**: Phase 32 is now routed to multiplayer stabilization, identity routing, and rating display consistency because user testing after Phase 31 found current rematch, queue/lobby routing, rival-label, account-avatar, and Elo display issues. Ranked mode expansion / competitive ladder v2 moves to Phase 33 unless a later approved planning pass changes the sequence.
 
 ## 1. Purpose
 
@@ -64,7 +66,7 @@ Reason:
 
 ## 3. Routing Decision
 
-Use this future phase sequence unless a later approved planning pass changes it:
+Original routing from 2026-06-22:
 
 - **Phase 30** remains public leaderboards and Multiplayer Overview cleanup.
 - **Phase 31** remains multiplayer postgame actions: Practice rematch request/accept and same-settings play-again/search-again flows.
@@ -74,6 +76,14 @@ Use this future phase sequence unless a later approved planning pass changes it:
 - **Phase 35 or later** becomes full concrete theme creation, implementation, asset/sound work, and theme QA.
 
 This routing keeps public leaderboards from waiting on complex ranked-mode expansion, but gives timed/Daily ranked a clear future home before public/guest spectation and theme work.
+
+Current routing after the 2026-06-24 Phase 32 planning brief:
+
+- **Phase 32** becomes multiplayer stabilization, identity routing, and rating display consistency.
+- **Phase 33** becomes ranked mode expansion / competitive ladder v2.
+- **Phase 34** becomes public/guest spectation, unless a later planning pass inserts public profile navigation polish first.
+- **Phase 35** becomes theme proposal/template modernization.
+- **Phase 36 or later** becomes full concrete theme work.
 
 ## 4. Phase 32 Ranked Mode Expansion Candidate Scope
 
@@ -114,7 +124,7 @@ Phase 30 copy should continue to say:
 - Current Daily Multiplayer answer leakage through spectator views remains prevented.
 - Practice Multiplayer Hard Mode and time-limit behavior remain unchanged unless a later approved spec explicitly changes ranked eligibility while preserving underlying gameplay.
 - Ranked Practice v1 remains the only ranked match type until Phase 32 or a later approved spec changes it.
-- Daily ranked and timed Practice ranked remain deferred until Phase 32 ranked mode expansion planning and authorization.
+- Daily ranked and timed Practice ranked remain deferred until Phase 33 ranked mode expansion planning and authorization, per the 2026-06-24 Phase 32 planning brief.
 - Ranked custom/private-code games remain deferred unless separately approved.
 - Match points and Elo/rank movement remain separate.
 - Live v1 spectator behavior remains read-only.
@@ -128,7 +138,7 @@ Phase 30 copy should continue to say:
 - Whether Daily ranked should share Practice rating or use a separate Daily rating.
 - Whether rank labels should be added in Phase 32 or deferred until after leaderboards gather player feedback.
 - Whether ranked custom/private-code games should remain permanently unranked to protect ladder integrity.
-- Whether Phase 32 needs new SQL/RPC/RLS contracts or can safely extend the existing Phase 27 ranked queue and settlement contracts.
+- Whether the future ranked expansion phase needs new SQL/RPC/RLS contracts or can safely extend the existing Phase 27 ranked queue and settlement contracts.
 
 ## 8. Next Gated Action
 

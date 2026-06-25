@@ -16,6 +16,7 @@ import {
   loadAuthenticatedLiveSpectatorRows,
   loadMultiplayerState,
   normalizeAuthenticatedLiveSpectatorRows,
+  normalizeParticipantIdentitySummaryRows,
   normalizePracticeRematchRequestRows,
   normalizeTrustedRankedSettlementRows,
 } from './multiplayerRepository'
@@ -171,7 +172,7 @@ function createPracticeRematchRequestRow(overrides: Record<string, unknown> = {}
     created: false,
     created_at: '2026-06-24T00:10:00.000Z',
     created_game_id: null,
-    expires_at: '2026-06-24T01:20:00.000Z',
+    expires_at: '2099-06-24T01:20:00.000Z',
     go_puzzle_count: null,
     hard_mode: false,
     idempotent: false,
@@ -188,6 +189,21 @@ function createPracticeRematchRequestRow(overrides: Record<string, unknown> = {}
     viewer_can_cancel: true,
     viewer_role: 'requester',
     word_length: 5,
+    ...overrides,
+  }
+}
+
+function createParticipantIdentitySummaryRow(overrides: Record<string, unknown> = {}) {
+  return {
+    accent_color: 'rose',
+    avatar_url: 'https://example.test/avatar.png',
+    display_name: 'kiki',
+    flair_key: 'spark',
+    identity_available: true,
+    is_viewer: false,
+    public_profile_id: '11111111-1111-4111-8111-111111111111',
+    seat: 'player-two',
+    updated_at: '2026-06-24T23:50:00.000Z',
     ...overrides,
   }
 }
@@ -628,12 +644,21 @@ describe('multiplayer repository seam', () => {
         viewer_role: 'opponent',
       }),
       createPracticeRematchRequestRow({
+        created: false,
+        created_game_id: 'rematch-game-2',
+        request_id: 'rematch-request-4',
+        request_status: 'created',
+        responded_at: '2026-06-24T00:13:00.000Z',
+        viewer_can_cancel: false,
+        viewer_role: 'requester',
+      }),
+      createPracticeRematchRequestRow({
         expires_at: '2026-06-23T23:59:00.000Z',
         request_id: 'rematch-request-3',
       }),
     ], new Date('2026-06-24T00:00:00.000Z'))
 
-    expect(rows).toHaveLength(3)
+    expect(rows).toHaveLength(4)
     expect(rows[0]).toMatchObject({
       created: false,
       expired: false,
@@ -654,6 +679,13 @@ describe('multiplayer repository seam', () => {
       respondedAt: '2026-06-24T00:12:00.000Z',
     })
     expect(rows[2]).toMatchObject({
+      created: true,
+      createdGameId: 'rematch-game-2',
+      requestStatus: 'created',
+      respondedAt: '2026-06-24T00:13:00.000Z',
+      viewerCanCancel: false,
+    })
+    expect(rows[3]).toMatchObject({
       expired: true,
       viewerCanAccept: false,
     })
@@ -745,6 +777,65 @@ describe('multiplayer repository seam', () => {
       p_game_projection: acceptedGame,
       p_idempotency_key: 'phase31-rematch:accept:rematch-request-1:rematch-game-1',
       p_request_id: 'rematch-request-1',
+    })
+  })
+
+  it('normalizes Stage 32.3 participant identity summary rows and rejects private fields', () => {
+    expect(normalizeParticipantIdentitySummaryRows([
+      createParticipantIdentitySummaryRow(),
+      createParticipantIdentitySummaryRow({
+        accent_color: null,
+        avatar_url: null,
+        display_name: null,
+        flair_key: null,
+        identity_available: false,
+        is_viewer: true,
+        public_profile_id: null,
+        seat: 'player-one',
+      }),
+      createParticipantIdentitySummaryRow({ user_id: 'raw-auth-id' }),
+      createParticipantIdentitySummaryRow({ email: 'private@example.test' }),
+      createParticipantIdentitySummaryRow({ projection: { serializedSession: { answer: 'crane' } } }),
+      createParticipantIdentitySummaryRow({ unknown_field: 'surprise' }),
+    ])).toEqual([
+      {
+        accentColor: 'rose',
+        avatarUrl: 'https://example.test/avatar.png',
+        displayName: 'kiki',
+        flairKey: 'spark',
+        identityAvailable: true,
+        isViewer: false,
+        publicProfileId: '11111111-1111-4111-8111-111111111111',
+        seat: 'player-two',
+        updatedAt: '2026-06-24T23:50:00.000Z',
+      },
+      {
+        identityAvailable: false,
+        isViewer: true,
+        seat: 'player-one',
+      },
+    ])
+  })
+
+  it('loads participant identity summaries through the Stage 32.3 RPC', async () => {
+    const rpc = vi.fn(async () => ({
+      data: [createParticipantIdentitySummaryRow()],
+      error: null,
+    }))
+    const client = { rpc } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'user-1' })
+
+    const rows = await repository.getParticipantIdentitySummaries({ gameId: 'game-1' })
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      displayName: 'kiki',
+      identityAvailable: true,
+      seat: 'player-two',
+    })
+    expect(rpc).toHaveBeenCalledWith('get_multiplayer_participant_identity_summaries', {
+      p_game_id: 'game-1',
+      p_ranked_request_id: null,
     })
   })
 

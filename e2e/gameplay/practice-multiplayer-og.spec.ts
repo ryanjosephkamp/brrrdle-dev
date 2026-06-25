@@ -2,8 +2,84 @@ import { expect, test } from '@playwright/test'
 import { expectNoConsoleFailures, expectVisibleStatus } from '../fixtures/assertions'
 import { getCurrentAnswer, getValidWrongGuess, projectionFromRow } from '../fixtures/answers'
 import { navigateToPracticeMultiplayer, openMultiplayerMatch, joinMultiplayerMatch, selectMultiplayerGame, setPracticeMultiplayerTimeLimit, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
-import { updateMultiplayerProjection, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
-import { createTwoClientSession } from '../fixtures/twoClientGame'
+import { updateMultiplayerProjection, upsertPublicProfileForUser, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
+import { createTwoClientSession, type TwoClientSession } from '../fixtures/twoClientGame'
+
+async function openAndJoinPracticeOgMatch(session: TwoClientSession) {
+  await navigateToPracticeMultiplayer(session.host.page)
+  await openMultiplayerMatch(session.host.page)
+
+  const waitingRow = await waitForMultiplayerRowForUsers({
+    mode: 'og',
+    scope: 'practice',
+    status: 'waiting',
+    userIds: [session.host.user.id],
+  })
+
+  await navigateToPracticeMultiplayer(session.rival.page)
+  await selectMultiplayerGame(session.rival.page, waitingRow.id)
+  await joinMultiplayerMatch(session.rival.page)
+
+  return waitForMultiplayerRowForUsers({
+    mode: 'og',
+    scope: 'practice',
+    status: 'playing',
+    userIds: [session.host.user.id, session.rival.user.id],
+  })
+}
+
+async function finishPracticeOgMatchAsHost(session: TwoClientSession, gameId: string) {
+  const playingRow = await waitForMultiplayerRowForUsers({
+    mode: 'og',
+    scope: 'practice',
+    status: 'playing',
+    userIds: [session.host.user.id, session.rival.user.id],
+  })
+  expect(playingRow.id).toBe(gameId)
+  const game = projectionFromRow(playingRow)
+  const answer = getCurrentAnswer(game)
+
+  await selectMultiplayerGame(session.host.page, playingRow.id)
+  await waitForTurn(session.host.page)
+  await submitGuessWithKeyboard(session.host.page, answer)
+
+  const wonRow = await waitForMultiplayerRowForUsers({
+    mode: 'og',
+    scope: 'practice',
+    status: 'won',
+    userIds: [session.host.user.id, session.rival.user.id],
+  })
+  expect(wonRow.id).toBe(gameId)
+  await expectVisibleStatus(session.host.page, /Match finished\. You won this multiplayer match\./)
+  await expectVisibleStatus(session.rival.page, /Match finished\. You lost this multiplayer match\./)
+  await expect(session.host.page.getByRole('button', { name: /^Request rematch$/i })).toBeVisible({ timeout: 20_000 })
+  await expect(session.rival.page.getByRole('button', { name: /^Request rematch$/i })).toBeVisible({ timeout: 20_000 })
+  return wonRow
+}
+
+async function expectSelectedGame(page: TwoClientSession['host']['page'], gameId: string): Promise<void> {
+  await expect(page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-game-id', gameId, { timeout: 30_000 })
+}
+
+async function expectOpponentNamesVisible(session: TwoClientSession): Promise<void> {
+  await expect(session.host.page.getByText(session.rival.user.displayName, { exact: true }).first()).toBeVisible({ timeout: 20_000 })
+  await expect(session.rival.page.getByText(session.host.user.displayName, { exact: true }).first()).toBeVisible({ timeout: 20_000 })
+}
+
+async function setPracticeMatchType(page: TwoClientSession['host']['page'], matchType: 'custom' | 'ranked' | 'unranked'): Promise<void> {
+  const panel = page.getByTestId('multiplayer-panel-practice')
+  const matchTypeSelect = panel.locator('select').nth(1)
+  await expect(matchTypeSelect).toBeVisible()
+  await matchTypeSelect.selectOption(matchType)
+  await expect(matchTypeSelect).toHaveValue(matchType)
+}
+
+async function searchRankedPracticeAgain(page: TwoClientSession['host']['page']): Promise<void> {
+  const action = page.getByTestId('multiplayer-selected-game').getByRole('button', { name: /^Search ranked Practice again$/i })
+  await expect(action).toBeVisible({ timeout: 20_000 })
+  await action.scrollIntoViewIfNeeded()
+  await action.click({ timeout: 20_000 })
+}
 
 test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
   test('creates, joins, submits, and completes an OG match through two real clients', async ({ browser }) => {
@@ -149,6 +225,165 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       expect(timedOutGame.winnerId).toBe('player-two')
       await expectVisibleStatus(session.host.page, /You ran out of time and lost this multiplayer match\./)
       await expectVisibleStatus(session.rival.page, /Rival ran out of time\. You won this multiplayer match\./)
+
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
+  test('syncs one-request rematch decline through two real clients', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+    try {
+      const playingRow = await openAndJoinPracticeOgMatch(session)
+      await finishPracticeOgMatchAsHost(session, playingRow.id)
+
+      await session.host.page.getByRole('button', { name: /^Request rematch$/i }).click()
+      await expect(session.host.page.getByText(/Rematch request sent\./i)).toBeVisible()
+      await expect(session.rival.page.getByText(/Rival requested a rematch\./i)).toBeVisible({ timeout: 20_000 })
+      await expect(session.rival.page.getByRole('button', { name: /^Accept rematch$/i })).toBeVisible()
+      await session.rival.page.getByRole('button', { name: /^Decline$/i }).click()
+
+      await expect(session.rival.page.getByText(/Rematch request declined\./i).first()).toBeVisible()
+      await expect(session.host.page.getByText(/Rematch request declined\./i).first()).toBeVisible({ timeout: 20_000 })
+
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
+  test('accepts an eligible rematch and opens the fresh game for both clients', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+    try {
+      const playingRow = await openAndJoinPracticeOgMatch(session)
+      await finishPracticeOgMatchAsHost(session, playingRow.id)
+
+      await session.host.page.getByRole('button', { name: /^Request rematch$/i }).click()
+      await expect(session.rival.page.getByText(/Rival requested a rematch\./i)).toBeVisible({ timeout: 20_000 })
+      await session.rival.page.getByRole('button', { name: /^Accept rematch$/i }).click()
+
+      const rematchRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      expect(rematchRow.id).not.toBe(playingRow.id)
+      await expectSelectedGame(session.rival.page, rematchRow.id)
+      await expectSelectedGame(session.host.page, rematchRow.id)
+      await expectVisibleStatus(session.host.page, /Rival joined\. Your turn\./)
+      await expectVisibleStatus(session.rival.page, /Joined multiplayer match\. Waiting for the next player\./)
+
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
+  test('routes ranked search-again creators into the finalized game with safe opponent names', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+    try {
+      await Promise.all([
+        upsertPublicProfileForUser(session.host.user, 'cyan'),
+        upsertPublicProfileForUser(session.rival.user, 'rose'),
+      ])
+
+      await navigateToPracticeMultiplayer(session.host.page)
+      await setPracticeMatchType(session.host.page, 'ranked')
+      await session.host.page.getByRole('button', { name: /^Enter ranked queue$/i }).click()
+      await expect(session.host.page.getByTestId('ranked-queue-status')).toContainText(/Waiting for a compatible signed-in rival/i)
+
+      await navigateToPracticeMultiplayer(session.rival.page)
+      await setPracticeMatchType(session.rival.page, 'ranked')
+      await session.rival.page.getByRole('button', { name: /^Enter ranked queue$/i }).click()
+
+      const firstRankedRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      await expectSelectedGame(session.host.page, firstRankedRow.id)
+      await expectSelectedGame(session.rival.page, firstRankedRow.id)
+      await expectOpponentNamesVisible(session)
+
+      const firstRankedGame = projectionFromRow(firstRankedRow)
+      await waitForTurn(session.host.page)
+      await submitGuessWithKeyboard(session.host.page, getCurrentAnswer(firstRankedGame))
+      const terminalRankedRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'won',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      expect(terminalRankedRow.id).toBe(firstRankedRow.id)
+      await selectMultiplayerGame(session.host.page, firstRankedRow.id)
+      await selectMultiplayerGame(session.rival.page, firstRankedRow.id)
+      await expect(session.host.page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-status', 'won', { timeout: 30_000 })
+      await expect(session.rival.page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-status', 'won', { timeout: 30_000 })
+      await expect(session.host.page.getByRole('button', { name: /^Search ranked Practice again$/i })).toBeVisible({ timeout: 20_000 })
+      await expect(session.rival.page.getByRole('button', { name: /^Search ranked Practice again$/i })).toBeVisible({ timeout: 20_000 })
+
+      await searchRankedPracticeAgain(session.host.page)
+      await expect(session.host.page.getByTestId('ranked-queue-status')).toContainText(/Waiting for a compatible signed-in rival/i)
+      await searchRankedPracticeAgain(session.rival.page)
+
+      const nextRankedRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      expect(nextRankedRow.id).not.toBe(firstRankedRow.id)
+      await expectSelectedGame(session.host.page, nextRankedRow.id)
+      await expectSelectedGame(session.rival.page, nextRankedRow.id)
+      await expectOpponentNamesVisible(session)
+
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
+  test('auto-routes an unranked lobby creator when a rival joins from a terminal game', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+    try {
+      await Promise.all([
+        upsertPublicProfileForUser(session.host.user, 'cyan'),
+        upsertPublicProfileForUser(session.rival.user, 'rose'),
+      ])
+
+      const firstPlayingRow = await openAndJoinPracticeOgMatch(session)
+      const terminalRow = await finishPracticeOgMatchAsHost(session, firstPlayingRow.id)
+
+      await openMultiplayerMatch(session.host.page)
+      const waitingRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'waiting',
+        userIds: [session.host.user.id],
+      })
+      expect(waitingRow.id).not.toBe(terminalRow.id)
+      await selectMultiplayerGame(session.host.page, terminalRow.id)
+      await expectSelectedGame(session.host.page, terminalRow.id)
+
+      await selectMultiplayerGame(session.rival.page, waitingRow.id)
+      await joinMultiplayerMatch(session.rival.page)
+      const joinedRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      expect(joinedRow.id).toBe(waitingRow.id)
+      await expectSelectedGame(session.host.page, joinedRow.id)
+      await expectSelectedGame(session.rival.page, joinedRow.id)
+      await expectOpponentNamesVisible(session)
 
       await expectNoConsoleFailures(session.host.consoleFailures)
       await expectNoConsoleFailures(session.rival.consoleFailures)

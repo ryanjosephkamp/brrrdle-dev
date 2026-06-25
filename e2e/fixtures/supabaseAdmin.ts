@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { getE2eEnv } from './env'
+import type { E2eUser } from './testUsers'
 
 interface AsyncMultiplayerGameRow {
   readonly current_turn?: string
@@ -153,5 +154,23 @@ export async function updateMultiplayerProjection(game: {
     .eq('id', game.id)
   if (error) {
     throw new Error(`Unable to update temporary multiplayer projection: ${error.message}`)
+  }
+}
+
+export async function upsertPublicProfileForUser(user: E2eUser, accentColor = 'ice'): Promise<void> {
+  const admin = createAdminSupabaseClient()
+  const { error } = await admin
+    .from('public_player_profiles')
+    .upsert({
+      accent_color: accentColor,
+      display_name: user.displayName,
+      flair_key: 'none',
+      user_id: user.id,
+      visibility: 'public',
+    }, {
+      onConflict: 'user_id',
+    })
+  if (error) {
+    throw new Error(`Unable to configure public profile for E2E user ${user.label}: ${error.message}`)
   }
 }

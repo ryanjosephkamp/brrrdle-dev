@@ -18,6 +18,21 @@ export const PROFILE_ACCENT_COLORS = ['ice', 'aurora', 'cyan', 'violet', 'rose',
 export type ProfileAccentColor = (typeof PROFILE_ACCENT_COLORS)[number]
 export const DEFAULT_PROFILE_ACCENT_COLOR: ProfileAccentColor = 'ice'
 
+export const PROFILE_ACCENT_AVATAR_BACKGROUNDS: Record<ProfileAccentColor, string> = {
+  amber: 'from-amber-300 to-orange-700',
+  aurora: 'from-emerald-300 to-teal-700',
+  cyan: 'from-sky-400 to-cyan-700',
+  ice: 'from-cyan-300 to-sky-600',
+  rose: 'from-rose-300 to-pink-700',
+  violet: 'from-violet-400 to-indigo-700',
+}
+
+export function getProfileAccentAvatarBackground(
+  accentColor: ProfileAccentColor = DEFAULT_PROFILE_ACCENT_COLOR,
+): string {
+  return PROFILE_ACCENT_AVATAR_BACKGROUNDS[accentColor]
+}
+
 /**
  * Maximum size (in bytes) for an avatar data URL fallback when no Supabase
  * Storage bucket exists. Keep tight so we never bloat user_metadata.
