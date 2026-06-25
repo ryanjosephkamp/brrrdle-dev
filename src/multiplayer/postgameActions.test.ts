@@ -164,4 +164,40 @@ describe('Practice postgame action domain', () => {
     expect(createPracticeRematchGameProjection({ ...source, customGameCode: 'ABC123' })).toBeUndefined()
     expect(createPracticeRematchGameProjection({ ...source, scope: 'daily', dailyDateKey: '2026-06-24' })).toBeUndefined()
   })
+
+  it('tolerates legacy unranked Practice projections that carried a rating bucket', () => {
+    const legacyUnranked = terminalPracticeGame({
+      mode: 'og',
+      ranked: false,
+      ratingBucket: 'multiplayer:og',
+      timeLimitMs: null,
+      wordLength: 5,
+    })
+
+    expect(getPracticePostgameActions(legacyUnranked, 'host-user')).toMatchObject({
+      canRequestRematch: true,
+      continuationKind: 'unranked-play-again',
+      settings: {
+        mode: 'og',
+        ranked: false,
+        ratingBucket: undefined,
+        timeLimitMs: undefined,
+        wordLength: 5,
+      },
+    })
+
+    expect(createPracticeRematchGameProjection(legacyUnranked, {
+      id: 'legacy-rematch-game-1',
+      now: '2026-06-24T00:30:00.000Z',
+      seed: 44,
+    })).toMatchObject({
+      id: 'legacy-rematch-game-1',
+      mode: 'og',
+      ranked: false,
+      ratingBucket: undefined,
+      scope: 'practice',
+      timeLimitMs: null,
+      wordLength: 5,
+    })
+  })
 })

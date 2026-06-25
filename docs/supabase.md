@@ -75,7 +75,7 @@ Phase 27 ranked Practice v1 uses the following additive migration sequence in `b
 - `supabase/migrations/20260616055149_phase27_settlement_rpc_unambiguous_profile_upsert.sql`
 - `supabase/migrations/20260616165434_phase27_ranked_queue_game_finalization.sql`
 
-These migrations add authenticated-only trusted RPC authority for ranked Practice queue creation, cancellation, compatible pair claiming, queue status/seat assignment, game finalization, and idempotent ranked settlement from durable `async_multiplayer_games` rows. They preserve Daily ranked deferral, timed Practice ranked deferral, Hard Mode matching requirements, raw nonparticipant read denial, and the Phase 26 Live v1 spectator sanitized projection boundary. After the Phase 30 deferred ranked-mode routing pass, timed Practice ranked and Daily ranked are assigned to Phase 32 competitive ladder v2 planning, not Phase 30 leaderboard work. Browser clients should continue to call the trusted RPC seams rather than directly writing rating profile, result, transaction, or ranked queue authority state.
+These migrations add authenticated-only trusted RPC authority for ranked Practice queue creation, cancellation, compatible pair claiming, queue status/seat assignment, game finalization, and idempotent ranked settlement from durable `async_multiplayer_games` rows. They preserve Daily ranked deferral, timed Practice ranked deferral, Hard Mode matching requirements, raw nonparticipant read denial, and the Phase 26 Live v1 spectator sanitized projection boundary. After the Phase 32 stabilization rerouting, timed Practice ranked and Daily ranked are assigned to Phase 33 competitive ladder v2 planning, not Phase 30 leaderboard or Phase 32 stabilization work. Browser clients should continue to call the trusted RPC seams rather than directly writing rating profile, result, transaction, or ranked queue authority state.
 
 Phase 29 public profile foundations use the additive migration:
 
@@ -100,6 +100,14 @@ Phase 31 Practice-only rematch mutual intent uses the additive migration:
 This migration creates `public.multiplayer_practice_rematch_requests` and authenticated-only participant-scoped RPCs for requesting, listing, cancelling, declining, and accepting Practice rematches. Direct same-opponent rematch v1 is limited to completed unranked non-custom Practice Multiplayer games. Ranked Practice continuation remains same-settings search-again through the trusted ranked queue path, and Daily Multiplayer remains excluded from rematch, replay, or search-again shortcuts.
 
 Rematch RPC payloads may include only allow-listed request lifecycle and same-settings fields such as request id, source game id, request status, viewer capabilities, mode, word length, Hard Mode, time limit, GO puzzle count, created game id, timestamps, and idempotency booleans. They must never return raw auth emails, raw auth ids, private profile metadata, public profile drafts, answers, seeds, serialized sessions, player sessions, source projections, move history, rating transaction ids, queue ids, settlement ids, tokens, or local/session artifacts. The rematch table does not make postgame intent gameplay, Elo, public leaderboard, profile, notification, spectator, or Daily claim authority.
+
+Phase 32 participant identity routing uses the additive migration:
+
+- `supabase/migrations/20260624233635_phase32_participant_identity_rpc.sql`
+
+This migration adds authenticated-only RPC `public.get_multiplayer_participant_identity_summaries(p_game_id text default null, p_ranked_request_id text default null)`. The RPC lets a signed-in participant resolve allow-listed display summaries for their own async multiplayer game or matched ranked Practice queue context only. It returns seat, viewer marker, identity availability, and active public profile display fields when the participant has an active public profile; it does not make game participation publicly readable.
+
+Participant identity payloads may include only `seat`, `is_viewer`, `identity_available`, `public_profile_id`, `display_name`, `accent_color`, `flair_key`, `avatar_url`, and `updated_at`. They must never expose raw auth emails, raw auth ids, private profile metadata, tokens, private progress, answers, seeds, sessions, queue internals, rating transaction ids, settlement ids, local artifacts, or public/guest spectation data. Rematch lifecycle, ranked queue polling, lobby routing, account accent propagation, and rating formatting remain app-side behavior layered on top of the RPC.
 
 For the Phase 23 Stage 3 online-multiplayer stabilization, also apply `supabase/migrations/20260604050824_phase23_online_multiplayer_fixes.sql` after the live and competitive migrations. It creates:
 

@@ -200,7 +200,6 @@ function isDirectPracticeRematchSource(game: MultiplayerGame): boolean {
     && !game.dailyDateKey
     && isTerminalPostgameStatus(game.status)
     && game.ranked !== true
-    && !game.ratingBucket
     && !game.matchmakingRequestId
     && !game.customGameCode
     && hasBothDistinctParticipants(game)

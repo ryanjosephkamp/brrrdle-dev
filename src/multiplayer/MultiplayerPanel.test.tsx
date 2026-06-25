@@ -16,7 +16,16 @@ import {
 } from './multiplayer'
 import { createDailyMultiplayerGoSetup } from './dailyMultiplayer'
 import { getPracticePostgameActions } from './postgameActions'
-import { MultiplayerPanel, PracticePostgameActionsPanel } from './MultiplayerPanel'
+import {
+  MultiplayerPanel,
+  PracticePostgameActionsPanel,
+} from './MultiplayerPanel'
+import {
+  getCreatorJoinedGameAutoRouteId,
+  mergeFinalizedRankedGameIntoLocalState,
+  getMultiplayerPlayerDisplayLabel,
+  shouldAutoRefreshRankedQueue,
+} from './multiplayerPanelRouting'
 import type {
   MultiplayerRepository,
   PracticeRematchRequestResult,
@@ -194,6 +203,124 @@ describe('MultiplayerPanel', () => {
 
     expect(html).toContain('Join multiplayer match')
     expect(html).not.toContain('Cancel Lobby')
+  })
+
+  it('auto-routes a creator into a newly joined lobby without stealing a different active game', () => {
+    const waitingLobby = createMultiplayerGame({
+      id: 'creator-lobby-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const joinedLobby = joinMultiplayerGame(addMultiplayerGame(createEmptyMultiplayerState(), waitingLobby), {
+      gameId: waitingLobby.id,
+      userId: 'rival-user',
+    }).game!
+    const olderTerminal = terminalPracticeGame({ id: 'older-terminal-1' })
+    const activeUnrelated = createMultiplayerGame({
+      id: 'active-unrelated-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'other-rival' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+
+    expect(getCreatorJoinedGameAutoRouteId({
+      currentGames: [olderTerminal, joinedLobby],
+      previousGames: [olderTerminal, waitingLobby],
+      selectedGame: olderTerminal,
+      viewerUserId: 'host-user',
+    })).toBe(joinedLobby.id)
+    expect(getCreatorJoinedGameAutoRouteId({
+      currentGames: [activeUnrelated, joinedLobby],
+      previousGames: [activeUnrelated, waitingLobby],
+      selectedGame: activeUnrelated,
+      viewerUserId: 'host-user',
+    })).toBeUndefined()
+  })
+
+  it('preserves an existing terminal ranked game when finalization is idempotent', () => {
+    const terminalRanked = terminalPracticeGame({
+      id: 'ranked-terminal-1',
+      matchmakingRequestId: 'queue-request-1',
+      ranked: true,
+      ratingBucket: 'multiplayer:og',
+      timeLimitMs: null,
+    })
+    const finalizedProjection = createMultiplayerGame({
+      id: terminalRanked.id,
+      matchmakingRequestId: 'queue-request-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      ranked: true,
+      ratingBucket: 'multiplayer:og',
+      scope: 'practice',
+      wordLength: 6,
+    })
+
+    const merged = mergeFinalizedRankedGameIntoLocalState([terminalRanked], finalizedProjection)
+
+    expect(merged).toHaveLength(1)
+    expect(merged[0]).toMatchObject({
+      id: terminalRanked.id,
+      status: 'won',
+      winnerId: 'player-one',
+    })
+  })
+
+  it('polls queued ranked requests only while the creator has a valid active queue', () => {
+    expect(shouldAutoRefreshRankedQueue({
+      hasRankedQueueActions: true,
+      readOnly: false,
+      requestId: 'queue-request-1',
+      status: 'queued',
+    })).toBe(true)
+    expect(shouldAutoRefreshRankedQueue({
+      hasRankedQueueActions: true,
+      readOnly: false,
+      requestId: 'queue-request-1',
+      status: 'matched',
+    })).toBe(false)
+    expect(shouldAutoRefreshRankedQueue({
+      hasRankedQueueActions: true,
+      readOnly: true,
+      requestId: 'queue-request-1',
+      status: 'queued',
+    })).toBe(false)
+    expect(shouldAutoRefreshRankedQueue({
+      hasRankedQueueActions: false,
+      readOnly: false,
+      requestId: 'queue-request-1',
+      status: 'queued',
+    })).toBe(false)
+  })
+
+  it('uses safe opponent profile labels and never displays an opponent as You', () => {
+    const game = createMultiplayerGame({
+      mode: 'og',
+      playerProfiles: {
+        'player-two': {
+          accentColor: 'rose',
+          displayName: 'kiki',
+          initials: 'K',
+          label: 'kiki',
+        },
+      },
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const staleYouOpponent: MultiplayerGame = {
+      ...game,
+      players: game.players.map((player) => (
+        player.id === 'player-two' ? { ...player, label: 'You' } : player
+      )),
+    }
+
+    expect(getMultiplayerPlayerDisplayLabel(staleYouOpponent, 'player-one', 'player-one', staleYouOpponent.playerProfiles)).toBe('You')
+    expect(getMultiplayerPlayerDisplayLabel(staleYouOpponent, 'player-two', 'player-one', staleYouOpponent.playerProfiles)).toBe('kiki')
+    expect(getMultiplayerPlayerDisplayLabel({ ...staleYouOpponent, playerProfiles: undefined }, 'player-two', 'player-one')).toBe('Rival')
   })
 
   it('derives the multiplayer status box from shared game state after a rival joins', () => {
@@ -747,5 +874,58 @@ describe('MultiplayerPanel', () => {
     expect(requesterHtml).toContain('Waiting for rival to accept.')
     expect(requesterHtml).toContain('Cancel request')
     expect(requesterHtml).toContain('Rematch request sent.')
+  })
+
+  it('renders non-actionable rematch lifecycle states so participants do not stay stale', () => {
+    const game = terminalPracticeGame({ id: 'terminal-practice-1' })
+    const declinedRequest = createPracticeRematchRequestFixture({
+      requestStatus: 'declined',
+      updatedAt: '2026-06-24T00:24:00.000Z',
+      viewerCanCancel: false,
+    })
+    const cancelledRequest = createPracticeRematchRequestFixture({
+      requestStatus: 'cancelled',
+      updatedAt: '2026-06-24T00:25:00.000Z',
+      viewerCanCancel: false,
+      viewerRole: 'opponent',
+    })
+    const expiredRequest = createPracticeRematchRequestFixture({
+      expired: true,
+      expiresAt: '2026-06-24T00:22:00.000Z',
+      requestStatus: 'expired',
+      updatedAt: '2026-06-24T00:26:00.000Z',
+      viewerCanCancel: false,
+    })
+    const idempotentCreatedRequest = createPracticeRematchRequestFixture({
+      created: true,
+      createdGameId: 'rematch-game-1',
+      idempotent: true,
+      requestStatus: 'created',
+      updatedAt: '2026-06-24T00:27:00.000Z',
+      viewerCanCancel: false,
+    })
+
+    const renderLifecycle = (request: PracticeRematchRequestResult) => renderToStaticMarkup(
+      <PracticePostgameActionsPanel
+        actions={getPracticePostgameActions(game, 'host-user')}
+        busy={false}
+        gameId={game.id}
+        isOnlineReady
+        message={undefined}
+        onAcceptRematch={noop}
+        onCancelRematch={noop}
+        onDeclineRematch={noop}
+        onPlayAgain={noop}
+        onRequestRematch={noop}
+        onSearchAgain={noop}
+        rematchActionsAvailable
+        rematchRequests={[request]}
+      />,
+    )
+
+    expect(renderLifecycle(declinedRequest)).toContain('Rematch request declined.')
+    expect(renderLifecycle(cancelledRequest)).toContain('Rematch request cancelled.')
+    expect(renderLifecycle(expiredRequest)).toContain('Rematch request expired.')
+    expect(renderLifecycle(idempotentCreatedRequest)).toContain('Rematch game already created.')
   })
 })

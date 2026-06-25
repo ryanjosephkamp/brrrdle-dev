@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DifficultyTier } from '../data'
 import type { GoPuzzleCount } from '../game/constants'
 import type { GameMode, PlayScope } from '../game/types'
@@ -29,13 +29,13 @@ import {
   type PracticeMultiplayerTimeLimitMs,
 } from './multiplayer'
 import { createCustomGameLobby } from './customGames'
-import type { MultiplayerProfileSummary } from './dailyMultiplayer'
+import { createMultiplayerProfileSummary, type MultiplayerProfileSummary } from './dailyMultiplayer'
 import { normalizeCompetitiveMultiplayerState, upsertCustomGameLobby, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
 import { MultiplayerGameSurface } from './MultiplayerGameSurface'
 import {
   getRatingBucket,
 } from './rating'
-import type { MultiplayerRepository, RankedQueueStatusResult } from './multiplayerRepository'
+import type { MultiplayerRepository, ParticipantIdentitySummaryResult, RankedQueueStatusResult } from './multiplayerRepository'
 import type { PracticeRematchRequestResult } from './multiplayerRepository'
 import { RivalIdentityCard } from './RivalIdentityCard'
 import { projectMultiplayerPerformance } from './scoring'
@@ -45,6 +45,12 @@ import {
   type PracticePostgameActions,
   type PracticePostgameSettings,
 } from './postgameActions'
+import {
+  getCreatorJoinedGameAutoRouteId,
+  getMultiplayerPlayerDisplayLabel,
+  mergeFinalizedRankedGameIntoLocalState,
+  shouldAutoRefreshRankedQueue,
+} from './multiplayerPanelRouting'
 
 type MultiplayerMatchKind = 'unranked' | 'ranked' | 'custom'
 type RankedQueueActions = Pick<
@@ -63,6 +69,25 @@ type PracticeRematchActions = Pick<
   | 'listPracticeRematchRequests'
   | 'requestPracticeRematch'
 >
+type ParticipantIdentityActions = Pick<
+  MultiplayerRepository,
+  'getParticipantIdentitySummaries'
+>
+
+async function loadPracticeRematchRequestsForGame(
+  actions: PracticeRematchActions | undefined,
+  sourceGameId: string | undefined,
+  canLoad: boolean,
+  readOnly: boolean,
+): Promise<readonly PracticeRematchRequestResult[]> {
+  if (!sourceGameId || !canLoad || !actions || readOnly) {
+    return []
+  }
+  return actions.listPracticeRematchRequests({
+    limit: PRACTICE_REMATCH_REQUEST_LIMIT,
+    sourceGameId,
+  })
+}
 
 interface LocalStatusMessage {
   readonly gameId: string | undefined
@@ -93,6 +118,7 @@ interface MultiplayerPanelProps {
   readonly onOpenEloAbout?: () => void
   readonly onSelectedGameChange?: (gameId: string) => void
   readonly postgameActions?: PracticeRematchActions
+  readonly participantIdentityActions?: ParticipantIdentityActions
   readonly rankedQueueActions?: RankedQueueActions
   readonly readOnly?: boolean
   readonly selectedGameId?: string
@@ -150,7 +176,15 @@ function formatUtcDateTime(value: string | undefined): string {
   }).format(date)
 }
 
-function ClockSummary({ game, now }: { readonly game: MultiplayerGame; readonly now: Date }) {
+function ClockSummary({
+  game,
+  getPlayerLabel,
+  now,
+}: {
+  readonly game: MultiplayerGame
+  readonly getPlayerLabel?: (playerId: MultiplayerPlayerId) => string
+  readonly now: Date
+}) {
   const clock = getMultiplayerClockState(game, now)
   if (!clock) {
     return null
@@ -169,7 +203,7 @@ function ClockSummary({ game, now }: { readonly game: MultiplayerGame; readonly 
             )}
             key={player.id}
           >
-            <p className="text-xs font-bold uppercase tracking-wide">{player.label}</p>
+            <p className="text-xs font-bold uppercase tracking-wide">{getPlayerLabel?.(player.id) ?? player.label}</p>
             <p className="text-2xl font-black tabular-nums">{formatClock(remaining)}</p>
             <p className="text-xs">{timedOut ? 'Out of time' : isActive ? 'Clock running' : 'Clock paused'}</p>
           </div>
@@ -191,6 +225,32 @@ function moveStateClass(state: string): string {
 
 const TERMINAL_SOLVED_SURFACE_HOLD_MS = 2000
 const PRACTICE_REMATCH_REQUEST_LIMIT = 10
+const PRACTICE_REMATCH_REFRESH_INTERVAL_MS = 5000
+const PARTICIPANT_IDENTITY_FETCH_DELAY_MS = 750
+const RANKED_QUEUE_REFRESH_INTERVAL_MS = 5000
+
+function participantIdentityProfilesToMap(
+  summaries: readonly ParticipantIdentitySummaryResult[],
+): Partial<Record<MultiplayerPlayerId, MultiplayerProfileSummary>> {
+  const entries = summaries.flatMap((summary) => {
+    if (!summary.identityAvailable || !summary.displayName) {
+      return []
+    }
+    return [[summary.seat, createMultiplayerProfileSummary({
+      accentColor: summary.accentColor,
+      avatarUrl: summary.avatarUrl,
+      displayName: summary.displayName,
+      label: summary.displayName,
+    }, summary.displayName)] as const]
+  })
+  return Object.fromEntries(entries) as Partial<Record<MultiplayerPlayerId, MultiplayerProfileSummary>>
+}
+
+function getRankedQueueErrorMessage(error: unknown): string {
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : 'Unable to update ranked queue.'
+}
 
 function getLatestSolvedMoveId(game: MultiplayerGame | undefined): string | undefined {
   if (!game) {
@@ -280,6 +340,35 @@ function getActivePracticeRematchRequest(
   ))
 }
 
+function getLatestPracticeRematchRequest(
+  gameId: string,
+  requests: readonly PracticeRematchRequestResult[],
+): PracticeRematchRequestResult | undefined {
+  const matchingRequests = requests
+    .filter((request) => request.sourceGameId === gameId)
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+  return matchingRequests[0]
+}
+
+function getPracticeRematchLifecycleMessage(request: PracticeRematchRequestResult | undefined): string | undefined {
+  if (!request) {
+    return undefined
+  }
+  if (request.expired || request.requestStatus === 'expired') {
+    return 'Rematch request expired.'
+  }
+  if (request.requestStatus === 'declined') {
+    return 'Rematch request declined.'
+  }
+  if (request.requestStatus === 'cancelled') {
+    return 'Rematch request cancelled.'
+  }
+  if (request.requestStatus === 'created') {
+    return request.idempotent ? 'Rematch game already created.' : 'Rematch game created.'
+  }
+  return undefined
+}
+
 function getPostgameErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim() ? error.message : fallback
 }
@@ -316,6 +405,9 @@ export function PracticePostgameActionsPanel({
   rematchRequests,
 }: PracticePostgameActionsPanelProps) {
   const activeRematchRequest = getActivePracticeRematchRequest(gameId, rematchRequests)
+  const latestRematchRequest = getLatestPracticeRematchRequest(gameId, rematchRequests)
+  const rematchLifecycleMessage = getPracticeRematchLifecycleMessage(latestRematchRequest)
+  const hasCreatedRematch = latestRematchRequest?.requestStatus === 'created'
   const hasVisibleAction = actions.canPlayAgain || actions.canRequestRematch || actions.canSearchAgain || Boolean(activeRematchRequest)
   if (!actions.settings || (!hasVisibleAction && !actions.unavailableReason)) {
     return null
@@ -354,6 +446,12 @@ export function PracticePostgameActionsPanel({
         </p>
       ) : null}
 
+      {rematchLifecycleMessage ? (
+        <p className="rounded-md border border-cyan-300/30 bg-cyan-300/10 p-3 font-semibold text-cyan-50">
+          {rematchLifecycleMessage}
+        </p>
+      ) : null}
+
       {activeRematchRequest?.viewerCanAccept ? (
         <div className="rounded-md border border-cyan-300/30 bg-cyan-300/10 p-3">
           <p className="font-semibold text-cyan-50">Rival requested a rematch.</p>
@@ -369,11 +467,7 @@ export function PracticePostgameActionsPanel({
           <p className="text-xs text-cyan-100">The request expires automatically if your rival does not accept.</p>
           <Button className="mt-2" disabled={busy} onClick={() => onCancelRematch(activeRematchRequest)} size="sm" variant="secondary">Cancel request</Button>
         </div>
-      ) : activeRematchRequest?.requestStatus === 'created' ? (
-        <p className="rounded-md border border-cyan-300/30 bg-cyan-300/10 p-3 font-semibold text-cyan-50">
-          Rematch game created.
-        </p>
-      ) : actions.canRequestRematch ? (
+      ) : actions.canRequestRematch && !hasCreatedRematch ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button disabled={rematchDisabled} onClick={onRequestRematch} size="sm" variant="primary">Request rematch</Button>
           {rematchDisabledReason ? <p className="text-xs text-emerald-100">{rematchDisabledReason}</p> : null}
@@ -413,6 +507,7 @@ export function MultiplayerPanel({
   onOpenEloAbout,
   onSelectedGameChange,
   postgameActions,
+  participantIdentityActions,
   rankedQueueActions,
   readOnly = false,
   selectedGameId,
@@ -437,9 +532,15 @@ export function MultiplayerPanel({
   const [postgameMessage, setPostgameMessage] = useState<PostgameStatusMessage | undefined>(undefined)
   const [postgameBusy, setPostgameBusy] = useState(false)
   const [practiceRematchRequests, setPracticeRematchRequests] = useState<readonly PracticeRematchRequestResult[]>([])
+  const [participantIdentityState, setParticipantIdentityState] = useState<{
+    readonly gameId: string
+    readonly profiles: Partial<Record<MultiplayerPlayerId, MultiplayerProfileSummary>>
+  } | undefined>(undefined)
   const [rankedQueue, setRankedQueue] = useState<RankedQueueUiState>({ message: '', status: 'idle' })
   const [rankedQueueBusy, setRankedQueueBusy] = useState(false)
   const [clockNow, setClockNow] = useState(() => new Date())
+  const previousVisibleGamesRef = useRef<readonly MultiplayerGame[]>(visibleGames)
+  const refreshRankedQueueRef = useRef<() => Promise<void>>(async () => undefined)
   const needsClock = useMemo(
     () => visibleGames.some((game) => game.scope === 'practice' && game.timeLimitMs && game.status === 'playing'),
     [visibleGames],
@@ -459,10 +560,10 @@ export function MultiplayerPanel({
   const existingDailyClaim = scope === 'daily' && viewerUserId
     ? visibleGames.find((game) => game.mode === mode && getViewerMultiplayerPlayerId(game, viewerUserId))
     : undefined
-  const selectGame = (gameId: string) => {
+  const selectGame = useCallback((gameId: string) => {
     setInternalSelectedGameId(gameId)
     onSelectedGameChange?.(gameId)
-  }
+  }, [onSelectedGameChange])
   const controlledSelectedGameId = selectedGameId && visibleGames.some((game) => game.id === selectedGameId)
     ? selectedGameId
     : undefined
@@ -474,6 +575,66 @@ export function MultiplayerPanel({
     ?? visibleGames[0]?.id
   const selectedGame = visibleGames.find((game) => game.id === effectiveSelectedGameId)
   const viewerPlayerId = selectedGame ? getViewerMultiplayerPlayerId(selectedGame, viewerUserId) : undefined
+  useEffect(() => {
+    const previousGames = previousVisibleGamesRef.current
+    previousVisibleGamesRef.current = visibleGames
+    if (readOnly) {
+      return
+    }
+    const nextGameId = getCreatorJoinedGameAutoRouteId({
+      currentGames: visibleGames,
+      previousGames,
+      selectedGame,
+      viewerUserId,
+    })
+    if (nextGameId && nextGameId !== effectiveSelectedGameId) {
+      selectGame(nextGameId)
+      setLocalMessage(undefined)
+    }
+  }, [effectiveSelectedGameId, readOnly, selectGame, selectedGame, viewerUserId, visibleGames])
+  useEffect(() => {
+    let active = true
+    if (!selectedGame || !viewerPlayerId || !participantIdentityActions) {
+      return () => {
+        active = false
+      }
+    }
+    const timeoutId = window.setTimeout(() => {
+      void participantIdentityActions.getParticipantIdentitySummaries({ gameId: selectedGame.id })
+        .then((summaries) => {
+          if (active) {
+            setParticipantIdentityState({
+              gameId: selectedGame.id,
+              profiles: participantIdentityProfilesToMap(summaries),
+            })
+          }
+        })
+        .catch(() => {
+          if (active) {
+            setParticipantIdentityState({
+              gameId: selectedGame.id,
+              profiles: {},
+            })
+          }
+        })
+    }, PARTICIPANT_IDENTITY_FETCH_DELAY_MS)
+    return () => {
+      active = false
+      window.clearTimeout(timeoutId)
+    }
+  }, [participantIdentityActions, selectedGame, selectedGame?.updatedAt, viewerPlayerId])
+  const selectedPlayerProfiles = selectedGame
+    ? {
+        ...selectedGame.playerProfiles,
+        ...(participantIdentityState?.gameId === selectedGame.id ? participantIdentityState.profiles : {}),
+      }
+    : undefined
+  const getSelectedPlayerLabel = (
+    playerId: MultiplayerPlayerId,
+    fallback?: string,
+  ): string => selectedGame
+    ? getMultiplayerPlayerDisplayLabel(selectedGame, playerId, viewerPlayerId, selectedPlayerProfiles, fallback)
+    : fallback ?? playerId
   const latestSolvedMoveId = getLatestSolvedMoveId(selectedGame)
   const [clearedTerminalSolvedMoveId, setClearedTerminalSolvedMoveId] = useState<string | undefined>(undefined)
   const showTerminalSolvedSurface = Boolean(
@@ -536,23 +697,14 @@ export function MultiplayerPanel({
     && !rankedQueueBusy
     && !(matchKind === 'ranked' && rankedQueue.status === 'queued')
 
-  const upsertFinalizedRankedGame = (game: MultiplayerGame) => {
+  const upsertFinalizedRankedGame = useCallback((game: MultiplayerGame) => {
     onChange({
-      games: [
-        game,
-        ...normalized.games.filter((entry) => entry.id !== game.id),
-      ],
+      games: mergeFinalizedRankedGameIntoLocalState(normalized.games, game),
     })
     selectGame(game.id)
-  }
+  }, [normalized.games, onChange, selectGame])
 
-  const getRankedQueueErrorMessage = (error: unknown): string => (
-    error instanceof Error && error.message.trim()
-      ? error.message
-      : 'Unable to update ranked queue.'
-  )
-
-  const buildFinalizedRankedGame = (status: RankedQueueStatusResult): MultiplayerGame | undefined => {
+  const buildFinalizedRankedGame = useCallback((status: RankedQueueStatusResult): MultiplayerGame | undefined => {
     if (
       status.requestStatus !== 'matched'
       || !status.matchedGameId
@@ -591,9 +743,9 @@ export function MultiplayerPanel({
       timeLimitMs: null,
       wordLength: status.wordLength,
     })
-  }
+  }, [defaultDifficulty, defaultGoPuzzleCount, viewerProfile])
 
-  const finalizeRankedQueueMatch = async (requestId: string) => {
+  const finalizeRankedQueueMatch = useCallback(async (requestId: string) => {
     if (!rankedQueueActions) {
       throw new Error('Ranked queue requires authenticated Supabase multiplayer.')
     }
@@ -628,7 +780,7 @@ export function MultiplayerPanel({
       requestId: status.requestId,
       status: 'matched',
     })
-  }
+  }, [buildFinalizedRankedGame, rankedQueueActions, upsertFinalizedRankedGame])
 
   const enterRankedQueue = async (override?: Pick<PracticePostgameSettings, 'hardMode' | 'mode' | 'wordLength'>) => {
     const queueMode = override?.mode ?? mode
@@ -680,7 +832,7 @@ export function MultiplayerPanel({
     }
   }
 
-  const refreshRankedQueue = async () => {
+  const refreshRankedQueue = useCallback(async () => {
     if (!rankedQueueActions || !rankedQueue.requestId) {
       return
     }
@@ -718,7 +870,44 @@ export function MultiplayerPanel({
     } finally {
       setRankedQueueBusy(false)
     }
-  }
+  }, [finalizeRankedQueueMatch, rankedQueue.requestId, rankedQueueActions])
+  useEffect(() => {
+    refreshRankedQueueRef.current = refreshRankedQueue
+  }, [refreshRankedQueue])
+  useEffect(() => {
+    const shouldRefresh = shouldAutoRefreshRankedQueue({
+      hasRankedQueueActions: Boolean(rankedQueueActions),
+      readOnly,
+      requestId: rankedQueue.requestId,
+      status: rankedQueue.status,
+    })
+    if (!shouldRefresh || rankedQueueBusy) {
+      return undefined
+    }
+    const refreshIfVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return
+      }
+      void refreshRankedQueueRef.current()
+    }
+    const intervalId = window.setInterval(refreshIfVisible, RANKED_QUEUE_REFRESH_INTERVAL_MS)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshIfVisible()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      window.clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [
+    rankedQueue.requestId,
+    rankedQueue.status,
+    rankedQueueActions,
+    rankedQueueBusy,
+    readOnly,
+  ])
 
   const cancelRankedQueue = async () => {
     if (!rankedQueueActions || !rankedQueue.requestId) {
@@ -756,8 +945,8 @@ export function MultiplayerPanel({
     if (!canCreate) {
       return
     }
-    const ratingBucket = getRatingBucket(mode)
     const ranked = matchKind === 'ranked' && authStatus === 'authenticated' && Boolean(viewerUserId)
+    const ratingBucket = ranked ? getRatingBucket(mode) : undefined
     if (ranked) {
       void enterRankedQueue()
       return
@@ -887,16 +1076,19 @@ export function MultiplayerPanel({
   }
   const selectedPostgameActions = selectedGame ? getPracticePostgameActions(selectedGame, viewerUserId) : undefined
   const selectedGameIdForRematches = selectedGame?.id
-  const canLoadSelectedRematchRequests = Boolean(selectedGame && selectedPostgameActions?.settings)
+  const canLoadSelectedRematchRequests = Boolean(
+    selectedGame
+      && selectedPostgameActions?.settings
+      && selectedPostgameActions.continuationKind === 'unranked-play-again',
+  )
   useEffect(() => {
-    if (!selectedGameIdForRematches || !canLoadSelectedRematchRequests || !postgameActions || readOnly) {
-      return undefined
-    }
     let active = true
-    void postgameActions.listPracticeRematchRequests({
-      limit: PRACTICE_REMATCH_REQUEST_LIMIT,
-      sourceGameId: selectedGameIdForRematches,
-    }).then((requests) => {
+    void loadPracticeRematchRequestsForGame(
+      postgameActions,
+      selectedGameIdForRematches,
+      canLoadSelectedRematchRequests,
+      readOnly,
+    ).then((requests) => {
       if (active) {
         setPracticeRematchRequests(requests)
       }
@@ -916,12 +1108,94 @@ export function MultiplayerPanel({
     selectedGame?.status,
     selectedGame?.updatedAt,
   ])
+  useEffect(() => {
+    if (!selectedGameIdForRematches || !canLoadSelectedRematchRequests || !postgameActions || readOnly) {
+      return undefined
+    }
+    const refreshIfVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return
+      }
+      void loadPracticeRematchRequestsForGame(
+        postgameActions,
+        selectedGameIdForRematches,
+        canLoadSelectedRematchRequests,
+        readOnly,
+      ).then((requests) => {
+        setPracticeRematchRequests(requests)
+      }).catch(() => {
+        setPracticeRematchRequests([])
+      })
+    }
+    const intervalId = window.setInterval(refreshIfVisible, PRACTICE_REMATCH_REFRESH_INTERVAL_MS)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshIfVisible()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      window.clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [
+    canLoadSelectedRematchRequests,
+    postgameActions,
+    readOnly,
+    selectedGameIdForRematches,
+  ])
 
   const upsertPracticeRematchRequest = (request: PracticeRematchRequestResult) => {
     setPracticeRematchRequests((current) => [
       request,
       ...current.filter((entry) => entry.requestId !== request.requestId),
     ])
+  }
+
+  useEffect(() => {
+    if (!selectedGame || !viewerPlayerId || readOnly) {
+      return
+    }
+    const createdRequest = practiceRematchRequests.find((request) => (
+      request.sourceGameId === selectedGame.id
+      && request.requestStatus === 'created'
+      && request.createdGameId
+    ))
+    if (!createdRequest?.createdGameId || createdRequest.createdGameId === effectiveSelectedGameId) {
+      return
+    }
+    const createdGame = visibleGames.find((game) => game.id === createdRequest.createdGameId)
+    if (!createdGame) {
+      return
+    }
+    const createdGameId = createdGame.id
+    const message = createdRequest.idempotent ? 'Opening existing rematch game.' : 'Rematch game created.'
+    const timeoutId = window.setTimeout(() => {
+      selectGame(createdGameId)
+      setPostgameMessage({ gameId: createdGameId, text: message })
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [
+    effectiveSelectedGameId,
+    practiceRematchRequests,
+    readOnly,
+    selectGame,
+    selectedGame,
+    viewerPlayerId,
+    visibleGames,
+  ])
+
+  const refreshPracticeRematchRequestsAfterAction = async () => {
+    try {
+      setPracticeRematchRequests(await loadPracticeRematchRequestsForGame(
+        postgameActions,
+        selectedGameIdForRematches,
+        canLoadSelectedRematchRequests,
+        readOnly,
+      ))
+    } catch {
+      // Keep the immediate action result visible if a follow-up list refresh fails.
+    }
   }
 
   const applyPostgameSettingsToControls = (settings: PracticePostgameSettings, nextMatchKind: MultiplayerMatchKind) => {
@@ -943,6 +1217,7 @@ export function MultiplayerPanel({
         sourceGameId: selectedGame.id,
       })
       upsertPracticeRematchRequest(request)
+      await refreshPracticeRematchRequestsAfterAction()
       setPostgameMessage({ gameId: selectedGame.id, text: 'Rematch request sent.' })
     } catch (error) {
       setPostgameMessage({
@@ -962,6 +1237,7 @@ export function MultiplayerPanel({
     try {
       const cancelled = await postgameActions.cancelPracticeRematch(request.requestId)
       upsertPracticeRematchRequest(cancelled)
+      await refreshPracticeRematchRequestsAfterAction()
       setPostgameMessage({ gameId: selectedGame.id, text: 'Rematch request cancelled.' })
     } catch (error) {
       setPostgameMessage({
@@ -981,6 +1257,7 @@ export function MultiplayerPanel({
     try {
       const declined = await postgameActions.declinePracticeRematch(request.requestId)
       upsertPracticeRematchRequest(declined)
+      await refreshPracticeRematchRequestsAfterAction()
       setPostgameMessage({ gameId: selectedGame.id, text: 'Rematch request declined.' })
     } catch (error) {
       setPostgameMessage({
@@ -1017,6 +1294,7 @@ export function MultiplayerPanel({
         return
       }
       upsertPracticeRematchRequest(accepted)
+      await refreshPracticeRematchRequestsAfterAction()
       onChange(next)
       selectGame(rematchGame.id)
       setPostgameMessage({ gameId: rematchGame.id, text: accepted.idempotent ? 'Opening existing rematch game.' : 'Rematch game created.' })
@@ -1283,7 +1561,7 @@ export function MultiplayerPanel({
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-cyan-100">Turn</p>
-              <p className="break-words">{selectedGame.players.find((player) => player.id === selectedGame.currentTurn)?.label ?? selectedGame.currentTurn}</p>
+              <p className="break-words">{getSelectedPlayerLabel(selectedGame.currentTurn)}</p>
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-cyan-100">Deadline</p>
@@ -1297,7 +1575,7 @@ export function MultiplayerPanel({
             ) : null}
           </div>
 
-          <ClockSummary game={selectedGame} now={clockNow} />
+          <ClockSummary game={selectedGame} getPlayerLabel={getSelectedPlayerLabel} now={clockNow} />
 
           {!readOnly && selectedGame.status === 'waiting' ? (
             <div className="rounded-lg border border-cyan-300/30 bg-cyan-300/10 p-4">
@@ -1317,9 +1595,9 @@ export function MultiplayerPanel({
           ) : null}
 
           {rivalPlayer ? (
-            <RivalIdentityCard label={rivalPlayer.label} profile={selectedGame.playerProfiles?.[rivalPlayer.id]} />
+            <RivalIdentityCard label={getSelectedPlayerLabel(rivalPlayer.id)} profile={selectedPlayerProfiles?.[rivalPlayer.id]} />
           ) : canJoinSelectedGame && waitingHostPlayer ? (
-            <RivalIdentityCard label={waitingHostPlayer.label} profile={selectedGame.playerProfiles?.['player-one']} title="Lobby host" />
+            <RivalIdentityCard label={getSelectedPlayerLabel(waitingHostPlayer.id, 'Host')} profile={selectedPlayerProfiles?.['player-one']} title="Lobby host" />
           ) : selectedGame.status === 'waiting' ? (
             <RivalIdentityCard label="Waiting for a signed-in rival" title="Rival" />
           ) : null}
@@ -1364,7 +1642,7 @@ export function MultiplayerPanel({
               <div className="grid min-w-0 gap-2 2xl:grid-cols-2">
                 {selectedPerformance.players.map((player) => (
                   <p className="min-w-0 break-words rounded-md border border-white/10 bg-black/30 p-2" key={player.playerId}>
-                    {selectedGame.players.find((entry) => entry.id === player.playerId)?.label ?? player.playerId}: {player.summary}
+                    {getSelectedPlayerLabel(player.playerId)}: {player.summary}
                   </p>
                 ))}
               </div>
@@ -1399,7 +1677,7 @@ export function MultiplayerPanel({
                 {selectedGame.moves.map((move) => (
                   <div className="min-w-0 rounded-lg border border-white/10 bg-slate-950/70 p-3" key={move.id}>
                     <p className="break-words text-xs uppercase tracking-wide text-slate-400">
-                      {selectedGame.players.find((player) => player.id === move.playerId)?.label ?? move.playerId} · Puzzle {move.puzzleIndex + 1} · {formatUtcDateTime(move.createdAt)}
+                      {getSelectedPlayerLabel(move.playerId)} · Puzzle {move.puzzleIndex + 1} · {formatUtcDateTime(move.createdAt)}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {move.tiles.map((tile, index) => (

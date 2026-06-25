@@ -13,6 +13,7 @@ import {
   PROFILE_ACCENT_COLORS,
   PROFILE_AVATAR_MAX_BYTES,
   PROFILE_DISPLAY_NAME_MAX_LENGTH,
+  getProfileAccentAvatarBackground,
   type ProfileAccentColor,
 } from './profile'
 import {
@@ -45,15 +46,6 @@ const ACCENT_SWATCHES: Record<ProfileAccentColor, string> = {
   violet: 'bg-violet-400',
   rose: 'bg-rose-300',
   amber: 'bg-amber-300',
-}
-
-const ACCENT_AVATAR_BACKGROUNDS: Record<ProfileAccentColor, string> = {
-  ice: 'from-cyan-300 to-sky-600',
-  aurora: 'from-emerald-300 to-teal-700',
-  cyan: 'from-sky-400 to-cyan-700',
-  violet: 'from-violet-400 to-indigo-700',
-  rose: 'from-rose-300 to-pink-700',
-  amber: 'from-amber-300 to-orange-700',
 }
 
 /**
@@ -221,7 +213,7 @@ export function ProfilePanel({
             aria-hidden="true"
             className={classNames(
               'inline-grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-gradient-to-br text-sm font-bold text-white shadow-inner',
-              ACCENT_AVATAR_BACKGROUNDS[accentColor],
+              getProfileAccentAvatarBackground(accentColor),
             )}
           >
             {avatarUrl ? (
@@ -400,7 +392,7 @@ export function ProfilePanel({
                   aria-hidden="true"
                   className={classNames(
                     'inline-grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gradient-to-br text-xs font-bold text-white shadow-inner',
-                    ACCENT_AVATAR_BACKGROUNDS[publicAccentColor],
+                    getProfileAccentAvatarBackground(publicAccentColor),
                   )}
                 >
                   {publicAvatarPreviewUrl ? <img alt="" src={publicAvatarPreviewUrl} className="h-full w-full object-cover" /> : publicProfilePreviewInitials}

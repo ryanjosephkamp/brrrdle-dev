@@ -16,6 +16,12 @@ layers:
 The suite is intentionally modular. During implementation, run focused files or
 tagged E2E subsets. Before handoff on major work, run the full gate.
 
+For UI-heavy or gameplay-visible phases, an explicitly authorized visual
+handoff review may run after automated verification and before Git handoff. This
+captures local screenshots for human inspection under ignored artifacts such as
+`test-results/visual-review/<phase-or-stage>/`. It is review evidence, not a
+pass/fail pixel-diff visual regression suite.
+
 ## Test Layers
 
 ### Fast Vitest Layer
@@ -150,6 +156,26 @@ limitation. Do not leave durable test users or rows unmentioned.
 - No unbounded polling or huge logs.
 - Do not commit `test-results/`, `playwright-report/`, `.env*`, screenshots,
   videos, traces, or session artifacts.
+
+## Visual Handoff Review
+
+When a phase changes visible gameplay, account, stats, leaderboard, or
+navigation behavior, Codex may run a visual handoff review before Git handoff if
+the user explicitly authorizes it.
+
+Recommended flow:
+
+1. Run the phase's required automated verification first.
+2. Build a small screenshot checklist for changed surfaces.
+3. Use Playwright assertions to confirm each intended state before screenshot
+   capture.
+4. Save screenshots and a manifest under `test-results/visual-review/`.
+5. Report absolute Markdown image links in the final response for human review.
+6. Keep all visual artifacts ignored and unstaged.
+
+Visual review should not become broad screenshot-diff testing by default.
+Promote a screenshot into automated visual regression only after the surface is
+stable, deterministic, and worth the maintenance cost.
 
 ## Known Gaps
 

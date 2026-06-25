@@ -5,7 +5,7 @@ title: Ranked multiplayer and Elo
 
 # Ranked multiplayer and Elo
 
-Ranked multiplayer in brrrdle currently means ranked Practice Multiplayer v1. Public ranked Practice leaderboards are authenticated-only Phase 30 display surfaces for opted-in public profiles. Daily ranked and timed Practice ranked are routed to Phase 32 ranked mode expansion / competitive ladder v2 and remain unavailable until separately planned and authorized. Public profile foundations are separate identity work and do not change Elo.
+Ranked multiplayer in brrrdle currently means ranked Practice Multiplayer v1. Public ranked Practice leaderboards are authenticated-only Phase 30 display surfaces for opted-in public profiles. Daily ranked and timed Practice ranked are routed to Phase 33 ranked mode expansion / competitive ladder v2 after the Phase 32 multiplayer stabilization pass, and remain unavailable until separately planned and authorized. Public profile foundations are separate identity work and do not change Elo.
 
 ## What affects Elo
 
@@ -50,8 +50,8 @@ Ranked Practice v1 preserves these boundaries:
 
 - Ranked Practice is signed-in and untimed.
 - The ranked queue matches compatible mode, word length, Hard Mode setting, and rating bucket.
-- Daily ranked remains deferred until Phase 32 planning proves claim safety, UTC-day uniqueness, answer separation, no-clock behavior, and anti-cheat implications.
-- Timed Practice ranked remains deferred until Phase 32 planning proves clock fairness, trusted timeout settlement, queue compatibility, RLS safety, and two-client verification.
+- Daily ranked remains deferred until Phase 33 planning proves claim safety, UTC-day uniqueness, answer separation, no-clock behavior, and anti-cheat implications.
+- Timed Practice ranked remains deferred until Phase 33 planning proves clock fairness, trusted timeout settlement, queue compatibility, RLS safety, and two-client verification.
 - Ranked custom/private-code games remain deferred unless a later approved spec authorizes them.
 - Public profile identity is separate from rating authority; public leaderboards are authenticated-only display surfaces and do not change Elo.
 - Browser clients do not directly write rating profiles or rating transactions; trusted settlement is the rating authority.

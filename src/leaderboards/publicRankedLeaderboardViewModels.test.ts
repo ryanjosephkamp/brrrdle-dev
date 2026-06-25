@@ -46,10 +46,10 @@ describe('public ranked leaderboard view models', () => {
       bucketLabel: 'OG ranked Practice',
       gamesLabel: '12 rated',
       latestMovementLabel: '+18 from last settlement',
-      peakLabel: 'Peak 1,290',
+      peakLabel: 'Peak 1290',
       provisionalLabel: 'Established',
       rankLabel: '#1',
-      ratingLabel: '1,260',
+      ratingLabel: '1260',
       recordLabel: '8-3-1',
     })
     expect(json).not.toContain('user_id')
@@ -77,11 +77,29 @@ describe('public ranked leaderboard view models', () => {
 
     expect(rows[0]).toMatchObject({
       latestMovementLabel: 'No settled movement yet',
-      peakLabel: 'Peak 1,205',
+      peakLabel: 'Peak 1205',
       provisionalLabel: 'Provisional',
       rankLabel: '#9',
-      ratingLabel: '1,205',
+      ratingLabel: '1205',
       recordLabel: '1-1-0',
     })
+  })
+
+  it('does not add comma separators to rating values or rating-tied ranks', () => {
+    const rows = createPublicRankedLeaderboardViewRows([{
+      ...ROW,
+      peakRating: 1602,
+      rank: 1201,
+      rating: 1599,
+    }])
+
+    expect(rows[0]).toMatchObject({
+      peakLabel: 'Peak 1602',
+      rankLabel: '#1201',
+      ratingLabel: '1599',
+    })
+    expect(rows[0]?.peakLabel).not.toContain(',')
+    expect(rows[0]?.rankLabel).not.toContain(',')
+    expect(rows[0]?.ratingLabel).not.toContain(',')
   })
 })

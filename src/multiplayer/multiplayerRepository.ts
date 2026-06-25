@@ -35,6 +35,7 @@ export interface MultiplayerRepository {
   readonly cancelPracticeRematch: (requestId: string) => Promise<PracticeRematchRequestResult>
   readonly declinePracticeRematch: (requestId: string) => Promise<PracticeRematchRequestResult>
   readonly acceptPracticeRematch: (input: AcceptPracticeRematchInput) => Promise<PracticeRematchRequestResult>
+  readonly getParticipantIdentitySummaries: (input: GetParticipantIdentitySummariesInput) => Promise<readonly ParticipantIdentitySummaryResult[]>
   readonly subscribe: (listener: (snapshot: MultiplayerRepositorySnapshot) => void) => () => void
 }
 
@@ -131,6 +132,7 @@ export function createLocalStorageMultiplayerRepository(
     acceptPracticeRematch: async () => {
       throw new Error('Practice rematch requests require authenticated Supabase multiplayer.')
     },
+    getParticipantIdentitySummaries: async () => [],
     subscribe: (listener) => {
       listeners.add(listener)
       listener(snapshot)
@@ -341,6 +343,23 @@ export interface AcceptPracticeRematchInput {
   readonly requestId: string
 }
 
+export interface GetParticipantIdentitySummariesInput {
+  readonly gameId?: string | null
+  readonly rankedRequestId?: string | null
+}
+
+export interface ParticipantIdentitySummaryResult {
+  readonly accentColor?: string
+  readonly avatarUrl?: string
+  readonly displayName?: string
+  readonly flairKey?: string
+  readonly identityAvailable: boolean
+  readonly isViewer: boolean
+  readonly publicProfileId?: string
+  readonly seat: RankedQueueViewerSeat
+  readonly updatedAt?: string
+}
+
 export interface RankedQueueFinalizationResult {
   readonly created: boolean
   readonly gameId: string
@@ -438,6 +457,18 @@ const PRACTICE_REMATCH_ALLOWED_KEYS = new Set([
   'word_length',
 ])
 
+const PARTICIPANT_IDENTITY_ALLOWED_KEYS = new Set([
+  'accent_color',
+  'avatar_url',
+  'display_name',
+  'flair_key',
+  'identity_available',
+  'is_viewer',
+  'public_profile_id',
+  'seat',
+  'updated_at',
+])
+
 const FORBIDDEN_PRACTICE_REMATCH_KEYS = new Set([
   'accept_idempotency_key',
   'answer',
@@ -470,6 +501,53 @@ const FORBIDDEN_PRACTICE_REMATCH_KEYS = new Set([
   'raw_move_id',
   'request_idempotency_key',
   'requester_user_id',
+  'seed',
+  'seeds',
+  'serializedSession',
+  'serialized_session',
+  'session',
+  'sessions',
+  'settlement_id',
+  'token',
+  'tokens',
+  'userId',
+  'user_id',
+])
+
+const FORBIDDEN_PARTICIPANT_IDENTITY_KEYS = new Set([
+  'answer',
+  'answers',
+  'answerWord',
+  'answerWords',
+  'authId',
+  'auth_id',
+  'auth_user_id',
+  'email',
+  'game_id',
+  'hostUserId',
+  'host_user_id',
+  'match_id',
+  'matchmaking_request_id',
+  'matched_game_id',
+  'matched_match_id',
+  'opponent_request_id',
+  'owner_user_id',
+  'playerOneUserId',
+  'playerSessions',
+  'playerTwoUserId',
+  'playerUserIds',
+  'player_one_user_id',
+  'player_sessions',
+  'player_two_user_id',
+  'player_user_ids',
+  'profile_owner_id',
+  'projection',
+  'queue_id',
+  'rating_snapshot',
+  'rating_transaction_id',
+  'rawMoveId',
+  'raw_move_id',
+  'request_id',
   'seed',
   'seeds',
   'serializedSession',
@@ -535,8 +613,24 @@ function hasForbiddenPracticeRematchKey(value: unknown): boolean {
   ))
 }
 
+function hasForbiddenParticipantIdentityKey(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.some(hasForbiddenParticipantIdentityKey)
+  }
+  if (!isRecord(value)) {
+    return false
+  }
+  return Object.entries(value).some(([key, child]) => (
+    FORBIDDEN_PARTICIPANT_IDENTITY_KEYS.has(key) || hasForbiddenParticipantIdentityKey(child)
+  ))
+}
+
 function hasOnlyPracticeRematchKeys(record: Record<string, unknown>): boolean {
   return Object.keys(record).every((key) => PRACTICE_REMATCH_ALLOWED_KEYS.has(key))
+}
+
+function hasOnlyParticipantIdentityKeys(record: Record<string, unknown>): boolean {
+  return Object.keys(record).every((key) => PARTICIPANT_IDENTITY_ALLOWED_KEYS.has(key))
 }
 
 function getString(record: Record<string, unknown>, key: string): string | undefined {
@@ -808,16 +902,14 @@ function parsePracticeRematchRequestRow(row: unknown, now = new Date()): Practic
   if (requestStatus === 'created' && !createdGameId) {
     return undefined
   }
-  if (created !== (requestStatus === 'created')) {
-    return undefined
-  }
 
   const expiresAtMs = Date.parse(expiresAt)
   const nowMs = Number.isFinite(now.getTime()) ? now.getTime() : Date.now()
   const expired = requestStatus === 'expired' || expiresAtMs <= nowMs
+  const createdState = created || requestStatus === 'created'
 
   return {
-    created,
+    created: createdState,
     createdAt,
     createdGameId,
     expired,
@@ -838,6 +930,35 @@ function parsePracticeRematchRequestRow(row: unknown, now = new Date()): Practic
     viewerCanCancel,
     viewerRole,
     wordLength,
+  }
+}
+
+function parseParticipantIdentitySummaryRow(row: unknown): ParticipantIdentitySummaryResult | undefined {
+  if (!isRecord(row) || !hasOnlyParticipantIdentityKeys(row) || hasForbiddenParticipantIdentityKey(row)) {
+    return undefined
+  }
+  const seat = parseRankedQueueViewerSeat(row.seat)
+  const isViewer = getBoolean(row, 'is_viewer')
+  const identityAvailable = getBoolean(row, 'identity_available')
+  if (!seat || isViewer === undefined || identityAvailable === undefined) {
+    return undefined
+  }
+  const publicProfileId = getString(row, 'public_profile_id')
+  const displayName = getString(row, 'display_name')
+  const updatedAt = parseTimestamp(row.updated_at)
+  if (identityAvailable && (!publicProfileId || !displayName || !updatedAt)) {
+    return undefined
+  }
+  return {
+    accentColor: identityAvailable ? getString(row, 'accent_color') : undefined,
+    avatarUrl: identityAvailable ? getString(row, 'avatar_url') : undefined,
+    displayName: identityAvailable ? displayName : undefined,
+    flairKey: identityAvailable ? getString(row, 'flair_key') : undefined,
+    identityAvailable,
+    isViewer,
+    publicProfileId: identityAvailable ? publicProfileId : undefined,
+    seat,
+    updatedAt: identityAvailable ? updatedAt : undefined,
   }
 }
 
@@ -1106,6 +1227,13 @@ export function normalizePracticeRematchRequestRows(
     return []
   }
   return value.flatMap((row) => parsePracticeRematchRequestRow(row, now) ?? [])
+}
+
+export function normalizeParticipantIdentitySummaryRows(value: unknown): readonly ParticipantIdentitySummaryResult[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.flatMap((row) => parseParticipantIdentitySummaryRow(row) ?? [])
 }
 
 export async function loadAuthenticatedLiveSpectatorRows(
@@ -1480,6 +1608,21 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
         (row) => parsePracticeRematchRequestRow(row),
         'Unable to parse Practice rematch accept result.',
       )
+    },
+    getParticipantIdentitySummaries: async (input) => {
+      const gameId = typeof input.gameId === 'string' && input.gameId.trim() ? input.gameId : null
+      const rankedRequestId = typeof input.rankedRequestId === 'string' && input.rankedRequestId.trim() ? input.rankedRequestId : null
+      if ((gameId && rankedRequestId) || (!gameId && !rankedRequestId)) {
+        throw new Error('Exactly one participant identity context is required.')
+      }
+      const { data, error } = await client.rpc('get_multiplayer_participant_identity_summaries', {
+        p_game_id: gameId,
+        p_ranked_request_id: rankedRequestId,
+      })
+      if (error) {
+        throw new Error(`Unable to load participant identity summaries: ${error.message}`)
+      }
+      return normalizeParticipantIdentitySummaryRows(data)
     },
     subscribe: (listener) => {
       listeners.add(listener)

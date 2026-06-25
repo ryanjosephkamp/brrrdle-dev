@@ -1,5 +1,6 @@
 import { classNames } from '../ui/classNames'
 import type { AuthState } from './auth'
+import { getProfileAccentAvatarBackground } from './profile'
 
 interface AccountBadgeProps {
   readonly authState: AuthState
@@ -20,7 +21,7 @@ export function AccountBadge({ authState, onOpenAuthModal, onOpenProfile }: Acco
     const profile = authState.user.profile
     const label = profile?.label ?? authState.user.email ?? 'Account'
     const initials = profile?.initials ?? 'A'
-    const gradient = profile?.gradient ?? 'from-cyan-500 to-sky-700'
+    const avatarBackground = getProfileAccentAvatarBackground(profile?.accentColor)
     const avatarUrl = profile?.avatarUrl
     return (
       <button
@@ -33,7 +34,7 @@ export function AccountBadge({ authState, onOpenAuthModal, onOpenProfile }: Acco
           aria-hidden="true"
           className={classNames(
             'inline-grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-gradient-to-br text-xs font-bold text-white shadow-inner',
-            gradient,
+            avatarBackground,
           )}
         >
           {avatarUrl ? (

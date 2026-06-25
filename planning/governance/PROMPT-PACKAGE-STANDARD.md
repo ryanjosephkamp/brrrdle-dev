@@ -170,6 +170,19 @@ Emphasize:
 - validation with the bundled skill validator;
 - whether the skill is authoritative or only a convenience helper.
 
+### 4.8 Visual Handoff Review Work
+
+Emphasize:
+
+- local-only screenshot artifacts for human review after automated verification;
+- no source/runtime fixes unless separately authorized;
+- Playwright assertions before screenshots so screenshots illustrate verified state;
+- ignored artifact paths such as `test-results/visual-review/<phase-or-stage>/`;
+- manifest output with scenario, viewport, assertion, screenshot path, and concerns;
+- absolute Markdown image links in the final report for Codex chat review;
+- no staging or committing screenshots, videos, traces, auth state, secrets, tokens, or local session artifacts;
+- stop-and-report behavior when a visual state cannot be captured or appears wrong.
+
 ## 5. Next Prompt Package Rule
 
 At meaningful review gates, Codex should include one of the following in the final report:

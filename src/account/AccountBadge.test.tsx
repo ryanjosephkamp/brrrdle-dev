@@ -49,6 +49,34 @@ describe('AccountBadge', () => {
     expect(html).toMatch(/aria-label="Open profile for Ada Lovelace"/)
   })
 
+  it('uses the saved private accent color for the signed-in avatar', () => {
+    const html = renderToStaticMarkup(
+      <AccountBadge
+        authState={{
+          status: 'authenticated',
+          user: {
+            id: 'u1',
+            email: 'ada@example.com',
+            roles: [],
+            profile: {
+              accentColor: 'rose',
+              displayName: 'Ada Lovelace',
+              email: 'ada@example.com',
+              gradient: 'from-emerald-500 to-teal-700',
+              initials: 'AL',
+              label: 'Ada Lovelace',
+            },
+          },
+        }}
+        onOpenAuthModal={noop}
+        onOpenProfile={noop}
+      />,
+    )
+
+    expect(html).toContain('from-rose-300 to-pink-700')
+    expect(html).not.toContain('from-emerald-500 to-teal-700')
+  })
+
   it('falls back to email when no display name is set', () => {
     const html = renderToStaticMarkup(
       <AccountBadge
