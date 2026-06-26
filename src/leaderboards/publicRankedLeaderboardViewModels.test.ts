@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { PublicRankedLeaderboardRow } from './publicRankedLeaderboard'
 import {
+  DEFAULT_PUBLIC_RANKED_LEADERBOARD_BUCKET,
+  PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS,
   createPublicRankedLeaderboardViewRows,
   formatPublicRankedLeaderboardBucket,
   formatPublicRankedLeaderboardDelta,
@@ -30,7 +32,10 @@ const ROW: PublicRankedLeaderboardRow = {
 
 describe('public ranked leaderboard view models', () => {
   it('formats approved buckets and rating deltas for display', () => {
-    expect(formatPublicRankedLeaderboardBucket(null)).toBe('All ranked Practice buckets')
+    expect(DEFAULT_PUBLIC_RANKED_LEADERBOARD_BUCKET).toBe('multiplayer:og')
+    expect(PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS.map((option) => option.label)).toEqual(['OG', 'GO'])
+    expect(PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS.some((option) => option.label === 'All buckets')).toBe(false)
+    expect(PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS.some((option) => option.bucket === null)).toBe(false)
     expect(formatPublicRankedLeaderboardBucket('multiplayer:og')).toBe('OG ranked Practice')
     expect(formatPublicRankedLeaderboardBucket('multiplayer:go')).toBe('GO ranked Practice')
     expect(formatPublicRankedLeaderboardDelta(18)).toBe('+18')
@@ -48,6 +53,7 @@ describe('public ranked leaderboard view models', () => {
       latestMovementLabel: '+18 from last settlement',
       peakLabel: 'Peak 1290',
       provisionalLabel: 'Established',
+      rankBandLabel: 'Silver',
       rankLabel: '#1',
       ratingLabel: '1260',
       recordLabel: '8-3-1',
@@ -79,6 +85,7 @@ describe('public ranked leaderboard view models', () => {
       latestMovementLabel: 'No settled movement yet',
       peakLabel: 'Peak 1205',
       provisionalLabel: 'Provisional',
+      rankBandLabel: 'Silver',
       rankLabel: '#9',
       ratingLabel: '1205',
       recordLabel: '1-1-0',
@@ -101,5 +108,16 @@ describe('public ranked leaderboard view models', () => {
     expect(rows[0]?.peakLabel).not.toContain(',')
     expect(rows[0]?.rankLabel).not.toContain(',')
     expect(rows[0]?.ratingLabel).not.toContain(',')
+  })
+
+  it('adds display-only rank bands from the current rating value', () => {
+    const rows = createPublicRankedLeaderboardViewRows([
+      { ...ROW, publicProfileId: '123e4567-e89b-42d3-a456-426614174001', rating: 899 },
+      { ...ROW, publicProfileId: '123e4567-e89b-42d3-a456-426614174002', rating: 900 },
+      { ...ROW, publicProfileId: '123e4567-e89b-42d3-a456-426614174003', rating: 1300, peakRating: 1300 },
+      { ...ROW, publicProfileId: '123e4567-e89b-42d3-a456-426614174004', rating: 1900, peakRating: 1900 },
+    ])
+
+    expect(rows.map((row) => row.rankBandLabel)).toEqual(['Learner', 'Bronze', 'Gold', 'Master'])
   })
 })

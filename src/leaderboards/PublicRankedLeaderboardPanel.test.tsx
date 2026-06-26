@@ -33,7 +33,7 @@ describe('PublicRankedLeaderboardView', () => {
     const html = renderToStaticMarkup(
       <PublicRankedLeaderboardView
         authStatus="anonymous"
-        bucket={null}
+        bucket="multiplayer:og"
         limit={50}
         rows={[]}
         status="idle"
@@ -47,15 +47,15 @@ describe('PublicRankedLeaderboardView', () => {
 
   it('renders unavailable, loading, error, and empty states without private data', () => {
     const unavailable = renderToStaticMarkup(
-      <PublicRankedLeaderboardView authStatus="unconfigured" bucket={null} limit={50} rows={[]} status="idle" />,
+      <PublicRankedLeaderboardView authStatus="unconfigured" bucket="multiplayer:og" limit={50} rows={[]} status="idle" />,
     )
     const loading = renderToStaticMarkup(
-      <PublicRankedLeaderboardView authStatus="authenticated" bucket={null} limit={50} rows={[]} status="loading" />,
+      <PublicRankedLeaderboardView authStatus="authenticated" bucket="multiplayer:og" limit={50} rows={[]} status="loading" />,
     )
     const error = renderToStaticMarkup(
       <PublicRankedLeaderboardView
         authStatus="authenticated"
-        bucket={null}
+        bucket="multiplayer:og"
         errorMessage="Unable to load the public ranked leaderboard right now."
         limit={50}
         rows={[]}
@@ -63,7 +63,7 @@ describe('PublicRankedLeaderboardView', () => {
       />,
     )
     const empty = renderToStaticMarkup(
-      <PublicRankedLeaderboardView authStatus="authenticated" bucket={null} limit={50} rows={[]} status="ready" />,
+      <PublicRankedLeaderboardView authStatus="authenticated" bucket="multiplayer:og" limit={50} rows={[]} status="ready" />,
     )
 
     expect(unavailable).toContain('Supabase is not configured')
@@ -79,7 +79,7 @@ describe('PublicRankedLeaderboardView', () => {
     }
   })
 
-  it('renders bucket filters, row limits, and public-safe leaderboard rows', () => {
+  it('renders OG/GO bucket filters, row limits, rank bands, and public-safe leaderboard rows', () => {
     const html = renderToStaticMarkup(
       <PublicRankedLeaderboardView
         authStatus="authenticated"
@@ -90,7 +90,8 @@ describe('PublicRankedLeaderboardView', () => {
       />,
     )
 
-    expect(html).toContain('All buckets')
+    expect(html).not.toContain('All buckets')
+    expect(html).not.toContain('All ranked Practice buckets')
     expect(html).toContain('OG')
     expect(html).toContain('GO')
     expect(html).toContain('Top 25')
@@ -100,10 +101,12 @@ describe('PublicRankedLeaderboardView', () => {
     expect(html).toContain('GO ranked Practice')
     expect(html).toContain('#2')
     expect(html).toContain('1310')
+    expect(html).toContain('Gold band')
     expect(html).toContain('13-5-2')
     expect(html).toContain('Established')
     expect(html).toContain('-8 from last settlement')
     expect(html).toContain('Peak 1330')
+    expect(html).toContain('Rank bands are display labels for current Elo ranges')
     expect(html).not.toContain('1,310')
     expect(html).not.toContain('Peak 1,330')
     expect(html).not.toContain(ROW.publicProfileId)
@@ -115,7 +118,7 @@ describe('PublicRankedLeaderboardView', () => {
     const html = renderToStaticMarkup(
       <PublicRankedLeaderboardView
         authStatus="authenticated"
-        bucket={null}
+        bucket="multiplayer:og"
         limit={50}
         rows={[{
           ...ROW,
@@ -131,6 +134,7 @@ describe('PublicRankedLeaderboardView', () => {
     )
 
     expect(html).toContain('Provisional')
+    expect(html).toContain('Silver band')
     expect(html).toContain('No settled movement yet')
     expect(html).toContain('Peak 1200')
     expect(html).not.toContain('Peak 1,200')

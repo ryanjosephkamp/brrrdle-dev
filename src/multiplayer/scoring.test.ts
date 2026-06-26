@@ -38,7 +38,7 @@ describe('multiplayer scoring projections', () => {
     expect(createRatedEvidenceFromPerformance(performance!, { authenticated: true, durableResult: true }).playerResults).toHaveLength(2)
   })
 
-  it('keeps deferred ranked categories out of rating evidence without changing point projection', () => {
+  it('rates canonical timed Practice ranked separately while keeping deferred categories unrated', () => {
     const practiceRanked = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
       mode: 'og',
@@ -68,6 +68,17 @@ describe('multiplayer scoring projections', () => {
       timeLimitMs: 30_000,
       wordLength: 5,
     })
+    const canonicalTimedPracticeRanked = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'user-a', 'player-two': 'user-b' },
+      ranked: true,
+      ratingBucket: 'multiplayer:og:timed:v1',
+      scope: 'practice',
+      seed: 1,
+      timeLimitMs: 300_000,
+      wordLength: 5,
+    })
     const customRanked = {
       ...practiceRanked,
       customGameCode: 'ABC123',
@@ -91,6 +102,16 @@ describe('multiplayer scoring projections', () => {
       status: 'lost' as const,
       winnerId: 'player-one' as const,
     }
+    const terminalCanonicalTimed = {
+      ...canonicalTimedPracticeRanked,
+      endedAt: '2026-06-04T12:01:00.000Z',
+      status: 'lost' as const,
+      winnerId: 'player-one' as const,
+    }
+    const mismatchedTimedBucket = {
+      ...terminalCanonicalTimed,
+      ratingBucket: 'multiplayer:og' as const,
+    }
     const terminalCustom = {
       ...customRanked,
       endedAt: '2026-06-04T12:01:00.000Z',
@@ -101,8 +122,16 @@ describe('multiplayer scoring projections', () => {
     expect(getCompetitiveRatingEligibility(practiceRanked)).toMatchObject({ eligible: true })
     expect(projectMultiplayerPerformance(terminalPractice)?.ranked).toBe(true)
     expect(projectMultiplayerPerformance(terminalPractice)?.players[0].points).toBeGreaterThanOrEqual(0)
+    expect(getCompetitiveRatingEligibility(canonicalTimedPracticeRanked)).toMatchObject({
+      eligible: true,
+      reason: 'Eligible for timed Practice ranked rating.',
+    })
+    expect(projectMultiplayerPerformance(terminalCanonicalTimed)).toMatchObject({
+      bucket: 'multiplayer:og:timed:v1',
+      ranked: true,
+    })
 
-    for (const terminalGame of [terminalDaily, terminalTimed, terminalCustom]) {
+    for (const terminalGame of [terminalDaily, terminalTimed, terminalCustom, mismatchedTimedBucket]) {
       const performance = projectMultiplayerPerformance(terminalGame)
       expect(performance?.ranked).toBe(false)
       expect(createRatedEvidenceFromPerformance(performance!, { authenticated: true, durableResult: true }).ranked).toBe(false)

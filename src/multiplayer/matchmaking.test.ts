@@ -78,13 +78,13 @@ describe('multiplayer matchmaking', () => {
     expect(isMatchmakingCompatible(left, right, new Date('2026-06-05T00:01:00.000Z'))).toBe(false)
   })
 
-  it('keeps timed Practice ranked matchmaking deferred', () => {
+  it('supports only canonical five-minute timed Practice ranked matchmaking', () => {
     const left = createMatchmakingRequest({
       createdAt: '2026-06-04T12:00:00.000Z',
       mode: 'og',
       rating: 1200,
       scope: 'practice',
-      timeLimitMs: 30_000,
+      timeLimitMs: 300_000,
       userId: 'user-a',
       wordLength: 5,
     })
@@ -93,17 +93,42 @@ describe('multiplayer matchmaking', () => {
       mode: 'og',
       rating: 1210,
       scope: 'practice',
-      timeLimitMs: 30_000,
+      timeLimitMs: 300_000,
       userId: 'user-b',
       wordLength: 5,
     })
+    const untimed = createMatchmakingRequest({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      rating: 1210,
+      scope: 'practice',
+      userId: 'user-c',
+      wordLength: 5,
+    })
+    const unsupportedTimer = createMatchmakingRequest({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      rating: 1210,
+      scope: 'practice',
+      timeLimitMs: 30_000,
+      userId: 'user-d',
+      wordLength: 5,
+    })
 
-    expect(left.ranked).toBe(false)
+    expect(left.ranked).toBe(true)
+    expect(left.ratingBucket).toBe('multiplayer:og:timed:v1')
     expect(getRankedMatchmakingEligibility({ ranked: true, scope: 'practice', timeLimitMs: 30_000 })).toMatchObject({
       eligible: false,
-      reason: 'Timed Practice ranked matchmaking is deferred.',
+      reason: 'Timed Practice ranked supports only the canonical five-minute clock.',
     })
-    expect(isMatchmakingCompatible(left, right, new Date('2026-06-04T12:00:01.000Z'))).toBe(false)
+    expect(getRankedMatchmakingEligibility({ ranked: true, scope: 'practice', timeLimitMs: 300_000 })).toMatchObject({
+      eligible: true,
+      reason: 'Eligible for timed Practice ranked matchmaking.',
+    })
+    expect(isMatchmakingCompatible(left, right, new Date('2026-06-04T12:00:01.000Z'))).toBe(true)
+    expect(isMatchmakingCompatible(left, untimed, new Date('2026-06-04T12:00:01.000Z'))).toBe(false)
+    expect(unsupportedTimer.ranked).toBe(false)
+    expect(isMatchmakingCompatible(left, unsupportedTimer, new Date('2026-06-04T12:00:01.000Z'))).toBe(false)
   })
 
   it('selects the closest compatible queued opponent and marks both matched', () => {

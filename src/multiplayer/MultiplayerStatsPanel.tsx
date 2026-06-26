@@ -2,6 +2,7 @@ import { Button, Panel } from '../ui'
 import { normalizeCompetitiveMultiplayerState, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
 import {
   MULTIPLAYER_PROVISIONAL_GAMES,
+  getMultiplayerRankBand,
   type RatingBucketId,
   type MultiplayerRatingProfile,
 } from './rating'
@@ -14,7 +15,9 @@ interface MultiplayerStatsPanelProps {
 
 const BUCKET_LABELS: Record<RatingBucketId, string> = {
   'multiplayer:go': 'Ranked Practice GO',
+  'multiplayer:go:timed:v1': 'Timed Ranked Practice GO',
   'multiplayer:og': 'Ranked Practice OG',
+  'multiplayer:og:timed:v1': 'Timed Ranked Practice OG',
 }
 
 function bucketLabel(bucket: RatingBucketId): string {
@@ -83,7 +86,9 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state, viewerUserId }: M
             ) : null}
           </div>
           <p className="text-xs leading-5 text-slate-400">
-            Only eligible ranked Practice v1 games affect Elo. Daily ranked and timed Practice ranked remain deferred; public leaderboards are display-only.
+            Only eligible ranked Practice games affect Elo. Daily ranked, custom ranked, and unsupported timed Practice rows stay unrated; public leaderboards are display-only.
+            {' '}
+            Rank bands are display labels for current Elo ranges and do not affect matchmaking or settlement.
           </p>
         </Panel>
 
@@ -91,17 +96,23 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state, viewerUserId }: M
           <h4 className="text-lg font-bold text-white">Rating buckets</h4>
           {displayRatingProfiles.length > 0 ? (
             <div className="grid gap-2">
-              {displayRatingProfiles.map((profile) => (
-                <article className="rounded-lg border border-white/10 bg-black/30 p-3" key={`${profile.bucket}-${profile.userId}`}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold text-cyan-100">{bucketLabel(profile.bucket)}</p>
-                    <p className="text-xl font-black text-white">{profile.rating}</p>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {provisionalLabel(profile)} · {profile.gamesPlayed} rated · {profile.wins}-{profile.losses}-{profile.draws}
-                  </p>
-                </article>
-              ))}
+              {displayRatingProfiles.map((profile) => {
+                const rankBand = getMultiplayerRankBand(profile.rating)
+                return (
+                  <article className="rounded-lg border border-white/10 bg-black/30 p-3" key={`${profile.bucket}-${profile.userId}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-semibold text-cyan-100">{bucketLabel(profile.bucket)}</p>
+                      <div className="text-right">
+                        <p className="text-xl font-black text-white">{profile.rating}</p>
+                        <p className="text-xs font-semibold text-cyan-100">{rankBand.label} band</p>
+                      </div>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {provisionalLabel(profile)} · {profile.gamesPlayed} rated · {profile.wins}-{profile.losses}-{profile.draws}
+                    </p>
+                  </article>
+                )
+              })}
             </div>
           ) : (
             <p className="rounded-lg border border-white/10 bg-black/30 p-3">
@@ -122,7 +133,7 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state, viewerUserId }: M
                   </div>
                   <p className="mt-1">{result.summary}</p>
                   {!result.ranked ? (
-                    <p className="mt-1 text-xs text-slate-500">Unranked, custom, Daily, timed Practice, guest, corrupt, or spectator-only outcomes do not move Elo.</p>
+                    <p className="mt-1 text-xs text-slate-500">Unranked, custom, Daily, unsupported timed Practice, guest, corrupt, or spectator-only outcomes do not move Elo.</p>
                   ) : null}
                 </article>
               ))}

@@ -7,7 +7,12 @@ import {
   type MultiplayerPlayerId,
   type PracticeMultiplayerTimeLimitMs,
 } from './multiplayer'
-import { getRatingBucket, type RatingBucketId } from './rating'
+import {
+  getRankedPracticeRatingBucket,
+  getRatingBucket,
+  normalizeRankedPracticeTimeLimitMs,
+  type RatingBucketId,
+} from './rating'
 
 export type PracticePostgameContinuationKind =
   | 'custom-play-again'
@@ -146,7 +151,8 @@ export function getPracticePostgameActions(
   }
 
   if (settings.ranked) {
-    if (settings.timeLimitMs !== undefined) {
+    const rankedTimeLimitMs = normalizeRankedPracticeTimeLimitMs(settings.timeLimitMs)
+    if (rankedTimeLimitMs === undefined) {
       return {
         canPlayAgain: false,
         canRequestRematch: false,
@@ -155,9 +161,14 @@ export function getPracticePostgameActions(
         opponentSeat,
         rematchUnavailableReason: 'Ranked Practice rematches must use the trusted ranked queue instead of direct rematch.',
         settings,
-        unavailableReason: 'Timed Practice ranked search-again is deferred to ranked mode expansion.',
+        unavailableReason: 'Timed Practice ranked search-again supports only the five-minute ranked queue.',
         viewerSeat,
       }
+    }
+    const rankedSettings: PracticePostgameSettings = {
+      ...settings,
+      ratingBucket: getRankedPracticeRatingBucket(settings.mode, rankedTimeLimitMs) ?? settings.ratingBucket,
+      timeLimitMs: rankedTimeLimitMs === null ? undefined : rankedTimeLimitMs as PracticeMultiplayerTimeLimitMs,
     }
     return {
       canPlayAgain: false,
@@ -166,7 +177,7 @@ export function getPracticePostgameActions(
       continuationKind: 'ranked-search-again',
       opponentSeat,
       rematchUnavailableReason: 'Ranked Practice rematches must use the trusted ranked queue instead of direct rematch.',
-      settings,
+      settings: rankedSettings,
       viewerSeat,
     }
   }

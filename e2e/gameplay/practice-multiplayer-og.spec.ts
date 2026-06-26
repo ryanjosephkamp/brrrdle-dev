@@ -5,6 +5,8 @@ import { navigateToPracticeMultiplayer, openMultiplayerMatch, joinMultiplayerMat
 import { updateMultiplayerProjection, upsertPublicProfileForUser, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession, type TwoClientSession } from '../fixtures/twoClientGame'
 
+const TIMED_RANKED_PRACTICE_TIME_LIMIT_MS = 300_000
+
 async function openAndJoinPracticeOgMatch(session: TwoClientSession) {
   await navigateToPracticeMultiplayer(session.host.page)
   await openMultiplayerMatch(session.host.page)
@@ -72,6 +74,13 @@ async function setPracticeMatchType(page: TwoClientSession['host']['page'], matc
   await expect(matchTypeSelect).toBeVisible()
   await matchTypeSelect.selectOption(matchType)
   await expect(matchTypeSelect).toHaveValue(matchType)
+}
+
+async function enterTimedRankedPracticeQueue(page: TwoClientSession['host']['page']): Promise<void> {
+  await navigateToPracticeMultiplayer(page)
+  await setPracticeMatchType(page, 'ranked')
+  await setPracticeMultiplayerTimeLimit(page, String(TIMED_RANKED_PRACTICE_TIME_LIMIT_MS))
+  await page.getByRole('button', { name: /^Enter timed ranked queue$/i }).click()
 }
 
 async function searchRankedPracticeAgain(page: TwoClientSession['host']['page']): Promise<void> {
@@ -341,6 +350,78 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       expect(nextRankedRow.id).not.toBe(firstRankedRow.id)
       await expectSelectedGame(session.host.page, nextRankedRow.id)
       await expectSelectedGame(session.rival.page, nextRankedRow.id)
+      await expectOpponentNamesVisible(session)
+
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
+  test('matches canonical timed ranked Practice and search-again preserves the five-minute track', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+    try {
+      await Promise.all([
+        upsertPublicProfileForUser(session.host.user, 'cyan'),
+        upsertPublicProfileForUser(session.rival.user, 'rose'),
+      ])
+
+      await enterTimedRankedPracticeQueue(session.host.page)
+      await expect(session.host.page.getByTestId('ranked-queue-status')).toContainText(/Timed ranked queue request created/i)
+      await enterTimedRankedPracticeQueue(session.rival.page)
+
+      const timedRankedRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      await expectSelectedGame(session.host.page, timedRankedRow.id)
+      await expectSelectedGame(session.rival.page, timedRankedRow.id)
+      await expectOpponentNamesVisible(session)
+
+      const timedRankedGame = projectionFromRow(timedRankedRow)
+      expect(timedRankedGame.ranked).toBe(true)
+      expect(timedRankedGame.ratingBucket).toBe('multiplayer:og:timed:v1')
+      expect(timedRankedGame.timeLimitMs).toBe(TIMED_RANKED_PRACTICE_TIME_LIMIT_MS)
+      expect(timedRankedGame.timeRemainingMs).toMatchObject({
+        'player-one': TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+        'player-two': TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+      })
+      await expect(session.host.page.getByText('5:00').first()).toBeVisible()
+      await expect(session.rival.page.getByText('5:00').first()).toBeVisible()
+
+      await waitForTurn(session.host.page)
+      await submitGuessWithKeyboard(session.host.page, getCurrentAnswer(timedRankedGame))
+      const terminalTimedRankedRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'won',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      expect(terminalTimedRankedRow.id).toBe(timedRankedRow.id)
+      await selectMultiplayerGame(session.host.page, timedRankedRow.id)
+      await selectMultiplayerGame(session.rival.page, timedRankedRow.id)
+      await expect(session.host.page.getByText(/Same settings: OG, 5 letters, Hard Mode off, 5:00 per side/i)).toBeVisible({ timeout: 20_000 })
+      await expect(session.rival.page.getByRole('button', { name: /^Search ranked Practice again$/i })).toBeVisible({ timeout: 20_000 })
+
+      await searchRankedPracticeAgain(session.host.page)
+      await expect(session.host.page.getByTestId('ranked-queue-status')).toContainText(/Timed ranked queue request created/i)
+      await searchRankedPracticeAgain(session.rival.page)
+
+      const nextTimedRankedRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      expect(nextTimedRankedRow.id).not.toBe(timedRankedRow.id)
+      const nextTimedRankedGame = projectionFromRow(nextTimedRankedRow)
+      expect(nextTimedRankedGame.ratingBucket).toBe('multiplayer:og:timed:v1')
+      expect(nextTimedRankedGame.timeLimitMs).toBe(TIMED_RANKED_PRACTICE_TIME_LIMIT_MS)
+      await expectSelectedGame(session.host.page, nextTimedRankedRow.id)
+      await expectSelectedGame(session.rival.page, nextTimedRankedRow.id)
       await expectOpponentNamesVisible(session)
 
       await expectNoConsoleFailures(session.host.consoleFailures)

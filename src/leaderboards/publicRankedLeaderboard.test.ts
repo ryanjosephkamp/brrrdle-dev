@@ -57,6 +57,7 @@ describe('public ranked leaderboard query normalization', () => {
     })
     expect(normalizePublicRankedLeaderboardQuery({ bucket: 'async:og' as never })).toMatchObject({ ok: false })
     expect(normalizePublicRankedLeaderboardQuery({ bucket: 'daily:og' as never })).toMatchObject({ ok: false })
+    expect(normalizePublicRankedLeaderboardQuery({ bucket: 'multiplayer:og:timed:v1' as never })).toMatchObject({ ok: false })
   })
 
   it('rejects out-of-contract limits and offsets before RPC execution', () => {
@@ -114,6 +115,7 @@ describe('public ranked leaderboard DTO parsing', () => {
 
   it('rejects corrupt buckets, invalid timestamps, and impossible aggregates', () => {
     expect(parsePublicRankedLeaderboardRow({ ...LEADERBOARD_ROW, bucket: 'async:og' })).toBeUndefined()
+    expect(parsePublicRankedLeaderboardRow({ ...LEADERBOARD_ROW, bucket: 'multiplayer:go:timed:v1' })).toBeUndefined()
     expect(parsePublicRankedLeaderboardRow({ ...LEADERBOARD_ROW, latest_rating_movement_at: 'not-a-date' })).toBeUndefined()
     expect(parsePublicRankedLeaderboardRow({ ...LEADERBOARD_ROW, games_played: 3, wins: 4 })).toBeUndefined()
     expect(parsePublicRankedLeaderboardRow({ ...LEADERBOARD_ROW, peak_rating: 1259 })).toBeUndefined()
