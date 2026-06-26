@@ -34,8 +34,13 @@ import { normalizeCompetitiveMultiplayerState, upsertCustomGameLobby, type Multi
 import { MultiplayerGameSurface } from './MultiplayerGameSurface'
 import {
   getRatingBucket,
+  normalizeRankedPracticeTimeLimitMs,
+  TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
 } from './rating'
-import type { MultiplayerRepository, ParticipantIdentitySummaryResult, RankedQueueStatusResult } from './multiplayerRepository'
+import type {
+  MultiplayerRepository,
+  ParticipantIdentitySummaryResult,
+} from './multiplayerRepository'
 import type { PracticeRematchRequestResult } from './multiplayerRepository'
 import { RivalIdentityCard } from './RivalIdentityCard'
 import { projectMultiplayerPerformance } from './scoring'
@@ -51,6 +56,11 @@ import {
   mergeFinalizedRankedGameIntoLocalState,
   shouldAutoRefreshRankedQueue,
 } from './multiplayerPanelRouting'
+import {
+  buildFinalizedRankedGameFromStatus,
+  buildRankedQueueRequestInput,
+  getRankedQueueFinalizationIdempotencyKey,
+} from './multiplayerPanelRankedQueue'
 
 type MultiplayerMatchKind = 'unranked' | 'ranked' | 'custom'
 type RankedQueueActions = Pick<
@@ -228,6 +238,10 @@ const PRACTICE_REMATCH_REQUEST_LIMIT = 10
 const PRACTICE_REMATCH_REFRESH_INTERVAL_MS = 5000
 const PARTICIPANT_IDENTITY_FETCH_DELAY_MS = 750
 const RANKED_QUEUE_REFRESH_INTERVAL_MS = 5000
+const RANKED_PRACTICE_TIME_LIMIT_OPTIONS = [
+  { label: 'No clock', value: null },
+  { label: '5 minutes', value: TIMED_RANKED_PRACTICE_TIME_LIMIT_MS },
+] as const
 
 function participantIdentityProfilesToMap(
   summaries: readonly ParticipantIdentitySummaryResult[],
@@ -680,11 +694,16 @@ export function MultiplayerPanel({
       && selectedGame.currentTurn === viewerPlayerId
       && !readOnly,
   )
+  const rankedTimeLimitMs = matchKind === 'ranked' ? normalizeRankedPracticeTimeLimitMs(timeLimitMs) : null
+  const timeLimitOptions = matchKind === 'ranked'
+    ? RANKED_PRACTICE_TIME_LIMIT_OPTIONS
+    : PRACTICE_MULTIPLAYER_TIME_LIMIT_OPTIONS
+  const selectedTimeLimitValue = timeLimitOptions.some((option) => option.value === timeLimitMs) ? timeLimitMs ?? '' : ''
   const rankedQueueUnavailableReason = matchKind === 'ranked'
     ? scope !== 'practice'
       ? 'Daily ranked matchmaking is deferred.'
-      : timeLimitMs
-        ? 'Timed Practice ranked matchmaking is deferred.'
+      : rankedTimeLimitMs === undefined
+        ? 'Ranked Practice supports only no clock or the five-minute clock.'
         : !rankedQueueActions
           ? 'Ranked queue requires authenticated Supabase multiplayer.'
           : undefined
@@ -704,47 +723,6 @@ export function MultiplayerPanel({
     selectGame(game.id)
   }, [normalized.games, onChange, selectGame])
 
-  const buildFinalizedRankedGame = useCallback((status: RankedQueueStatusResult): MultiplayerGame | undefined => {
-    if (
-      status.requestStatus !== 'matched'
-      || !status.matchedGameId
-      || !status.mode
-      || status.scope !== 'practice'
-      || !status.ratingBucket
-      || !status.wordLength
-      || status.hardMode === undefined
-      || status.timeLimitMs !== undefined
-      || !status.playerOneUserId
-      || !status.playerTwoUserId
-      || status.playerOneUserId === status.playerTwoUserId
-      || !status.viewerSeat
-    ) {
-      return undefined
-    }
-    const playerProfiles: Partial<Record<MultiplayerPlayerId, MultiplayerProfileSummary>> | undefined = viewerProfile
-      ? { [status.viewerSeat]: viewerProfile }
-      : undefined
-    return createMultiplayerGame({
-      createdAt: status.matchedAt ?? status.queuedAt,
-      difficulty: defaultDifficulty,
-      goPuzzleCount: defaultGoPuzzleCount,
-      hardMode: status.hardMode,
-      id: status.matchedGameId,
-      matchmakingRequestId: status.requestId,
-      mode: status.mode,
-      playerProfiles,
-      playerUserIds: {
-        'player-one': status.playerOneUserId,
-        'player-two': status.playerTwoUserId,
-      },
-      ranked: true,
-      ratingBucket: status.ratingBucket,
-      scope: 'practice',
-      timeLimitMs: null,
-      wordLength: status.wordLength,
-    })
-  }, [defaultDifficulty, defaultGoPuzzleCount, viewerProfile])
-
   const finalizeRankedQueueMatch = useCallback(async (requestId: string) => {
     if (!rankedQueueActions) {
       throw new Error('Ranked queue requires authenticated Supabase multiplayer.')
@@ -758,13 +736,19 @@ export function MultiplayerPanel({
       })
       return
     }
-    const game = buildFinalizedRankedGame(status)
-    if (!game) {
+    const game = buildFinalizedRankedGameFromStatus({
+      defaultDifficulty,
+      defaultGoPuzzleCount,
+      status,
+      viewerProfile,
+    })
+    const idempotencyKey = getRankedQueueFinalizationIdempotencyKey(status)
+    if (!game || !idempotencyKey) {
       throw new Error('Unable to build a valid ranked Practice game from queue status.')
     }
     const finalization = await rankedQueueActions.finalizeRankedQueueGame({
       game,
-      idempotencyKey: `phase27-ranked-v1:finalize:${status.matchedGameId}`,
+      idempotencyKey,
       matchedGameId: status.matchedGameId,
       requestId: status.requestId,
     })
@@ -780,18 +764,27 @@ export function MultiplayerPanel({
       requestId: status.requestId,
       status: 'matched',
     })
-  }, [buildFinalizedRankedGame, rankedQueueActions, upsertFinalizedRankedGame])
+  }, [defaultDifficulty, defaultGoPuzzleCount, rankedQueueActions, upsertFinalizedRankedGame, viewerProfile])
 
-  const enterRankedQueue = async (override?: Pick<PracticePostgameSettings, 'hardMode' | 'mode' | 'wordLength'>) => {
+  const enterRankedQueue = async (override?: Pick<PracticePostgameSettings, 'hardMode' | 'mode' | 'timeLimitMs' | 'wordLength'>) => {
     const queueMode = override?.mode ?? mode
     const queueWordLength = override?.wordLength ?? wordLength
     const queueHardMode = override?.hardMode ?? hardMode
+    const queueTimeLimitMs = override ? override.timeLimitMs ?? null : timeLimitMs
+    const requestInput = buildRankedQueueRequestInput({
+      hardMode: queueHardMode,
+      mode: queueMode,
+      timeLimitMs: queueTimeLimitMs,
+      wordLength: queueWordLength,
+    })
     const unavailableReason = scope !== 'practice'
       ? 'Daily ranked matchmaking is deferred.'
+      : !requestInput
+        ? 'Ranked Practice supports only no clock or the five-minute clock.'
       : !rankedQueueActions
         ? 'Ranked queue requires authenticated Supabase multiplayer.'
         : undefined
-    if (!rankedQueueActions || !viewerUserId || unavailableReason) {
+    if (!rankedQueueActions || !viewerUserId || !requestInput || unavailableReason) {
       setRankedQueue({
         message: unavailableReason ?? 'Sign in to enter ranked Practice matchmaking.',
         status: 'error',
@@ -800,15 +793,13 @@ export function MultiplayerPanel({
     }
     setRankedQueueBusy(true)
     try {
-      const request = await rankedQueueActions.createRankedQueueRequest({
-        hardMode: queueHardMode,
-        mode: queueMode,
-        wordLength: queueWordLength,
-      })
+      const request = await rankedQueueActions.createRankedQueueRequest(requestInput)
       const claim = await rankedQueueActions.claimRankedQueuePair({ requestId: request.requestId })
       if (claim.requestStatus !== 'matched' || !claim.matchedGameId) {
         setRankedQueue({
-          message: 'Ranked queue request created. Waiting for a compatible signed-in rival.',
+          message: requestInput.timeLimitMs
+            ? 'Timed ranked queue request created. Waiting for a compatible signed-in rival.'
+            : 'Ranked queue request created. Waiting for a compatible signed-in rival.',
           requestId: request.requestId,
           status: 'queued',
         })
@@ -1354,6 +1345,7 @@ export function MultiplayerPanel({
     void enterRankedQueue({
       hardMode: settings.hardMode,
       mode: settings.mode,
+      timeLimitMs: settings.timeLimitMs,
       wordLength: settings.wordLength,
     })
   }
@@ -1395,7 +1387,13 @@ export function MultiplayerPanel({
               Match type
               <select
                 className="min-w-0 rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
-                onChange={(event) => setMatchKind(event.target.value as MultiplayerMatchKind)}
+                onChange={(event) => {
+                  const nextMatchKind = event.target.value as MultiplayerMatchKind
+                  setMatchKind(nextMatchKind)
+                  if (nextMatchKind === 'ranked' && normalizeRankedPracticeTimeLimitMs(timeLimitMs) === undefined) {
+                    setTimeLimitMs(null)
+                  }
+                }}
                 value={matchKind}
               >
                 <option value="unranked">Unranked</option>
@@ -1417,13 +1415,13 @@ export function MultiplayerPanel({
                   />
                 </label>
                 <label className="grid min-w-0 gap-1 font-semibold text-cyan-100">
-                  Time per side
+                  {matchKind === 'ranked' ? 'Ranked time control' : 'Time per side'}
                   <select
                     className="min-w-0 rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100"
                     onChange={(event) => setTimeLimitMs(event.target.value ? Number(event.target.value) as PracticeMultiplayerTimeLimitMs : null)}
-                    value={timeLimitMs ?? ''}
+                    value={selectedTimeLimitValue}
                   >
-                    {PRACTICE_MULTIPLAYER_TIME_LIMIT_OPTIONS.map((option) => (
+                    {timeLimitOptions.map((option) => (
                       <option key={option.label} value={option.value ?? ''}>{option.label}</option>
                     ))}
                   </select>
@@ -1454,7 +1452,9 @@ export function MultiplayerPanel({
           </div>
           <Button className="min-h-14 w-full px-4" disabled={!canCreate} onClick={createGame} variant="primary">
             {canCreate
-              ? matchKind === 'ranked' ? 'Enter ranked queue' : 'Open multiplayer match'
+              ? matchKind === 'ranked'
+                ? rankedTimeLimitMs === TIMED_RANKED_PRACTICE_TIME_LIMIT_MS ? 'Enter timed ranked queue' : 'Enter ranked queue'
+                : 'Open multiplayer match'
               : rankedQueueBusy
                 ? 'Ranked queue working'
                 : matchKind === 'ranked' && rankedQueue.status === 'queued'
@@ -1475,10 +1475,10 @@ export function MultiplayerPanel({
                 ) : null}
               </div>
               <p className="mt-1">
-                Ranked is signed-in, untimed Practice only. The queue matches mode, word length, Hard Mode, and rating bucket; Daily ranked and timed Practice ranked remain deferred.
+                Ranked is signed-in Practice only. Choose no clock for the current ranked track or 5 minutes for the separate timed ranked track. The queue matches mode, word length, Hard Mode, rating bucket, and ranked time control.
               </p>
               <p className="mt-1">
-                Points decide the match result first. Elo changes afterward only after trusted settlement confirms durable ranked evidence.
+                Points decide the match result first. Elo changes afterward only after trusted settlement confirms durable ranked evidence. Daily ranked and ranked custom-code games remain deferred.
               </p>
             </div>
           ) : (
@@ -1647,7 +1647,7 @@ export function MultiplayerPanel({
                 ))}
               </div>
               {selectedGame.ranked ? (
-                <p className="text-xs text-violet-100">Points decide this result. Elo updates only after trusted settlement confirms authenticated durable ranked evidence; local preview, spectator, custom, Daily, and timed Practice rows stay unrated.</p>
+                <p className="text-xs text-violet-100">Points decide this result. Elo updates only after trusted settlement confirms authenticated durable ranked evidence; local preview, spectator, custom, Daily, and unsupported timed Practice rows stay unrated.</p>
               ) : null}
             </div>
           ) : null}

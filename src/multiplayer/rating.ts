@@ -1,13 +1,25 @@
 import type { GameMode } from '../game/types'
 
-export type RatingBucketId = `multiplayer:${GameMode}`
+export type UntimedRatingBucketId = `multiplayer:${GameMode}`
+export type TimedPracticeRatingBucketId = `multiplayer:${GameMode}:timed:v1`
+export type RatingBucketId = UntimedRatingBucketId | TimedPracticeRatingBucketId
+export type RankedPracticeStorageBucketId = 'async:go' | 'async:go:timed:v1' | 'async:og' | 'async:og:timed:v1'
 export type RatingOutcome = 'win' | 'loss' | 'draw'
+export type MultiplayerRankBandId =
+  | 'bronze'
+  | 'diamond'
+  | 'gold'
+  | 'learner'
+  | 'master'
+  | 'platinum'
+  | 'silver'
 
 export const INITIAL_MULTIPLAYER_RATING = 1200
 export const MULTIPLAYER_PROVISIONAL_GAMES = 10
 export const MULTIPLAYER_PROVISIONAL_K = 40
 export const MULTIPLAYER_ESTABLISHED_K = 24
 export const MULTIPLAYER_ELO_EXPECTED_SCORE_SCALE = 400
+export const TIMED_RANKED_PRACTICE_TIME_LIMIT_MS = 300_000
 
 export interface MultiplayerRatingProfile {
   readonly bucket: RatingBucketId
@@ -40,6 +52,13 @@ export interface MultiplayerRatingState {
   readonly transactions: readonly MultiplayerRatingTransaction[]
 }
 
+export interface MultiplayerRankBand {
+  readonly id: MultiplayerRankBandId
+  readonly label: string
+  readonly maxRating?: number
+  readonly minRating?: number
+}
+
 export interface RatedMatchPlayerResult {
   readonly outcome: RatingOutcome
   readonly playerId: string
@@ -69,26 +88,89 @@ export interface ApplyRatedMatchResult {
   readonly transactions: readonly MultiplayerRatingTransaction[]
 }
 
-export function getRatingBucket(mode: GameMode): RatingBucketId {
+export function getRatingBucket(mode: GameMode): UntimedRatingBucketId {
   return `multiplayer:${mode}`
 }
 
-export function normalizeRatingBucket(value: unknown, fallback: RatingBucketId = 'multiplayer:og'): RatingBucketId {
-  if (value === 'multiplayer:og' || value === 'async:og' || value === 'live:og') {
-    return 'multiplayer:og'
-  }
-  if (value === 'multiplayer:go' || value === 'async:go' || value === 'live:go') {
-    return 'multiplayer:go'
-  }
-  return fallback
+export function getTimedPracticeRatingBucket(mode: GameMode): TimedPracticeRatingBucketId {
+  return `multiplayer:${mode}:timed:v1`
 }
 
-function parseRatingBucket(value: unknown): RatingBucketId | undefined {
+export function normalizeRankedPracticeTimeLimitMs(value: unknown): number | null | undefined {
+  if (value === null || value === undefined) {
+    return null
+  }
+  if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value)) {
+    return undefined
+  }
+  if (value === 0) {
+    return null
+  }
+  return value === TIMED_RANKED_PRACTICE_TIME_LIMIT_MS ? TIMED_RANKED_PRACTICE_TIME_LIMIT_MS : undefined
+}
+
+export function getRankedPracticeRatingBucket(mode: GameMode, timeLimitMs?: number | null): RatingBucketId | undefined {
+  const normalizedTimeLimitMs = normalizeRankedPracticeTimeLimitMs(timeLimitMs)
+  if (normalizedTimeLimitMs === undefined) {
+    return undefined
+  }
+  return normalizedTimeLimitMs === TIMED_RANKED_PRACTICE_TIME_LIMIT_MS
+    ? getTimedPracticeRatingBucket(mode)
+    : getRatingBucket(mode)
+}
+
+export function isTimedPracticeRatingBucket(bucket: RatingBucketId): bucket is TimedPracticeRatingBucketId {
+  return bucket.endsWith(':timed:v1')
+}
+
+export function getRankedPracticeStorageBucket(bucket: RatingBucketId): RankedPracticeStorageBucketId {
+  if (bucket === 'multiplayer:go') {
+    return 'async:go'
+  }
+  if (bucket === 'multiplayer:go:timed:v1') {
+    return 'async:go:timed:v1'
+  }
+  if (bucket === 'multiplayer:og:timed:v1') {
+    return 'async:og:timed:v1'
+  }
+  return 'async:og'
+}
+
+export const MULTIPLAYER_RANK_BANDS: readonly MultiplayerRankBand[] = [
+  { id: 'learner', label: 'Learner', maxRating: 899 },
+  { id: 'bronze', label: 'Bronze', minRating: 900, maxRating: 1099 },
+  { id: 'silver', label: 'Silver', minRating: 1100, maxRating: 1299 },
+  { id: 'gold', label: 'Gold', minRating: 1300, maxRating: 1499 },
+  { id: 'platinum', label: 'Platinum', minRating: 1500, maxRating: 1699 },
+  { id: 'diamond', label: 'Diamond', minRating: 1700, maxRating: 1899 },
+  { id: 'master', label: 'Master', minRating: 1900 },
+]
+
+export function getMultiplayerRankBand(rating: number): MultiplayerRankBand {
+  const normalizedRating = normalizeRatingValue(rating)
+  return MULTIPLAYER_RANK_BANDS.find((band) => {
+    const aboveMinimum = band.minRating === undefined || normalizedRating >= band.minRating
+    const belowMaximum = band.maxRating === undefined || normalizedRating <= band.maxRating
+    return aboveMinimum && belowMaximum
+  }) ?? MULTIPLAYER_RANK_BANDS[0]
+}
+
+export function normalizeRatingBucket(value: unknown, fallback: RatingBucketId = 'multiplayer:og'): RatingBucketId {
+  return parseRatingBucket(value) ?? fallback
+}
+
+export function parseRatingBucket(value: unknown): RatingBucketId | undefined {
   if (value === 'multiplayer:og' || value === 'async:og' || value === 'live:og') {
     return 'multiplayer:og'
   }
   if (value === 'multiplayer:go' || value === 'async:go' || value === 'live:go') {
     return 'multiplayer:go'
+  }
+  if (value === 'multiplayer:og:timed:v1' || value === 'async:og:timed:v1') {
+    return 'multiplayer:og:timed:v1'
+  }
+  if (value === 'multiplayer:go:timed:v1' || value === 'async:go:timed:v1') {
+    return 'multiplayer:go:timed:v1'
   }
   return undefined
 }

@@ -7,6 +7,7 @@ import type {
   PublicRankedLeaderboardRow,
 } from './publicRankedLeaderboard'
 import {
+  DEFAULT_PUBLIC_RANKED_LEADERBOARD_BUCKET,
   PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS,
   PUBLIC_RANKED_LEADERBOARD_LIMIT_OPTIONS,
   createPublicRankedLeaderboardViewRows,
@@ -27,7 +28,7 @@ export interface PublicRankedLeaderboardViewProps {
   readonly bucket: PublicRankedLeaderboardBucket | null
   readonly errorMessage?: string
   readonly limit: number
-  readonly onBucketChange?: (bucket: PublicRankedLeaderboardBucket | null) => void
+  readonly onBucketChange?: (bucket: PublicRankedLeaderboardBucket) => void
   readonly onLimitChange?: (limit: number) => void
   readonly onRefresh?: () => void
   readonly rows: readonly PublicRankedLeaderboardRow[]
@@ -100,6 +101,7 @@ function PublicRankedLeaderboardRows({ rows }: { readonly rows: readonly PublicR
               <td className="px-3 py-4">
                 <p className="text-lg font-black text-white">{row.ratingLabel}</p>
                 <p className="text-xs text-slate-500">{row.peakLabel}</p>
+                <p className="text-xs font-semibold text-cyan-100">{row.rankBandLabel} band</p>
               </td>
               <td className="px-3 py-4">
                 <p className="font-semibold text-cyan-100">{row.recordLabel}</p>
@@ -139,7 +141,8 @@ export function PublicRankedLeaderboardView({
   status,
 }: PublicRankedLeaderboardViewProps) {
   const viewRows = useMemo(() => createPublicRankedLeaderboardViewRows(rows), [rows])
-  const selectedBucketLabel = formatPublicRankedLeaderboardBucket(bucket)
+  const selectedBucket = bucket ?? DEFAULT_PUBLIC_RANKED_LEADERBOARD_BUCKET
+  const selectedBucketLabel = formatPublicRankedLeaderboardBucket(selectedBucket)
   const isSignedIn = authStatus === 'authenticated'
 
   return (
@@ -165,7 +168,7 @@ export function PublicRankedLeaderboardView({
               <Button
                 aria-label={option.description}
                 disabled={!isSignedIn}
-                isActive={option.bucket === bucket}
+                isActive={option.bucket === selectedBucket}
                 key={option.label}
                 onClick={() => onBucketChange?.(option.bucket)}
                 size="sm"
@@ -196,7 +199,7 @@ export function PublicRankedLeaderboardView({
       </div>
 
       <p className="rounded-lg border border-white/10 bg-black/25 p-3 text-xs leading-5 text-slate-400">
-        Showing {selectedBucketLabel}. Leaderboards are display-only; match points, Elo settlement, profile visibility, and gameplay authority remain separate trusted systems.
+        Showing {selectedBucketLabel}. Rank bands are display labels for current Elo ranges; match points, Elo settlement, profile visibility, and gameplay authority remain separate trusted systems.
       </p>
 
       {authStatus === 'unconfigured' ? (
@@ -233,7 +236,7 @@ export function PublicRankedLeaderboardView({
 }
 
 export function PublicRankedLeaderboardPanel({ authStatus, repository }: PublicRankedLeaderboardPanelProps) {
-  const [bucket, setBucket] = useState<PublicRankedLeaderboardBucket | null>(null)
+  const [bucket, setBucket] = useState<PublicRankedLeaderboardBucket>(DEFAULT_PUBLIC_RANKED_LEADERBOARD_BUCKET)
   const [limit, setLimit] = useState(50)
   const [reloadNonce, setReloadNonce] = useState(0)
   const [rows, setRows] = useState<readonly PublicRankedLeaderboardRow[]>([])

@@ -1,6 +1,11 @@
 import type { GameMode, PlayScope } from '../game/types'
 import { getUtcDailyDateKey } from '../daily'
-import { getRatingBucket, type RatingBucketId } from './rating'
+import {
+  getRankedPracticeRatingBucket,
+  getRatingBucket,
+  normalizeRankedPracticeTimeLimitMs,
+  type RatingBucketId,
+} from './rating'
 
 export type MatchmakingStatus = 'queued' | 'matched' | 'cancelled' | 'expired'
 
@@ -89,8 +94,12 @@ export function getRankedMatchmakingEligibility(input: RankedMatchmakingEligibil
   if (input.scope !== 'practice') {
     return { eligible: false, reason: 'Daily ranked matchmaking is deferred.' }
   }
-  if (typeof input.timeLimitMs === 'number' && input.timeLimitMs > 0) {
-    return { eligible: false, reason: 'Timed Practice ranked matchmaking is deferred.' }
+  const rankedTimeLimitMs = normalizeRankedPracticeTimeLimitMs(input.timeLimitMs)
+  if (rankedTimeLimitMs === undefined) {
+    return { eligible: false, reason: 'Timed Practice ranked supports only the canonical five-minute clock.' }
+  }
+  if (rankedTimeLimitMs !== null) {
+    return { eligible: true, reason: 'Eligible for timed Practice ranked matchmaking.' }
   }
   return { eligible: true, reason: 'Eligible for untimed Practice ranked matchmaking.' }
 }
@@ -115,8 +124,11 @@ export function createMatchmakingRequest(input: CreateMatchmakingRequestInput): 
   const rankedEligibility = getRankedMatchmakingEligibility({
     ranked: input.ranked !== false,
     scope: input.scope,
-    timeLimitMs,
+    timeLimitMs: input.scope === 'practice' ? input.timeLimitMs : null,
   })
+  const ratingBucket = rankedEligibility.eligible
+    ? getRankedPracticeRatingBucket(input.mode, input.scope === 'practice' ? input.timeLimitMs : null) ?? getRatingBucket(input.mode)
+    : getRatingBucket(input.mode)
   return {
     createdAt,
     dailyDateKey,
@@ -124,7 +136,7 @@ export function createMatchmakingRequest(input: CreateMatchmakingRequestInput): 
     id: input.id ?? createId(`matchmaking-multiplayer-${input.mode}`),
     mode: input.mode,
     rating: normalizeRatingSnapshot(input.rating),
-    ratingBucket: getRatingBucket(input.mode),
+    ratingBucket,
     ranked: rankedEligibility.eligible,
     scope: input.scope,
     status: 'queued',
@@ -154,6 +166,9 @@ export function isMatchmakingCompatible(left: MatchmakingRequest, right: Matchma
     }
   }
   if (left.scope === 'practice' && left.wordLength !== right.wordLength) {
+    return false
+  }
+  if (left.scope === 'practice' && (left.timeLimitMs ?? null) !== (right.timeLimitMs ?? null)) {
     return false
   }
   if (left.scope === 'practice' && (left.hardMode === true) !== (right.hardMode === true)) {

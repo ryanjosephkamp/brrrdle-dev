@@ -8,6 +8,7 @@ import {
   createInitialRatingProfile,
   createEmptyRatingState,
   normalizeRatingState,
+  parseRatingBucket,
   type MultiplayerRatingState,
   type MultiplayerRatingProfile,
   type MultiplayerRatingTransaction,
@@ -53,8 +54,9 @@ export function normalizeCompetitiveMultiplayerState(value: unknown): Multiplaye
           return []
         }
         const row = result as MultiplayerMatchPerformance & { readonly transport?: unknown }
-        return typeof row.sourceMatchId === 'string' ? [{
-          bucket: row.bucket,
+        const bucket = parseRatingBucket(row.bucket)
+        return typeof row.sourceMatchId === 'string' && bucket ? [{
+          bucket,
           customGameCode: row.customGameCode,
           dailyDateKey: row.dailyDateKey,
           endedAt: row.endedAt,

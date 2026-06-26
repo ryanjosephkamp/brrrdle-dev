@@ -21,6 +21,11 @@ import {
   PracticePostgameActionsPanel,
 } from './MultiplayerPanel'
 import {
+  buildFinalizedRankedGameFromStatus,
+  buildRankedQueueRequestInput,
+  getRankedQueueFinalizationIdempotencyKey,
+} from './multiplayerPanelRankedQueue'
+import {
   getCreatorJoinedGameAutoRouteId,
   mergeFinalizedRankedGameIntoLocalState,
   getMultiplayerPlayerDisplayLabel,
@@ -35,6 +40,7 @@ import type {
   RankedQueueRequestResult,
   RankedQueueStatusResult,
 } from './multiplayerRepository'
+import { TIMED_RANKED_PRACTICE_TIME_LIMIT_MS } from './rating'
 
 function noop() {}
 
@@ -296,6 +302,103 @@ describe('MultiplayerPanel', () => {
     })).toBe(false)
   })
 
+  it('builds ranked queue payloads for untimed and canonical timed Practice only', () => {
+    expect(buildRankedQueueRequestInput({
+      hardMode: false,
+      mode: 'og',
+      timeLimitMs: null,
+      wordLength: 5,
+    })).toEqual({
+      hardMode: false,
+      mode: 'og',
+      timeLimitMs: null,
+      wordLength: 5,
+    })
+
+    expect(buildRankedQueueRequestInput({
+      hardMode: true,
+      mode: 'go',
+      timeLimitMs: TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+      wordLength: 6,
+    })).toEqual({
+      hardMode: true,
+      mode: 'go',
+      timeLimitMs: TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+      wordLength: 6,
+    })
+
+    expect(buildRankedQueueRequestInput({
+      hardMode: true,
+      mode: 'og',
+      timeLimitMs: 120_000,
+      wordLength: 5,
+    })).toBeUndefined()
+  })
+
+  it('builds timed ranked finalized game projections from matched queue status', () => {
+    const status: RankedQueueStatusResult = {
+      hardMode: true,
+      matchedAt: '2026-06-26T00:30:00.000Z',
+      matchedGameId: 'ranked-timed-game-1',
+      mode: 'go',
+      playerOneUserId: 'host-user',
+      playerTwoUserId: 'rival-user',
+      queuedAt: '2026-06-26T00:25:00.000Z',
+      ratingBucket: 'multiplayer:go:timed:v1',
+      requestId: 'ranked-timed-request-1',
+      requestStatus: 'matched',
+      scope: 'practice',
+      timeLimitMs: TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+      viewerSeat: 'player-one',
+      wordLength: 6,
+    }
+
+    expect(getRankedQueueFinalizationIdempotencyKey(status)).toBe('phase33-ranked-timed-v1:finalize:ranked-timed-game-1')
+    expect(buildFinalizedRankedGameFromStatus({
+      defaultDifficulty: DEFAULT_DIFFICULTY_TIER,
+      defaultGoPuzzleCount: DEFAULT_GO_PUZZLE_COUNT,
+      status,
+    })).toMatchObject({
+      hardMode: true,
+      id: 'ranked-timed-game-1',
+      matchmakingRequestId: 'ranked-timed-request-1',
+      mode: 'go',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      ranked: true,
+      ratingBucket: 'multiplayer:go:timed:v1',
+      scope: 'practice',
+      status: 'playing',
+      timeLimitMs: TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+      timeRemainingMs: {
+        'player-one': TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+        'player-two': TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+      },
+      wordLength: 6,
+    })
+  })
+
+  it('rejects malformed ranked queue status before building a finalized game projection', () => {
+    expect(buildFinalizedRankedGameFromStatus({
+      defaultDifficulty: DEFAULT_DIFFICULTY_TIER,
+      defaultGoPuzzleCount: DEFAULT_GO_PUZZLE_COUNT,
+      status: {
+        hardMode: true,
+        matchedGameId: 'ranked-malformed-game-1',
+        mode: 'og',
+        playerOneUserId: 'host-user',
+        playerTwoUserId: 'rival-user',
+        queuedAt: '2026-06-26T00:25:00.000Z',
+        ratingBucket: 'multiplayer:og',
+        requestId: 'ranked-malformed-request-1',
+        requestStatus: 'matched',
+        scope: 'practice',
+        timeLimitMs: 120_000,
+        viewerSeat: 'player-one',
+        wordLength: 5,
+      } as RankedQueueStatusResult,
+    })).toBeUndefined()
+  })
+
   it('uses safe opponent profile labels and never displays an opponent as You', () => {
     const game = createMultiplayerGame({
       mode: 'og',
@@ -486,6 +589,8 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('30 seconds')
     expect(html).toContain('Ranked Practice v1')
     expect(html).toContain('How is Elo calculated?')
+    expect(html).toContain('Choose no clock for the current ranked track or 5 minutes for the separate timed ranked track.')
+    expect(html).toContain('Daily ranked and ranked custom-code games remain deferred.')
     expect(html).toContain('Points decide the match result first. Elo changes afterward only after trusted settlement')
     expect(html).not.toContain('Each ranked bucket starts at 1200')
     expect(html).not.toContain('Your first 10 ranked Practice games are provisional with K=40')
@@ -759,6 +864,35 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('trusted ranked queue')
     expect(html).not.toContain('Request rematch')
     expect(html).not.toContain('Open new unranked match')
+  })
+
+  it('shows canonical timed ranked postgame search-again through the ranked queue path', () => {
+    const timedRanked = terminalPracticeGame({
+      id: 'timed-ranked-terminal-1',
+      matchmakingRequestId: 'queue-request-original',
+      ranked: true,
+      ratingBucket: 'multiplayer:og:timed:v1',
+      timeLimitMs: TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+    })
+    const html = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        postgameActions={createPracticeRematchActionsFixture()}
+        rankedQueueActions={createRankedQueueActionsFixture()}
+        scope="practice"
+        state={{ games: [timedRanked] }}
+        viewerUserId="host-user"
+      />,
+    )
+
+    expect(html).toContain('Postgame actions')
+    expect(html).toContain('Same settings: OG, 6 letters, Hard Mode on, 5:00 per side')
+    expect(html).toContain('Search ranked Practice again')
+    expect(html).toContain('trusted ranked queue')
+    expect(html).not.toContain('Timed Practice ranked search-again is deferred')
   })
 
   it('renders custom Practice postgame setup-prefill without direct rematch', () => {

@@ -1,11 +1,12 @@
 import type { ProfileAccentColor } from '../account/profile'
+import { getMultiplayerRankBand } from '../multiplayer/rating'
 import type {
   PublicRankedLeaderboardBucket,
   PublicRankedLeaderboardRow,
 } from './publicRankedLeaderboard'
 
 export interface PublicRankedLeaderboardBucketOption {
-  readonly bucket: PublicRankedLeaderboardBucket | null
+  readonly bucket: PublicRankedLeaderboardBucket
   readonly description: string
   readonly label: string
 }
@@ -22,6 +23,7 @@ export interface PublicRankedLeaderboardViewRow {
   readonly provisionalLabel: string
   readonly publicProfileId: string
   readonly rank: number
+  readonly rankBandLabel: string
   readonly rankLabel: string
   readonly rating: number
   readonly ratingLabel: string
@@ -34,12 +36,9 @@ const PUBLIC_RANKED_LEADERBOARD_BUCKET_LABELS: Record<PublicRankedLeaderboardBuc
   'multiplayer:og': 'OG ranked Practice',
 }
 
+export const DEFAULT_PUBLIC_RANKED_LEADERBOARD_BUCKET: PublicRankedLeaderboardBucket = 'multiplayer:og'
+
 export const PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS: readonly PublicRankedLeaderboardBucketOption[] = [
-  {
-    bucket: null,
-    description: 'Show all ranked Practice buckets.',
-    label: 'All buckets',
-  },
   {
     bucket: 'multiplayer:og',
     description: 'Show OG ranked Practice rows only.',
@@ -62,8 +61,8 @@ function formatRatingNumber(value: number): string {
   return `${Math.round(value)}`
 }
 
-export function formatPublicRankedLeaderboardBucket(bucket: PublicRankedLeaderboardBucket | null): string {
-  return bucket ? PUBLIC_RANKED_LEADERBOARD_BUCKET_LABELS[bucket] : 'All ranked Practice buckets'
+export function formatPublicRankedLeaderboardBucket(bucket: PublicRankedLeaderboardBucket): string {
+  return PUBLIC_RANKED_LEADERBOARD_BUCKET_LABELS[bucket]
 }
 
 export function formatPublicRankedLeaderboardDelta(delta: number): string {
@@ -88,24 +87,28 @@ export function formatPublicRankedLeaderboardDate(value: string): string {
 export function createPublicRankedLeaderboardViewRows(
   rows: readonly PublicRankedLeaderboardRow[],
 ): readonly PublicRankedLeaderboardViewRow[] {
-  return rows.map((row) => ({
-    accentColor: row.accentColor,
-    avatarUrl: row.avatarUrl,
-    bucket: row.bucket,
-    bucketLabel: formatPublicRankedLeaderboardBucket(row.bucket),
-    displayName: row.displayName,
-    gamesLabel: `${formatCount(row.gamesPlayed)} rated`,
-    latestMovementLabel: row.latestRatingMovementAt
-      ? `${formatPublicRankedLeaderboardDelta(row.latestRatingDelta)} from last settlement`
-      : 'No settled movement yet',
-    peakLabel: `Peak ${formatRatingNumber(row.peakRating)}`,
-    provisionalLabel: row.provisional ? 'Provisional' : 'Established',
-    publicProfileId: row.publicProfileId,
-    rank: row.rank,
-    rankLabel: `#${formatRatingNumber(row.rank)}`,
-    rating: row.rating,
-    ratingLabel: formatRatingNumber(row.rating),
-    recordLabel: `${formatCount(row.wins)}-${formatCount(row.losses)}-${formatCount(row.draws)}`,
-    updatedLabel: formatPublicRankedLeaderboardDate(row.leaderboardUpdatedAt),
-  }))
+  return rows.map((row) => {
+    const rankBand = getMultiplayerRankBand(row.rating)
+    return {
+      accentColor: row.accentColor,
+      avatarUrl: row.avatarUrl,
+      bucket: row.bucket,
+      bucketLabel: formatPublicRankedLeaderboardBucket(row.bucket),
+      displayName: row.displayName,
+      gamesLabel: `${formatCount(row.gamesPlayed)} rated`,
+      latestMovementLabel: row.latestRatingMovementAt
+        ? `${formatPublicRankedLeaderboardDelta(row.latestRatingDelta)} from last settlement`
+        : 'No settled movement yet',
+      peakLabel: `Peak ${formatRatingNumber(row.peakRating)}`,
+      provisionalLabel: row.provisional ? 'Provisional' : 'Established',
+      publicProfileId: row.publicProfileId,
+      rank: row.rank,
+      rankBandLabel: rankBand.label,
+      rankLabel: `#${formatRatingNumber(row.rank)}`,
+      rating: row.rating,
+      ratingLabel: formatRatingNumber(row.rating),
+      recordLabel: `${formatCount(row.wins)}-${formatCount(row.losses)}-${formatCount(row.draws)}`,
+      updatedLabel: formatPublicRankedLeaderboardDate(row.leaderboardUpdatedAt),
+    }
+  })
 }

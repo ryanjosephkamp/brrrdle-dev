@@ -4,6 +4,7 @@ import {
   createPracticeRematchGameProjection,
   getPracticePostgameActions,
 } from './postgameActions'
+import { TIMED_RANKED_PRACTICE_TIME_LIMIT_MS } from './rating'
 
 function terminalPracticeGame(overrides: Partial<MultiplayerGame> = {}): MultiplayerGame {
   const game = createMultiplayerGame({
@@ -71,7 +72,7 @@ describe('Practice postgame action domain', () => {
     })
   })
 
-  it('keeps ranked Practice continuation on the queue path and keeps timed ranked deferred', () => {
+  it('keeps ranked Practice continuation on the trusted queue path for untimed and canonical timed ranked games', () => {
     const ranked = terminalPracticeGame({
       matchmakingRequestId: 'queue-request-1',
       mode: 'og',
@@ -83,8 +84,8 @@ describe('Practice postgame action domain', () => {
       matchmakingRequestId: 'queue-request-1',
       mode: 'og',
       ranked: true,
-      ratingBucket: 'multiplayer:og',
-      timeLimitMs: 30_000,
+      ratingBucket: 'multiplayer:og:timed:v1',
+      timeLimitMs: TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
     })
 
     expect(getPracticePostgameActions(ranked, 'host-user')).toMatchObject({
@@ -105,9 +106,35 @@ describe('Practice postgame action domain', () => {
     expect(getPracticePostgameActions(timedRanked, 'host-user')).toMatchObject({
       canPlayAgain: false,
       canRequestRematch: false,
+      canSearchAgain: true,
+      continuationKind: 'ranked-search-again',
+      rematchUnavailableReason: 'Ranked Practice rematches must use the trusted ranked queue instead of direct rematch.',
+      settings: {
+        hardMode: true,
+        mode: 'og',
+        ranked: true,
+        ratingBucket: 'multiplayer:og:timed:v1',
+        timeLimitMs: TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
+        wordLength: 6,
+      },
+    })
+  })
+
+  it('rejects unsupported timed ranked postgame search-again shortcuts', () => {
+    const unsupportedTimedRanked = terminalPracticeGame({
+      matchmakingRequestId: 'queue-request-1',
+      mode: 'og',
+      ranked: true,
+      ratingBucket: 'multiplayer:og',
+      timeLimitMs: 30_000,
+    })
+
+    expect(getPracticePostgameActions(unsupportedTimedRanked, 'host-user')).toMatchObject({
+      canPlayAgain: false,
+      canRequestRematch: false,
       canSearchAgain: false,
       continuationKind: 'none',
-      unavailableReason: 'Timed Practice ranked search-again is deferred to ranked mode expansion.',
+      unavailableReason: 'Timed Practice ranked search-again supports only the five-minute ranked queue.',
     })
   })
 

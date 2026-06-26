@@ -8,8 +8,12 @@ import {
   type MultiplayerState,
 } from './multiplayer'
 import {
-  normalizeRatingBucket,
+  getRankedPracticeRatingBucket,
+  getRankedPracticeStorageBucket,
+  normalizeRankedPracticeTimeLimitMs,
+  parseRatingBucket,
   type MultiplayerRatingTransaction,
+  type RankedPracticeStorageBucketId,
   type RatingBucketId,
   type RatingOutcome,
 } from './rating'
@@ -243,6 +247,7 @@ export interface CreateRankedQueueRequestInput {
   readonly hardMode?: boolean
   readonly idempotencyKey?: string
   readonly mode: GameMode
+  readonly timeLimitMs?: number | null
   readonly wordLength: number
 }
 
@@ -254,6 +259,7 @@ export interface RankedQueueRequestResult {
   readonly ratingSnapshot: number
   readonly requestId: string
   readonly requestStatus: RankedQueueRequestStatus
+  readonly timeLimitMs?: number
   readonly wordLength: number
 }
 
@@ -710,15 +716,29 @@ function parseTile(value: unknown): TileResult | undefined {
 }
 
 function parseTrustedSettlementBucket(value: unknown): RatingBucketId | undefined {
-  if (
-    value === 'async:og'
-    || value === 'async:go'
-    || value === 'multiplayer:og'
-    || value === 'multiplayer:go'
-  ) {
-    return normalizeRatingBucket(value)
+  return parseRatingBucket(value)
+}
+
+function parseRankedQueueTimeLimitMs(value: unknown): { readonly ok: true; readonly value?: number } | { readonly ok: false } {
+  if (value === null || value === undefined) {
+    return { ok: true }
   }
-  return undefined
+  const timeLimitMs = getIntegerLike({ time_limit_ms: value }, 'time_limit_ms')
+  if (timeLimitMs === undefined) {
+    return { ok: false }
+  }
+  const normalizedTimeLimitMs = normalizeRankedPracticeTimeLimitMs(timeLimitMs)
+  if (normalizedTimeLimitMs === undefined) {
+    return { ok: false }
+  }
+  return normalizedTimeLimitMs === null ? { ok: true } : { ok: true, value: normalizedTimeLimitMs }
+}
+
+function isRankedQueueBucketCompatible(mode: GameMode | undefined, bucket: RatingBucketId | undefined, timeLimitMs: number | undefined): boolean {
+  if (!mode || !bucket) {
+    return true
+  }
+  return getRankedPracticeRatingBucket(mode, timeLimitMs ?? null) === bucket
 }
 
 function parseTrustedSettlementOutcome(value: unknown): RatingOutcome | undefined {
@@ -761,11 +781,15 @@ function parseRankedQueueRequestRow(row: unknown): RankedQueueRequestResult | un
   const requestId = getString(row, 'request_id')
   const requestStatus = parseRankedQueueRequestStatus(row.request_status)
   const ratingBucket = parseRankedQueueBucket(row.rating_bucket)
+  const timeLimitMs = parseRankedQueueTimeLimitMs(row.time_limit_ms)
   const ratingSnapshot = getIntegerLike(row, 'rating_snapshot')
   const hardMode = getBoolean(row, 'hard_mode')
   const wordLength = getPositiveInteger(row, 'word_length')
   const queuedAt = getString(row, 'queued_at')
-  if (!requestId || !requestStatus || !ratingBucket || ratingSnapshot === undefined || hardMode === undefined || !wordLength || !queuedAt) {
+  if (
+    !requestId || !requestStatus || !ratingBucket || !timeLimitMs.ok
+    || ratingSnapshot === undefined || hardMode === undefined || !wordLength || !queuedAt
+  ) {
     return undefined
   }
   return {
@@ -776,6 +800,7 @@ function parseRankedQueueRequestRow(row: unknown): RankedQueueRequestResult | un
     ratingSnapshot,
     requestId,
     requestStatus,
+    timeLimitMs: timeLimitMs.value,
     wordLength,
   }
 }
@@ -813,23 +838,29 @@ function parseRankedQueueStatusRow(row: unknown): RankedQueueStatusResult | unde
   const requestId = getString(row, 'request_id')
   const requestStatus = parseRankedQueueRequestStatus(row.request_status)
   const queuedAt = getString(row, 'queued_at')
+  const mode = parseMode(row.mode)
+  const ratingBucket = parseRankedQueueBucket(row.rating_bucket)
+  const timeLimitMs = parseRankedQueueTimeLimitMs(row.time_limit_ms)
   if (!requestId || !requestStatus || !queuedAt) {
+    return undefined
+  }
+  if (!timeLimitMs.ok || !isRankedQueueBucketCompatible(mode, ratingBucket, timeLimitMs.value)) {
     return undefined
   }
   return {
     hardMode: getBoolean(row, 'hard_mode'),
     matchedAt: getString(row, 'matched_at'),
     matchedGameId: getString(row, 'matched_game_id'),
-    mode: parseMode(row.mode),
+    mode,
     opponentRequestId: getString(row, 'opponent_request_id'),
     playerOneUserId: getString(row, 'player_one_user_id'),
     playerTwoUserId: getString(row, 'player_two_user_id'),
     queuedAt,
-    ratingBucket: parseRankedQueueBucket(row.rating_bucket),
+    ratingBucket,
     requestId,
     requestStatus,
     scope: parseScope(row.scope),
-    timeLimitMs: getPositiveInteger(row, 'time_limit_ms'),
+    timeLimitMs: timeLimitMs.value,
     viewerSeat: parseRankedQueueViewerSeat(row.viewer_seat),
     wordLength: getPositiveInteger(row, 'word_length'),
   }
@@ -1252,18 +1283,26 @@ export async function loadAuthenticatedLiveSpectatorRows(
   return normalizeAuthenticatedLiveSpectatorRows(data, now)
 }
 
-function getStorageRatingBucket(game: MultiplayerGame): 'async:og' | 'async:go' | null {
+function getExpectedRankedPracticeRatingBucket(game: Pick<MultiplayerGame, 'mode' | 'ratingBucket' | 'timeLimitMs'>): RatingBucketId | null {
+  const expectedBucket = getRankedPracticeRatingBucket(game.mode, game.timeLimitMs)
+  if (!expectedBucket || (game.ratingBucket && game.ratingBucket !== expectedBucket)) {
+    return null
+  }
+  return expectedBucket
+}
+
+function getStorageRatingBucket(game: MultiplayerGame): RankedPracticeStorageBucketId | null {
   if (game.ranked !== true) {
     return null
   }
-  return game.mode === 'go' ? 'async:go' : 'async:og'
+  const expectedBucket = getExpectedRankedPracticeRatingBucket(game)
+  return expectedBucket ? getRankedPracticeStorageBucket(expectedBucket) : null
 }
 
 export function isTrustedRankedPracticeSettlementCandidate(game: MultiplayerGame): boolean {
   return game.ranked === true
     && game.scope === 'practice'
     && !game.customGameCode
-    && !(typeof game.timeLimitMs === 'number' && game.timeLimitMs > 0)
     && (game.status === 'won' || game.status === 'lost')
     && typeof game.matchmakingRequestId === 'string'
     && game.matchmakingRequestId.trim().length > 0
@@ -1275,7 +1314,11 @@ export function isTrustedRankedPracticeSettlementCandidate(game: MultiplayerGame
 
 function getTrustedSettlementIdempotencyKey(game: MultiplayerGame): string | undefined {
   const bucket = getStorageRatingBucket(game)
-  return bucket ? `phase27-ranked-v1:async:${game.id}:${bucket}` : undefined
+  if (!bucket) {
+    return undefined
+  }
+  const namespace = bucket.includes(':timed:v1') ? 'phase33-ranked-timed-v1' : 'phase27-ranked-v1'
+  return `${namespace}:async:${game.id}:${bucket}`
 }
 
 function gameToRow(game: MultiplayerGame, userId: string) {
@@ -1485,13 +1528,17 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
       return { transactions }
     },
     createRankedQueueRequest: async (input) => {
+      const timeLimitMs = normalizeRankedPracticeTimeLimitMs(input.timeLimitMs)
+      if (timeLimitMs === undefined) {
+        throw new Error('Timed Practice ranked supports only the canonical five-minute clock.')
+      }
       const { data, error } = await client.rpc('create_ranked_async_matchmaking_request', {
         p_expires_at: input.expiresAt ?? null,
         p_hard_mode: input.hardMode === true,
         p_idempotency_key: input.idempotencyKey ?? null,
         p_mode: input.mode,
         p_scope: 'practice',
-        p_time_limit_ms: null,
+        p_time_limit_ms: timeLimitMs,
         p_word_length: input.wordLength,
       })
       if (error) {

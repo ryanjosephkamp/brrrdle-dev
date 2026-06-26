@@ -1,6 +1,13 @@
 import type { GameMode, PlayScope } from '../game/types'
 import { getMultiplayerSessionForPlayer, type MultiplayerGame, type MultiplayerMove, type MultiplayerPlayerId, type MultiplayerSerializedSession } from './multiplayer'
-import { getRatingBucket, type RatingBucketId, type RatingOutcome, type RatedMatchEvidence } from './rating'
+import {
+  getRankedPracticeRatingBucket,
+  getRatingBucket,
+  isTimedPracticeRatingBucket,
+  type RatingBucketId,
+  type RatingOutcome,
+  type RatedMatchEvidence,
+} from './rating'
 
 export type MultiplayerResultStatus = 'completed' | 'aborted' | 'expired'
 export type MultiplayerResultPlayerId = MultiplayerPlayerId
@@ -146,7 +153,7 @@ function winnerReason(game: MultiplayerGame, players: readonly MultiplayerPlayer
   return 'points'
 }
 
-export function getCompetitiveRatingEligibility(game: Pick<MultiplayerGame, 'customGameCode' | 'ranked' | 'scope' | 'timeLimitMs'>): CompetitiveRatingEligibility {
+export function getCompetitiveRatingEligibility(game: Pick<MultiplayerGame, 'customGameCode' | 'mode' | 'ranked' | 'ratingBucket' | 'scope' | 'timeLimitMs'>): CompetitiveRatingEligibility {
   if (game.ranked !== true) {
     return { eligible: false, reason: 'Unranked matches do not affect rating.' }
   }
@@ -156,8 +163,15 @@ export function getCompetitiveRatingEligibility(game: Pick<MultiplayerGame, 'cus
   if (game.scope !== 'practice') {
     return { eligible: false, reason: 'Daily ranked multiplayer is deferred.' }
   }
-  if (typeof game.timeLimitMs === 'number' && game.timeLimitMs > 0) {
-    return { eligible: false, reason: 'Timed Practice ranked multiplayer is deferred.' }
+  const expectedBucket = getRankedPracticeRatingBucket(game.mode, game.timeLimitMs)
+  if (!expectedBucket) {
+    return { eligible: false, reason: 'Timed Practice ranked supports only the canonical five-minute clock.' }
+  }
+  if (game.ratingBucket && game.ratingBucket !== expectedBucket) {
+    return { eligible: false, reason: 'Ranked Practice rating bucket does not match its time control.' }
+  }
+  if (isTimedPracticeRatingBucket(expectedBucket)) {
+    return { eligible: true, reason: 'Eligible for timed Practice ranked rating.' }
   }
   return { eligible: true, reason: 'Eligible for Practice ranked rating.' }
 }
@@ -168,7 +182,7 @@ export function projectMultiplayerPerformance(game: MultiplayerGame): Multiplaye
   }
   const lastMove = game.moves[game.moves.length - 1]
   const status: MultiplayerResultStatus = game.status === 'expired' ? 'expired' : 'completed'
-  const bucket = game.ratingBucket ?? getRatingBucket(game.mode)
+  const bucket = game.ratingBucket ?? getRankedPracticeRatingBucket(game.mode, game.timeLimitMs) ?? getRatingBucket(game.mode)
   const ratingEligibility = getCompetitiveRatingEligibility(game)
   const scoredPlayers = game.players.map((player): MultiplayerPlayerPerformance => {
     const moves = game.moves.filter((move) => move.playerId === player.id)
