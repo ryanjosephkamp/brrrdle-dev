@@ -6,6 +6,7 @@ import type { DashboardActionTarget } from './dashboardViewModels'
 export interface DashboardActionHandlers {
   readonly onHistoryFiltersChange: (filters: HistoryFilters) => void
   readonly onMultiplayerSubtabChange: (subtab: MultiplayerSubtabId) => void
+  readonly onResumeMultiplayerGame?: (id: string) => boolean | void
   readonly onSelectMultiplayerGame: (id: string) => void
   readonly onSelectRoute: (routeId: AppRouteId) => void
   readonly onSelectSoloGame: (key: SoloActiveGameKey) => void
@@ -26,6 +27,12 @@ export function dispatchDashboardAction(
   }
 
   if (target.routeId === 'multiplayer') {
+    if (
+      target.resumeMultiplayerGameId
+      && handlers.onResumeMultiplayerGame?.(target.resumeMultiplayerGameId) === true
+    ) {
+      return
+    }
     handlers.onSelectRoute('multiplayer')
     handlers.onMultiplayerSubtabChange(target.multiplayerSubtab)
     if (target.selectedMultiplayerGameId) {

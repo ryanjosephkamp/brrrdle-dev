@@ -16,6 +16,7 @@ import type {
   AuthenticatedLiveSpectatorMove,
   AuthenticatedLiveSpectatorPlayer,
 } from './multiplayerRepository'
+import { getMultiplayerPlayerDisplayLabel } from './multiplayerPanelRouting'
 import type { MultiplayerMatchPerformance, MultiplayerPlayerPerformance } from './scoring'
 
 export interface MultiplayerActiveGameViewModel {
@@ -81,6 +82,7 @@ export interface MultiplayerLiveGameViewModel {
   readonly detailLabel: string
   readonly turnLabel: string
   readonly opponentLabel: string
+  readonly rankingLabel: 'Ranked' | 'Unranked'
   readonly ruleLabel: string
   readonly updatedAt: string
   readonly actionLabel: string
@@ -171,6 +173,10 @@ function getGameRuleLabel(game: {
   ].filter(Boolean).join(' · ')
 }
 
+function getRankingLabel(game: { readonly ranked?: boolean }): 'Ranked' | 'Unranked' {
+  return game.ranked === true ? 'Ranked' : 'Unranked'
+}
+
 function getOpponentLabel(game: MultiplayerGame, viewerUserId: string | undefined): string {
   const viewerPlayerId = getViewerMultiplayerPlayerId(game, viewerUserId)
   if (!viewerPlayerId) {
@@ -178,7 +184,7 @@ function getOpponentLabel(game: MultiplayerGame, viewerUserId: string | undefine
   }
   const opponentId = viewerPlayerId === 'player-one' ? 'player-two' : 'player-one'
   return game.playerUserIds?.[opponentId]
-    ? game.players.find((player) => player.id === opponentId)?.label ?? 'Rival'
+    ? getMultiplayerPlayerDisplayLabel(game, opponentId, viewerPlayerId)
     : 'Waiting for rival'
 }
 
@@ -244,6 +250,7 @@ function toLiveGameViewModel(game: MultiplayerGame, viewerUserId: string): Multi
     mode: active.mode,
     modeLabel: active.modeLabel,
     opponentLabel: active.opponentLabel,
+    rankingLabel: getRankingLabel(game),
     ruleLabel: active.ruleLabel,
     scope: active.scope,
     scopeLabel: active.scopeLabel,
@@ -259,11 +266,23 @@ function getSpectatorTurnLabel(row: AuthenticatedLiveSpectatorGame): string {
     return row.outcome.label
   }
   const activePlayer = row.players.find((player) => player.seat === row.currentTurnSeat)
-  return activePlayer ? `${activePlayer.label}'s turn` : 'Turn in progress'
+  return activePlayer ? `${getSpectatorPlayerDisplayLabel(activePlayer)}'s turn` : 'Turn in progress'
 }
 
 function getSpectatorOpponentLabel(row: AuthenticatedLiveSpectatorGame): string {
-  return row.players.map((player) => player.label).join(' vs ')
+  return row.players.map(getSpectatorPlayerDisplayLabel).join(' vs ')
+}
+
+function getSpectatorPlayerDisplayLabel(player: AuthenticatedLiveSpectatorPlayer): string {
+  const profileName = player.profile?.displayName?.trim()
+  if (profileName) {
+    return profileName
+  }
+  const storedLabel = player.label.trim()
+  if (storedLabel && storedLabel.toLocaleLowerCase('en-US') !== 'you') {
+    return storedLabel
+  }
+  return player.seat === 'player-one' ? 'Player one' : 'Player two'
 }
 
 function getSpectatorProgressLabel(row: AuthenticatedLiveSpectatorGame): string {
@@ -284,10 +303,11 @@ function toSpectatorMoveViewModel(
   move: AuthenticatedLiveSpectatorMove,
   players: readonly AuthenticatedLiveSpectatorPlayer[],
 ): MultiplayerLiveSpectatorMoveViewModel {
+  const player = players.find((entry) => entry.seat === move.seat)
   return {
     createdAt: move.createdAt,
     guess: move.guess,
-    playerLabel: players.find((player) => player.seat === move.seat)?.label ?? (move.seat === 'player-one' ? 'Player one' : 'Player two'),
+    playerLabel: player ? getSpectatorPlayerDisplayLabel(player) : move.seat === 'player-one' ? 'Player one' : 'Player two',
     puzzleLabel: `Puzzle ${move.puzzleIndex + 1}`,
     tiles: move.tiles,
   }
@@ -306,6 +326,7 @@ function toSpectatorLiveGameViewModel(row: AuthenticatedLiveSpectatorGame): Mult
     mode: row.mode,
     modeLabel: getMultiplayerModeLabel(row.mode),
     opponentLabel: getSpectatorOpponentLabel(row),
+    rankingLabel: getRankingLabel(row),
     ruleLabel: getGameRuleLabel(row),
     scope: row.scope,
     scopeLabel: getMultiplayerScopeLabel(row.scope),
@@ -375,7 +396,7 @@ function getLobbyActionLabel(input: {
     return 'Daily already claimed'
   }
   if (input.canJoin) {
-    return 'Open to join'
+    return 'Join'
   }
   if (input.canCancel) {
     return 'Manage lobby'

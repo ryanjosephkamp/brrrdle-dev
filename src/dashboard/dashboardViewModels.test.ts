@@ -127,7 +127,12 @@ describe('dashboard view models', () => {
       title: 'Daily Solo OG',
     })
     expect(dashboard.activeMultiplayer[0]).toMatchObject({
-      actionTarget: { multiplayerSubtab: 'active', routeId: 'multiplayer', selectedMultiplayerGameId: active.id },
+      actionTarget: {
+        multiplayerSubtab: 'active',
+        resumeMultiplayerGameId: active.id,
+        routeId: 'multiplayer',
+        selectedMultiplayerGameId: active.id,
+      },
       turnLabel: 'Your turn',
     })
     expect(dashboard.yourTurnMultiplayer.map((game) => game.id)).toEqual([active.id])

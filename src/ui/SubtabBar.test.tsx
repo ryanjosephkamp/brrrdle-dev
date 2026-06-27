@@ -53,4 +53,31 @@ describe('SubtabBar', () => {
     expect(html).toContain('aria-hidden="true"')
     expect(html).toContain('data-tone="urgent"')
   })
+
+  it('marks active neutral badges so selected Live counts can use readable contrast', () => {
+    const html = renderToStaticMarkup(
+      <SubtabBar
+        activeId="live"
+        label="Multiplayer sections"
+        onSelect={() => undefined}
+        options={[
+          { id: 'overview', label: 'Overview' },
+          {
+            attention: {
+              ariaLabel: '3 Live v1 games visible to you',
+              label: '3',
+              tone: 'neutral',
+            },
+            id: 'live',
+            label: 'Live',
+          },
+        ]}
+      />,
+    )
+
+    expect(html).toContain('aria-label="Live"')
+    expect(html).toContain('data-tone="neutral"')
+    expect(html).toContain('data-active="true"')
+    expect(html).toContain('3 Live v1 games visible to you')
+  })
 })

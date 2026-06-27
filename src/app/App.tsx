@@ -49,9 +49,11 @@ import {
   createSupabaseMultiplayerRepository,
   expireStaleDailyMultiplayerGames,
   expireTimedOutPracticeMultiplayerGames,
+  getViewerMultiplayerPlayerId,
   isTrustedRankedPracticeSettlementCandidate,
   loadMultiplayerState,
   applyTrustedSettlementResult,
+  joinMultiplayerGame,
   normalizeCompetitiveMultiplayerState,
   saveMultiplayerState,
   settleMultiplayerStateResults,
@@ -493,6 +495,37 @@ function RoutePanel({
         scope="practice"
       />
     )
+  const handleJoinLobbyMultiplayerGame = useCallback((gameId: string) => {
+    const targetGame = multiplayer.games.find((entry) => entry.id === gameId)
+    if (!targetGame) {
+      return
+    }
+
+    const nextSubtab: MultiplayerSubtabId = targetGame.scope === 'daily' ? 'daily' : 'practice'
+    if (authState.status === 'authenticated' && authState.user?.id) {
+      const result = joinMultiplayerGame(multiplayer, {
+        gameId,
+        playerProfile: viewerProfile,
+        userId: authState.user.id,
+      })
+      if (!result.error) {
+        onMultiplayerChange(result.state)
+      }
+    }
+
+    onSelectRoute('multiplayer')
+    onSelectMultiplayerGame(gameId)
+    onMultiplayerSubtabChange(nextSubtab)
+  }, [
+    authState.status,
+    authState.user,
+    multiplayer,
+    onMultiplayerChange,
+    onMultiplayerSubtabChange,
+    onSelectMultiplayerGame,
+    onSelectRoute,
+    viewerProfile,
+  ])
   const renderMultiplayerPanel = (scope: 'daily' | 'practice') => (
       <MultiplayerPanel
         authStatus={authState.status}
@@ -590,6 +623,7 @@ function RoutePanel({
         onLiveSurfaceActiveChange={onLiveSurfaceActiveChange}
         onOpenHistory={onOpenMultiplayerHistory}
         onOpenFocusedSpectatorGame={onOpenFocusedLiveSpectatorGame}
+        onJoinGame={handleJoinLobbyMultiplayerGame}
         onResumeGame={onResumeMultiplayerGame}
         onSelectGame={onSelectMultiplayerGame}
         onSubtabChange={onMultiplayerSubtabChange}
@@ -1123,9 +1157,40 @@ function AppInner() {
     setHistoryFilters(filters)
     saveNavigationState({ historyFilters: filters })
   }, [])
+  const handleResumeMultiplayerGame = useCallback((id: string): boolean => {
+    const game = multiplayer.games.find((entry) => entry.id === id)
+    const viewerUserId = authState.user?.id
+    const viewerCanResume = Boolean(game && (!viewerUserId || getViewerMultiplayerPlayerId(game, viewerUserId)))
+
+    if (!game || game.status !== 'playing' || !viewerCanResume) {
+      setFocusedLiveSpectatorGameId(undefined)
+      setSelectedMultiplayerGameId(undefined)
+      setActiveRouteId('multiplayer')
+      setMultiplayerSubtab('active')
+      saveNavigationState({
+        activeRouteId: 'multiplayer',
+        multiplayerSubtab: 'active',
+        selectedMultiplayerGameId: undefined,
+      })
+      return true
+    }
+
+    const nextSubtab: MultiplayerSubtabId = game.scope === 'daily' ? 'daily' : 'practice'
+    setFocusedLiveSpectatorGameId(undefined)
+    setSelectedMultiplayerGameId(id)
+    setActiveRouteId('multiplayer')
+    setMultiplayerSubtab(nextSubtab)
+    saveNavigationState({
+      activeRouteId: 'multiplayer',
+      multiplayerSubtab: nextSubtab,
+      selectedMultiplayerGameId: id,
+    })
+    return true
+  }, [authState.user?.id, multiplayer.games])
   const dashboardActionHandlers = useMemo<DashboardActionHandlers>(() => ({
       onHistoryFiltersChange: handleHistoryFiltersChange,
       onMultiplayerSubtabChange: handleMultiplayerSubtabChange,
+      onResumeMultiplayerGame: handleResumeMultiplayerGame,
       onSelectMultiplayerGame: handleSelectMultiplayerGame,
       onSelectRoute: handleNavigate,
       onSelectSoloGame: handleSelectSoloGame,
@@ -1134,6 +1199,7 @@ function AppInner() {
     handleHistoryFiltersChange,
     handleMultiplayerSubtabChange,
     handleNavigate,
+    handleResumeMultiplayerGame,
     handleSelectMultiplayerGame,
     handleSelectSoloGame,
     handleSoloSubtabChange,
@@ -1237,22 +1303,6 @@ function AppInner() {
       soloSubtab: 'daily',
     })
   }, [resumeSlots])
-  const handleResumeMultiplayerGame = useCallback((id: string) => {
-    const game = multiplayer.games.find((entry) => entry.id === id)
-    if (!game) {
-      return
-    }
-    const nextSubtab: MultiplayerSubtabId = game.scope === 'daily' ? 'daily' : 'practice'
-    setFocusedLiveSpectatorGameId(undefined)
-    setSelectedMultiplayerGameId(id)
-    setActiveRouteId('multiplayer')
-    setMultiplayerSubtab(nextSubtab)
-    saveNavigationState({
-      activeRouteId: 'multiplayer',
-      multiplayerSubtab: nextSubtab,
-      selectedMultiplayerGameId: id,
-    })
-  }, [multiplayer.games])
   const navigateToResumeSlot = useCallback((slot: ResumeSlot | undefined) => {
     if (!slot) {
       return

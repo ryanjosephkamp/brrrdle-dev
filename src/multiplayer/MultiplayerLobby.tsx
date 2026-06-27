@@ -28,10 +28,12 @@ function EmptyState({ children }: { readonly children: ReactNode }) {
 
 export function MultiplayerLobby({
   limit,
+  onJoinGame,
   onOpenGame,
   rows,
 }: {
   readonly limit?: number
+  readonly onJoinGame?: (id: string) => void
   readonly onOpenGame: (id: string) => void
   readonly rows: readonly MultiplayerLobbyRowViewModel[]
 }) {
@@ -55,30 +57,71 @@ export function MultiplayerLobby({
         </thead>
         <tbody>
           {visibleRows.map((row) => (
-            <tr className="bg-black/30 text-slate-200" key={row.id}>
-              <td className="rounded-l-lg border-y border-l border-white/10 px-3 py-3">
-                <p className="font-semibold">{row.scopeLabel} {row.modeLabel}</p>
-                <p className="text-xs text-slate-400">{row.timeLimitLabel}{row.hardModeLabel ? ` · ${row.hardModeLabel}` : ''}</p>
-              </td>
-              <td className="border-y border-white/10 px-3 py-3">{row.hostLabel}</td>
-              <td className="border-y border-white/10 px-3 py-3">{row.detailLabel}</td>
-              <td className="border-y border-white/10 px-3 py-3">{formatDateTime(row.updatedAt)}</td>
-              <td className="border-y border-white/10 px-3 py-3">{row.claimBlocked ? 'Claim blocked' : row.statusLabel}</td>
-              <td className="rounded-r-lg border-y border-r border-white/10 px-3 py-3 text-right">
-                <Button
-                  data-testid={`multiplayer-lobby-action-${row.id}`}
-                  disabled={row.claimBlocked || (!row.canJoin && !row.canCancel)}
-                  onClick={() => onOpenGame(row.id)}
-                  size="sm"
-                  variant={row.canJoin ? 'primary' : 'ghost'}
-                >
-                  {row.actionLabel}
-                </Button>
-              </td>
-            </tr>
+            <MultiplayerLobbyRow
+              key={row.id}
+              onJoinGame={onJoinGame}
+              onOpenGame={onOpenGame}
+              row={row}
+            />
           ))}
         </tbody>
       </table>
     </div>
+  )
+}
+
+function getMultiplayerLobbyActionTarget(row: Pick<MultiplayerLobbyRowViewModel, 'canJoin'>): 'join' | 'open' {
+  return row.canJoin ? 'join' : 'open'
+}
+
+function getMultiplayerLobbyActionAriaLabel(row: MultiplayerLobbyRowViewModel): string {
+  if (row.canJoin) {
+    return 'Join multiplayer match'
+  }
+  return row.actionLabel
+}
+
+function MultiplayerLobbyRow({
+  onJoinGame,
+  onOpenGame,
+  row,
+}: {
+  readonly onJoinGame?: (id: string) => void
+  readonly onOpenGame: (id: string) => void
+  readonly row: MultiplayerLobbyRowViewModel
+}) {
+  const actionTarget = getMultiplayerLobbyActionTarget(row)
+  const disabled = row.claimBlocked || (!row.canJoin && !row.canCancel)
+
+  return (
+    <tr className="bg-black/30 text-slate-200">
+      <td className="rounded-l-lg border-y border-l border-white/10 px-3 py-3">
+        <p className="font-semibold">{row.scopeLabel} {row.modeLabel}</p>
+        <p className="text-xs text-slate-400">{row.timeLimitLabel}{row.hardModeLabel ? ` · ${row.hardModeLabel}` : ''}</p>
+      </td>
+      <td className="border-y border-white/10 px-3 py-3">{row.hostLabel}</td>
+      <td className="border-y border-white/10 px-3 py-3">{row.detailLabel}</td>
+      <td className="border-y border-white/10 px-3 py-3">{formatDateTime(row.updatedAt)}</td>
+      <td className="border-y border-white/10 px-3 py-3">{row.claimBlocked ? 'Claim blocked' : row.statusLabel}</td>
+      <td className="rounded-r-lg border-y border-r border-white/10 px-3 py-3 text-right">
+        <Button
+          aria-label={getMultiplayerLobbyActionAriaLabel(row)}
+          data-action-target={actionTarget}
+          data-testid={`multiplayer-lobby-action-${row.id}`}
+          disabled={disabled}
+          onClick={() => {
+            if (actionTarget === 'join' && onJoinGame) {
+              onJoinGame(row.id)
+              return
+            }
+            onOpenGame(row.id)
+          }}
+          size="sm"
+          variant={row.canJoin ? 'primary' : 'ghost'}
+        >
+          {row.actionLabel}
+        </Button>
+      </td>
+    </tr>
   )
 }

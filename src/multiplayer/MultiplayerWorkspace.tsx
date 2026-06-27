@@ -35,6 +35,7 @@ interface MultiplayerWorkspaceProps {
   readonly onOpenHistory: () => void
   readonly onCloseFocusedSpectatorGame?: () => void
   readonly onLiveSurfaceActiveChange?: (active: boolean) => void
+  readonly onJoinGame?: (id: string) => void
   readonly onOpenFocusedSpectatorGame?: (id: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame: (id: string) => void
@@ -181,6 +182,7 @@ function MultiplayerOverview({
   onOpenHistory,
   onOpenFocusedSpectatorGame,
   onResumeGame,
+  onJoinGame,
   onSelectGame,
   onSubtabChange,
   recentResults,
@@ -193,6 +195,7 @@ function MultiplayerOverview({
   readonly liveRows: ReturnType<typeof selectLiveMultiplayerRows>
   readonly onOpenHistory: () => void
   readonly onOpenFocusedSpectatorGame?: (id: string) => void
+  readonly onJoinGame?: (id: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame: (id: string) => void
   readonly onSubtabChange: (subtab: MultiplayerSubtabId) => void
@@ -230,7 +233,7 @@ function MultiplayerOverview({
           </div>
           <Button onClick={() => onSubtabChange('lobby')} size="sm" variant="ghost">Open Lobby</Button>
         </div>
-        <MultiplayerLobby limit={4} onOpenGame={onResumeGame} rows={lobbyRows} />
+        <MultiplayerLobby limit={4} onJoinGame={onJoinGame} onOpenGame={onResumeGame} rows={lobbyRows} />
       </Panel>
 
       <Panel className="space-y-4" tone="muted">
@@ -270,6 +273,7 @@ export function MultiplayerWorkspace({
   onLiveSurfaceActiveChange,
   onOpenFocusedSpectatorGame,
   onOpenHistory,
+  onJoinGame,
   onResumeGame,
   onSelectGame,
   onSubtabChange,
@@ -331,7 +335,7 @@ export function MultiplayerWorkspace({
               <h3 className="text-lg font-bold text-white">Lobby</h3>
               <p className="text-sm text-slate-400">{lobbyRows.length} open{lobbyRows[0] ? ` · Freshest ${formatDateTime(lobbyRows[0].updatedAt)}` : ''}</p>
             </div>
-            <MultiplayerLobby onOpenGame={onResumeGame} rows={lobbyRows} />
+            <MultiplayerLobby onJoinGame={onJoinGame} onOpenGame={onResumeGame} rows={lobbyRows} />
           </Panel>
           {renderPracticePanel()}
         </div>
@@ -352,6 +356,7 @@ export function MultiplayerWorkspace({
           liveRows={liveRows}
           onOpenHistory={onOpenHistory}
           onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame}
+          onJoinGame={onJoinGame}
           onResumeGame={onResumeGame}
           onSelectGame={onSelectGame}
           onSubtabChange={onSubtabChange}

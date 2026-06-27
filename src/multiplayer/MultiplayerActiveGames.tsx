@@ -35,18 +35,35 @@ function MultiplayerActiveGameCard({
   readonly onResume: (id: string) => void
   readonly selected: boolean
 }) {
+  const needsTurn = game.turnLabel === 'Your turn'
+  const cardTone = needsTurn
+    ? 'border-cyan-200/50 bg-cyan-400/10 ring-1 ring-cyan-200/20'
+    : selected
+      ? 'border-[var(--color-ice-300)]/70 bg-black/30'
+      : 'border-white/10 bg-black/30'
+
   return (
     <article
       aria-label={game.title}
       aria-current={selected ? 'true' : undefined}
-      className={`rounded-lg border bg-black/30 p-4 shadow-xl shadow-black/20 ${selected ? 'border-[var(--color-ice-300)]/70' : 'border-white/10'}`}
+      className={`rounded-lg border p-4 shadow-xl shadow-black/20 ${cardTone}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ice-200)]">{game.scopeLabel}</p>
           <h3 className="mt-1 text-lg font-bold text-white">{game.modeLabel}</h3>
         </div>
-        <span className="rounded border border-white/10 px-2 py-1 text-xs font-semibold text-cyan-100">{game.statusLabel}</span>
+        <div className="flex flex-wrap justify-end gap-2">
+          {needsTurn ? (
+            <span
+              aria-label="Your turn in this multiplayer game"
+              className="rounded-full border border-cyan-200/50 bg-cyan-300/15 px-2 py-1 text-xs font-bold text-cyan-50"
+            >
+              Your turn
+            </span>
+          ) : null}
+          <span className="rounded border border-white/10 px-2 py-1 text-xs font-semibold text-cyan-100">{game.statusLabel}</span>
+        </div>
       </div>
       <dl className="mt-4 space-y-2 text-sm text-slate-300">
         <div>

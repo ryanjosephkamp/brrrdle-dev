@@ -93,6 +93,7 @@ export function SubtabBar<TSubtabId extends string>({ activeId, label, onSelect,
                 <span
                   aria-hidden="true"
                   className="brrrdle-attention-badge"
+                  data-active={isActive ? 'true' : undefined}
                   data-tone={option.attention.tone ?? 'attention'}
                 >
                   {option.attention.label}

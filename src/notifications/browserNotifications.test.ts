@@ -210,6 +210,41 @@ describe('browser notification helpers', () => {
     })).toHaveLength(1)
   })
 
+  it('suppresses direct-resume multiplayer notifications on the selected gameplay surface', () => {
+    const turn = item('multiplayer-your-turn', {
+      actionTarget: {
+        multiplayerSubtab: 'active',
+        resumeMultiplayerGameId: 'game-one',
+        routeId: 'multiplayer',
+        selectedMultiplayerGameId: 'game-one',
+      },
+    })
+
+    expect(selectBrowserNotificationDispatches({
+      documentHidden: false,
+      items: [turn],
+      permission: 'granted',
+      preferences: { browserNotificationsEnabled: true, inAppNotificationsEnabled: true },
+      routeContext: {
+        activeRouteId: 'multiplayer',
+        multiplayerSubtab: 'practice',
+        selectedMultiplayerGameId: 'game-one',
+      },
+    })).toEqual([])
+
+    expect(selectBrowserNotificationDispatches({
+      documentHidden: false,
+      items: [turn],
+      permission: 'granted',
+      preferences: { browserNotificationsEnabled: true, inAppNotificationsEnabled: true },
+      routeContext: {
+        activeRouteId: 'multiplayer',
+        multiplayerSubtab: 'practice',
+        selectedMultiplayerGameId: 'different-game',
+      },
+    })).toHaveLength(1)
+  })
+
   it('builds payloads without raw emails, uuid values, or audible browser sounds', () => {
     const payload = createBrowserNotificationPayload(item('multiplayer-completed', {
       detail: 'Invite sent to player@example.com for row 123e4567-e89b-12d3-a456-426614174000.',

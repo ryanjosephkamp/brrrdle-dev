@@ -17,70 +17,70 @@ This checklist helps the user manually verify Phase 33 behavior. It does not rep
 
 ## Must Manually Verify
 
-- [ ] Ranked Practice offers only `No clock` and `5 minutes` as ranked time controls.
+- [x] Ranked Practice offers only `No clock` and `5 minutes` as ranked time controls.
   - Expected: after selecting `Ranked` in Practice Multiplayer, the time-control dropdown is labeled `Ranked time control` and contains only `No clock` and `5 minutes`.
   - Suggested steps: sign in, open Multiplayer -> Practice Multiplayer, switch Match type to `Ranked`, and inspect the time-control dropdown.
   - Evidence: `progress/PROGRESS-STEP-269.md`; visual scenario `Timed ranked Practice controls`.
-
-- [ ] The `5 minutes` ranked option enters the timed ranked queue.
-  - Expected: selecting `5 minutes` changes the main action to `Enter timed ranked queue`; pressing it creates a timed ranked queue request and shows timed ranked queue copy.
-  - Suggested steps: choose `Ranked` and `5 minutes`, press `Enter timed ranked queue`, and confirm a waiting queue state appears.
-  - Evidence: `progress/PROGRESS-STEP-269.md`, `progress/PROGRESS-STEP-270.md`.
-
-- [ ] Two signed-in players can match into a canonical timed ranked Practice game.
-  - Expected: two compatible players entering the `5 minutes` ranked queue route into the same durable ranked Practice game with `5:00` clocks visible for both players.
-  - Suggested steps: use two signed-in browser contexts, have both enter Practice ranked `5 minutes`, and confirm both clients open the same active game.
-  - Evidence: `progress/PROGRESS-STEP-270.md`; real two-client E2E scenario `matches canonical timed ranked Practice and search-again preserves the five-minute track`.
-
-- [ ] Timed ranked games use a separate timed rating track.
-  - Expected: timed ranked games are labeled separately from untimed ranked Practice and use timed ranked buckets internally; public leaderboards do not show timed buckets in Phase 33.
-  - Suggested steps: inspect a timed ranked game's visible copy and public leaderboard surfaces; confirm the public leaderboard still shows only OG/GO untimed ranked Practice buckets.
-  - Evidence: `planning/specs/phase-33/PHASE-33-TIMED-RANKED-MIGRATION-RLS-ADDENDUM-2026-06-25.md`, `progress/PROGRESS-STEP-268.md`, `progress/PROGRESS-STEP-270.md`.
-
-- [ ] Timed ranked postgame search-again preserves the five-minute track through the trusted queue.
-  - Expected: after a terminal timed ranked Practice game, `Search ranked Practice again` queues another canonical five-minute timed ranked match and opens the next finalized game for both players.
-  - Suggested steps: finish a timed ranked Practice game, press `Search ranked Practice again` from both clients, and confirm the next game also shows `5:00` clocks.
-  - Evidence: `progress/PROGRESS-STEP-270.md`; real two-client E2E scenario `matches canonical timed ranked Practice and search-again preserves the five-minute track`.
-
-- [ ] Untimed ranked Practice still works.
-  - Expected: choosing `No clock` keeps the current untimed ranked Practice queue/finalization/search-again behavior unchanged.
-  - Suggested steps: choose ranked Practice `No clock`, enter the queue with two users, and confirm the finalized game has no clock.
-  - Evidence: existing Phase 32 ranked search-again E2E plus Phase 33 regression tests in `progress/PROGRESS-STEP-270.md`.
-
-- [ ] Unsupported ranked timers are unavailable or rejected.
-  - Expected: ranked Practice does not offer 30 seconds, 1 minute, 2 minutes, 10 minutes, or 30 minutes; only unranked Practice keeps the broader timer options.
-  - Suggested steps: compare unranked Practice timer options to ranked Practice timer options.
-  - Evidence: `progress/PROGRESS-STEP-269.md`.
-
-- [ ] Daily ranked remains unavailable.
-  - Expected: Daily Multiplayer does not expose ranked queue controls, ranked time controls, or search-again ranked shortcuts.
-  - Suggested steps: open Daily Multiplayer and confirm there is no ranked Match type flow.
-  - Evidence: `planning/phase-33/CHANGELOG.md`, `progress/PROGRESS-STEP-270.md`.
-
-- [ ] Ranked custom/private-code games remain unavailable.
-  - Expected: Custom code Practice games remain unrated and do not expose direct ranked/private-code ladder behavior.
-  - Suggested steps: choose Custom code in Practice Multiplayer and confirm ranked queue controls are not active for that custom flow.
-  - Evidence: `planning/phase-33/CHANGELOG.md`, `progress/PROGRESS-STEP-270.md`.
-
-- [ ] Public ranked leaderboard defaults to OG and no longer shows `All buckets`.
-  - Expected: the public ranked leaderboard player-facing controls show `OG` and `GO` only, with `OG` selected by default.
-  - Suggested steps: open Stats/public ranked leaderboard and inspect the bucket controls.
-  - Evidence: `progress/PROGRESS-STEP-267.md`; visual scenario `Public ranked leaderboard OG/GO controls`.
-
-- [ ] Public leaderboard rows show display-only rank bands.
-  - Expected: public leaderboard rows include descriptive rank bands such as Bronze, Silver, Gold, etc., and no copy implies bands affect Elo or matchmaking.
-  - Suggested steps: open the public ranked leaderboard and inspect the rank/band labels.
-  - Evidence: `progress/PROGRESS-STEP-267.md`; visual scenario `Public ranked leaderboard rank bands`.
-
-- [ ] Multiplayer rating bucket surfaces show display-only rank bands.
+- [x] Phase 33 visual handoff artifacts remain local-only and ignored.
+  - Expected: `test-results/visual-review/phase-33-stage-33-7/` may exist locally, but screenshots/manifests are not tracked or staged.
+  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-33-stage-33-7/` if reviewing locally; confirm artifacts are ignored/local-only.
+  - Evidence: `progress/PROGRESS-STEP-270.md`.
+- [x] Multiplayer rating bucket surfaces show display-only rank bands.
   - Expected: Stats/Competitive multiplayer rating buckets include rank bands derived from current rating while preserving no-comma rating display.
   - Suggested steps: open Stats and inspect Competitive multiplayer rating buckets.
   - Evidence: `progress/PROGRESS-STEP-267.md`.
 
-- [ ] Phase 33 visual handoff artifacts remain local-only and ignored.
-  - Expected: `test-results/visual-review/phase-33-stage-33-7/` may exist locally, but screenshots/manifests are not tracked or staged.
-  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-33-stage-33-7/` if reviewing locally; confirm artifacts are ignored/local-only.
-  - Evidence: `progress/PROGRESS-STEP-270.md`.
+- [x] Public leaderboard rows show display-only rank bands.
+  - Expected: public leaderboard rows include descriptive rank bands such as Bronze, Silver, Gold, etc., and no copy implies bands affect Elo or matchmaking.
+  - Suggested steps: open the public ranked leaderboard and inspect the rank/band labels.
+  - Evidence: `progress/PROGRESS-STEP-267.md`; visual scenario `Public ranked leaderboard rank bands`.
+
+- [x] Public ranked leaderboard defaults to OG and no longer shows `All buckets`.
+  - Expected: the public ranked leaderboard player-facing controls show `OG` and `GO` only, with `OG` selected by default.
+  - Suggested steps: open Stats/public ranked leaderboard and inspect the bucket controls.
+  - Evidence: `progress/PROGRESS-STEP-267.md`; visual scenario `Public ranked leaderboard OG/GO controls`.
+
+- [x] Ranked custom/private-code games remain unavailable.
+  - Expected: Custom code Practice games remain unrated and do not expose direct ranked/private-code ladder behavior.
+  - Suggested steps: choose Custom code in Practice Multiplayer and confirm ranked queue controls are not active for that custom flow.
+  - Evidence: `planning/phase-33/CHANGELOG.md`, `progress/PROGRESS-STEP-270.md`.
+
+- [x] Daily ranked remains unavailable.
+  - Expected: Daily Multiplayer does not expose ranked queue controls, ranked time controls, or search-again ranked shortcuts.
+  - Suggested steps: open Daily Multiplayer and confirm there is no ranked Match type flow.
+  - Evidence: `planning/phase-33/CHANGELOG.md`, `progress/PROGRESS-STEP-270.md`.
+
+- [x] Unsupported ranked timers are unavailable or rejected.
+  - Expected: ranked Practice does not offer 30 seconds, 1 minute, 2 minutes, 10 minutes, or 30 minutes; only unranked Practice keeps the broader timer options.
+  - Suggested steps: compare unranked Practice timer options to ranked Practice timer options.
+  - Evidence: `progress/PROGRESS-STEP-269.md`.
+
+- [x] Untimed ranked Practice still works.
+  - Expected: choosing `No clock` keeps the current untimed ranked Practice queue/finalization/search-again behavior unchanged.
+  - Suggested steps: choose ranked Practice `No clock`, enter the queue with two users, and confirm the finalized game has no clock.
+  - Evidence: existing Phase 32 ranked search-again E2E plus Phase 33 regression tests in `progress/PROGRESS-STEP-270.md`.
+
+- [x] Timed ranked postgame search-again preserves the five-minute track through the trusted queue.
+  - Expected: after a terminal timed ranked Practice game, `Search ranked Practice again` queues another canonical five-minute timed ranked match and opens the next finalized game for both players.
+  - Suggested steps: finish a timed ranked Practice game, press `Search ranked Practice again` from both clients, and confirm the next game also shows `5:00` clocks.
+  - Evidence: `progress/PROGRESS-STEP-270.md`; real two-client E2E scenario `matches canonical timed ranked Practice and search-again preserves the five-minute track`.
+
+- [x] Timed ranked games use a separate timed rating track.
+  - Expected: timed ranked games are labeled separately from untimed ranked Practice and use timed ranked buckets internally; public leaderboards do not show timed buckets in Phase 33.
+  - Suggested steps: inspect a timed ranked game's visible copy and public leaderboard surfaces; confirm the public leaderboard still shows only OG/GO untimed ranked Practice buckets.
+  - Evidence: `planning/specs/phase-33/PHASE-33-TIMED-RANKED-MIGRATION-RLS-ADDENDUM-2026-06-25.md`, `progress/PROGRESS-STEP-268.md`, `progress/PROGRESS-STEP-270.md`.
+
+- [x] Two signed-in players can match into a canonical timed ranked Practice game.
+  - Expected: two compatible players entering the `5 minutes` ranked queue route into the same durable ranked Practice game with `5:00` clocks visible for both players.
+  - Suggested steps: use two signed-in browser contexts, have both enter Practice ranked `5 minutes`, and confirm both clients open the same active game.
+  - Evidence: `progress/PROGRESS-STEP-270.md`; real two-client E2E scenario `matches canonical timed ranked Practice and search-again preserves the five-minute track`.
+
+- [x] The `5 minutes` ranked option enters the timed ranked queue.
+  - Expected: selecting `5 minutes` changes the main action to `Enter timed ranked queue`; pressing it creates a timed ranked queue request and shows timed ranked queue copy.
+  - Suggested steps: choose `Ranked` and `5 minutes`, press `Enter timed ranked queue`, and confirm a waiting queue state appears.
+  - Evidence: `progress/PROGRESS-STEP-269.md`, `progress/PROGRESS-STEP-270.md`.
+
+
 
 ## Optional Nice-To-Check
 

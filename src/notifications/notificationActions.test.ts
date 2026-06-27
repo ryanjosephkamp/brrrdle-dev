@@ -48,7 +48,9 @@ function createMetadataHarness(initial: NotificationMetadataState = { records: [
   }
 }
 
-function createDashboardActionHarness() {
+function createDashboardActionHarness(
+  onResumeMultiplayerGame?: DashboardActionHandlers['onResumeMultiplayerGame'],
+) {
   const calls: string[] = []
   const historyFilters: HistoryFilters[] = []
   const routes: AppRouteId[] = []
@@ -60,6 +62,10 @@ function createDashboardActionHarness() {
     onMultiplayerSubtabChange: (subtab) => {
       calls.push(`multiplayer:${subtab}`)
     },
+    onResumeMultiplayerGame: onResumeMultiplayerGame ?? ((id) => {
+      calls.push(`resume:${id}`)
+      return false
+    }),
     onSelectMultiplayerGame: (id) => {
       calls.push(`game:${id}`)
     },
@@ -116,6 +122,33 @@ describe('notification actions', () => {
       readAt: '2026-06-14T06:33:00.000Z',
     })
     expect(calls).toEqual(['route:multiplayer', 'multiplayer:active', 'game:match-1'])
+  })
+
+  it('activates direct-resume multiplayer notifications through the shared resume target', () => {
+    const item = createNotificationFixture({
+      multiplayerSubtab: 'active',
+      resumeMultiplayerGameId: 'match-1',
+      routeId: 'multiplayer',
+      selectedMultiplayerGameId: 'match-1',
+    })
+    const metadata = createMetadataHarness()
+    const { calls, handlers } = createDashboardActionHarness((id) => {
+      calls.push(`resume:${id}`)
+      return true
+    })
+
+    activateNotificationItem(item, {
+      dashboardHandlers: handlers,
+      now: () => '2026-06-14T06:33:00.000Z',
+      updateMetadata: metadata.updateMetadata,
+    })
+
+    expect(metadata.current.records[0]).toMatchObject({
+      fingerprint: item.fingerprint,
+      id: item.id,
+      readAt: '2026-06-14T06:33:00.000Z',
+    })
+    expect(calls).toEqual(['resume:match-1'])
   })
 
   it('marks all visible unread notification items read with one local timestamp', () => {
