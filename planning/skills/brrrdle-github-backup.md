@@ -14,6 +14,10 @@ The skill exists to streamline a workflow the user may explicitly authorize as o
 
 The skill may run the full backup workflow only when the current user prompt explicitly invokes the skill for `brrrdle-dev` and authorizes the GitHub backup actions.
 
+After a clean `brrrdle-dev` Git handoff preparation pass, generated next prompt packages should normally invoke this skill for the all-in-one governed backup workflow when the user is ready for backup. The generated prompt should carry forward the approved file allowlist, branch name, commit and PR copy, verification evidence, scope boundaries, and forbidden artifact list from handoff preparation.
+
+The older stepwise Git prompt sequence remains appropriate when the user explicitly asks for separate gates, forbids merge or branch cleanup, leaves unresolved review prerequisites, or the handoff preparation reports a blocker.
+
 The skill must not run Git operations when the user only asks:
 
 - what the workflow does;
@@ -34,22 +38,23 @@ The skill must never force-push `main`.
 1. Confirm the target repository is `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`.
 2. Confirm the original stable `brrrdle` repository is not being used.
 3. Confirm branch, remotes, `HEAD`, and `origin/main`.
-4. Classify changed, staged, untracked, and ignored files.
-5. Run preflight checks appropriate to the changed surfaces.
-6. Reject secrets, auth state, screenshots, videos, traces, build outputs, dependency folders, local session artifacts, and other forbidden artifacts.
-7. Create a dedicated `codex/` backup branch.
-8. Stage only approved repository files.
-9. Verify staged files and whitespace.
-10. Commit once with clear verification and boundary notes.
-11. Push the branch to `origin`.
-12. Create a draft PR targeting `main`.
-13. Verify PR metadata and visible checks.
-14. Mark ready and squash-merge only when the invocation authorizes it and preflight is clean.
-15. Fetch and fast-forward local `main` to `origin/main`.
-16. Confirm the merge on local and remote `main`.
-17. Run post-merge sanity checks.
-18. Use PR metadata plus tree equivalence before deleting local or remote branches.
-19. Report hashes, PR URL, verification, branch cleanup, and boundaries.
+4. When invoked from a clean handoff-prep packet, verify the approved file allowlist still matches the current changed repository files.
+5. Classify changed, staged, untracked, and ignored files.
+6. Run preflight checks appropriate to the changed surfaces.
+7. Reject secrets, auth state, screenshots, videos, traces, build outputs, dependency folders, local session artifacts, and other forbidden artifacts.
+8. Create a dedicated `codex/` backup branch.
+9. Stage only approved repository files.
+10. Verify staged files and whitespace.
+11. Commit once with clear verification and boundary notes.
+12. Push the branch to `origin`.
+13. Create a draft PR targeting `main`.
+14. Verify PR metadata and visible checks.
+15. Mark ready and squash-merge only when the invocation authorizes it and preflight is clean.
+16. Fetch and fast-forward local `main` to `origin/main`.
+17. Confirm the merge on local and remote `main`.
+18. Run post-merge sanity checks.
+19. Use PR metadata plus tree equivalence before deleting local or remote branches.
+20. Report hashes, PR URL, verification, branch cleanup, and boundaries.
 
 ## Stop Conditions
 
