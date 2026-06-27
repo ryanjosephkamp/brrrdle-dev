@@ -29,6 +29,7 @@ export interface DashboardSoloActionTarget {
 export interface DashboardMultiplayerActionTarget {
   readonly routeId: 'multiplayer'
   readonly multiplayerSubtab: MultiplayerSubtabId
+  readonly resumeMultiplayerGameId?: string
   readonly selectedMultiplayerGameId?: string
 }
 
@@ -224,6 +225,7 @@ function attachMultiplayerAction(game: MultiplayerActiveGameViewModel): Dashboar
     ...game,
     actionTarget: {
       multiplayerSubtab: 'active',
+      resumeMultiplayerGameId: game.id,
       routeId: 'multiplayer',
       selectedMultiplayerGameId: game.id,
     },

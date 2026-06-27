@@ -116,6 +116,15 @@ function isTargetSurfaceActive(
   }
 
   if (target.routeId === 'multiplayer') {
+    if (target.resumeMultiplayerGameId) {
+      const selectedGameMatches = target.resumeMultiplayerGameId === context.selectedMultiplayerGameId
+      const activeResumeSurface = (
+        context.multiplayerSubtab === 'active'
+        || context.multiplayerSubtab === 'daily'
+        || context.multiplayerSubtab === 'practice'
+      )
+      return selectedGameMatches && activeResumeSurface
+    }
     if (target.multiplayerSubtab !== context.multiplayerSubtab) {
       return false
     }

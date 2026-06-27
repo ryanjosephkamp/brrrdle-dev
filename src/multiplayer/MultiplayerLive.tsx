@@ -137,13 +137,22 @@ function MultiplayerLiveCard({
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ice-200)]">{game.scopeLabel}</p>
           <h3 className="mt-1 break-words text-lg font-bold text-white">{game.modeLabel}</h3>
         </div>
-        <span className={`rounded border px-2 py-1 text-xs font-semibold ${
-          game.viewerRole === 'spectator'
-            ? 'border-cyan-200/30 bg-cyan-400/10 text-cyan-100'
-            : 'border-emerald-200/30 bg-emerald-400/10 text-emerald-100'
-        }`}>
-          {game.viewerRole === 'spectator' ? 'Spectator' : 'Live'}
-        </span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className={`rounded border px-2 py-1 text-xs font-semibold ${
+            game.rankingLabel === 'Ranked'
+              ? 'border-amber-200/30 bg-amber-400/10 text-amber-100'
+              : 'border-slate-200/20 bg-white/5 text-slate-200'
+          }`}>
+            {game.rankingLabel}
+          </span>
+          <span className={`rounded border px-2 py-1 text-xs font-semibold ${
+            game.viewerRole === 'spectator'
+              ? 'border-cyan-200/30 bg-cyan-400/10 text-cyan-100'
+              : 'border-emerald-200/30 bg-emerald-400/10 text-emerald-100'
+          }`}>
+            {game.viewerRole === 'spectator' ? 'Spectator' : 'Live'}
+          </span>
+        </div>
       </div>
       <dl className="mt-4 space-y-2 text-sm text-slate-300">
         <div>

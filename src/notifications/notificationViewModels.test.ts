@@ -129,7 +129,12 @@ describe('notification view models', () => {
       'live-active',
     ])
     expect(notifications.items[0]).toMatchObject({
-      actionTarget: { multiplayerSubtab: 'active', routeId: 'multiplayer' },
+      actionTarget: {
+        multiplayerSubtab: 'active',
+        resumeMultiplayerGameId: dashboard.yourTurnMultiplayer[0].id,
+        routeId: 'multiplayer',
+        selectedMultiplayerGameId: dashboard.yourTurnMultiplayer[0].id,
+      },
       priority: 'high',
       source: 'multiplayer',
       title: 'Your turn',

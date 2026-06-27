@@ -143,7 +143,7 @@ describe('multiplayer view models', () => {
 
     expect(rows.map((row) => row.id)).toEqual([rivalLobby.id, ownLobby.id])
     expect(rows[0]).toMatchObject({
-      actionLabel: 'Open to join',
+      actionLabel: 'Join',
       canJoin: true,
       scopeLabel: 'Practice Multiplayer',
       timeLimitLabel: 'No time limit',
@@ -153,6 +153,14 @@ describe('multiplayer view models', () => {
       canCancel: true,
       hardModeLabel: 'Hard Mode on',
       timeLimitLabel: '2 minutes per side',
+    })
+
+    const signedOutRows = selectMultiplayerLobbyRows({ games: [rivalLobby] })
+    expect(signedOutRows[0]).toMatchObject({
+      actionLabel: 'Sign in to join',
+      canCancel: false,
+      canJoin: false,
+      claimBlocked: false,
     })
   })
 
@@ -272,11 +280,55 @@ describe('multiplayer view models', () => {
       actionLabel: 'Resume live game',
       canResume: true,
       canSpectate: false,
+      rankingLabel: 'Unranked',
       ruleLabel: 'UTC daily · 5 letters · no clock',
       scopeLabel: 'Daily Multiplayer',
       viewerRole: 'participant',
     })
     expect(selectRestrictedLiveMultiplayerCount({ games: [hostPractice, joinedDaily, unrelated] }, 'host-user')).toBe(1)
+  })
+
+  it('prefers safe participant profile names and falls back away from stale You labels in Live rows', () => {
+    const profiled = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      playerProfiles: {
+        'player-one': { displayName: 'kiki', initials: 'K', label: 'kiki' },
+        'player-two': { displayName: 'claudine', initials: 'C', label: 'claudine' },
+      },
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      ranked: true,
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const staleProfiled = {
+      ...profiled,
+      players: profiled.players.map((player) => player.id === 'player-two' ? { ...player, label: 'You' } : player),
+    }
+    const staleFallback = createMultiplayerGame({
+      createdAt: '2026-06-04T12:01:00.000Z',
+      mode: 'go',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const staleFallbackWithoutProfile = {
+      ...staleFallback,
+      players: staleFallback.players.map((player) => player.id === 'player-two' ? { ...player, label: 'You' } : player),
+    }
+
+    const rows = selectLiveMultiplayerRows({
+      games: [staleFallbackWithoutProfile, staleProfiled],
+    }, 'host-user')
+
+    expect(rows.find((row) => row.id === staleProfiled.id)).toMatchObject({
+      opponentLabel: 'claudine',
+      rankingLabel: 'Ranked',
+    })
+    expect(rows.find((row) => row.id === staleFallbackWithoutProfile.id)).toMatchObject({
+      opponentLabel: 'Rival',
+      rankingLabel: 'Unranked',
+    })
   })
 
   it('projects authenticated spectator RPC rows as read-only Live v1 rows', () => {
@@ -304,20 +356,37 @@ describe('multiplayer view models', () => {
       canResume: false,
       canSpectate: true,
       detailLabel: 'Read-only · 1 turn submitted',
-      opponentLabel: 'Host vs Rival',
+      opponentLabel: 'Host player vs Rival player',
+      rankingLabel: 'Unranked',
       ruleLabel: '5 letters · 5 minutes per side · Hard Mode',
-      turnLabel: "Rival's turn",
+      turnLabel: "Rival player's turn",
       viewerRole: 'spectator',
     })
     expect(rows[0].spectatorDetails?.capabilityLabel).toContain('Read-only spectator view')
     expect(rows[0].spectatorDetails?.moves[0]).toMatchObject({
       guess: 'ROBOT',
-      playerLabel: 'Host',
+      playerLabel: 'Host player',
       puzzleLabel: 'Puzzle 1',
     })
     expect(selectRestrictedLiveMultiplayerCount({
       games: [participant, { ...matchingRestricted, id: spectatorGame.id }],
     }, 'host-user', [spectatorGame])).toBe(0)
+  })
+
+  it('keeps spectator Live matchup labels on safe fallbacks when profile names are unavailable', () => {
+    const rows = selectLiveMultiplayerRows({ games: [] }, 'spectator-user', [{
+      ...spectatorGame,
+      players: [
+        { label: 'You', seat: 'player-one' },
+        { label: 'Rival', seat: 'player-two' },
+      ],
+    }])
+
+    expect(rows[0]).toMatchObject({
+      opponentLabel: 'Player one vs Rival',
+      turnLabel: "Rival's turn",
+    })
+    expect(rows[0].opponentLabel).not.toContain('You')
   })
 
   it('keeps sanitized terminal spectator hold rows visible briefly with outcome copy', () => {

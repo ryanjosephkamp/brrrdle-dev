@@ -151,6 +151,38 @@ describe('MultiplayerWorkspace', () => {
     expect(html).toContain('Open Live')
   })
 
+  it('renders Lobby rows as direct Join actions while keeping the Practice panel available', () => {
+    const lobby = createMultiplayerGame({
+      createdAt: '2026-06-14T06:20:00.000Z',
+      id: 'joinable-lobby-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const html = renderToStaticMarkup(
+      <MultiplayerWorkspace
+        activeSubtab="lobby"
+        dailyDateKey="2026-06-14"
+        onJoinGame={() => undefined}
+        onOpenHistory={() => undefined}
+        onResumeGame={() => undefined}
+        onSelectGame={() => undefined}
+        onSubtabChange={() => undefined}
+        renderDailyPanel={() => <div>Daily panel</div>}
+        renderPracticePanel={() => <div>Practice panel</div>}
+        state={{ games: [lobby] }}
+        viewerUserId="rival-user"
+      />,
+    )
+
+    expect(html).toContain('aria-label="Join multiplayer match"')
+    expect(html).toContain('data-action-target="join"')
+    expect(html).toContain('>Join</button>')
+    expect(html).toContain('Practice panel')
+    expect(html).not.toContain('Open to join')
+  })
+
   it('renders authenticated spectator Live v1 rows as read-only in the Live subtab', () => {
     const html = renderToStaticMarkup(
       <MultiplayerWorkspace
@@ -173,6 +205,8 @@ describe('MultiplayerWorkspace', () => {
     expect(html).toContain('Spectate live game')
     expect(html).toContain('Spectator view')
     expect(html).toContain('Read-only')
+    expect(html).toContain('Unranked')
+    expect(html).toContain('Host player vs Rival player')
     expect(html).toContain('Host player')
     expect(html).not.toContain('Submit guess')
     expect(html).not.toContain('Forfeit')
@@ -202,7 +236,7 @@ describe('MultiplayerWorkspace', () => {
 
     expect(html).toContain('Focused spectator view')
     expect(html).toContain('Practice Multiplayer OG')
-    expect(html).toContain('Host vs Rival')
+    expect(html).toContain('Host player vs Rival player')
     expect(html).toContain('Back to Live list')
     expect(html).toContain('focused-live-spectator-details-spectator-game-1')
     expect(html).not.toContain('Multiplayer workspace sections')

@@ -211,6 +211,37 @@ describe('MultiplayerPanel', () => {
     expect(html).not.toContain('Cancel Lobby')
   })
 
+  it('joins an eligible Lobby row through the guarded domain path without creating duplicates', () => {
+    const lobby = createMultiplayerGame({
+      id: 'one-click-lobby-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const state = addMultiplayerGame(createEmptyMultiplayerState(), lobby)
+    const joined = joinMultiplayerGame(state, {
+      gameId: lobby.id,
+      now: '2026-06-26T22:45:00.000Z',
+      userId: 'rival-user',
+    })
+    const duplicate = joinMultiplayerGame(joined.state, {
+      gameId: lobby.id,
+      now: '2026-06-26T22:46:00.000Z',
+      userId: 'rival-user',
+    })
+
+    expect(joined.error).toBeUndefined()
+    expect(joined.game).toMatchObject({
+      id: lobby.id,
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      status: 'playing',
+    })
+    expect(joined.state.games).toHaveLength(1)
+    expect(duplicate.error).toBe('This multiplayer match is not available to join.')
+    expect(duplicate.state.games).toHaveLength(1)
+  })
+
   it('auto-routes a creator into a newly joined lobby without stealing a different active game', () => {
     const waitingLobby = createMultiplayerGame({
       id: 'creator-lobby-1',

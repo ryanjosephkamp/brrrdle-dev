@@ -14,6 +14,7 @@ const liveGame: MultiplayerLiveGameViewModel = {
   mode: 'og',
   modeLabel: 'OG',
   opponentLabel: 'Rival',
+  rankingLabel: 'Ranked',
   ruleLabel: '5 letters · No time limit',
   scope: 'practice',
   scopeLabel: 'Practice Multiplayer',
@@ -32,6 +33,7 @@ const spectatorGame: MultiplayerLiveGameViewModel = {
   mode: 'og',
   modeLabel: 'OG',
   opponentLabel: 'Host vs Rival',
+  rankingLabel: 'Unranked',
   ruleLabel: '5 letters · 5 minutes per side · Hard Mode',
   scope: 'practice',
   scopeLabel: 'Practice Multiplayer',
@@ -83,6 +85,7 @@ describe('MultiplayerLive', () => {
     expect(html).toContain('Practice Multiplayer')
     expect(html).toContain('Resume live game')
     expect(html).toContain('Your turn')
+    expect(html).toContain('Ranked')
     expect(html).toContain('Live')
   })
 
@@ -97,6 +100,7 @@ describe('MultiplayerLive', () => {
     expect(html).not.toContain('aria-label="Hide read-only spectator details')
     expect(html).toContain('Spectator view')
     expect(html).toContain('Read-only')
+    expect(html).toContain('Unranked')
     expect(html).toContain('Host player')
     expect(html).toContain('Rival player')
     expect(html).toContain('Host · Puzzle 1')

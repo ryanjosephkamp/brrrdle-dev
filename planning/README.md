@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. After Phase 32 stabilization and workflow-documentation completion, the next routed planning target is Phase 33 competitive ladder v2 readiness and ranked expansion gates.
+7. The active or next phase plan. After Phase 33 competitive ladder readiness, the next routed planning target is Phase 34 Multiplayer Live/Lobby/notification current-surface stabilization.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -31,7 +31,8 @@ For normal future work, read:
 - `planning/phase-30/`: Phase 30 planning brief, implementation plan, changelog, and deferred ranked-mode routing note for privacy-safe public leaderboards, small Multiplayer Overview cleanup items, and future competitive ladder v2 scope assignment.
 - `planning/phase-31/`: Phase 31 planning brief, implementation plan, and changelog for Practice-only multiplayer postgame actions plus narrow profile, Stats, About, and rating-bucket cleanup items.
 - `planning/phase-32/`: Phase 32 planning brief, implementation plan, changelog, and review checklist for post-Phase-31 multiplayer stabilization, identity routing, global account avatar accent propagation, no-comma rating displays, and explicit rerouting of competitive ladder v2.
-- `planning/phase-33/`: Phase 33 planning brief and implementation plan area for competitive ladder v2 readiness, safe ranked expansion gates, ranked leaderboard polish, and routing of auth/deployment/onboarding observations.
+- `planning/phase-33/`: Phase 33 planning brief, implementation plan, changelog, and review checklist for competitive ladder v2 readiness, canonical five-minute timed ranked Practice, rank bands, public leaderboard cleanup, and routing of auth/deployment/onboarding observations.
+- `planning/phase-34/`: Phase 34 planning brief and implementation plan for Multiplayer Live/Lobby/notification current-surface stabilization, including Live identity labels, Live badge readability, direct Lobby join, and notification direct-resume routing.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
@@ -43,6 +44,7 @@ For normal future work, read:
 - `planning/specs/phase-31/`: Phase 31 multiplayer postgame actions and current-surface cleanup specs.
 - `planning/specs/phase-32/`: Phase 32 multiplayer stabilization, identity routing, and rating display consistency specs.
 - `planning/specs/phase-33/`: Phase 33 competitive ladder v2 readiness specs.
+- `planning/specs/phase-34/`: Phase 34 Multiplayer Live/Lobby/notification stabilization specs.
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.
@@ -51,7 +53,7 @@ For normal future work, read:
 - `planning/skills/`: documentation for brrrdle-specific local Codex workflow skills; the actual skills live under `/Users/noir/.codex/skills/` and are not committed.
 - `planning/testing/`: testing-suite strategy and verification philosophy.
 
-Theme proposal modernization is intentionally deferred until Phase 35, with full concrete theme implementation routed to Phase 36 or later after the post-Phase-31 stabilization and competitive ladder v2 routing changes. Theme materials remain under `themes/proposals/`, outside this `planning/` directory.
+Theme proposal modernization is intentionally deferred until after the current multiplayer, auth/deployment, public/spectator, profile/social, and onboarding readiness phases. Theme materials remain under `themes/proposals/`, outside this `planning/` directory.
 
 ## Planning Rules
 

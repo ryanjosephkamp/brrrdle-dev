@@ -85,6 +85,7 @@ function createDashboard(overrides: Partial<DashboardViewModel> = {}): Dashboard
         mode: 'og',
         modeLabel: 'OG',
         opponentLabel: 'vs Player Two',
+        rankingLabel: 'Unranked',
         ruleLabel: 'No clock',
         scope: 'daily',
         scopeLabel: 'Daily Multiplayer',

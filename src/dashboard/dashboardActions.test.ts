@@ -7,6 +7,10 @@ function createHandlers() {
   const handlers: DashboardActionHandlers = {
     onHistoryFiltersChange: vi.fn((filters) => calls.push(`history:${filters.player}:${filters.scope}:${filters.mode}`)),
     onMultiplayerSubtabChange: vi.fn((subtab) => calls.push(`multiplayer-subtab:${subtab}`)),
+    onResumeMultiplayerGame: vi.fn((id) => {
+      calls.push(`resume:${id}`)
+      return false
+    }),
     onSelectMultiplayerGame: vi.fn((id) => calls.push(`multiplayer-game:${id}`)),
     onSelectRoute: vi.fn((routeId) => calls.push(`route:${routeId}`)),
     onSelectSoloGame: vi.fn((key) => calls.push(`solo-game:${key}`)),
@@ -46,6 +50,41 @@ describe('dispatchDashboardAction', () => {
       'route:multiplayer',
       'multiplayer-subtab:lobby',
       'multiplayer-game:match-1',
+    ])
+  })
+
+  it('uses the direct Multiplayer resume handler before generic fallback routing when available', () => {
+    const { calls, handlers } = createHandlers()
+    vi.mocked(handlers.onResumeMultiplayerGame!).mockImplementation((id) => {
+      calls.push(`resume:${id}`)
+      return true
+    })
+
+    dispatchDashboardAction({
+      multiplayerSubtab: 'active',
+      resumeMultiplayerGameId: 'match-1',
+      routeId: 'multiplayer',
+      selectedMultiplayerGameId: 'match-1',
+    }, handlers)
+
+    expect(calls).toEqual(['resume:match-1'])
+  })
+
+  it('falls back to the target Multiplayer tab when direct resume declines the id', () => {
+    const { calls, handlers } = createHandlers()
+
+    dispatchDashboardAction({
+      multiplayerSubtab: 'active',
+      resumeMultiplayerGameId: 'stale-match',
+      routeId: 'multiplayer',
+      selectedMultiplayerGameId: 'stale-match',
+    }, handlers)
+
+    expect(calls).toEqual([
+      'resume:stale-match',
+      'route:multiplayer',
+      'multiplayer-subtab:active',
+      'multiplayer-game:stale-match',
     ])
   })
 

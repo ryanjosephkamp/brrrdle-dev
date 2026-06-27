@@ -38,4 +38,17 @@ describe('MultiplayerActiveGames', () => {
     expect(html).not.toContain('Selected')
     expect(html).not.toContain('>Select<')
   })
+
+  it('marks games where it is your turn with an accessible visual cue', () => {
+    const html = renderToStaticMarkup(
+      <MultiplayerActiveGames
+        activeGames={[{ ...activeGame, turnLabel: 'Your turn' }]}
+        onResumeGame={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('aria-label="Your turn in this multiplayer game"')
+    expect(html).toContain('Your turn')
+    expect(html).toContain('ring-cyan-200/20')
+  })
 })
