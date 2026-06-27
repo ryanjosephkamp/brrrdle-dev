@@ -202,6 +202,9 @@ Emphasize:
 - all-in-one backup authorization must be explicit in the current prompt;
 - the target repository must be confirmed as `brrrdle-dev`, with the original stable `brrrdle` repository out of scope;
 - GitHub backup means GitHub `main` becomes tree-equivalent to the reviewed local branch after PR merge, not necessarily commit-hash identical after squash merge;
+- after a clean `brrrdle-dev` Git handoff preparation pass, the recommended next prompt should default to explicitly invoking the local `brrrdle-github-backup` skill for the full governed backup workflow when the user is ready for backup;
+- the all-in-one backup prompt should preserve the exact approved staging allowlist, branch name, commit and PR copy, verification evidence, scope boundaries, and forbidden artifact list from handoff preparation;
+- use the older stepwise Git prompt sequence only when the user explicitly requests separate gates, forbids merge or branch cleanup, leaves unresolved review prerequisites, or the handoff preparation reports a blocker;
 - preflight, staging, commit, push, draft PR, ready/merge, post-merge sanity, and branch cleanup are protected actions that must be named in the authorization;
 - local Codex skills under `/Users/noir/.codex/skills/` remain local-only and must not be committed;
 - secret/artifact scans, ignored-artifact checks, visible PR checks, PR metadata checks, and tree-equivalence checks are required stop gates;

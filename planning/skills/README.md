@@ -22,3 +22,4 @@ The actual local skill files are intentionally not committed. They may help Code
 - Do not store secrets, credentials, auth state, tokens, private data, screenshots, videos, traces, or local session artifacts in skill docs.
 - If a skill conflicts with current user instructions or repository governance, follow the higher-authority source and report the conflict.
 - Skills that perform protected actions must require explicit current-prompt authorization before they act.
+- After a clean Git handoff preparation pass, generated backup prompts should normally invoke `brrrdle-github-backup` for the all-in-one governed backup workflow unless the user requests stepwise gates or forbids merge/cleanup.
