@@ -50,7 +50,7 @@ export function PasswordResetModal({
 
   return (
     <Dialog
-      description="Create a new password for the signed-in recovery session."
+      description="Create a new password for this signed-in account."
       isOpen={isOpen}
       onClose={onClose}
       title="Choose a new password"

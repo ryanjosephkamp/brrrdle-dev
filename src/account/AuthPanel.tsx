@@ -90,7 +90,7 @@ export function AuthPanel({
 
       {method === 'magic-link' ? (
         <>
-          <p className="text-xs text-slate-400">We will email you a one-time sign-in link.</p>
+          <p className="text-xs text-slate-400">We will email you a one-time sign-in link for this brrrdle site.</p>
           <Button onClick={() => onSendMagicLink?.(email)} variant="primary">Send magic link</Button>
         </>
       ) : (
@@ -131,7 +131,7 @@ export function AuthPanel({
             ) : null}
           </div>
           <p className="text-xs text-slate-400">
-            Passwords must be at least 8 characters. Email + password auth must be enabled in the Supabase project.
+            Passwords must be at least 8 characters. New accounts may need email confirmation before sign-in.
           </p>
         </>
       )}

@@ -38,6 +38,7 @@ interface SettingsProps {
   readonly onSignOut?: () => void
   readonly onOpenAuthModal?: () => void
   readonly onOpenProfilePanel?: () => void
+  readonly onOpenPasswordChange?: () => void
   readonly soundEnabled?: boolean
   readonly onToggleSound?: (enabled: boolean) => void
   readonly onUpdateSettings?: (patch: Partial<GuestSettingsState>) => void
@@ -56,6 +57,7 @@ export function Settings({
   onSignOut,
   onOpenAuthModal,
   onOpenProfilePanel,
+  onOpenPasswordChange,
   soundEnabled,
   onToggleSound,
   onUpdateSettings,
@@ -318,11 +320,21 @@ export function Settings({
           <Button onClick={onOpenAuthModal} variant="primary">Sign in / Create account</Button>
         </Panel>
       ) : null}
-      {authState.status === 'authenticated' && onOpenProfilePanel ? (
-        <Panel className="space-y-2 text-sm leading-6 text-slate-300" tone="muted">
-          <h3 className="text-xl font-bold text-white">Manage profile</h3>
-          <p>Customize your display name, accent color, and avatar.</p>
-          <Button onClick={onOpenProfilePanel} variant="primary">Manage profile</Button>
+      {authState.status === 'authenticated' && (onOpenProfilePanel || onOpenPasswordChange) ? (
+        <Panel className="space-y-3 text-sm leading-6 text-slate-300" tone="muted">
+          <h3 className="text-xl font-bold text-white">Account management</h3>
+          <p>Profile editing now lives in the Profile tab. Keep Settings for password access and configuration-gated account actions.</p>
+          <div className="flex flex-wrap gap-2">
+            {onOpenProfilePanel ? (
+              <Button onClick={onOpenProfilePanel} variant="primary">Open Profile tab</Button>
+            ) : null}
+            {onOpenPasswordChange ? (
+              <Button onClick={onOpenPasswordChange} variant="secondary">Change password</Button>
+            ) : null}
+          </div>
+          <p className="text-xs text-slate-400">
+            Email changes remain gated until Supabase email confirmation and redirect settings are verified for the deployed site.
+          </p>
         </Panel>
       ) : null}
       <AuthPanel
@@ -371,7 +383,7 @@ export function Settings({
       <Panel className="space-y-2 text-sm leading-6 text-slate-300" tone="muted">
         <h3 className="text-xl font-bold text-white">Danger zone</h3>
         <p>Destructive actions must require typed confirmations: `{RESET_PROGRESS_CONFIRMATION}` for local resets and `{DELETE_ACCOUNT_CONFIRMATION}` for account deletion.</p>
-        <p>Email changes and password resets use Supabase user-management flows when an account is configured.</p>
+        <p>Password changes use the signed-in Supabase account session. Email changes remain gated until confirmation and redirect settings are verified.</p>
       </Panel>
     </section>
   )

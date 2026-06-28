@@ -51,5 +51,5 @@ export async function signInThroughUi(page: Page, user: E2eUser): Promise<void> 
   await page.getByLabel(/email address/i).fill(user.email)
   await page.getByLabel(/^password$/i).fill(user.password)
   await page.getByRole('button', { name: /^sign in$/i }).click()
-  await expect(page.getByRole('button', { name: /open profile for/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: /open profile(?: tab)? for/i })).toBeVisible()
 }

@@ -58,6 +58,21 @@ Deployment checklist:
 4. Deploy from the reviewed and approved `main` branch only after explicit approval.
 5. Confirm the app loads, daily modes remain 5 letters, practice routes load, sharing works after a completed game, and the manifest/service worker are available.
 
+### Auth redirect and deployment-protection checklist
+
+Magic links and password-confirmation links must land on a brrrdle deployment that the player can actually access. If a preview deployment is protected by Vercel Authentication or Deployment Protection, a player can see a Vercel login screen before the brrrdle app or Supabase callback code runs. That is a deployment-access setting, not an in-app brrrdle sign-in screen.
+
+Before public account testing:
+
+1. Confirm the target Vercel deployment is not protected by Vercel Authentication / Deployment Protection for normal players, or test only with users allowed through that protection layer.
+2. Confirm Supabase `Site URL` points at the intended public brrrdle origin.
+3. Confirm Supabase additional redirect URLs include every approved brrrdle origin used for auth testing, including local development, preview, and production origins as applicable.
+4. Confirm magic-link and password-sign-up emails are allowed to redirect back to the same brrrdle origin used by the player.
+5. Confirm password reset links allow the brrrdle reset URL containing `auth_action=reset-password`.
+6. Confirm email-change confirmation behavior and email templates before enabling player-facing email-change UI.
+
+The app now passes a current-origin redirect target for magic-link and password sign-up requests when the browser can safely determine one. That hardens source behavior against Site URL drift, but it cannot bypass Vercel deployment protection or replace the Supabase dashboard allowlist.
+
 ## Protected admin refresh route
 
 `POST /api/admin-refresh` is the protected manual refresh route for deployment environments.

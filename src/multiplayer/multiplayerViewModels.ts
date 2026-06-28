@@ -7,14 +7,17 @@ import {
   hasDailyMultiplayerParticipation,
   normalizeMultiplayerState,
   type MultiplayerGame,
+  type MultiplayerPlayerId,
   type MultiplayerGameStatus,
   type MultiplayerState,
 } from './multiplayer'
 import { normalizeCompetitiveMultiplayerState, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
+import { createMultiplayerProfileSummary, type MultiplayerProfileSummary } from './dailyMultiplayer'
 import type {
   AuthenticatedLiveSpectatorGame,
   AuthenticatedLiveSpectatorMove,
   AuthenticatedLiveSpectatorPlayer,
+  ParticipantIdentitySummaryResult,
 } from './multiplayerRepository'
 import { getMultiplayerPlayerDisplayLabel } from './multiplayerPanelRouting'
 import type { MultiplayerMatchPerformance, MultiplayerPlayerPerformance } from './scoring'
@@ -109,6 +112,26 @@ export interface MultiplayerLiveSpectatorDetailsViewModel {
   readonly terminalLabel?: string
 }
 
+export type MultiplayerParticipantProfileMap = Partial<Record<MultiplayerPlayerId, MultiplayerProfileSummary>>
+export type MultiplayerParticipantProfileMapByGameId = Readonly<Record<string, MultiplayerParticipantProfileMap | undefined>>
+
+export function participantIdentitySummariesToProfileMap(
+  summaries: readonly ParticipantIdentitySummaryResult[],
+): MultiplayerParticipantProfileMap {
+  const entries = summaries.flatMap((summary) => {
+    if (!summary.identityAvailable || !summary.displayName) {
+      return []
+    }
+    return [[summary.seat, createMultiplayerProfileSummary({
+      accentColor: summary.accentColor,
+      avatarUrl: summary.avatarUrl,
+      displayName: summary.displayName,
+      label: summary.displayName,
+    }, summary.displayName)] as const]
+  })
+  return Object.fromEntries(entries) as MultiplayerParticipantProfileMap
+}
+
 export function getMultiplayerModeLabel(mode: GameMode): string {
   return mode.toUpperCase()
 }
@@ -177,18 +200,44 @@ function getRankingLabel(game: { readonly ranked?: boolean }): 'Ranked' | 'Unran
   return game.ranked === true ? 'Ranked' : 'Unranked'
 }
 
-function getOpponentLabel(game: MultiplayerGame, viewerUserId: string | undefined): string {
+function getMergedParticipantProfiles(
+  game: MultiplayerGame,
+  profileOverrides?: MultiplayerParticipantProfileMap,
+): MultiplayerParticipantProfileMap | undefined {
+  if (!game.playerProfiles && !profileOverrides) {
+    return undefined
+  }
+  return {
+    ...game.playerProfiles,
+    ...profileOverrides,
+  }
+}
+
+function getOpponentLabel(
+  game: MultiplayerGame,
+  viewerUserId: string | undefined,
+  profileOverrides?: MultiplayerParticipantProfileMap,
+): string {
   const viewerPlayerId = getViewerMultiplayerPlayerId(game, viewerUserId)
   if (!viewerPlayerId) {
     return game.status === 'waiting' ? 'Open lobby' : 'Participant match'
   }
   const opponentId = viewerPlayerId === 'player-one' ? 'player-two' : 'player-one'
+  const profiles = getMergedParticipantProfiles(game, profileOverrides)
   return game.playerUserIds?.[opponentId]
-    ? getMultiplayerPlayerDisplayLabel(game, opponentId, viewerPlayerId)
+    ? getMultiplayerPlayerDisplayLabel(game, opponentId, viewerPlayerId, profiles)
     : 'Waiting for rival'
 }
 
-function getTurnLabel(game: MultiplayerGame, viewerUserId: string | undefined): string {
+function formatParticipantTurnLabel(label: string): string {
+  return label === 'Rival' ? 'Rival turn' : `${label}'s turn`
+}
+
+function getTurnLabel(
+  game: MultiplayerGame,
+  viewerUserId: string | undefined,
+  profileOverrides?: MultiplayerParticipantProfileMap,
+): string {
   if (game.status === 'waiting') {
     return 'Waiting for rival'
   }
@@ -199,33 +248,45 @@ function getTurnLabel(game: MultiplayerGame, viewerUserId: string | undefined): 
   if (!viewerPlayerId) {
     return `${game.players.find((player) => player.id === game.currentTurn)?.label ?? game.currentTurn}'s turn`
   }
-  return game.currentTurn === viewerPlayerId ? 'Your turn' : 'Rival turn'
+  if (game.currentTurn === viewerPlayerId) {
+    return 'Your turn'
+  }
+  const profiles = getMergedParticipantProfiles(game, profileOverrides)
+  return formatParticipantTurnLabel(getMultiplayerPlayerDisplayLabel(game, game.currentTurn, viewerPlayerId, profiles))
 }
 
-function getActiveDetailLabel(game: MultiplayerGame, viewerUserId: string | undefined): string {
+function getActiveDetailLabel(
+  game: MultiplayerGame,
+  viewerUserId: string | undefined,
+  profileOverrides?: MultiplayerParticipantProfileMap,
+): string {
   const moves = `${game.moves.length} ${game.moves.length === 1 ? 'turn' : 'turns'} submitted`
-  return `${getTurnLabel(game, viewerUserId)} · ${moves}`
+  return `${getTurnLabel(game, viewerUserId, profileOverrides)} · ${moves}`
 }
 
-function toActiveGameViewModel(game: MultiplayerGame, viewerUserId: string | undefined): MultiplayerActiveGameViewModel {
+function toActiveGameViewModel(
+  game: MultiplayerGame,
+  viewerUserId: string | undefined,
+  profileOverrides?: MultiplayerParticipantProfileMap,
+): MultiplayerActiveGameViewModel {
   const viewerPlayerId = getViewerMultiplayerPlayerId(game, viewerUserId)
   const isViewerParticipant = Boolean(viewerPlayerId)
   return {
     actionLabel: isViewerParticipant || !viewerUserId ? 'Resume' : 'Open',
     canResume: isViewerParticipant || !viewerUserId,
-    detailLabel: getActiveDetailLabel(game, viewerUserId),
+    detailLabel: getActiveDetailLabel(game, viewerUserId, profileOverrides),
     id: game.id,
     isViewerParticipant,
     mode: game.mode,
     modeLabel: getMultiplayerModeLabel(game.mode),
-    opponentLabel: getOpponentLabel(game, viewerUserId),
+    opponentLabel: getOpponentLabel(game, viewerUserId, profileOverrides),
     ruleLabel: getGameRuleLabel(game),
     scope: game.scope,
     scopeLabel: getMultiplayerScopeLabel(game.scope),
     status: game.status,
     statusLabel: getStatusLabel(game.status),
     title: getGameTitle(game),
-    turnLabel: getTurnLabel(game, viewerUserId),
+    turnLabel: getTurnLabel(game, viewerUserId, profileOverrides),
     updatedAt: game.updatedAt,
   }
 }
@@ -239,8 +300,12 @@ export function selectActiveMultiplayerGameRows(
     .map((game) => toActiveGameViewModel(game, viewerUserId))
 }
 
-function toLiveGameViewModel(game: MultiplayerGame, viewerUserId: string): MultiplayerLiveGameViewModel {
-  const active = toActiveGameViewModel(game, viewerUserId)
+function toLiveGameViewModel(
+  game: MultiplayerGame,
+  viewerUserId: string,
+  profileOverrides?: MultiplayerParticipantProfileMap,
+): MultiplayerLiveGameViewModel {
+  const active = toActiveGameViewModel(game, viewerUserId, profileOverrides)
   return {
     actionLabel: 'Resume live game',
     canResume: true,
@@ -351,6 +416,7 @@ export function selectLiveMultiplayerRows(
   state: MultiplayerState | undefined,
   viewerUserId?: string,
   spectatorRows: readonly AuthenticatedLiveSpectatorGame[] = [],
+  participantProfilesByGameId: MultiplayerParticipantProfileMapByGameId = {},
 ): readonly MultiplayerLiveGameViewModel[] {
   if (!viewerUserId) {
     return []
@@ -359,7 +425,7 @@ export function selectLiveMultiplayerRows(
   const participantRows = normalizeMultiplayerState(state).games
     .filter((game) => game.status === 'playing')
     .filter((game) => Boolean(getViewerMultiplayerPlayerId(game, viewerUserId)))
-    .map((game) => toLiveGameViewModel(game, viewerUserId))
+    .map((game) => toLiveGameViewModel(game, viewerUserId, participantProfilesByGameId[game.id]))
   const participantIds = new Set(participantRows.map((row) => row.id))
   const readOnlySpectatorRows = spectatorRows
     .filter((row) => !participantIds.has(row.id))

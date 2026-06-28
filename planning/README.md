@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. After Phase 33 competitive ladder readiness, the next routed planning target is Phase 34 Multiplayer Live/Lobby/notification current-surface stabilization.
+7. The active or next phase plan. After Phase 34 Multiplayer Live/Lobby/notification stabilization, the next routed planning target is Phase 35 Live ranked identity repair plus auth, deployment, account-management, and Profile tab readiness.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -32,7 +32,8 @@ For normal future work, read:
 - `planning/phase-31/`: Phase 31 planning brief, implementation plan, and changelog for Practice-only multiplayer postgame actions plus narrow profile, Stats, About, and rating-bucket cleanup items.
 - `planning/phase-32/`: Phase 32 planning brief, implementation plan, changelog, and review checklist for post-Phase-31 multiplayer stabilization, identity routing, global account avatar accent propagation, no-comma rating displays, and explicit rerouting of competitive ladder v2.
 - `planning/phase-33/`: Phase 33 planning brief, implementation plan, changelog, and review checklist for competitive ladder v2 readiness, canonical five-minute timed ranked Practice, rank bands, public leaderboard cleanup, and routing of auth/deployment/onboarding observations.
-- `planning/phase-34/`: Phase 34 planning brief and implementation plan for Multiplayer Live/Lobby/notification current-surface stabilization, including Live identity labels, Live badge readability, direct Lobby join, and notification direct-resume routing.
+- `planning/phase-34/`: Phase 34 planning brief, implementation plan, changelog, and review checklist for Multiplayer Live/Lobby/notification current-surface stabilization, including Live identity labels, Live badge readability, direct Lobby join, notification direct-resume routing, and Active Games turn cues.
+- `planning/phase-35/`: Phase 35 planning brief and implementation plan for persistent ranked Live safe-name repair plus auth, deployment, account-management, Settings/Danger Zone, and Profile tab readiness.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
@@ -45,6 +46,7 @@ For normal future work, read:
 - `planning/specs/phase-32/`: Phase 32 multiplayer stabilization, identity routing, and rating display consistency specs.
 - `planning/specs/phase-33/`: Phase 33 competitive ladder v2 readiness specs.
 - `planning/specs/phase-34/`: Phase 34 Multiplayer Live/Lobby/notification stabilization specs.
+- `planning/specs/phase-35/`: Phase 35 Live identity, auth/deployment, account-management, and Profile tab readiness specs.
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.

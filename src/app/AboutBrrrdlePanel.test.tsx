@@ -8,7 +8,9 @@ describe('AboutBrrrdlePanel', () => {
 
     expect(html).toContain(`id="${RANKED_ELO_ABOUT_SECTION_ID}"`)
     expect(html).toContain('How Elo is calculated')
-    expect(html).toContain('Ranked Practice v1 is signed-in, untimed Practice only')
+    expect(html).toContain('Ranked Practice is signed-in Practice only')
+    expect(html).toContain('canonical five-minute timed ranked use separate rating buckets')
+    expect(html).not.toContain('timed Practice ranked remain deferred')
     expect(html).toContain('Every bucket starts at 1200')
     expect(html).toContain('K is the rating-movement multiplier')
     expect(html).toContain('first 10 ranked Practice games')
@@ -20,5 +22,6 @@ describe('AboutBrrrdlePanel', () => {
     expect(html).toContain('Wins count as 1, draws count as 0.5, and losses count as 0')
     expect(html).toContain('Match points decide the match result first')
     expect(html).toContain('trusted settlement confirms durable ranked Practice evidence')
+    expect(html).toContain('unsupported timed Practice games')
   })
 })

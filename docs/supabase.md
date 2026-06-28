@@ -117,6 +117,14 @@ This migration keeps browser authority on authenticated RPC seams and adds SQL/R
 
 Timed ranked public and RPC payloads must continue to avoid raw auth emails, raw auth ids, private profile metadata, private progress, answers, seeds, sessions, raw game projections beyond trusted participant RPC needs, queue internals beyond existing participant context, rating transaction ids, settlement ids, service ids, tokens, local/session artifacts, and unapproved public/guest spectator data. The migration does not change Elo math, gameplay rules, match-points semantics, Daily Multiplayer claims, public leaderboard authority, or public profile privacy.
 
+Phase 35 ranked Live identity SQL/RLS repair uses the additive migration:
+
+- `supabase/migrations/20260627230835_phase35_ranked_live_identity_spectator_profiles.sql`
+
+This migration keeps the authenticated-only `get_authenticated_live_v1_spectator_games_v2` RPC signature and returned table shape intact while changing spectator player profile resolution to use `async_multiplayer_games.player_one_user_id` and `player_two_user_id` joined to active public profiles. It returns only existing Live spectator safe profile fields (`displayName`, `avatarUrl`, `accentColor`, and optional derived `initials`) and keeps generic seat labels when active public identity is unavailable. It preserves participant-only identity RPC boundaries, public/guest spectation deferral, current Daily exclusion, bounded terminal hold rows, and read-only spectator capabilities.
+
+The Phase 35 migration does not grant direct table access, does not expose public profile ids in Live spectator payloads, and does not expose raw auth ids, emails, private profile fields, answers, seeds, sessions, raw projections, queue internals, rating internals, service ids, tokens, or local/session artifacts. App source repair and UI behavior remain separate Phase 35 source work after migration verification.
+
 For the Phase 23 Stage 3 online-multiplayer stabilization, also apply `supabase/migrations/20260604050824_phase23_online_multiplayer_fixes.sql` after the live and competitive migrations. It creates:
 
 - `async_multiplayer_games`
@@ -150,6 +158,20 @@ Implemented account features include:
 - Settings UI that shows unconfigured, anonymous, or signed-in states.
 
 Account-backed sync and Multiplayer require a real Supabase project, applied migrations, configured environment variables, and email/auth settings in Supabase.
+
+### Auth redirects and account management
+
+The browser app sends magic-link and password sign-up requests with a current-origin redirect target when it can safely determine the current app origin. Password reset requests use an explicit reset URL that includes `auth_action=reset-password`; the app detects that marker and opens the password reset modal for the signed-in recovery session.
+
+Supabase dashboard configuration must still be checked outside the repository:
+
+1. Set the Supabase `Site URL` to the intended public brrrdle origin.
+2. Add every approved brrrdle origin used for auth flows to the allowed redirect URLs, including local development, preview, and production origins as applicable.
+3. Confirm password reset links allow the `auth_action=reset-password` callback URL.
+4. Confirm email confirmation is enabled or disabled intentionally, and keep player-facing copy aligned with that choice.
+5. Confirm email-change confirmation behavior, redirect URLs, and email templates before enabling player-facing email-change UI.
+
+Signed-in players can change their password from Settings using the existing Supabase account session. Email-change UI remains gated until the Supabase confirmation and redirect settings above are verified; the app should not promise that a source-only change can deliver or confirm email changes without that configuration.
 
 ## Admin role assignment
 

@@ -12,12 +12,14 @@ import {
 } from './competitiveMultiplayer'
 import type { AuthenticatedLiveSpectatorGame } from './multiplayerRepository'
 import {
+  participantIdentitySummariesToProfileMap,
   selectActiveMultiplayerGameRows,
   selectLiveMultiplayerRows,
   selectMultiplayerLobbyRows,
   selectRecentMultiplayerResults,
   selectRestrictedLiveMultiplayerCount,
 } from './multiplayerViewModels'
+import type { ParticipantIdentitySummaryResult } from './multiplayerRepository'
 
 const authenticatedHost: AuthState = {
   status: 'authenticated',
@@ -331,6 +333,107 @@ describe('multiplayer view models', () => {
     })
   })
 
+  it('hydrates ranked participant Live labels from participant identity summaries for both seats', () => {
+    const rankedGame = createMultiplayerGame({
+      createdAt: '2026-06-27T20:53:00.000Z',
+      id: 'ranked-live-identity-game',
+      mode: 'go',
+      playerProfiles: {
+        'player-two': { displayName: 'kiki', initials: 'K', label: 'kiki' },
+      },
+      playerUserIds: { 'player-one': 'claudine-user', 'player-two': 'kiki-user' },
+      ranked: true,
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const staleRankedGame = {
+      ...rankedGame,
+      players: rankedGame.players.map((player) => player.id === 'player-one' ? { ...player, label: 'You' } : player),
+    }
+    const profiles = participantIdentitySummariesToProfileMap([
+      {
+        accentColor: 'aurora',
+        avatarUrl: 'https://example.test/claudine.webp',
+        displayName: 'claudine',
+        identityAvailable: true,
+        isViewer: false,
+        publicProfileId: 'public-profile-id-should-not-surface',
+        seat: 'player-one',
+        updatedAt: '2026-06-27T20:50:00.000Z',
+      },
+      {
+        accentColor: 'ice',
+        avatarUrl: 'https://example.test/kiki.webp',
+        displayName: 'kiki',
+        flairKey: 'spark',
+        identityAvailable: true,
+        isViewer: true,
+        publicProfileId: 'other-public-profile-id-should-not-surface',
+        seat: 'player-two',
+        updatedAt: '2026-06-27T20:50:00.000Z',
+      },
+    ] satisfies readonly ParticipantIdentitySummaryResult[])
+
+    const joinedViewerRows = selectLiveMultiplayerRows(
+      { games: [staleRankedGame] },
+      'kiki-user',
+      [],
+      { [rankedGame.id]: profiles },
+    )
+    const creatorViewerRows = selectLiveMultiplayerRows(
+      { games: [staleRankedGame] },
+      'claudine-user',
+      [],
+      { [rankedGame.id]: profiles },
+    )
+
+    expect(joinedViewerRows[0]).toMatchObject({
+      detailLabel: "claudine's turn · 0 turns submitted",
+      opponentLabel: 'claudine',
+      rankingLabel: 'Ranked',
+      turnLabel: "claudine's turn",
+    })
+    expect(creatorViewerRows[0]).toMatchObject({
+      opponentLabel: 'kiki',
+      rankingLabel: 'Ranked',
+      turnLabel: 'Your turn',
+    })
+    expect(JSON.stringify(joinedViewerRows[0])).not.toContain('public-profile-id')
+    expect(JSON.stringify(joinedViewerRows[0])).not.toContain('flairKey')
+  })
+
+  it('keeps participant identity summary maps limited to safe display profile fields', () => {
+    const profiles = participantIdentitySummariesToProfileMap([
+      {
+        accentColor: 'aurora',
+        avatarUrl: 'https://example.test/claudine.webp',
+        displayName: 'claudine',
+        flairKey: 'spark',
+        identityAvailable: true,
+        isViewer: true,
+        publicProfileId: 'profile-id-not-for-live-card',
+        seat: 'player-one',
+        updatedAt: '2026-06-27T20:50:00.000Z',
+      },
+      {
+        identityAvailable: false,
+        isViewer: false,
+        seat: 'player-two',
+      },
+    ] satisfies readonly ParticipantIdentitySummaryResult[])
+
+    expect(profiles['player-one']).toMatchObject({
+      accentColor: 'aurora',
+      avatarUrl: 'https://example.test/claudine.webp',
+      displayName: 'claudine',
+      label: 'claudine',
+    })
+    expect(profiles['player-one']).not.toHaveProperty('publicProfileId')
+    expect(profiles['player-one']).not.toHaveProperty('flairKey')
+    expect(profiles['player-one']).not.toHaveProperty('isViewer')
+    expect(profiles['player-two']).toBeUndefined()
+  })
+
   it('projects authenticated spectator RPC rows as read-only Live v1 rows', () => {
     const participant = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
@@ -371,6 +474,47 @@ describe('multiplayer view models', () => {
     expect(selectRestrictedLiveMultiplayerCount({
       games: [participant, { ...matchingRestricted, id: spectatorGame.id }],
     }, 'host-user', [spectatorGame])).toBe(0)
+  })
+
+  it('prefers Stage 35 spectator profile names for ranked Live rows without raw identity fields', () => {
+    const rows = selectLiveMultiplayerRows({ games: [] }, 'spectator-user', [{
+      ...spectatorGame,
+      currentTurnSeat: 'player-two',
+      players: [
+        {
+          label: 'Player one',
+          profile: {
+            accentColor: 'aurora',
+            avatarUrl: 'https://example.test/claudine.webp',
+            displayName: 'claudine',
+            initials: 'C',
+          },
+          seat: 'player-one',
+        },
+        {
+          label: 'Rival',
+          profile: {
+            accentColor: 'ice',
+            avatarUrl: 'https://example.test/kiki.webp',
+            displayName: 'kiki',
+            initials: 'K',
+          },
+          seat: 'player-two',
+        },
+      ],
+      ranked: true,
+      ratingBucket: 'async:go',
+    }])
+
+    expect(rows[0]).toMatchObject({
+      opponentLabel: 'claudine vs kiki',
+      rankingLabel: 'Ranked',
+      turnLabel: "kiki's turn",
+    })
+    expect(rows[0].spectatorDetails?.players.map((player) => player.profile?.displayName)).toEqual(['claudine', 'kiki'])
+    expect(JSON.stringify(rows[0])).not.toContain('publicProfileId')
+    expect(JSON.stringify(rows[0])).not.toContain('userId')
+    expect(JSON.stringify(rows[0])).not.toContain('email')
   })
 
   it('keeps spectator Live matchup labels on safe fallbacks when profile names are unavailable', () => {

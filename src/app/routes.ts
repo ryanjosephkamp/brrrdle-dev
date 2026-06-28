@@ -1,6 +1,6 @@
 import type { GameMode, PlayScope } from '../game/types'
 
-export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'word-explorer' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'about' | 'admin'
+export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'word-explorer' | 'profile' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'about' | 'admin'
 
 export interface AppRoute {
   readonly id: AppRouteId
@@ -94,6 +94,13 @@ export const APP_ROUTES = [
     navigationGroup: 'support',
   },
   {
+    id: 'profile',
+    label: 'Profile',
+    shortLabel: 'Profile',
+    description: 'Manage your current-player private and public profile settings.',
+    navigationGroup: 'support',
+  },
+  {
     id: 'definitions',
     label: 'Definitions',
     shortLabel: 'Defs',
@@ -146,6 +153,7 @@ export const PRIMARY_NAVIGATION_ROUTE_IDS = [
   'history',
   'stats',
   'word-explorer',
+  'profile',
   'settings',
   'feedback',
   'about',

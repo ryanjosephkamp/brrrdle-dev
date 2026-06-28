@@ -109,7 +109,11 @@ export async function getCurrentAuthState(client: BrrrdleSupabaseClient | undefi
 
 export async function sendMagicLink(client: BrrrdleSupabaseClient, email: string): Promise<{ readonly ok: true } | { readonly message: string; readonly ok: false }> {
   const normalizedEmail = email.trim().toLocaleLowerCase('en-US')
-  const { error } = await client.auth.signInWithOtp({ email: normalizedEmail })
+  const emailRedirectTo = getCurrentOriginRedirectTo()
+  const { error } = await client.auth.signInWithOtp({
+    email: normalizedEmail,
+    ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
+  })
   return error ? { message: error.message, ok: false } : { ok: true }
 }
 
@@ -142,7 +146,12 @@ export async function signUpWithPassword(
   if (password.length < 8) {
     return { message: 'Password must be at least 8 characters.', ok: false }
   }
-  const { error } = await client.auth.signUp({ email: normalizedEmail, password })
+  const emailRedirectTo = getCurrentOriginRedirectTo()
+  const { error } = await client.auth.signUp({
+    email: normalizedEmail,
+    password,
+    ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
+  })
   if (error) {
     return { message: authFailureMessage('sign-up'), ok: false }
   }
@@ -278,6 +287,11 @@ function getRedirectOrigin(): string | undefined {
     return undefined
   }
   return window.location.origin
+}
+
+function getCurrentOriginRedirectTo(): string | undefined {
+  const origin = getRedirectOrigin()
+  return origin && origin !== 'null' ? origin : undefined
 }
 
 function getPasswordResetRedirectTo(): string | undefined {

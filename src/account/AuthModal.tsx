@@ -126,8 +126,8 @@ export function AuthModal({
 
   const statusMessage = validationError
     ?? authMessage
-    ?? (magicLinkSent ? 'Magic link sent. Check your email.' : undefined)
-    ?? (resetSent ? 'Check your email for a reset link.' : undefined)
+    ?? (magicLinkSent ? 'Magic link sent. Open the link in this same browser to finish signing in.' : undefined)
+    ?? (resetSent ? 'Check your email for a password reset link.' : undefined)
 
   return (
     <Dialog
@@ -217,11 +217,11 @@ export function AuthModal({
               </label>
 
               <p className="text-xs text-slate-400">
-                Passwords must be at least 8 characters. Email + password auth must be enabled in the Supabase project.
+                Passwords must be at least 8 characters. New accounts may need email confirmation before sign-in.
               </p>
             </>
           ) : (
-            <p className="text-xs text-slate-400">We will email you a one-time sign-in link.</p>
+            <p className="text-xs text-slate-400">We will email you a one-time sign-in link for this brrrdle site.</p>
           )}
 
           <div className="flex flex-wrap items-center gap-2">

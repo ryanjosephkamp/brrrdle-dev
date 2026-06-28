@@ -10,7 +10,7 @@ import {
   submitGuessWithKeyboard,
   waitForTurn,
 } from '../fixtures/gameActions'
-import { waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
+import { upsertPublicProfileForUser, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createE2eUser, createRunId, signInThroughUi, type E2eUser } from '../fixtures/testUsers'
 
 interface BrowserSeat {
@@ -96,6 +96,10 @@ test.describe('Live v1 spectator @multiplayer', () => {
       const host = await createSignedInSeat(browser, 'host', runId)
       const rival = await createSignedInSeat(browser, 'rival', runId)
       seats.push(host, rival)
+      await Promise.all([
+        upsertPublicProfileForUser(host.user, 'cyan'),
+        upsertPublicProfileForUser(rival.user, 'rose'),
+      ])
 
       await navigateToPracticeMultiplayer(host.page)
       await openMultiplayerMatch(host.page)

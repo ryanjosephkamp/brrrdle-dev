@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { ProfilePanel } from './ProfilePanel'
+import { ProfileEditor, ProfilePanel } from './ProfilePanel'
 import type { AuthState } from './auth'
 
 function noop() {}
@@ -120,5 +120,32 @@ describe('ProfilePanel', () => {
     expect(html).toContain('from-sky-400 to-cyan-700')
     expect(html).toContain('123e4567-e89b-42d3-a456-426614174000')
     expect(html).toContain('Save public profile')
+  })
+
+  it('renders the reusable route editor without modal-only cancel chrome', () => {
+    const html = renderToStaticMarkup(
+      <ProfileEditor
+        authState={authState}
+        onSave={noop}
+        onSavePublicProfile={noop}
+        onSignOut={noop}
+        publicProfile={{
+          accentColor: 'ice',
+          createdAt: '2026-06-21T00:00:00.000Z',
+          displayName: 'Route Ada',
+          flairKey: 'none',
+          moderationStatus: 'active',
+          publicProfileId: '123e4567-e89b-42d3-a456-426614174001',
+          updatedAt: '2026-06-21T00:01:00.000Z',
+          visibility: 'private',
+        }}
+      />,
+    )
+
+    expect(html).toContain('Signed in as')
+    expect(html).toContain('Route Ada')
+    expect(html).toContain('Save public profile')
+    expect(html).toContain('Sign out')
+    expect(html).not.toContain('Cancel')
   })
 })

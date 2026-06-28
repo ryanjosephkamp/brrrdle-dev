@@ -46,7 +46,7 @@ describe('AccountBadge', () => {
     )
     expect(html).toContain('Ada Lovelace')
     expect(html).toContain('AL')
-    expect(html).toMatch(/aria-label="Open profile for Ada Lovelace"/)
+    expect(html).toMatch(/aria-label="Open Profile tab for Ada Lovelace"/)
   })
 
   it('uses the saved private accent color for the signed-in avatar', () => {
@@ -86,6 +86,6 @@ describe('AccountBadge', () => {
       />,
     )
     // The badge falls back to label='Account' when no profile is present.
-    expect(html).toMatch(/aria-label="Open profile for/)
+    expect(html).toMatch(/aria-label="Open Profile tab for/)
   })
 })

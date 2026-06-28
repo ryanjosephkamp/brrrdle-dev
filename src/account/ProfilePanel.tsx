@@ -24,12 +24,13 @@ import {
   type PublicProfileVisibility,
 } from './publicProfile'
 
-interface ProfilePanelProps {
+interface ProfileEditorProps {
+  readonly active?: boolean
   readonly authState: AuthState
-  readonly isOpen: boolean
-  readonly onClose: () => void
+  readonly cancelLabel?: string
   readonly onSave: (input: { readonly displayName?: string; readonly accentColor?: ProfileAccentColor; readonly avatarUrl?: string }) => Promise<void> | void
   readonly onSavePublicProfile?: (input: PublicProfileUpdateInput) => Promise<void> | void
+  readonly onCancel?: () => void
   readonly onSignOut: () => void
   readonly publicProfile?: OwnerPublicProfile
   readonly publicProfileBusy?: boolean
@@ -37,6 +38,11 @@ interface ProfilePanelProps {
   readonly supabaseClient?: BrrrdleSupabaseClient
   readonly statusMessage?: string
   readonly busy?: boolean
+}
+
+interface ProfilePanelProps extends Omit<ProfileEditorProps, 'active' | 'cancelLabel' | 'onCancel'> {
+  readonly isOpen: boolean
+  readonly onClose: () => void
 }
 
 const ACCENT_SWATCHES: Record<ProfileAccentColor, string> = {
@@ -58,10 +64,11 @@ const ACCENT_SWATCHES: Record<ProfileAccentColor, string> = {
  * named `avatars`; if it isn't present, the upload affordance is hidden and
  * everything else continues to work.
  */
-export function ProfilePanel({
+export function ProfileEditor({
+  active = true,
   authState,
-  isOpen,
-  onClose,
+  cancelLabel = 'Cancel',
+  onCancel,
   onSave,
   onSavePublicProfile,
   onSignOut,
@@ -71,7 +78,7 @@ export function ProfilePanel({
   supabaseClient,
   statusMessage,
   busy,
-}: ProfilePanelProps) {
+}: ProfileEditorProps) {
   const profile = authState.user?.profile
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '')
   const [accentColor, setAccentColor] = useState<ProfileAccentColor>(profile?.accentColor ?? DEFAULT_PROFILE_ACCENT_COLOR)
@@ -89,35 +96,35 @@ export function ProfilePanel({
   // compare-and-update-during-render idiom recommended by React 19's lint rules
   // (avoids setState-in-useEffect cascades).
   const [hydratedKey, setHydratedKey] = useState<string | undefined>(undefined)
-  const profileKey = isOpen ? `${profile?.displayName ?? ''}|${profile?.accentColor ?? ''}|${profile?.avatarUrl ?? ''}` : undefined
-  if (isOpen && hydratedKey !== profileKey) {
+  const profileKey = active ? `${profile?.displayName ?? ''}|${profile?.accentColor ?? ''}|${profile?.avatarUrl ?? ''}` : undefined
+  if (active && hydratedKey !== profileKey) {
     setHydratedKey(profileKey)
     setDisplayName(profile?.displayName ?? '')
     setAccentColor(profile?.accentColor ?? DEFAULT_PROFILE_ACCENT_COLOR)
     setAvatarUrl(profile?.avatarUrl)
     setLocalError(undefined)
-  } else if (!isOpen && hydratedKey !== undefined) {
+  } else if (!active && hydratedKey !== undefined) {
     setHydratedKey(undefined)
   }
 
   const [publicHydratedKey, setPublicHydratedKey] = useState<string | undefined>(undefined)
-  const publicProfileKey = isOpen
+  const publicProfileKey = active
     ? `${publicProfile?.publicProfileId ?? 'new'}|${publicProfile?.displayName ?? ''}|${publicProfile?.accentColor ?? ''}|${publicProfile?.avatarUrl ?? ''}|${publicProfile?.bio ?? ''}|${publicProfile?.visibility ?? ''}`
     : undefined
-  if (isOpen && publicHydratedKey !== publicProfileKey) {
+  if (active && publicHydratedKey !== publicProfileKey) {
     setPublicHydratedKey(publicProfileKey)
     setPublicDisplayName(publicProfile?.displayName ?? '')
     setPublicAccentColor(publicProfile?.accentColor ?? DEFAULT_PROFILE_ACCENT_COLOR)
     setPublicAvatarUrl(publicProfile?.avatarUrl ?? '')
     setPublicBio(publicProfile?.bio ?? '')
     setPublicVisibility(publicProfile?.visibility ?? 'private')
-  } else if (!isOpen && publicHydratedKey !== undefined) {
+  } else if (!active && publicHydratedKey !== undefined) {
     setPublicHydratedKey(undefined)
   }
 
   // Probe Storage exactly once per supabase client (and only while open).
   const [storageProbeKey, setStorageProbeKey] = useState<string | undefined>(undefined)
-  const desiredProbeKey = isOpen && supabaseClient ? 'open' : undefined
+  const desiredProbeKey = active && supabaseClient ? 'active' : undefined
   if (desiredProbeKey !== storageProbeKey) {
     setStorageProbeKey(desiredProbeKey)
     if (!desiredProbeKey) {
@@ -125,7 +132,7 @@ export function ProfilePanel({
     }
   }
   useEffect(() => {
-    if (!isOpen || !supabaseClient) {
+    if (!active || !supabaseClient) {
       return
     }
     let cancelled = false
@@ -135,7 +142,7 @@ export function ProfilePanel({
       }
     })
     return () => { cancelled = true }
-  }, [isOpen, supabaseClient])
+  }, [active, supabaseClient])
 
   async function handleFile(file: File) {
     setLocalError(undefined)
@@ -201,12 +208,6 @@ export function ProfilePanel({
   const publicAvatarPreviewUrl = publicAvatarUrl.trim().startsWith('https://') ? publicAvatarUrl.trim() : undefined
 
   return (
-    <Dialog
-      description="Customize how you appear in brrrdle. Saved to your account."
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Your profile"
-    >
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <span
@@ -289,7 +290,9 @@ export function ProfilePanel({
 
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={handleSave} variant="primary" disabled={busy || uploading}>Save</Button>
-          <Button onClick={onClose} variant="ghost">Cancel</Button>
+          {onCancel ? (
+            <Button onClick={onCancel} variant="ghost">{cancelLabel}</Button>
+          ) : null}
           <Button onClick={onSignOut} variant="secondary">Sign out</Button>
         </div>
 
@@ -418,6 +421,44 @@ export function ProfilePanel({
           </div>
         ) : null}
       </div>
+  )
+}
+
+export function ProfilePanel({
+  authState,
+  isOpen,
+  onClose,
+  onSave,
+  onSavePublicProfile,
+  onSignOut,
+  publicProfile,
+  publicProfileBusy,
+  publicProfileStatusMessage,
+  supabaseClient,
+  statusMessage,
+  busy,
+}: ProfilePanelProps) {
+  return (
+    <Dialog
+      description="Customize how you appear in brrrdle. Saved to your account."
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Your profile"
+    >
+      <ProfileEditor
+        active={isOpen}
+        authState={authState}
+        busy={busy}
+        onCancel={onClose}
+        onSave={onSave}
+        onSavePublicProfile={onSavePublicProfile}
+        onSignOut={onSignOut}
+        publicProfile={publicProfile}
+        publicProfileBusy={publicProfileBusy}
+        publicProfileStatusMessage={publicProfileStatusMessage}
+        statusMessage={statusMessage}
+        supabaseClient={supabaseClient}
+      />
     </Dialog>
   )
 }
