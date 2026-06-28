@@ -12,7 +12,7 @@ interface AccountBadgeProps {
  * Phase 15.3 — Global signed-in / guest indicator.
  *
  * Renders one of three states on every route:
- *   - authenticated → avatar + display name / email; click → ProfilePanel
+ *   - authenticated → avatar + display name / email; click → Profile tab
  *   - anonymous     → "Guest" pill + "Sign in to sync"; click → AuthModal
  *   - unconfigured  → "Guest (sync unavailable)" disabled button with tooltip
  */
@@ -27,7 +27,7 @@ export function AccountBadge({ authState, onOpenAuthModal, onOpenProfile }: Acco
       <button
         type="button"
         onClick={onOpenProfile}
-        aria-label={`Open profile for ${label}`}
+        aria-label={`Open Profile tab for ${label}`}
         className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-slate-950/75 px-2 py-1 text-sm text-slate-100 shadow-inner shadow-white/5 transition hover:border-[var(--color-ice-300)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
       >
         <span

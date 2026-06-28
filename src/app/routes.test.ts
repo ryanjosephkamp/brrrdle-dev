@@ -16,7 +16,7 @@ describe('APP_ROUTES', () => {
 
   it('includes minimal play and support navigation groups', () => {
     expect(getRoutesByGroup('play').map((route) => route.id)).toEqual(['home', 'solo', 'calendar', 'og-daily', 'go-daily', 'practice', 'multiplayer'])
-    expect(getRoutesByGroup('support').map((route) => route.id)).toEqual(['history', 'word-explorer', 'definitions', 'stats', 'settings', 'feedback', 'about', 'admin'])
+    expect(getRoutesByGroup('support').map((route) => route.id)).toEqual(['history', 'word-explorer', 'profile', 'definitions', 'stats', 'settings', 'feedback', 'about', 'admin'])
   })
 
   it('keeps hidden compatibility routes out of primary navigation while promoting multiplayer', () => {
@@ -40,6 +40,7 @@ describe('APP_ROUTES', () => {
       'history',
       'stats',
       'word-explorer',
+      'profile',
       'settings',
       'feedback',
       'about',
@@ -51,6 +52,7 @@ describe('APP_ROUTES', () => {
       'history',
       'stats',
       'word-explorer',
+      'profile',
       'settings',
       'feedback',
       'about',

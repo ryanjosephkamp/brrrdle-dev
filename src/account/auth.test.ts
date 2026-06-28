@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   isAdminUser,
+  sendMagicLink,
   signInWithPassword,
   signOut,
   signUpWithPassword,
@@ -14,6 +15,7 @@ function makeClient(overrides: Record<string, unknown> = {}): BrrrdleSupabaseCli
   return {
     auth: {
       signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
       signUp: vi.fn().mockResolvedValue({ error: null }),
       onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
@@ -23,6 +25,39 @@ function makeClient(overrides: Record<string, unknown> = {}): BrrrdleSupabaseCli
     },
   } as unknown as BrrrdleSupabaseClient
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('sendMagicLink', () => {
+  it('lowercases email and passes a current-origin redirect target in the browser', async () => {
+    vi.stubGlobal('window', {
+      location: {
+        origin: 'https://preview.brrrdle.app',
+      },
+    })
+    const signInWithOtp = vi.fn().mockResolvedValue({ error: null })
+    const client = makeClient({ signInWithOtp })
+
+    const result = await sendMagicLink(client, 'Player@One.Example')
+
+    expect(signInWithOtp).toHaveBeenCalledWith({
+      email: 'player@one.example',
+      options: { emailRedirectTo: 'https://preview.brrrdle.app' },
+    })
+    expect(result).toEqual({ ok: true })
+  })
+
+  it('omits redirect options outside the browser', async () => {
+    const signInWithOtp = vi.fn().mockResolvedValue({ error: null })
+    const client = makeClient({ signInWithOtp })
+
+    await sendMagicLink(client, 'player@example.com')
+
+    expect(signInWithOtp).toHaveBeenCalledWith({ email: 'player@example.com' })
+  })
+})
 
 describe('signInWithPassword', () => {
   it('rejects empty credentials without calling Supabase', async () => {
@@ -90,6 +125,23 @@ describe('signUpWithPassword', () => {
     const client = makeClient({ signUp: spy })
     const result = await signUpWithPassword(client, 'a@b.com', 'longenough')
     expect(spy).toHaveBeenCalledWith({ email: 'a@b.com', password: 'longenough' })
+    expect(result).toEqual({ ok: true })
+  })
+
+  it('passes a current-origin redirect target for browser signups', async () => {
+    vi.stubGlobal('window', {
+      location: {
+        origin: 'https://play.brrrdle.app',
+      },
+    })
+    const spy = vi.fn().mockResolvedValue({ error: null })
+    const client = makeClient({ signUp: spy })
+    const result = await signUpWithPassword(client, 'New@Player.Example', 'longenough')
+    expect(spy).toHaveBeenCalledWith({
+      email: 'new@player.example',
+      password: 'longenough',
+      options: { emailRedirectTo: 'https://play.brrrdle.app' },
+    })
     expect(result).toEqual({ ok: true })
   })
 

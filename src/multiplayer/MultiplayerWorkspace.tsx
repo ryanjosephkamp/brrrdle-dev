@@ -1,21 +1,25 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { MultiplayerWorkspaceAttentionMap } from '../app/attentionViewModels'
 import type { MultiplayerSubtabId } from '../app/navigationState'
 import { Button, Panel, SubtabBar, type SubtabOption } from '../ui'
-import type { MultiplayerState } from './multiplayer'
+import { getViewerMultiplayerPlayerId, normalizeMultiplayerState, type MultiplayerState } from './multiplayer'
 import type { MultiplayerCompetitiveState } from './competitiveMultiplayer'
-import type { AuthenticatedLiveSpectatorGame } from './multiplayerRepository'
+import type { AuthenticatedLiveSpectatorGame, MultiplayerRepository } from './multiplayerRepository'
 import { MultiplayerActiveGames } from './MultiplayerActiveGames'
 import { MultiplayerLobby } from './MultiplayerLobby'
 import { MultiplayerLive, MultiplayerLiveSpectatorDetails } from './MultiplayerLive'
 import {
+  participantIdentitySummariesToProfileMap,
   selectActiveMultiplayerGameRows,
   selectLiveMultiplayerRows,
   selectMultiplayerLobbyRows,
   selectRecentMultiplayerResults,
   selectRestrictedLiveMultiplayerCount,
+  type MultiplayerParticipantProfileMapByGameId,
   type MultiplayerRecentResultViewModel,
 } from './multiplayerViewModels'
+
+const LIVE_PARTICIPANT_IDENTITY_FETCH_DELAY_MS = 750
 
 const MULTIPLAYER_SUBTABS = [
   { id: 'overview', label: 'Overview', description: 'Multiplayer workspace overview.' },
@@ -25,6 +29,8 @@ const MULTIPLAYER_SUBTABS = [
   { id: 'lobby', label: 'Lobby', description: 'Joinable multiplayer lobbies.' },
   { id: 'live', label: 'Live', description: 'Participant resume and authenticated read-only Live v1.' },
 ] as const satisfies readonly SubtabOption<MultiplayerSubtabId>[]
+
+type ParticipantIdentityActions = Pick<MultiplayerRepository, 'getParticipantIdentitySummaries'>
 
 interface MultiplayerWorkspaceProps {
   readonly activeSubtab: MultiplayerSubtabId
@@ -40,12 +46,35 @@ interface MultiplayerWorkspaceProps {
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame: (id: string) => void
   readonly onSubtabChange: (subtab: MultiplayerSubtabId) => void
+  readonly participantIdentityActions?: ParticipantIdentityActions
   readonly renderDailyPanel: () => ReactNode
   readonly renderPracticePanel: () => ReactNode
   readonly selectedGameId?: string
   readonly state: MultiplayerState | undefined
   readonly liveSpectatorRows?: readonly AuthenticatedLiveSpectatorGame[]
   readonly viewerUserId?: string
+}
+
+interface ParticipantIdentityTarget {
+  readonly id: string
+  readonly updatedAt: string
+}
+
+function getParticipantLiveIdentityTargets(
+  state: MultiplayerState | undefined,
+  viewerUserId?: string,
+): readonly ParticipantIdentityTarget[] {
+  if (!viewerUserId) {
+    return []
+  }
+  return normalizeMultiplayerState(state).games
+    .filter((game) => game.status === 'playing')
+    .filter((game) => Boolean(getViewerMultiplayerPlayerId(game, viewerUserId)))
+    .map((game) => ({ id: game.id, updatedAt: game.updatedAt }))
+}
+
+function getParticipantIdentityFetchKey(targets: readonly ParticipantIdentityTarget[]): string {
+  return targets.map((target) => `${target.id}:${target.updatedAt}`).join('|')
 }
 
 function formatDateTime(value: string): string {
@@ -277,6 +306,7 @@ export function MultiplayerWorkspace({
   onResumeGame,
   onSelectGame,
   onSubtabChange,
+  participantIdentityActions,
   renderDailyPanel,
   renderPracticePanel,
   selectedGameId,
@@ -284,9 +314,52 @@ export function MultiplayerWorkspace({
   liveSpectatorRows = [],
   viewerUserId,
 }: MultiplayerWorkspaceProps) {
+  const [participantProfilesByGameId, setParticipantProfilesByGameId] = useState<MultiplayerParticipantProfileMapByGameId>({})
+  const participantIdentityTargets = useMemo(
+    () => getParticipantLiveIdentityTargets(state, viewerUserId),
+    [state, viewerUserId],
+  )
+  const participantIdentityFetchKey = useMemo(
+    () => getParticipantIdentityFetchKey(participantIdentityTargets),
+    [participantIdentityTargets],
+  )
+  useEffect(() => {
+    let active = true
+    if (!participantIdentityActions || !viewerUserId || participantIdentityTargets.length === 0) {
+      return () => {
+        active = false
+      }
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void Promise.all(participantIdentityTargets.map(async (target) => {
+        try {
+          const summaries = await participantIdentityActions.getParticipantIdentitySummaries({ gameId: target.id })
+          return [target.id, participantIdentitySummariesToProfileMap(summaries)] as const
+        } catch {
+          return [target.id, {}] as const
+        }
+      })).then((entries) => {
+        if (!active) {
+          return
+        }
+        const activeIds = new Set(participantIdentityTargets.map((target) => target.id))
+        setParticipantProfilesByGameId((current) => {
+          const currentEntries = Object.entries(current).filter(([gameId]) => activeIds.has(gameId))
+          return Object.fromEntries([...currentEntries, ...entries])
+        })
+      })
+    }, LIVE_PARTICIPANT_IDENTITY_FETCH_DELAY_MS)
+
+    return () => {
+      active = false
+      window.clearTimeout(timeoutId)
+    }
+  }, [participantIdentityActions, participantIdentityFetchKey, participantIdentityTargets, viewerUserId])
+
   const activeGames = selectActiveMultiplayerGameRows(state, viewerUserId)
   const lobbyRows = selectMultiplayerLobbyRows(state, { dailyDateKey, viewerUserId })
-  const liveRows = selectLiveMultiplayerRows(state, viewerUserId, liveSpectatorRows)
+  const liveRows = selectLiveMultiplayerRows(state, viewerUserId, liveSpectatorRows, participantProfilesByGameId)
   const restrictedLiveCount = selectRestrictedLiveMultiplayerCount(state, viewerUserId, liveSpectatorRows)
   const recentResults = selectRecentMultiplayerResults(competitiveState, viewerUserId, 5)
   const focusedSpectatorGame = focusedSpectatorGameId

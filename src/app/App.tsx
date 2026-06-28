@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, PasswordResetModal, ProfilePanel, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -251,7 +251,7 @@ export function AboutBrrrdlePanel() {
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100">Ranked transparency</p>
             <h3 id="ranked-elo-about-title" className="text-2xl font-bold text-white">How Elo is calculated</h3>
             <p>
-              Ranked Practice v1 is signed-in, untimed Practice only. Daily ranked and timed Practice ranked remain deferred, and public leaderboards are display-only surfaces separate from Elo authority.
+              Ranked Practice is signed-in Practice only. Untimed ranked and canonical five-minute timed ranked use separate rating buckets. Daily ranked, custom ranked games, and unsupported timers remain deferred, and public leaderboards are display-only surfaces separate from Elo authority.
             </p>
           </div>
 
@@ -289,10 +289,94 @@ export function AboutBrrrdlePanel() {
           </div>
 
           <p className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-cyan-50">
-            Match points decide the match result first. Elo movement happens afterward only when trusted settlement confirms durable ranked Practice evidence against your rival's rating. Local previews, spectators, custom games, Daily games, timed Practice games, guest games, corrupt evidence, and unranked games do not move Elo.
+            Match points decide the match result first. Elo movement happens afterward only when trusted settlement confirms durable ranked Practice evidence against your rival's rating. Local previews, spectators, custom games, Daily games, unsupported timed Practice games, guest games, corrupt evidence, and unranked games do not move Elo.
           </p>
         </section>
       </Panel>
+    </section>
+  )
+}
+
+function CurrentPlayerProfileRoute({
+  authMessage,
+  authState,
+  busy,
+  onRequestPasswordReset,
+  onSave,
+  onSavePublicProfile,
+  onSendMagicLink,
+  onSignInWithPassword,
+  onSignOut,
+  onSignUpWithPassword,
+  publicProfile,
+  publicProfileBusy,
+  publicProfileStatusMessage,
+  statusMessage,
+  supabaseClient,
+}: {
+  readonly authMessage?: string
+  readonly authState: AuthState
+  readonly busy?: boolean
+  readonly onRequestPasswordReset: (email: string) => void
+  readonly onSave: (input: { readonly displayName?: string; readonly accentColor?: ProfileAccentColor; readonly avatarUrl?: string }) => Promise<void> | void
+  readonly onSavePublicProfile?: (input: PublicProfileUpdateInput) => Promise<void> | void
+  readonly onSendMagicLink: (email: string) => void
+  readonly onSignInWithPassword: (email: string, password: string) => void
+  readonly onSignOut: () => void
+  readonly onSignUpWithPassword: (email: string, password: string) => void
+  readonly publicProfile?: OwnerPublicProfile
+  readonly publicProfileBusy?: boolean
+  readonly publicProfileStatusMessage?: string
+  readonly statusMessage?: string
+  readonly supabaseClient?: ReturnType<typeof createBrrrdleSupabaseClient>
+}) {
+  return (
+    <section className="space-y-4" aria-labelledby="profile-title">
+      <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">current player</p>
+      <div className="space-y-2">
+        <h2 id="profile-title" className="text-3xl font-bold text-white">Profile</h2>
+        <p className="max-w-3xl text-sm leading-6 text-slate-300">
+          Manage how your current account appears to you and, when you opt in, to other signed-in players.
+        </p>
+      </div>
+
+      {authState.status === 'authenticated' ? (
+        <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
+          <ProfileEditor
+            authState={authState}
+            busy={busy}
+            onSave={onSave}
+            onSavePublicProfile={onSavePublicProfile}
+            onSignOut={onSignOut}
+            publicProfile={publicProfile}
+            publicProfileBusy={publicProfileBusy}
+            publicProfileStatusMessage={publicProfileStatusMessage}
+            statusMessage={statusMessage}
+            supabaseClient={supabaseClient}
+          />
+        </Panel>
+      ) : authState.status === 'anonymous' ? (
+        <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold text-white">Sign in to manage your profile</h3>
+            <p>Your private and public profile controls appear here after sign-in.</p>
+          </div>
+          <AuthPanel
+            authMessage={authMessage}
+            authStatus={authState.status}
+            onRequestPasswordReset={onRequestPasswordReset}
+            onSendMagicLink={onSendMagicLink}
+            onSignInWithPassword={onSignInWithPassword}
+            onSignOut={onSignOut}
+            onSignUpWithPassword={onSignUpWithPassword}
+          />
+        </Panel>
+      ) : (
+        <Panel className="space-y-2 text-sm leading-6 text-slate-300" tone="muted">
+          <h3 className="text-xl font-bold text-white">Profile sync unavailable</h3>
+          <p>Profile editing requires Supabase account configuration in this environment.</p>
+        </Panel>
+      )}
     </section>
   )
 }
@@ -332,8 +416,11 @@ function RoutePanel({
   onSignUpWithPassword,
   onSpendCoins,
   onSignOut,
+  onSaveProfile,
+  onSavePublicProfile,
   onOpenAuthModal,
   onOpenProfilePanel,
+  onOpenPasswordChange,
   onPracticeModeChange,
   onPracticeSeedAdvance,
   practiceMode,
@@ -344,6 +431,11 @@ function RoutePanel({
   focusedLiveSpectatorGameId,
   multiplayerSubtab,
   historyFilters,
+  profileBusy,
+  profileMessage,
+  publicProfile,
+  publicProfileBusy,
+  publicProfileMessage,
   resumeSlots,
   soundEnabled,
   onToggleSound,
@@ -393,8 +485,11 @@ function RoutePanel({
   readonly onSignInWithPassword: (email: string, password: string) => void
   readonly onSignUpWithPassword: (email: string, password: string) => void
   readonly onSignOut: () => void
+  readonly onSaveProfile: (input: { readonly displayName?: string; readonly accentColor?: ProfileAccentColor; readonly avatarUrl?: string }) => Promise<void> | void
+  readonly onSavePublicProfile: (input: PublicProfileUpdateInput) => Promise<void> | void
   readonly onOpenAuthModal: () => void
   readonly onOpenProfilePanel: () => void
+  readonly onOpenPasswordChange: () => void
   readonly practiceMode: PracticeMode
   readonly soloDailyMode: SoloMode
   readonly selectedSoloGameKey?: SoloActiveGameKey
@@ -406,6 +501,11 @@ function RoutePanel({
   readonly soloSubtab: SoloSubtabId
   readonly multiplayerSubtab: MultiplayerSubtabId
   readonly historyFilters: ReturnType<typeof loadNavigationState>['historyFilters']
+  readonly profileBusy?: boolean
+  readonly profileMessage?: string
+  readonly publicProfile?: OwnerPublicProfile
+  readonly publicProfileBusy?: boolean
+  readonly publicProfileMessage?: string
   readonly onSoloSubtabChange: (subtab: SoloSubtabId) => void
   readonly onMultiplayerSubtabChange: (subtab: MultiplayerSubtabId) => void
   readonly soundEnabled: boolean
@@ -627,6 +727,7 @@ function RoutePanel({
         onResumeGame={onResumeMultiplayerGame}
         onSelectGame={onSelectMultiplayerGame}
         onSubtabChange={onMultiplayerSubtabChange}
+        participantIdentityActions={participantIdentityActions}
         renderDailyPanel={() => renderMultiplayerPanel('daily')}
         renderPracticePanel={() => renderMultiplayerPanel('practice')}
         selectedGameId={selectedMultiplayerGameId}
@@ -672,6 +773,28 @@ function RoutePanel({
     )
   }
 
+  if (route.id === 'profile') {
+    return (
+      <CurrentPlayerProfileRoute
+        authMessage={authMessage}
+        authState={authState}
+        busy={profileBusy}
+        onRequestPasswordReset={onRequestPasswordReset}
+        onSave={onSaveProfile}
+        onSavePublicProfile={onSavePublicProfile}
+        onSendMagicLink={onSendMagicLink}
+        onSignInWithPassword={onSignInWithPassword}
+        onSignOut={onSignOut}
+        onSignUpWithPassword={onSignUpWithPassword}
+        publicProfile={publicProfile}
+        publicProfileBusy={publicProfileBusy}
+        publicProfileStatusMessage={publicProfileMessage}
+        statusMessage={profileMessage}
+        supabaseClient={supabaseClient}
+      />
+    )
+  }
+
   if (route.id === 'settings') {
     return (
       <Settings
@@ -679,6 +802,7 @@ function RoutePanel({
         authState={authState}
         guestProgress={guestProgress}
         onOpenAuthModal={onOpenAuthModal}
+        onOpenPasswordChange={onOpenPasswordChange}
         onOpenProfilePanel={onOpenProfilePanel}
         onResetProgress={onResetProgress}
         onRequestPasswordReset={onRequestPasswordReset}
@@ -1395,7 +1519,7 @@ function AppInner() {
     setAuthBusy(true)
     void sendMagicLink(supabaseClient, email).then((result) => {
       setAuthBusy(false)
-      setAuthMessage(result.ok ? 'Magic link sent. Check your email.' : classifyAuthError({ message: result.message }, 'magic-link'))
+      setAuthMessage(result.ok ? 'Magic link sent. Open the link in this same browser to finish signing in.' : classifyAuthError({ message: result.message }, 'magic-link'))
     })
   }, [supabaseClient])
   const handleSignInWithPassword = useCallback((email: string, password: string) => {
@@ -1422,7 +1546,7 @@ function AppInner() {
       if (!result.ok) {
         setAuthMessage(result.message)
       } else {
-        setAuthMessage('Check your email to confirm your account, if email confirmation is enabled.')
+        setAuthMessage('Account request sent. Check your email for a confirmation link before signing in.')
       }
     })
   }, [supabaseClient])
@@ -1437,10 +1561,18 @@ function AppInner() {
       if (!result.ok) {
         setAuthMessage(result.message)
       } else {
-        setAuthMessage('Check your email for a reset link.')
+        setAuthMessage('Check your email for a password reset link.')
       }
     })
   }, [supabaseClient])
+  const handleOpenPasswordChange = useCallback(() => {
+    if (authState.status !== 'authenticated') {
+      return
+    }
+    setAuthMessage(undefined)
+    setPasswordResetMessage(undefined)
+    setPasswordResetOpen(true)
+  }, [authState.status])
   const handleClosePasswordReset = useCallback(() => {
     setPasswordResetOpen(false)
     setPasswordResetMessage(undefined)
@@ -1495,13 +1627,15 @@ function AppInner() {
   const handleOpenProfilePanel = useCallback(() => {
     setProfileMessage(undefined)
     setPublicProfileMessage(undefined)
-    setProfilePanelOpen(true)
-  }, [])
+    setProfilePanelOpen(false)
+    handleNavigate('profile')
+  }, [handleNavigate])
   const handleCloseProfilePanel = useCallback(() => {
     setProfilePanelOpen(false)
   }, [])
+  const profileSurfaceActive = profilePanelOpen || activeRouteId === 'profile'
   useEffect(() => {
-    if (!profilePanelOpen) {
+    if (!profileSurfaceActive) {
       return
     }
     if (authState.status !== 'authenticated' || !authState.user || !supabaseClient) {
@@ -1539,7 +1673,7 @@ function AppInner() {
     return () => {
       cancelled = true
     }
-  }, [authState.status, authState.user, profilePanelOpen, supabaseClient])
+  }, [authState.status, authState.user, profileSurfaceActive, supabaseClient])
   const handleAccountHudClick = useCallback(() => {
     if (authState.status === 'authenticated') {
       handleOpenProfilePanel()
@@ -1949,6 +2083,7 @@ function AppInner() {
             onMultiplayerSubtabChange={handleMultiplayerSubtabChange}
             onOpenEloAbout={handleOpenEloAbout}
             onOpenAuthModal={handleOpenAuthModal}
+            onOpenPasswordChange={handleOpenPasswordChange}
             onCloseFocusedLiveSpectatorGame={handleCloseFocusedLiveSpectatorGame}
             onLiveSurfaceActiveChange={handleLiveSurfaceActiveChange}
             onOpenMultiplayerHistory={handleOpenMultiplayerHistory}
@@ -1966,6 +2101,8 @@ function AppInner() {
             onSelectSoloGame={handleSelectSoloGame}
             onSelectRoute={handleNavigate}
             onSendMagicLink={handleSendMagicLink}
+            onSaveProfile={handleSaveProfile}
+            onSavePublicProfile={handleSavePublicProfile}
             onSignInWithPassword={handleSignInWithPassword}
             onSignOut={handleSignOut}
             onSignUpWithPassword={handleSignUpWithPassword}
@@ -1977,6 +2114,11 @@ function AppInner() {
             practiceMode={practiceMode}
             publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
             postgameActions={multiplayerRepository}
+            profileBusy={profileBusy}
+            profileMessage={profileMessage}
+            publicProfile={publicProfile}
+            publicProfileBusy={publicProfileBusy}
+            publicProfileMessage={publicProfileMessage}
             participantIdentityActions={multiplayerRepository}
             rankedQueueActions={multiplayerRepository}
             multiplayerSubtab={multiplayerSubtab}

@@ -9,6 +9,15 @@ const anonymousAuthState: AuthState = {
   status: 'anonymous',
 }
 
+const authenticatedAuthState: AuthState = {
+  status: 'authenticated',
+  user: {
+    email: 'player@example.com',
+    id: 'user-1',
+    roles: [],
+  },
+}
+
 describe('Settings', () => {
   it('renders cloud-synced in-app notification controls without browser permission prompts', () => {
     const html = renderToStaticMarkup(
@@ -43,5 +52,25 @@ describe('Settings', () => {
     expect(html).toContain('Preferences sync with guest/cloud progress')
     expect(html).toContain('Read and dismissed item state stays local to this browser')
     expect(html).not.toContain('service worker script')
+  })
+
+  it('renders signed-in account management with a password-change affordance and email-change gate copy', () => {
+    const html = renderToStaticMarkup(
+      <Settings
+        authState={authenticatedAuthState}
+        guestProgress={createDefaultGuestProgress()}
+        onOpenPasswordChange={() => undefined}
+        onOpenProfilePanel={() => undefined}
+        onResetProgress={() => undefined}
+        syncStatus={createSyncStatus('idle')}
+      />,
+    )
+
+    expect(html).toContain('Account management')
+    expect(html).toContain('Profile editing now lives in the Profile tab')
+    expect(html).toContain('Open Profile tab')
+    expect(html).toContain('Change password')
+    expect(html).toContain('Email changes remain gated until Supabase email confirmation and redirect settings are verified')
+    expect(html).toContain('Password changes use the signed-in Supabase account session')
   })
 })
