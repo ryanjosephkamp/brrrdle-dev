@@ -35,6 +35,7 @@ describe('classifyAuthError', () => {
     ['Invalid login credentials', 'sign-in', 'Email or password is incorrect.'],
     ['password is too short', 'sign-up', 'Password must be at least 8 characters.'],
     ['weak password detected', 'sign-up', 'Please choose a stronger password.'],
+    ['New password should be different from old password', 'update-password', 'Choose a new password that is different from your current password.'],
     ['Invalid email address', 'sign-up', 'That email address does not look valid.'],
   ]
   for (const [raw, action, expected] of cases) {
@@ -47,6 +48,7 @@ describe('classifyAuthError', () => {
     expect(classifyAuthError(new Error('???'), 'sign-up')).toMatch(/Unable to create an account/)
     expect(classifyAuthError(new Error('???'), 'magic-link')).toMatch(/magic link/)
     expect(classifyAuthError(new Error('???'), 'reset-password')).toMatch(/reset link/)
+    expect(classifyAuthError(new Error('???'), 'update-password')).toBe('Unable to update your password right now. Choose a different password and try again.')
     expect(classifyAuthError(new Error('???'), 'update-profile')).toMatch(/save your profile/)
   })
   it('tolerates non-error inputs', () => {
@@ -119,6 +121,23 @@ describe('password recovery helpers', () => {
     const result = await updatePassword(c, 'short')
     expect(updateUser).not.toHaveBeenCalled()
     expect('ok' in result && result.ok).toBe(false)
+  })
+
+  it('uses password-update copy rather than reset-link copy on update failures', async () => {
+    const updateUser = vi.fn().mockResolvedValue({ error: { message: 'raw provider detail' } })
+    const c = client({ updateUser })
+    const result = await updatePassword(c, 'new-password')
+    expect('ok' in result && result.ok).toBe(false)
+    expect('message' in result && result.message).toBe('Unable to update your password right now. Choose a different password and try again.')
+    expect('message' in result && result.message).not.toMatch(/reset link/)
+  })
+
+  it('uses same-current-password copy when the provider identifies the no-op update', async () => {
+    const updateUser = vi.fn().mockResolvedValue({ error: { message: 'New password should be different from old password' } })
+    const c = client({ updateUser })
+    const result = await updatePassword(c, 'current-password')
+    expect('ok' in result && result.ok).toBe(false)
+    expect('message' in result && result.message).toBe('Choose a new password that is different from your current password.')
   })
 })
 

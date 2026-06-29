@@ -219,7 +219,7 @@ export function subscribeToAuthChanges(
 // Phase 15.1 — Additive auth helpers (do not change existing behavior).
 // -----------------------------------------------------------------------------
 
-export type AuthErrorAction = 'sign-in' | 'sign-out' | 'sign-up' | 'magic-link' | 'reset-password' | 'update-profile'
+export type AuthErrorAction = 'sign-in' | 'sign-out' | 'sign-up' | 'magic-link' | 'reset-password' | 'update-password' | 'update-profile'
 
 /**
  * Maps a Supabase error (or any unknown thrown value) into one of a closed set
@@ -253,6 +253,18 @@ export function classifyAuthError(error: unknown, action: AuthErrorAction): stri
   if (raw.includes('weak password')) {
     return 'Please choose a stronger password.'
   }
+  if (
+    action === 'update-password'
+    && raw.includes('password')
+    && (
+      raw.includes('same')
+      || raw.includes('different')
+      || raw.includes('old password')
+      || raw.includes('current password')
+    )
+  ) {
+    return 'Choose a new password that is different from your current password.'
+  }
   if (raw.includes('invalid email')) {
     return 'That email address does not look valid.'
   }
@@ -268,6 +280,8 @@ export function classifyAuthError(error: unknown, action: AuthErrorAction): stri
       return 'Unable to send a magic link right now. Please try again in a moment.'
     case 'reset-password':
       return 'Unable to send a reset link right now. Please try again in a moment.'
+    case 'update-password':
+      return 'Unable to update your password right now. Choose a different password and try again.'
     case 'update-profile':
       return 'Unable to save your profile right now. Please try again.'
   }
@@ -372,11 +386,11 @@ export async function updatePassword(
   try {
     const { error } = await client.auth.updateUser({ password })
     if (error) {
-      return { message: classifyAuthError(error, 'reset-password'), ok: false }
+      return { message: classifyAuthError(error, 'update-password'), ok: false }
     }
     return { ok: true }
   } catch (error) {
-    return { message: classifyAuthError(error, 'reset-password'), ok: false }
+    return { message: classifyAuthError(error, 'update-password'), ok: false }
   }
 }
 

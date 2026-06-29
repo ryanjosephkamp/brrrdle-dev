@@ -5,7 +5,7 @@ import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, 
 import { Button, Panel } from '../ui'
 import { AdminPanel } from '../admin'
 import { StatsDashboard } from '../stats'
-import { createSupabasePublicRankedLeaderboardRepository, type PublicRankedLeaderboardRepository } from '../leaderboards'
+import { LeaderboardPanel, createSupabasePublicRankedLeaderboardRepository, type PublicRankedLeaderboardRepository } from '../leaderboards'
 import { WordExplorerPanel } from '../wordExplorer'
 import { FeedbackPanel } from '../feedback'
 import { SoundProvider, useSound } from '../sound'
@@ -761,13 +761,20 @@ function RoutePanel({
   if (route.id === 'stats') {
     return (
       <StatsDashboard
+        history={guestProgress.history}
+        progression={guestProgress.progression}
+        stats={guestProgress.stats}
+      />
+    )
+  }
+
+  if (route.id === 'leaderboard') {
+    return (
+      <LeaderboardPanel
         authStatus={authState.status}
         competitiveMultiplayer={guestProgress.competitiveMultiplayer}
-        history={guestProgress.history}
         onOpenEloAbout={onOpenEloAbout}
-        progression={guestProgress.progression}
         publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
-        stats={guestProgress.stats}
         viewerUserId={authState.user?.id}
       />
     )

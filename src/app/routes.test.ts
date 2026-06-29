@@ -16,7 +16,7 @@ describe('APP_ROUTES', () => {
 
   it('includes minimal play and support navigation groups', () => {
     expect(getRoutesByGroup('play').map((route) => route.id)).toEqual(['home', 'solo', 'calendar', 'og-daily', 'go-daily', 'practice', 'multiplayer'])
-    expect(getRoutesByGroup('support').map((route) => route.id)).toEqual(['history', 'word-explorer', 'profile', 'definitions', 'stats', 'settings', 'feedback', 'about', 'admin'])
+    expect(getRoutesByGroup('support').map((route) => route.id)).toEqual(['history', 'leaderboard', 'word-explorer', 'profile', 'definitions', 'stats', 'settings', 'feedback', 'about', 'admin'])
   })
 
   it('keeps hidden compatibility routes out of primary navigation while promoting multiplayer', () => {
@@ -29,16 +29,22 @@ describe('APP_ROUTES', () => {
     expect(getRouteById('multiplayer')).toMatchObject({ navigationGroup: 'play' })
     expect(getRouteById('history').hidden).toBeUndefined()
     expect(getRouteById('history')).toMatchObject({ navigationGroup: 'support' })
+    expect(getRouteById('leaderboard')).toMatchObject({
+      label: 'Leaderboard',
+      navigationGroup: 'support',
+      shortLabel: 'Leaderboard',
+    })
     expect(getRouteById('calendar')).toMatchObject({ scope: 'daily' })
   })
 
-  it('keeps the final Phase 24 primary navigation ordered and hides admin for non-admins', () => {
+  it('keeps the primary navigation ordered with Leaderboard between Stats and Words', () => {
     expect(getPrimaryNavigationRoutes(false).map((route) => route.id)).toEqual([
       'solo',
       'multiplayer',
       'calendar',
       'history',
       'stats',
+      'leaderboard',
       'word-explorer',
       'profile',
       'settings',
@@ -51,6 +57,7 @@ describe('APP_ROUTES', () => {
       'calendar',
       'history',
       'stats',
+      'leaderboard',
       'word-explorer',
       'profile',
       'settings',

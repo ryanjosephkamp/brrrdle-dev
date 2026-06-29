@@ -17,75 +17,75 @@ This checklist helps the user manually verify Phase 35 behavior. It does not rep
 
 ## Must Manually Verify
 
-- [ ] Phase 35 visual handoff artifacts remain local-only and ignored.
-  - Expected: `test-results/visual-review/phase-35-stage-35-8/` may exist locally, but screenshots/manifests are not tracked or staged.
-  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-35-stage-35-8/` if reviewing locally; confirm artifacts are ignored/local-only.
+- [x] About -> ranked transparency copy matches Phase 33.
+  - Expected: About no longer says timed Practice ranked is entirely deferred or unrated; it distinguishes canonical five-minute timed ranked from unsupported timers.
+  - Suggested steps: open About Brrrdle and inspect the ranked transparency section.
   - Evidence: `progress/PROGRESS-STEP-291.md`.
-
-- [ ] Ranked Live participant names use safe public/profile names from the creator perspective.
-  - Expected: when the game creator opens Multiplayer -> Live, the rival name uses the rival's safe public/profile name when available; `You` appears only for the creator's own participant context.
-  - Suggested steps: create or resume a ranked Practice game with two signed-in public-profile test accounts, open Multiplayer -> Live as the creator, and inspect the card labels.
-  - Evidence: `progress/PROGRESS-STEP-287.md`; `progress/PROGRESS-STEP-291.md`.
-
-- [ ] Ranked Live participant names use safe public/profile names from the joined-player perspective.
-  - Expected: when the joined player opens Multiplayer -> Live, the creator name uses the creator's safe public/profile name when available; `Rival` appears only if safe identity is genuinely unavailable.
-  - Suggested steps: open the same ranked Practice game as the joined player and inspect Multiplayer -> Live.
-  - Evidence: `progress/PROGRESS-STEP-287.md`; `progress/PROGRESS-STEP-291.md`.
-
-- [ ] Signed-in nonparticipant Live spectator cards show safe player names when available.
-  - Expected: a third signed-in account sees safe player names for both players on eligible Live spectator cards when those profiles are active and public; generic `Player one` / `Player two` labels appear only as fallbacks.
-  - Suggested steps: with a third signed-in account, open Multiplayer -> Live while two other test users have an active eligible game and inspect the matchup copy.
-  - Evidence: `progress/PROGRESS-STEP-286.md`; `progress/PROGRESS-STEP-287.md`; `progress/PROGRESS-STEP-291.md`.
-
-- [ ] Public/guest spectation remains unavailable.
-  - Expected: signed-out users cannot spectate Live games and are prompted to sign in; signed-in spectator visibility remains authenticated and read-only.
-  - Suggested steps: open Multiplayer -> Live signed out, then signed in as a nonparticipant, and compare behavior.
-  - Evidence: `progress/PROGRESS-STEP-286.md`; `progress/PROGRESS-STEP-291.md`.
-
-- [ ] Magic-link and account-creation copy is player-facing.
-  - Expected: magic-link, sign-up, reset, and confirmation messages do not expose confusing provider-configuration wording such as "if confirmations are enabled."
-  - Suggested steps: open the auth modal, try the magic-link and email/password account flows using safe test addresses, and inspect copy.
-  - Evidence: `progress/PROGRESS-STEP-289.md`; visual scenario `Auth modal copy`.
-
-- [ ] Magic-link redirects still require external Vercel/Supabase settings to be correct.
-  - Expected: source now sends a safe current-origin redirect target where supported, but Vercel Deployment Protection and Supabase Site URL/allowed redirect settings still control deployed/preview behavior.
-  - Suggested steps: review `docs/deployment.md` and `docs/supabase.md`; if testing a protected preview, confirm whether Vercel login appears before the app loads.
-  - Evidence: `progress/PROGRESS-STEP-288.md`; `progress/PROGRESS-STEP-289.md`.
-
-- [ ] Signed-in password change is discoverable.
-  - Expected: a signed-in player can open Settings and use `Change password`; the password modal works for a normal signed-in password update path.
-  - Suggested steps: sign in with a safe test account, open Settings, click `Change password`, and inspect the modal.
-  - Evidence: `progress/PROGRESS-STEP-289.md`.
-
-- [ ] Email-change UI remains gated rather than overpromised.
-  - Expected: Settings explains that email changes remain gated until Supabase email confirmation and redirect settings are verified; no unfinished email-change form is exposed.
-  - Suggested steps: open Settings as a signed-in player and inspect Account management copy.
-  - Evidence: `progress/PROGRESS-STEP-289.md`; `progress/PROGRESS-STEP-290.md`.
-
-- [ ] The current-player Profile tab is visible and correctly placed.
-  - Expected: the main navigation includes `Profile` between `Words` and `Settings`.
-  - Suggested steps: inspect the main navigation on desktop and mobile-width views.
-  - Evidence: `progress/PROGRESS-STEP-290.md`; visual scenario `Profile tab route`.
-
-- [ ] The Profile tab owns full private/public profile editing.
-  - Expected: signed-in players can manage private profile fields and public profile visibility/content from the Profile tab without changing public-profile privacy defaults.
-  - Suggested steps: sign in with a safe test account, open Profile, inspect private and public profile sections, and confirm public visibility remains opt-in.
-  - Evidence: `progress/PROGRESS-STEP-290.md`.
-
-- [ ] The top-right account badge remains useful without duplicating the full profile surface awkwardly.
-  - Expected: signed-in account badge actions route to the Profile tab; signed-out account badge actions open sign-in.
-  - Suggested steps: click the account badge when signed out and signed in.
-  - Evidence: `progress/PROGRESS-STEP-290.md`.
-
-- [ ] Settings no longer pretends to own full profile editing.
+- [x] Settings no longer pretends to own full profile editing.
   - Expected: Settings keeps preferences, notifications, sync/account status, password access, and gated account actions; full profile editing points to the Profile tab.
   - Suggested steps: open Settings as a signed-in player and inspect Account management and Danger Zone areas.
   - Evidence: `progress/PROGRESS-STEP-290.md`; visual scenario `Settings account management`.
 
-- [ ] About -> ranked transparency copy matches Phase 33.
-  - Expected: About no longer says timed Practice ranked is entirely deferred or unrated; it distinguishes canonical five-minute timed ranked from unsupported timers.
-  - Suggested steps: open About Brrrdle and inspect the ranked transparency section.
+- [x] The top-right account badge remains useful without duplicating the full profile surface awkwardly.
+  - Expected: signed-in account badge actions route to the Profile tab; signed-out account badge actions open sign-in.
+  - Suggested steps: click the account badge when signed out and signed in.
+  - Evidence: `progress/PROGRESS-STEP-290.md`.
+
+- [x] The Profile tab owns full private/public profile editing.
+  - Expected: signed-in players can manage private profile fields and public profile visibility/content from the Profile tab without changing public-profile privacy defaults.
+  - Suggested steps: sign in with a safe test account, open Profile, inspect private and public profile sections, and confirm public visibility remains opt-in.
+  - Evidence: `progress/PROGRESS-STEP-290.md`.
+
+- [x] The current-player Profile tab is visible and correctly placed.
+  - Expected: the main navigation includes `Profile` between `Words` and `Settings`.
+  - Suggested steps: inspect the main navigation on desktop and mobile-width views.
+  - Evidence: `progress/PROGRESS-STEP-290.md`; visual scenario `Profile tab route`.
+
+- [x] Email-change UI remains gated rather than overpromised.
+  - Expected: Settings explains that email changes remain gated until Supabase email confirmation and redirect settings are verified; no unfinished email-change form is exposed.
+  - Suggested steps: open Settings as a signed-in player and inspect Account management copy.
+  - Evidence: `progress/PROGRESS-STEP-289.md`; `progress/PROGRESS-STEP-290.md`.
+
+- [x] Signed-in password change is discoverable.
+  - Expected: a signed-in player can open Settings and use `Change password`; the password modal works for a normal signed-in password update path.
+  - Suggested steps: sign in with a safe test account, open Settings, click `Change password`, and inspect the modal.
+  - Evidence: `progress/PROGRESS-STEP-289.md`.
+
+- [x] Magic-link redirects still require external Vercel/Supabase settings to be correct.
+  - Expected: source now sends a safe current-origin redirect target where supported, but Vercel Deployment Protection and Supabase Site URL/allowed redirect settings still control deployed/preview behavior.
+  - Suggested steps: review `docs/deployment.md` and `docs/supabase.md`; if testing a protected preview, confirm whether Vercel login appears before the app loads.
+  - Evidence: `progress/PROGRESS-STEP-288.md`; `progress/PROGRESS-STEP-289.md`.
+
+- [x] Magic-link and account-creation copy is player-facing.
+  - Expected: magic-link, sign-up, reset, and confirmation messages do not expose confusing provider-configuration wording such as "if confirmations are enabled."
+  - Suggested steps: open the auth modal, try the magic-link and email/password account flows using safe test addresses, and inspect copy.
+  - Evidence: `progress/PROGRESS-STEP-289.md`; visual scenario `Auth modal copy`.
+
+- [x] Public/guest spectation remains unavailable.
+  - Expected: signed-out users cannot spectate Live games and are prompted to sign in; signed-in spectator visibility remains authenticated and read-only.
+  - Suggested steps: open Multiplayer -> Live signed out, then signed in as a nonparticipant, and compare behavior.
+  - Evidence: `progress/PROGRESS-STEP-286.md`; `progress/PROGRESS-STEP-291.md`.
+
+- [x] Signed-in nonparticipant Live spectator cards show safe player names when available.
+  - Expected: a third signed-in account sees safe player names for both players on eligible Live spectator cards when those profiles are active and public; generic `Player one` / `Player two` labels appear only as fallbacks.
+  - Suggested steps: with a third signed-in account, open Multiplayer -> Live while two other test users have an active eligible game and inspect the matchup copy.
+  - Evidence: `progress/PROGRESS-STEP-286.md`; `progress/PROGRESS-STEP-287.md`; `progress/PROGRESS-STEP-291.md`.
+
+- [x] Ranked Live participant names use safe public/profile names from the joined-player perspective.
+  - Expected: when the joined player opens Multiplayer -> Live, the creator name uses the creator's safe public/profile name when available; `Rival` appears only if safe identity is genuinely unavailable.
+  - Suggested steps: open the same ranked Practice game as the joined player and inspect Multiplayer -> Live.
+  - Evidence: `progress/PROGRESS-STEP-287.md`; `progress/PROGRESS-STEP-291.md`.
+
+- [x] Ranked Live participant names use safe public/profile names from the creator perspective.
+  - Expected: when the game creator opens Multiplayer -> Live, the rival name uses the rival's safe public/profile name when available; `You` appears only for the creator's own participant context.
+  - Suggested steps: create or resume a ranked Practice game with two signed-in public-profile test accounts, open Multiplayer -> Live as the creator, and inspect the card labels.
+  - Evidence: `progress/PROGRESS-STEP-287.md`; `progress/PROGRESS-STEP-291.md`.
+
+- [x] Phase 35 visual handoff artifacts remain local-only and ignored.
+  - Expected: `test-results/visual-review/phase-35-stage-35-8/` may exist locally, but screenshots/manifests are not tracked or staged.
+  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-35-stage-35-8/` if reviewing locally; confirm artifacts are ignored/local-only.
   - Evidence: `progress/PROGRESS-STEP-291.md`.
+
 
 ## Optional Nice-To-Check
 
