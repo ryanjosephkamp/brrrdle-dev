@@ -357,7 +357,7 @@ export function MultiplayerWorkspace({
     }
   }, [participantIdentityActions, participantIdentityFetchKey, participantIdentityTargets, viewerUserId])
 
-  const activeGames = selectActiveMultiplayerGameRows(state, viewerUserId)
+  const activeGames = selectActiveMultiplayerGameRows(state, viewerUserId, participantProfilesByGameId)
   const lobbyRows = selectMultiplayerLobbyRows(state, { dailyDateKey, viewerUserId })
   const liveRows = selectLiveMultiplayerRows(state, viewerUserId, liveSpectatorRows, participantProfilesByGameId)
   const restrictedLiveCount = selectRestrictedLiveMultiplayerCount(state, viewerUserId, liveSpectatorRows)

@@ -333,6 +333,99 @@ describe('multiplayer view models', () => {
     })
   })
 
+  it('hydrates Active Games labels from participant identity summaries for both seats', () => {
+    const rankedGame = createMultiplayerGame({
+      createdAt: '2026-06-28T19:30:00.000Z',
+      id: 'ranked-active-identity-game',
+      mode: 'go',
+      playerProfiles: {
+        'player-two': { displayName: 'kiki', initials: 'K', label: 'kiki' },
+      },
+      playerUserIds: { 'player-one': 'claudine-user', 'player-two': 'kiki-user' },
+      ranked: true,
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const staleRankedGame = {
+      ...rankedGame,
+      players: rankedGame.players.map((player) => player.id === 'player-one' ? { ...player, label: 'You' } : player),
+    }
+    const profiles = participantIdentitySummariesToProfileMap([
+      {
+        accentColor: 'aurora',
+        avatarUrl: 'https://example.test/claudine.webp',
+        displayName: 'claudine',
+        identityAvailable: true,
+        isViewer: false,
+        publicProfileId: 'public-profile-id-should-not-surface',
+        seat: 'player-one',
+        updatedAt: '2026-06-28T19:29:00.000Z',
+      },
+      {
+        accentColor: 'ice',
+        avatarUrl: 'https://example.test/kiki.webp',
+        displayName: 'kiki',
+        flairKey: 'spark',
+        identityAvailable: true,
+        isViewer: true,
+        publicProfileId: 'other-public-profile-id-should-not-surface',
+        seat: 'player-two',
+        updatedAt: '2026-06-28T19:29:00.000Z',
+      },
+    ] satisfies readonly ParticipantIdentitySummaryResult[])
+
+    const joinedViewerRows = selectActiveMultiplayerGameRows(
+      { games: [staleRankedGame] },
+      'kiki-user',
+      { [rankedGame.id]: profiles },
+    )
+    const creatorViewerRows = selectActiveMultiplayerGameRows(
+      { games: [staleRankedGame] },
+      'claudine-user',
+      { [rankedGame.id]: profiles },
+    )
+
+    expect(joinedViewerRows[0]).toMatchObject({
+      detailLabel: "claudine's turn · 0 turns submitted",
+      opponentLabel: 'claudine',
+      turnLabel: "claudine's turn",
+    })
+    expect(creatorViewerRows[0]).toMatchObject({
+      detailLabel: 'Your turn · 0 turns submitted',
+      opponentLabel: 'kiki',
+      turnLabel: 'Your turn',
+    })
+    expect(JSON.stringify(joinedViewerRows[0])).not.toContain('public-profile-id')
+    expect(JSON.stringify(joinedViewerRows[0])).not.toContain('flairKey')
+    expect(JSON.stringify(joinedViewerRows[0])).not.toContain('email')
+    expect(JSON.stringify(joinedViewerRows[0])).not.toContain('userId')
+  })
+
+  it('keeps Active Games safe-name labels on true fallbacks when identity summaries are unavailable', () => {
+    const game = createMultiplayerGame({
+      createdAt: '2026-06-28T19:30:00.000Z',
+      id: 'active-fallback-game',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const staleFallbackGame = {
+      ...game,
+      currentTurn: 'player-two' as const,
+      players: game.players.map((player) => player.id === 'player-two' ? { ...player, label: 'You' } : player),
+    }
+
+    const rows = selectActiveMultiplayerGameRows({ games: [staleFallbackGame] }, 'host-user')
+
+    expect(rows[0]).toMatchObject({
+      detailLabel: 'Rival turn · 0 turns submitted',
+      opponentLabel: 'Rival',
+      turnLabel: 'Rival turn',
+    })
+    expect(JSON.stringify(rows[0])).not.toContain('You')
+  })
+
   it('hydrates ranked participant Live labels from participant identity summaries for both seats', () => {
     const rankedGame = createMultiplayerGame({
       createdAt: '2026-06-27T20:53:00.000Z',

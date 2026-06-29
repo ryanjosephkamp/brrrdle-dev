@@ -19,6 +19,33 @@ const authenticatedAuthState: AuthState = {
 }
 
 describe('Settings', () => {
+  it('orders current sections as Gameplay, Sound effects, Notifications, Account management', () => {
+    const html = renderToStaticMarkup(
+      <Settings
+        authState={authenticatedAuthState}
+        guestProgress={createDefaultGuestProgress()}
+        onOpenPasswordChange={() => undefined}
+        onOpenProfilePanel={() => undefined}
+        onResetProgress={() => undefined}
+        onSignOut={() => undefined}
+        onToggleSound={() => undefined}
+        onUpdateSettings={() => undefined}
+        syncStatus={createSyncStatus('idle')}
+      />,
+    )
+
+    const gameplayIndex = html.indexOf('Gameplay')
+    const soundIndex = html.indexOf('Sound effects')
+    const notificationsIndex = html.indexOf('Notifications')
+    const accountIndex = html.indexOf('Account management')
+
+    expect(gameplayIndex).toBeGreaterThan(-1)
+    expect(soundIndex).toBeGreaterThan(gameplayIndex)
+    expect(notificationsIndex).toBeGreaterThan(soundIndex)
+    expect(accountIndex).toBeGreaterThan(notificationsIndex)
+    expect(html).not.toContain('Sound Effects')
+  })
+
   it('renders cloud-synced in-app notification controls without browser permission prompts', () => {
     const html = renderToStaticMarkup(
       <Settings
@@ -72,5 +99,60 @@ describe('Settings', () => {
     expect(html).toContain('Change password')
     expect(html).toContain('Email changes remain gated until Supabase email confirmation and redirect settings are verified')
     expect(html).toContain('Password changes use the signed-in Supabase account session')
+  })
+
+  it('consolidates signed-in email and sign-out into Account management', () => {
+    const html = renderToStaticMarkup(
+      <Settings
+        authMessage="Account action failed."
+        authState={authenticatedAuthState}
+        guestProgress={createDefaultGuestProgress()}
+        onOpenPasswordChange={() => undefined}
+        onOpenProfilePanel={() => undefined}
+        onResetProgress={() => undefined}
+        onSignOut={() => undefined}
+        syncStatus={createSyncStatus('idle')}
+      />,
+    )
+
+    expect(html).toContain('Account management')
+    expect(html).toContain('Signed in')
+    expect(html).toContain('player@example.com')
+    expect(html).toContain('Sign out')
+    expect(html).toContain('Account action failed.')
+    expect(html.indexOf('Signed in')).toBeGreaterThan(html.indexOf('Account management'))
+  })
+
+  it('keeps signed-out account access in Account management', () => {
+    const html = renderToStaticMarkup(
+      <Settings
+        authState={anonymousAuthState}
+        guestProgress={createDefaultGuestProgress()}
+        onOpenAuthModal={() => undefined}
+        onResetProgress={() => undefined}
+        syncStatus={createSyncStatus('idle')}
+      />,
+    )
+
+    expect(html).toContain('Account management')
+    expect(html).toContain('Sign in to brrrdle')
+    expect(html).toContain('Sign in / Create account')
+    expect(html.indexOf('Sign in to brrrdle')).toBeGreaterThan(html.indexOf('Account management'))
+  })
+
+  it('keeps unconfigured account setup copy in Account management', () => {
+    const html = renderToStaticMarkup(
+      <Settings
+        authState={{ status: 'unconfigured' }}
+        guestProgress={createDefaultGuestProgress()}
+        onResetProgress={() => undefined}
+        syncStatus={createSyncStatus('idle')}
+      />,
+    )
+
+    expect(html).toContain('Account management')
+    expect(html).toContain('Account sync setup')
+    expect(html).toContain('Supabase is not configured in this environment')
+    expect(html.indexOf('Account sync setup')).toBeGreaterThan(html.indexOf('Account management'))
   })
 })

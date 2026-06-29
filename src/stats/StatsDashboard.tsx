@@ -1,6 +1,4 @@
 import type { GameHistoryEntry, GuestProgressionState } from '../account/storageSchema'
-import { PublicRankedLeaderboardPanel, type PublicRankedLeaderboardAuthStatus, type PublicRankedLeaderboardRepository } from '../leaderboards'
-import { MultiplayerStatsPanel, type MultiplayerCompetitiveState } from '../multiplayer'
 import { BarChart, CalendarHeatmap, ProgressMeter, TrendSparkline } from './charts'
 import { getAverageAttempts, getStatsBucket, getWinRate } from './statistics'
 import {
@@ -14,14 +12,9 @@ import {
 import type { StatisticsState } from './types'
 
 interface StatsDashboardProps {
-  readonly authStatus?: PublicRankedLeaderboardAuthStatus
-  readonly competitiveMultiplayer?: MultiplayerCompetitiveState
   readonly history?: readonly GameHistoryEntry[]
-  readonly onOpenEloAbout?: () => void
   readonly progression?: GuestProgressionState
-  readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
   readonly stats: StatisticsState
-  readonly viewerUserId?: string
 }
 
 const buckets = [
@@ -40,14 +33,9 @@ const EMPTY_PROGRESSION: GuestProgressionState = {
 }
 
 export function StatsDashboard({
-  authStatus = 'unconfigured',
-  competitiveMultiplayer,
   history = EMPTY_HISTORY,
-  onOpenEloAbout,
   progression = EMPTY_PROGRESSION,
-  publicRankedLeaderboardRepository,
   stats,
-  viewerUserId,
 }: StatsDashboardProps) {
   const winRateByScope = selectWinRateByScope(stats)
   const winRateByLength = selectWinRateByLength(stats)
@@ -61,13 +49,8 @@ export function StatsDashboard({
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">local stats</p>
         <h2 id="stats-dashboard-title" className="text-3xl font-bold text-white">Statistics</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Local stats stay private on this device. Public ranked leaderboards use only opted-in public profiles and trusted ranked Practice aggregates.</p>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Local stats stay private on this device and focus on your gameplay history, streaks, XP, and coin trends.</p>
       </div>
-
-      <PublicRankedLeaderboardPanel
-        authStatus={authStatus}
-        repository={publicRankedLeaderboardRepository}
-      />
 
       <div className="grid gap-3 md:grid-cols-2">
         {buckets.map((item) => {
@@ -109,8 +92,6 @@ export function StatsDashboard({
           <TrendSparkline caption="Coins earned trend" data={coinTrend} emptyMessage="Earn coins by completing games to see your trend." />
         </article>
       </div>
-
-      <MultiplayerStatsPanel onOpenEloAbout={onOpenEloAbout} state={competitiveMultiplayer} viewerUserId={viewerUserId} />
     </section>
   )
 }

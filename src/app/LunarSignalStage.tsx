@@ -54,6 +54,8 @@ function getRouteEyebrow(route: AppRoute): string {
       return 'Practice'
     case 'multiplayer':
       return 'Multiplayer'
+    case 'leaderboard':
+      return 'Ranked'
     case 'word-explorer':
       return 'Library'
     case 'profile':

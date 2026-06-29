@@ -1,6 +1,6 @@
 import type { GameMode, PlayScope } from '../game/types'
 
-export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'word-explorer' | 'profile' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'about' | 'admin'
+export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'leaderboard' | 'word-explorer' | 'profile' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'about' | 'admin'
 
 export interface AppRoute {
   readonly id: AppRouteId
@@ -87,6 +87,13 @@ export const APP_ROUTES = [
     navigationGroup: 'support',
   },
   {
+    id: 'leaderboard',
+    label: 'Leaderboard',
+    shortLabel: 'Leaderboard',
+    description: 'Review public ranked Practice leaderboards and competitive multiplayer ratings.',
+    navigationGroup: 'support',
+  },
+  {
     id: 'word-explorer',
     label: 'Word Explorer',
     shortLabel: 'Words',
@@ -111,7 +118,7 @@ export const APP_ROUTES = [
     id: 'stats',
     label: 'Stats',
     shortLabel: 'Stats',
-    description: 'Local and synced statistics will appear here in a later phase.',
+    description: 'Review your local and synced gameplay statistics.',
     navigationGroup: 'support',
   },
   {
@@ -152,6 +159,7 @@ export const PRIMARY_NAVIGATION_ROUTE_IDS = [
   'calendar',
   'history',
   'stats',
+  'leaderboard',
   'word-explorer',
   'profile',
   'settings',

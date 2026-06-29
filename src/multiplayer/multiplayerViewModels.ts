@@ -294,10 +294,11 @@ function toActiveGameViewModel(
 export function selectActiveMultiplayerGameRows(
   state: MultiplayerState | undefined,
   viewerUserId?: string,
+  participantProfilesByGameId: MultiplayerParticipantProfileMapByGameId = {},
 ): readonly MultiplayerActiveGameViewModel[] {
   return [...getActiveMultiplayerGames(normalizeMultiplayerState(state), viewerUserId)]
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .map((game) => toActiveGameViewModel(game, viewerUserId))
+    .map((game) => toActiveGameViewModel(game, viewerUserId, participantProfilesByGameId[game.id]))
 }
 
 function toLiveGameViewModel(

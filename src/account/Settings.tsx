@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { exportGuestProgress } from './guestStorage'
 import type { GuestProgressState, GuestSettingsState } from './storageSchema'
-import { AuthPanel } from './AuthPanel'
 import { DELETE_ACCOUNT_CONFIRMATION, RESET_PROGRESS_CONFIRMATION } from './dangerZone'
 import type { AuthState } from './auth'
 import type { SyncStatusState } from './syncStatus'
@@ -50,10 +49,6 @@ export function Settings({
   authMessage,
   guestProgress,
   onResetProgress,
-  onSendMagicLink,
-  onSignInWithPassword,
-  onSignUpWithPassword,
-  onRequestPasswordReset,
   onSignOut,
   onOpenAuthModal,
   onOpenProfilePanel,
@@ -204,6 +199,20 @@ export function Settings({
           </div>
         </Panel>
       ) : null}
+      {onToggleSound ? (
+        <Panel className="space-y-3 text-sm leading-6 text-slate-300" tone="muted">
+          <h3 className="text-xl font-bold text-white">Sound effects</h3>
+          <label className="flex items-center gap-3 text-slate-100">
+            <input
+              checked={Boolean(soundEnabled)}
+              onChange={(event) => onToggleSound(event.target.checked)}
+              type="checkbox"
+            />
+            <span>Play tile flips, key clicks, win/loss tones, and invalid-guess feedback.</span>
+          </label>
+          <p className="text-xs text-slate-400">On by default. Toggle off to silence every sound immediately.</p>
+        </Panel>
+      ) : null}
       {onUpdateSettings ? (
         <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
           <div className="space-y-1">
@@ -254,7 +263,7 @@ export function Settings({
             <div className="flex flex-wrap items-center gap-2">
               <label className="font-semibold text-cyan-100" htmlFor="settings-notification-sound-mode">Notification sound mode</label>
               <Tooltip className="shrink-0" label="More information about notification sounds">
-                Important-only sounds play for multiplayer turns and completed multiplayer matches. The master Sound Effects toggle still silences every notification sound immediately.
+                Important-only sounds play for multiplayer turns and completed multiplayer matches. The master Sound effects toggle still silences every notification sound immediately.
               </Tooltip>
             </div>
             <select
@@ -313,77 +322,75 @@ export function Settings({
           </div>
         </Panel>
       ) : null}
-      {authState.status === 'anonymous' && onOpenAuthModal ? (
-        <Panel className="space-y-2 text-sm leading-6 text-slate-300" tone="muted">
-          <h3 className="text-xl font-bold text-white">Sign in to brrrdle</h3>
-          <p>Open a clean dialog with Magic Link, Email + Password, and Forgot Password.</p>
-          <Button onClick={onOpenAuthModal} variant="primary">Sign in / Create account</Button>
-        </Panel>
-      ) : null}
-      {authState.status === 'authenticated' && (onOpenProfilePanel || onOpenPasswordChange) ? (
-        <Panel className="space-y-3 text-sm leading-6 text-slate-300" tone="muted">
-          <h3 className="text-xl font-bold text-white">Account management</h3>
-          <p>Profile editing now lives in the Profile tab. Keep Settings for password access and configuration-gated account actions.</p>
-          <div className="flex flex-wrap gap-2">
-            {onOpenProfilePanel ? (
-              <Button onClick={onOpenProfilePanel} variant="primary">Open Profile tab</Button>
-            ) : null}
-            {onOpenPasswordChange ? (
-              <Button onClick={onOpenPasswordChange} variant="secondary">Change password</Button>
-            ) : null}
+      <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
+        <h3 className="text-xl font-bold text-white">Account management</h3>
+        {authState.status === 'authenticated' ? (
+          <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-semibold text-cyan-100">Signed in</p>
+                <p className="break-words text-slate-300">{authState.user?.email ?? 'Authenticated Supabase user'}</p>
+              </div>
+              {onSignOut ? (
+                <Button onClick={onSignOut} variant="secondary">Sign out</Button>
+              ) : null}
+            </div>
+            <p>Profile editing now lives in the Profile tab. Keep Settings for password access and configuration-gated account actions.</p>
+            <div className="flex flex-wrap gap-2">
+              {onOpenProfilePanel ? (
+                <Button onClick={onOpenProfilePanel} variant="primary">Open Profile tab</Button>
+              ) : null}
+              {onOpenPasswordChange ? (
+                <Button onClick={onOpenPasswordChange} variant="secondary">Change password</Button>
+              ) : null}
+            </div>
+            <p className="text-xs text-slate-400">
+              Email changes remain gated until Supabase email confirmation and redirect settings are verified for the deployed site.
+            </p>
           </div>
-          <p className="text-xs text-slate-400">
-            Email changes remain gated until Supabase email confirmation and redirect settings are verified for the deployed site.
-          </p>
-        </Panel>
-      ) : null}
-      <AuthPanel
-        authEmail={authState.user?.email}
-        authMessage={authMessage}
-        authStatus={authState.status}
-        onSendMagicLink={onSendMagicLink}
-        onRequestPasswordReset={onRequestPasswordReset}
-        onSignInWithPassword={onSignInWithPassword}
-        onSignOut={onSignOut}
-        onSignUpWithPassword={onSignUpWithPassword}
-      />
-      {onToggleSound ? (
-        <Panel className="space-y-3 text-sm leading-6 text-slate-300" tone="muted">
-          <h3 className="text-xl font-bold text-white">Sound Effects</h3>
-          <label className="flex items-center gap-3 text-slate-100">
-            <input
-              checked={Boolean(soundEnabled)}
-              onChange={(event) => onToggleSound(event.target.checked)}
-              type="checkbox"
-            />
-            <span>Play tile flips, key clicks, win/loss tones, and invalid-guess feedback.</span>
-          </label>
-          <p className="text-xs text-slate-400">On by default. Toggle off to silence every sound immediately.</p>
-        </Panel>
-      ) : null}
-      <Panel className="space-y-3 text-sm leading-6 text-slate-300" tone="muted">
-        <h3 className="text-xl font-bold text-white">Cloud sync</h3>
-        <p>{syncStatus.message}</p>
-        <p>After sign-in, guest progress can be transferred and synced to Supabase with conflict-safe merge behavior.</p>
-      </Panel>
-      <Panel className="space-y-3 text-sm leading-6 text-slate-300" tone="muted">
-        <h3 className="text-xl font-bold text-white">Local guest progress</h3>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div><p className="font-semibold text-cyan-100">Level</p><p>{guestProgress.progression.level}</p></div>
-          <div><p className="font-semibold text-cyan-100">XP</p><p>{guestProgress.progression.xp}</p></div>
-          <div><p className="font-semibold text-cyan-100">Coins</p><p>{guestProgress.progression.coins}</p></div>
+        ) : authState.status === 'anonymous' ? (
+          <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
+            <p className="font-semibold text-cyan-100">Sign in to brrrdle</p>
+            <p>Open a clean dialog with Magic Link, Email + Password, and Forgot Password.</p>
+            {onOpenAuthModal ? (
+              <Button onClick={onOpenAuthModal} variant="primary">Sign in / Create account</Button>
+            ) : (
+              <p className="text-xs text-slate-400">Use the account menu or Profile tab to sign in when account controls are available.</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
+            <p className="font-semibold text-cyan-100">Account sync setup</p>
+            <p>Supabase is not configured in this environment. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to enable sign-in and cloud sync.</p>
+          </div>
+        )}
+        {authMessage ? (
+          <p aria-live="polite" className="text-sm text-rose-200">{authMessage}</p>
+        ) : null}
+        <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
+          <p className="font-semibold text-cyan-100">Cloud sync</p>
+          <p>{syncStatus.message}</p>
+          <p>After sign-in, guest progress can be transferred and synced to Supabase with conflict-safe merge behavior.</p>
         </div>
-        <textarea
-          className="h-40 w-full rounded-2xl border border-slate-700 bg-slate-950 p-3 font-mono text-xs text-slate-200"
-          readOnly
-          value={exportGuestProgress(guestProgress)}
-        />
-        <Button onClick={onResetProgress} variant="secondary">Reset local guest progress</Button>
-      </Panel>
-      <Panel className="space-y-2 text-sm leading-6 text-slate-300" tone="muted">
-        <h3 className="text-xl font-bold text-white">Danger zone</h3>
-        <p>Destructive actions must require typed confirmations: `{RESET_PROGRESS_CONFIRMATION}` for local resets and `{DELETE_ACCOUNT_CONFIRMATION}` for account deletion.</p>
-        <p>Password changes use the signed-in Supabase account session. Email changes remain gated until confirmation and redirect settings are verified.</p>
+        <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
+          <p className="font-semibold text-cyan-100">Local guest progress</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div><p className="font-semibold text-cyan-100">Level</p><p>{guestProgress.progression.level}</p></div>
+            <div><p className="font-semibold text-cyan-100">XP</p><p>{guestProgress.progression.xp}</p></div>
+            <div><p className="font-semibold text-cyan-100">Coins</p><p>{guestProgress.progression.coins}</p></div>
+          </div>
+          <textarea
+            className="h-40 w-full rounded-2xl border border-slate-700 bg-slate-950 p-3 font-mono text-xs text-slate-200"
+            readOnly
+            value={exportGuestProgress(guestProgress)}
+          />
+          <Button onClick={onResetProgress} variant="secondary">Reset local guest progress</Button>
+        </div>
+        <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
+          <p className="font-semibold text-cyan-100">Danger zone</p>
+          <p>Destructive actions must require typed confirmations: `{RESET_PROGRESS_CONFIRMATION}` for local resets and `{DELETE_ACCOUNT_CONFIRMATION}` for account deletion.</p>
+          <p>Password changes use the signed-in Supabase account session. Email changes remain gated until confirmation and redirect settings are verified.</p>
+        </div>
       </Panel>
     </section>
   )
