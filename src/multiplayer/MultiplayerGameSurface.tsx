@@ -22,6 +22,7 @@ import {
 import { dateKeyToLocalDate, getUtcDailyDateKey } from '../daily'
 import { useSound } from '../sound'
 import { Keyboard } from '../ui'
+import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../app/gameplayAutoCenter'
 import { classNames } from '../ui/classNames'
 import { getMultiplayerSessionForPlayer, type MultiplayerGame, type MultiplayerPlayerId } from './multiplayer'
 import { createDailyMultiplayerGoSetup, createDailyMultiplayerOgSetup } from './dailyMultiplayer'
@@ -371,7 +372,11 @@ export function MultiplayerGameSurface({ disabled = false, game, onSubmitGuess, 
     : `${statusPuzzle.maxAttempts - statusPuzzle.guesses.length} attempts remaining.`
 
   return (
-    <div className="space-y-4 rounded-lg border border-white/10 bg-slate-950/70 p-3">
+    <div
+      className="space-y-4 rounded-lg border border-white/10 bg-slate-950/70 p-3"
+      tabIndex={-1}
+      {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.multiplayer }}
+    >
       <div className="grid gap-3 text-sm text-slate-300 sm:grid-cols-3">
         <div>
           <p className="font-semibold text-cyan-100">Board</p>

@@ -125,6 +125,7 @@ interface MultiplayerPanelProps {
   readonly defaultGoPuzzleCount: GoPuzzleCount
   readonly onChange: (state: MultiplayerState) => void
   readonly onCompetitiveChange?: (state: MultiplayerCompetitiveState) => void
+  readonly onGameplayAutoCenterRequest?: () => void
   readonly onOpenEloAbout?: () => void
   readonly onSelectedGameChange?: (gameId: string) => void
   readonly postgameActions?: PracticeRematchActions
@@ -518,6 +519,7 @@ export function MultiplayerPanel({
   defaultGoPuzzleCount,
   onChange,
   onCompetitiveChange,
+  onGameplayAutoCenterRequest,
   onOpenEloAbout,
   onSelectedGameChange,
   postgameActions,
@@ -721,7 +723,8 @@ export function MultiplayerPanel({
       games: mergeFinalizedRankedGameIntoLocalState(normalized.games, game),
     })
     selectGame(game.id)
-  }, [normalized.games, onChange, selectGame])
+    onGameplayAutoCenterRequest?.()
+  }, [normalized.games, onChange, onGameplayAutoCenterRequest, selectGame])
 
   const finalizeRankedQueueMatch = useCallback(async (requestId: string) => {
     if (!rankedQueueActions) {
@@ -931,6 +934,7 @@ export function MultiplayerPanel({
         text: 'You already have today\'s Daily Multiplayer game for this mode. Re-entering it here.',
         updatedAt: existingDailyClaim.updatedAt,
       })
+      onGameplayAutoCenterRequest?.()
       return
     }
     if (!canCreate) {
@@ -982,6 +986,7 @@ export function MultiplayerPanel({
     selectGame(game.id)
     setLocalMessage(undefined)
     onChange(next)
+    onGameplayAutoCenterRequest?.()
   }
 
   const joinGame = () => {
@@ -1003,6 +1008,7 @@ export function MultiplayerPanel({
     }
     setLocalMessage(undefined)
     onChange(result.state)
+    onGameplayAutoCenterRequest?.()
   }
 
   const cancelGame = () => {
@@ -1164,12 +1170,14 @@ export function MultiplayerPanel({
     const timeoutId = window.setTimeout(() => {
       selectGame(createdGameId)
       setPostgameMessage({ gameId: createdGameId, text: message })
+      onGameplayAutoCenterRequest?.()
     }, 0)
     return () => window.clearTimeout(timeoutId)
   }, [
     effectiveSelectedGameId,
     practiceRematchRequests,
     readOnly,
+    onGameplayAutoCenterRequest,
     selectGame,
     selectedGame,
     viewerPlayerId,
@@ -1289,6 +1297,7 @@ export function MultiplayerPanel({
       onChange(next)
       selectGame(rematchGame.id)
       setPostgameMessage({ gameId: rematchGame.id, text: accepted.idempotent ? 'Opening existing rematch game.' : 'Rematch game created.' })
+      onGameplayAutoCenterRequest?.()
     } catch (error) {
       setPostgameMessage({
         gameId: selectedGame.id,
@@ -1333,6 +1342,7 @@ export function MultiplayerPanel({
     onChange(next)
     selectGame(nextGame.id)
     setPostgameMessage({ gameId: nextGame.id, text: 'New same-settings Practice match opened.' })
+    onGameplayAutoCenterRequest?.()
   }
 
   const searchRankedAgain = () => {
@@ -1531,7 +1541,7 @@ export function MultiplayerPanel({
               data-game-id={game.id}
               data-testid={`multiplayer-game-tab-${game.id}`}
               key={game.id}
-              onClick={() => { selectGame(game.id); setLocalMessage(undefined) }}
+              onClick={() => { selectGame(game.id); setLocalMessage(undefined); onGameplayAutoCenterRequest?.() }}
               variant={game.id === selectedGame?.id ? 'primary' : 'secondary'}
             >
               {game.mode.toUpperCase()} · {game.status}
