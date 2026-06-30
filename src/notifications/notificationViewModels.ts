@@ -143,7 +143,7 @@ function liveNotification(dashboard: DashboardViewModel, now: string): Notificat
 
   const latest = latestTimestamp(dashboard.livePreview) ?? now
   const restrictedDetail = dashboard.summary.restrictedLiveGameCount > 0
-    ? ` ${pluralize(dashboard.summary.restrictedLiveGameCount, 'nonparticipant game')} hidden by Live v1 privacy rules.`
+    ? ` ${pluralize(dashboard.summary.restrictedLiveGameCount, 'nonparticipant game')} hidden by Live privacy rules.`
     : ''
   return {
     actionTarget: { multiplayerSubtab: 'live', routeId: 'multiplayer' },

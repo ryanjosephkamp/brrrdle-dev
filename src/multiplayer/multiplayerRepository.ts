@@ -393,15 +393,48 @@ const FORBIDDEN_SPECTATOR_KEYS = new Set([
   'player_sessions',
   'player_two_user_id',
   'player_user_ids',
+  'profileId',
+  'profile_id',
   'projection',
+  'publicProfileId',
+  'public_profile_id',
   'rawMoveId',
   'raw_move_id',
+  'rating',
+  'ratingSnapshot',
+  'ratingTransaction',
+  'ratingTransactions',
+  'rating_snapshot',
+  'rating_transaction',
+  'rating_transactions',
   'seed',
   'seeds',
   'serializedSession',
   'serialized_session',
+  'session',
+  'sessions',
   'userId',
   'user_id',
+])
+
+const PUBLIC_SPECTATOR_ALLOWED_KEYS = new Set([
+  'created_at',
+  'current_turn_seat',
+  'go_puzzle_count',
+  'hard_mode',
+  'id',
+  'mode',
+  'moves',
+  'outcome',
+  'players',
+  'progress',
+  'ranked',
+  'scope',
+  'spectator_capabilities',
+  'status',
+  'terminal_at',
+  'updated_at',
+  'word_length',
 ])
 
 const FORBIDDEN_TRUSTED_SETTLEMENT_KEYS = new Set([
@@ -637,6 +670,10 @@ function hasOnlyPracticeRematchKeys(record: Record<string, unknown>): boolean {
 
 function hasOnlyParticipantIdentityKeys(record: Record<string, unknown>): boolean {
   return Object.keys(record).every((key) => PARTICIPANT_IDENTITY_ALLOWED_KEYS.has(key))
+}
+
+function hasOnlyPublicSpectatorKeys(record: Record<string, unknown>): boolean {
+  return Object.keys(record).every((key) => PUBLIC_SPECTATOR_ALLOWED_KEYS.has(key))
 }
 
 function getString(record: Record<string, unknown>, key: string): string | undefined {
@@ -1137,6 +1174,20 @@ function parseSpectatorCapabilities(value: unknown): AuthenticatedLiveSpectatorC
   }
 }
 
+function parsePublicSpectatorCapabilities(value: unknown): AuthenticatedLiveSpectatorCapabilities | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  const baseCapabilities = parseSpectatorCapabilities(value)
+  const extendedReadOnly = [
+    getBoolean(value, 'canClaimDaily') === false,
+    getBoolean(value, 'canNotify') === false,
+    getBoolean(value, 'canQueue') === false,
+    getBoolean(value, 'canSettleRating') === false,
+  ].every(Boolean)
+  return baseCapabilities && extendedReadOnly ? baseCapabilities : undefined
+}
+
 function parseSpectatorOutcome(value: unknown): AuthenticatedLiveSpectatorOutcome | undefined {
   if (!isRecord(value)) {
     return undefined
@@ -1220,6 +1271,61 @@ function parseAuthenticatedLiveSpectatorRow(row: unknown): AuthenticatedLiveSpec
   }
 }
 
+function parsePublicLiveSpectatorRow(row: unknown): AuthenticatedLiveSpectatorGame | undefined {
+  if (!isRecord(row) || !hasOnlyPublicSpectatorKeys(row) || hasForbiddenSpectatorKey(row)) {
+    return undefined
+  }
+  const id = getString(row, 'id')
+  const scope = parseScope(row.scope)
+  const mode = parseMode(row.mode)
+  const status = parseSpectatorStatus(row.status)
+  const wordLength = getPositiveInteger(row, 'word_length')
+  const hardMode = getBoolean(row, 'hard_mode')
+  const ranked = getBoolean(row, 'ranked')
+  const createdAt = getString(row, 'created_at')
+  const updatedAt = getString(row, 'updated_at')
+  const terminalAt = getString(row, 'terminal_at')
+  const players = parseSpectatorPlayers(row.players)
+  const moves = parseSpectatorMoves(row.moves)
+  const outcome = parseSpectatorOutcome(row.outcome)
+  const progress = parseSpectatorProgress(row.progress)
+  const spectatorCapabilities = parsePublicSpectatorCapabilities(row.spectator_capabilities)
+  const terminal = status !== undefined && status !== 'playing'
+  if (
+    !id || scope !== 'practice' || !mode || !status || !wordLength
+    || hardMode === undefined || ranked === undefined || !createdAt || !updatedAt
+    || !players || !moves || !outcome || !progress || !spectatorCapabilities
+  ) {
+    return undefined
+  }
+  if (outcome.status !== status || outcome.terminal !== terminal) {
+    return undefined
+  }
+  if (terminal && !terminalAt) {
+    return undefined
+  }
+  return {
+    createdAt,
+    currentTurnSeat: parseSeat(row.current_turn_seat),
+    difficulty: 'standard',
+    goPuzzleCount: getPositiveInteger(row, 'go_puzzle_count'),
+    hardMode,
+    id,
+    mode,
+    moves,
+    outcome,
+    players,
+    progress,
+    ranked,
+    scope,
+    spectatorCapabilities,
+    status,
+    terminalAt,
+    updatedAt: terminalAt ?? updatedAt,
+    wordLength,
+  }
+}
+
 function getUtcDateKey(now: Date): string {
   return Number.isNaN(now.getTime()) ? new Date().toISOString().slice(0, 10) : now.toISOString().slice(0, 10)
 }
@@ -1238,6 +1344,13 @@ export function normalizeAuthenticatedLiveSpectatorRows(
   return value
     .flatMap((row) => parseAuthenticatedLiveSpectatorRow(row) ?? [])
     .filter((row) => !isCurrentDailyLiveSpectatorRow(row, now))
+}
+
+export function normalizePublicLiveSpectatorRows(value: unknown): readonly AuthenticatedLiveSpectatorGame[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.flatMap((row) => parsePublicLiveSpectatorRow(row) ?? [])
 }
 
 export function normalizeTrustedRankedSettlementRows(
@@ -1281,6 +1394,24 @@ export async function loadAuthenticatedLiveSpectatorRows(
     return []
   }
   return normalizeAuthenticatedLiveSpectatorRows(data, now)
+}
+
+export async function loadPublicLiveSpectatorRows(
+  client: BrrrdleSupabaseClient,
+  limit = 25,
+  terminalWindowSeconds = 15,
+  gameId?: string | null,
+): Promise<readonly AuthenticatedLiveSpectatorGame[]> {
+  const trimmedGameId = typeof gameId === 'string' ? gameId.trim().slice(0, 128) : ''
+  const { data, error } = await client.rpc('get_public_live_v1_spectator_games_v1', {
+    p_game_id: trimmedGameId || null,
+    p_limit: Math.max(0, Math.min(50, Math.floor(limit))),
+    p_terminal_window_seconds: Math.max(0, Math.min(30, Math.floor(terminalWindowSeconds))),
+  })
+  if (error) {
+    return []
+  }
+  return normalizePublicLiveSpectatorRows(data)
 }
 
 function getExpectedRankedPracticeRatingBucket(game: Pick<MultiplayerGame, 'mode' | 'ratingBucket' | 'timeLimitMs'>): RatingBucketId | null {

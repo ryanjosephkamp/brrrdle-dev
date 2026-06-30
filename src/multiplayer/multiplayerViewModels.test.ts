@@ -569,6 +569,30 @@ describe('multiplayer view models', () => {
     }, 'host-user', [spectatorGame])).toBe(0)
   })
 
+  it('projects public spectator RPC rows for signed-out and guest viewers without participant resume actions', () => {
+    const active = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'go',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const rows = selectLiveMultiplayerRows({ games: [active] }, undefined, [spectatorGame])
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      actionLabel: 'Spectate live game',
+      canResume: false,
+      canSpectate: true,
+      id: spectatorGame.id,
+      opponentLabel: 'Host player vs Rival player',
+      viewerRole: 'spectator',
+    })
+    expect(selectRestrictedLiveMultiplayerCount({ games: [active] }, undefined, [spectatorGame])).toBe(0)
+    expect(JSON.stringify(rows[0])).not.toContain('userId')
+    expect(JSON.stringify(rows[0])).not.toContain('email')
+  })
+
   it('prefers Stage 35 spectator profile names for ranked Live rows without raw identity fields', () => {
     const rows = selectLiveMultiplayerRows({ games: [] }, 'spectator-user', [{
       ...spectatorGame,
@@ -662,7 +686,7 @@ describe('multiplayer view models', () => {
     })
   })
 
-  it('keeps Live v1 closed to anonymous users and nonparticipant terminal data', () => {
+  it('keeps participant-only Live rows closed to anonymous users and nonparticipant terminal data', () => {
     const active = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
       mode: 'og',

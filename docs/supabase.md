@@ -125,6 +125,20 @@ This migration keeps the authenticated-only `get_authenticated_live_v1_spectator
 
 The Phase 35 migration does not grant direct table access, does not expose public profile ids in Live spectator payloads, and does not expose raw auth ids, emails, private profile fields, answers, seeds, sessions, raw projections, queue internals, rating internals, service ids, tokens, or local/session artifacts. App source repair and UI behavior remain separate Phase 35 source work after migration verification.
 
+Phase 38 public/guest Practice Live spectator SQL/RLS readiness uses the additive migration:
+
+- `supabase/migrations/20260630215141_phase38_public_spectator_projection.sql`
+
+This migration adds dedicated RPC `public.get_public_live_v1_spectator_games_v1(p_limit integer default 25, p_terminal_window_seconds integer default 15, p_game_id text default null)`. The RPC is separate from the authenticated spectator and participant identity RPCs, is granted to `anon` and `authenticated`, and returns only sanitized Practice Multiplayer display/progress data, active public profile summaries where safe, and read-only capability flags. It is bounded by server-side row and terminal-visibility limits, excludes all Daily Multiplayer rows, and does not grant direct table access.
+
+Public/guest spectator payloads must not expose public profile ids, raw auth ids, emails, private profile fields, answers, seeds, serialized sessions, player sessions, raw projections, queue internals, rating internals, rating transactions, service ids, tokens, screenshots, videos, traces, auth state, or local/session artifacts. The Phase 38 migration does not implement source/UI public spectation by itself; app integration remains a later source stage after migration and probe verification.
+
+Phase 38 Stage 38.3B Daily claim hardening uses the additive migration:
+
+- `supabase/migrations/20260630220251_phase38_daily_claim_rpc_anon_revoke.sql`
+
+This migration explicitly revokes `public` and `anon` execution from `public.claim_daily_multiplayer_participation(text, text, text, text, text, text)` while preserving authenticated/internal trusted claim behavior. It closes the pre-existing anonymous claim-RPC grant found during public spectator migration probes before public/guest spectator source integration proceeds. It does not alter Daily claim rules, game mutation behavior, the public spectator projection RPC, authenticated spectator RPCs, participant identity RPCs, or source/UI behavior.
+
 For the Phase 23 Stage 3 online-multiplayer stabilization, also apply `supabase/migrations/20260604050824_phase23_online_multiplayer_fixes.sql` after the live and competitive migrations. It creates:
 
 - `async_multiplayer_games`

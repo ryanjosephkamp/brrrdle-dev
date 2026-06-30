@@ -419,14 +419,12 @@ export function selectLiveMultiplayerRows(
   spectatorRows: readonly AuthenticatedLiveSpectatorGame[] = [],
   participantProfilesByGameId: MultiplayerParticipantProfileMapByGameId = {},
 ): readonly MultiplayerLiveGameViewModel[] {
-  if (!viewerUserId) {
-    return []
-  }
-
-  const participantRows = normalizeMultiplayerState(state).games
-    .filter((game) => game.status === 'playing')
-    .filter((game) => Boolean(getViewerMultiplayerPlayerId(game, viewerUserId)))
-    .map((game) => toLiveGameViewModel(game, viewerUserId, participantProfilesByGameId[game.id]))
+  const participantRows = viewerUserId
+    ? normalizeMultiplayerState(state).games
+      .filter((game) => game.status === 'playing')
+      .filter((game) => Boolean(getViewerMultiplayerPlayerId(game, viewerUserId)))
+      .map((game) => toLiveGameViewModel(game, viewerUserId, participantProfilesByGameId[game.id]))
+    : []
   const participantIds = new Set(participantRows.map((row) => row.id))
   const readOnlySpectatorRows = spectatorRows
     .filter((row) => !participantIds.has(row.id))

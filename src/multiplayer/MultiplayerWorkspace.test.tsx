@@ -201,13 +201,40 @@ describe('MultiplayerWorkspace', () => {
       />,
     )
 
-    expect(html).toContain('Participant resume and authenticated read-only spectator visibility')
+    expect(html).toContain('Participant resume and read-only spectator visibility')
     expect(html).toContain('Spectate live game')
     expect(html).toContain('Spectator view')
     expect(html).toContain('Read-only')
     expect(html).toContain('Unranked')
     expect(html).toContain('Host player vs Rival player')
     expect(html).toContain('Host player')
+    expect(html).not.toContain('Submit guess')
+    expect(html).not.toContain('Forfeit')
+    expect(html).not.toContain('Cancel game')
+    expect(html).not.toContain('Join game')
+  })
+
+  it('renders public spectator Live rows for signed-out and guest viewers', () => {
+    const html = renderToStaticMarkup(
+      <MultiplayerWorkspace
+        activeSubtab="live"
+        dailyDateKey="2026-06-14"
+        liveSpectatorRows={[spectatorGame]}
+        onOpenHistory={() => undefined}
+        onResumeGame={() => undefined}
+        onSelectGame={() => undefined}
+        onSubtabChange={() => undefined}
+        renderDailyPanel={() => <div>Daily panel</div>}
+        renderPracticePanel={() => <div>Practice panel</div>}
+        state={{ games: [] }}
+      />,
+    )
+
+    expect(html).toContain('Participant resume and read-only spectator visibility')
+    expect(html).toContain('Spectate live game')
+    expect(html).toContain('Spectator view')
+    expect(html).toContain('Host player vs Rival player')
+    expect(html).not.toContain('Resume live game')
     expect(html).not.toContain('Submit guess')
     expect(html).not.toContain('Forfeit')
     expect(html).not.toContain('Cancel game')

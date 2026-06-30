@@ -209,23 +209,18 @@ export function MultiplayerLive({
   readonly selectedGameId?: string
   readonly viewerUserId?: string
 }) {
-  if (!viewerUserId) {
-    return (
-      <LiveStateNotice>
-        <p className="font-semibold text-white">Sign in to view Live games.</p>
-        <p className="mt-1">Sign in to resume your Live games or watch authenticated read-only Live v1 games. Public and guest spectation remain unavailable.</p>
-      </LiveStateNotice>
-    )
-  }
-
   if (liveGames.length === 0) {
     return (
       <LiveStateNotice>
-        <p className="font-semibold text-white">No Live games visible right now.</p>
-        <p className="mt-1">Start, join, or spectate an authenticated Multiplayer game, then return here while it is in progress.</p>
+        <p className="font-semibold text-white">{viewerUserId ? 'No Live games visible right now.' : 'No public Live games visible right now.'}</p>
+        <p className="mt-1">
+          {viewerUserId
+            ? 'Start, join, or spectate a Multiplayer game, then return here while it is in progress.'
+            : 'Eligible Practice Multiplayer games appear here when they are safe for public read-only spectation.'}
+        </p>
         {restrictedGameCount > 0 ? (
           <p className="mt-2 text-cyan-100">
-            {restrictedGameCount} active {restrictedGameCount === 1 ? 'game is' : 'games are'} hidden by Live v1 privacy rules. Public and guest spectation remains deferred.
+            {restrictedGameCount} active {restrictedGameCount === 1 ? 'game is' : 'games are'} hidden by Live privacy rules.
           </p>
         ) : null}
       </LiveStateNotice>
@@ -238,7 +233,7 @@ export function MultiplayerLive({
     <div className="space-y-4">
       {restrictedGameCount > 0 ? (
         <div className="rounded-lg border border-cyan-200/20 bg-cyan-400/10 p-4 text-sm leading-6 text-cyan-50">
-          {restrictedGameCount} active {restrictedGameCount === 1 ? 'game is' : 'games are'} hidden by Live v1 privacy rules. Public and guest spectation remains deferred.
+          {restrictedGameCount} active {restrictedGameCount === 1 ? 'game is' : 'games are'} hidden by Live privacy rules.
         </div>
       ) : null}
       <div className="grid gap-3 lg:grid-cols-2">

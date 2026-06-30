@@ -277,7 +277,7 @@ function LivePreview({
     return (
       <EmptyState>
         {restrictedCount > 0
-          ? `${restrictedCount} nonparticipant game${restrictedCount === 1 ? '' : 's'} hidden by Live v1 privacy rules.`
+          ? `${restrictedCount} nonparticipant game${restrictedCount === 1 ? '' : 's'} hidden by Live privacy rules.`
           : 'No Live games.'}
       </EmptyState>
     )
@@ -299,7 +299,7 @@ function LivePreview({
       ))}
       {restrictedCount > 0 ? (
         <p className="break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-          {restrictedCount} nonparticipant game{restrictedCount === 1 ? '' : 's'} hidden by Live v1 privacy rules.
+          {restrictedCount} nonparticipant game{restrictedCount === 1 ? '' : 's'} hidden by Live privacy rules.
         </p>
       ) : null}
     </div>
@@ -434,7 +434,7 @@ export function DashboardHome({ dashboard, onAction }: DashboardHomeProps) {
               action={<Button onClick={() => onAction({ multiplayerSubtab: 'live', routeId: 'multiplayer' })} size="sm" variant="ghost">Open Live</Button>}
               title="Live v1"
             >
-              Participant resume and authenticated read-only spectator visibility.
+              Participant resume and read-only spectator visibility.
             </SectionHeader>
             <LivePreview games={dashboard.livePreview} onAction={onAction} restrictedCount={dashboard.summary.restrictedLiveGameCount} />
           </Panel>

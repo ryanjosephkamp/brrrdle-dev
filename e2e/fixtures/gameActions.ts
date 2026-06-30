@@ -49,6 +49,10 @@ export async function openMultiplayerMatch(page: Page): Promise<void> {
 }
 
 export async function selectMultiplayerGame(page: Page, gameId: string): Promise<void> {
+  const selectedGame = page.getByTestId('multiplayer-selected-game')
+  if (await selectedGame.getAttribute('data-game-id', { timeout: 1_000 }).catch(() => null) === gameId) {
+    return
+  }
   const panelTab = page.getByTestId(`multiplayer-game-tab-${gameId}`)
   try {
     await panelTab.click({ timeout: 5_000 })

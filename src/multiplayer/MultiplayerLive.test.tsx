@@ -68,13 +68,13 @@ const spectatorGame: MultiplayerLiveGameViewModel = {
 }
 
 describe('MultiplayerLive', () => {
-  it('renders an auth-required state for anonymous viewers', () => {
+  it('renders an empty public state for anonymous viewers without public rows', () => {
     const html = renderToStaticMarkup(
       <MultiplayerLive liveGames={[]} onResumeGame={noop} restrictedGameCount={0} />,
     )
 
-    expect(html).toContain('Sign in to view Live games.')
-    expect(html).toContain('Public and guest spectation remain unavailable')
+    expect(html).toContain('No public Live games visible right now.')
+    expect(html).toContain('Eligible Practice Multiplayer games appear here')
   })
 
   it('renders participant-resumable Live rows', () => {
@@ -111,13 +111,30 @@ describe('MultiplayerLive', () => {
     expect(html).not.toContain('Join game')
   })
 
+  it('renders public spectator rows for anonymous viewers without mutation actions', () => {
+    const html = renderToStaticMarkup(
+      <MultiplayerLive liveGames={[spectatorGame]} onResumeGame={noop} onSelectGame={noop} restrictedGameCount={0} />,
+    )
+
+    expect(html).toContain('Spectate live game')
+    expect(html).toContain('Spectator view')
+    expect(html).toContain('Read-only')
+    expect(html).toContain('Host player')
+    expect(html).toContain('Rival player')
+    expect(html).not.toContain('Resume live game')
+    expect(html).not.toContain('Submit guess')
+    expect(html).not.toContain('Forfeit')
+    expect(html).not.toContain('Cancel game')
+    expect(html).not.toContain('Join game')
+  })
+
   it('renders restricted messaging without exposing nonparticipant rows', () => {
     const html = renderToStaticMarkup(
       <MultiplayerLive liveGames={[]} onResumeGame={noop} restrictedGameCount={2} viewerUserId="host-user" />,
     )
 
     expect(html).toContain('No Live games visible right now.')
-    expect(html).toContain('2 active games are hidden by Live v1 privacy rules')
+    expect(html).toContain('2 active games are hidden by Live privacy rules')
     expect(html).not.toContain('Resume live game')
   })
 })

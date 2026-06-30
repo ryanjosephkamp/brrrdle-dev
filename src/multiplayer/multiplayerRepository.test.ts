@@ -14,10 +14,12 @@ import {
   createSupabaseMultiplayerRepository,
   isTrustedRankedPracticeSettlementCandidate,
   loadAuthenticatedLiveSpectatorRows,
+  loadPublicLiveSpectatorRows,
   loadMultiplayerState,
   normalizeAuthenticatedLiveSpectatorRows,
   normalizeParticipantIdentitySummaryRows,
   normalizePracticeRematchRequestRows,
+  normalizePublicLiveSpectatorRows,
   normalizeTrustedRankedSettlementRows,
 } from './multiplayerRepository'
 
@@ -89,6 +91,65 @@ function createSanitizedSpectatorRow(overrides: Record<string, unknown> = {}) {
     terminal_hold_until: null,
     time_limit_ms: 300000,
     updated_at: '2026-06-15T23:52:00.000Z',
+    word_length: 5,
+    ...overrides,
+  }
+}
+
+function createPublicSpectatorRow(overrides: Record<string, unknown> = {}) {
+  return {
+    created_at: '2026-06-30T21:50:00.000Z',
+    current_turn_seat: 'player-two',
+    go_puzzle_count: null,
+    hard_mode: true,
+    id: 'public-spectator-game-1',
+    mode: 'og',
+    moves: [
+      {
+        createdAt: '2026-06-30T21:51:00.000Z',
+        guess: 'ROBOT',
+        puzzleIndex: 0,
+        seat: 'player-one',
+        tiles: [
+          { letter: 'R', state: 'absent' },
+          { letter: 'O', state: 'present' },
+          { letter: 'B', state: 'absent' },
+          { letter: 'O', state: 'correct' },
+          { letter: 'T', state: 'correct' },
+        ],
+      },
+    ],
+    outcome: {
+      label: 'In progress',
+      status: 'playing',
+      terminal: false,
+    },
+    players: [
+      { label: 'claudine', profile: { accentColor: 'aurora', avatarUrl: 'https://example.test/claudine.webp', displayName: 'claudine', initials: 'C' }, seat: 'player-one' },
+      { label: 'kiki', profile: { accentColor: 'ice', avatarUrl: 'https://example.test/kiki.webp', displayName: 'kiki', initials: 'K' }, seat: 'player-two' },
+    ],
+    progress: {
+      currentPuzzleIndex: 0,
+      latestMoveAt: '2026-06-30T21:51:00.000Z',
+      moveCount: 1,
+      solvedPuzzleCount: 0,
+    },
+    ranked: false,
+    scope: 'practice',
+    spectator_capabilities: {
+      canCancel: false,
+      canClaimDaily: false,
+      canForfeit: false,
+      canJoin: false,
+      canMutate: false,
+      canNotify: false,
+      canQueue: false,
+      canSettleRating: false,
+      canSubmitGuess: false,
+    },
+    status: 'playing',
+    terminal_at: null,
+    updated_at: '2026-06-30T21:52:00.000Z',
     word_length: 5,
     ...overrides,
   }
@@ -337,6 +398,77 @@ describe('multiplayer repository seam', () => {
     })
     expect(rows).toHaveLength(1)
     expect(rows[0].id).toBe('spectator-game-1')
+  })
+
+  it('normalizes public Live spectator RPC rows with strict read-only public boundaries', () => {
+    const rows = normalizePublicLiveSpectatorRows([createPublicSpectatorRow()])
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      currentTurnSeat: 'player-two',
+      difficulty: 'standard',
+      hardMode: true,
+      id: 'public-spectator-game-1',
+      mode: 'og',
+      scope: 'practice',
+      spectatorCapabilities: {
+        canCancel: false,
+        canForfeit: false,
+        canJoin: false,
+        canMutate: false,
+        canSubmitGuess: false,
+      },
+      wordLength: 5,
+    })
+    expect(rows[0].players.map((player) => player.profile?.displayName)).toEqual(['claudine', 'kiki'])
+    expect(JSON.stringify(rows[0])).not.toContain('publicProfileId')
+    expect(JSON.stringify(rows[0])).not.toContain('userId')
+    expect(JSON.stringify(rows[0])).not.toContain('email')
+  })
+
+  it('rejects public Live spectator rows with Daily scope, broad keys, or mutation capabilities', () => {
+    const daily = createPublicSpectatorRow({ id: 'daily-game', scope: 'daily' })
+    const rawIdentity = createPublicSpectatorRow({
+      players: [
+        { label: 'Host', publicProfileId: 'profile-1', seat: 'player-one' },
+        { label: 'Rival', seat: 'player-two' },
+      ],
+    })
+    const broadProjection = createPublicSpectatorRow({
+      projection: {
+        serializedSession: { answer: 'crane' },
+      },
+    })
+    const mutable = createPublicSpectatorRow({
+      spectator_capabilities: {
+        canCancel: false,
+        canClaimDaily: false,
+        canForfeit: false,
+        canJoin: true,
+        canMutate: false,
+        canNotify: false,
+        canQueue: false,
+        canSettleRating: false,
+        canSubmitGuess: false,
+      },
+    })
+
+    expect(normalizePublicLiveSpectatorRows([daily, rawIdentity, broadProjection, mutable])).toEqual([])
+  })
+
+  it('loads public Live spectator rows from the dedicated public projection RPC only', async () => {
+    const rpc = vi.fn(async () => ({ data: [createPublicSpectatorRow()], error: null }))
+    const client = { rpc } as unknown as BrrrdleSupabaseClient
+
+    const rows = await loadPublicLiveSpectatorRows(client, 99, 99, ' public-spectator-game-1 ')
+
+    expect(rpc).toHaveBeenCalledWith('get_public_live_v1_spectator_games_v1', {
+      p_game_id: 'public-spectator-game-1',
+      p_limit: 50,
+      p_terminal_window_seconds: 30,
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0].id).toBe('public-spectator-game-1')
   })
 
   it('normalizes trusted ranked settlement RPC rows without raw game projections', () => {
