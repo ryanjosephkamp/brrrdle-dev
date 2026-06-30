@@ -51,6 +51,9 @@ async function expectSpectatorLiveReadOnly(
   submittedGuess: string,
   participantDisplayNames: readonly [string, string],
 ): Promise<void> {
+  if (page.url() === 'about:blank') {
+    await page.goto('/')
+  }
   await page.getByRole('button', { name: /^Multiplayer$/i }).click()
   await page.getByRole('tab', { name: /^Live$/i }).click()
   const submittedGuessLabel = submittedGuess.toLocaleUpperCase('en-US')
@@ -76,16 +79,8 @@ async function expectSpectatorLiveReadOnly(
   await expect(page.getByRole('tab', { name: /^Live$/i })).toBeVisible()
 }
 
-async function expectSignedOutLiveRestricted(page: Page): Promise<void> {
-  await page.goto('/')
-  await page.getByRole('button', { name: /^Multiplayer$/i }).click()
-  await page.getByRole('tab', { name: /^Live$/i }).click()
-  await expect(page.getByText(/^Sign in to view Live games\.$/i)).toBeVisible()
-  await expect(page.getByText(/Public and guest spectation remain unavailable/i)).toBeVisible()
-}
-
 test.describe('Live v1 spectator @multiplayer', () => {
-  test('lets an authenticated nonparticipant spectate a live match read-only', async ({ browser }) => {
+  test('lets authenticated and public nonparticipants spectate a live match read-only', async ({ browser }) => {
     const runId = createRunId()
     const seats: BrowserSeat[] = []
     const signedOutContext = await browser.newContext()
@@ -136,7 +131,7 @@ test.describe('Live v1 spectator @multiplayer', () => {
         await signedOutPage.setViewportSize(viewport)
         await expectParticipantLiveResume(host.page)
         await expectSpectatorLiveReadOnly(spectator.page, wrongGuess, [host.user.displayName, rival.user.displayName])
-        await expectSignedOutLiveRestricted(signedOutPage)
+        await expectSpectatorLiveReadOnly(signedOutPage, wrongGuess, [host.user.displayName, rival.user.displayName])
       }
 
       await expectNoConsoleFailures(host.consoleFailures)

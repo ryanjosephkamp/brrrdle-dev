@@ -27,7 +27,7 @@ const MULTIPLAYER_SUBTABS = [
   { id: 'practice', label: 'Practice Multiplayer', description: 'Practice multiplayer entry.' },
   { id: 'active', label: 'Active Games', description: 'Active multiplayer games.' },
   { id: 'lobby', label: 'Lobby', description: 'Joinable multiplayer lobbies.' },
-  { id: 'live', label: 'Live', description: 'Participant resume and authenticated read-only Live v1.' },
+  { id: 'live', label: 'Live', description: 'Participant resume and read-only Live spectation.' },
 ] as const satisfies readonly SubtabOption<MultiplayerSubtabId>[]
 
 type ParticipantIdentityActions = Pick<MultiplayerRepository, 'getParticipantIdentitySummaries'>
@@ -153,7 +153,7 @@ function FocusedSpectatorView({
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100">Focused spectator view</p>
             <h3 className="mt-2 break-words text-2xl font-bold text-white">Live game no longer visible</h3>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-              This authenticated read-only Live view has expired or is no longer eligible for spectator discovery.
+              This read-only Live view has expired or is no longer eligible for spectator discovery.
             </p>
           </div>
           <Button onClick={onBack} size="sm" variant="secondary">Back to Live list</Button>
@@ -417,7 +417,7 @@ export function MultiplayerWorkspace({
           <div className="min-w-0">
             <h3 className="text-lg font-bold text-white">Live</h3>
             <p className="break-words text-sm text-slate-400">
-              Participant resume and authenticated read-only spectator visibility. {liveRows.length} visible{restrictedLiveCount > 0 ? ` · ${restrictedLiveCount} restricted` : ''}{liveRows[0] ? ` · Freshest ${formatDateTime(liveRows[0].updatedAt)}` : ''}
+              Participant resume and read-only spectator visibility. {liveRows.length} visible{restrictedLiveCount > 0 ? ` · ${restrictedLiveCount} restricted` : ''}{liveRows[0] ? ` · Freshest ${formatDateTime(liveRows[0].updatedAt)}` : ''}
             </p>
           </div>
           <MultiplayerLive liveGames={liveRows} onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame} onResumeGame={onResumeGame} onSelectGame={onSelectGame} restrictedGameCount={restrictedLiveCount} selectedGameId={selectedGameId} viewerUserId={viewerUserId} />

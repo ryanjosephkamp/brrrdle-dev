@@ -45,6 +45,7 @@ import {
   MULTIPLAYER_PROVISIONAL_K,
   createLocalStorageMultiplayerRepository,
   loadAuthenticatedLiveSpectatorRows,
+  loadPublicLiveSpectatorRows,
   createMultiplayerProfileSummary,
   createSupabaseMultiplayerRepository,
   expireStaleDailyMultiplayerGames,
@@ -1906,7 +1907,7 @@ function AppInner() {
   }, [authState, cacheMultiplayerProgress, multiplayerRepository, settleTrustedRankedGames])
 
   useEffect(() => {
-    if (!authenticatedMultiplayerUserId || !supabaseClient) {
+    if (!supabaseClient) {
       const timeoutId = setTimeout(() => {
         setLiveSpectatorRows([])
         setFocusedLiveSpectatorGameId(undefined)
@@ -1923,7 +1924,10 @@ function AppInner() {
         return
       }
       inFlight = true
-      void loadAuthenticatedLiveSpectatorRows(supabaseClient)
+      const loadRows = authenticatedMultiplayerUserId
+        ? loadAuthenticatedLiveSpectatorRows(supabaseClient)
+        : loadPublicLiveSpectatorRows(supabaseClient)
+      void loadRows
         .then((rows) => {
           if (isActive) {
             setLiveSpectatorRows(rows)
