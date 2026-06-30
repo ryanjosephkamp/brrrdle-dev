@@ -39,17 +39,18 @@ All Phase 24+ development targets `brrrdle-dev`. The original stable `brrrdle` r
 | Phase 32 | Multiplayer stabilization and identity routing | Repair rematch lifecycle, queue/lobby auto-routing, rival labels, avatar accent propagation, and no-comma rating display | Complete |
 | Phase 33 | Competitive ladder v2 readiness | Canonical five-minute timed ranked Practice, display-only rank bands, public leaderboard cleanup, and timed ranked E2E | Complete |
 | Phase 34 | Live/Lobby/notification current-surface stabilization | Repair Live identity labels/readability, add Live ranked labels, streamline Lobby join, improve notification direct-resume, and strengthen turn cues | Complete |
-| Phase 35 | Live identity, auth, deployment, and account-management readiness | Repair persistent ranked Live safe-name fallback, diagnose Vercel magic-link access and Supabase redirects, improve auth copy, password/email management, Settings/Danger Zone responsibilities, and Profile tab readiness | Execute next in planning/spec gates |
-| Phase 36 | Leaderboard and Stats navigation split | Add a main Leaderboard tab, move public leaderboard and Multiplayer Ratings there, and keep local stats in Stats | Keep separately gated |
-| Phase 37 | Navigation and gameplay ergonomics | Auto-center gameplay on enter/join/resume and design browser back/forward history integration | Keep separately gated |
+| Phase 35 | Live identity, auth, deployment, and account-management readiness | Repair persistent ranked Live safe-name fallback, diagnose Vercel magic-link access and Supabase redirects, improve auth copy, password/email management, Settings/Danger Zone responsibilities, and Profile tab readiness | Complete |
+| Phase 36 | Leaderboard and Stats navigation split | Add a main Leaderboard tab, move public leaderboard and Multiplayer Ratings there, and keep local stats in Stats | Complete |
+| Phase 37 | Navigation and gameplay ergonomics | Auto-center gameplay on enter/join/resume, design browser back/forward history integration, and repair solo invalid-guess sound consistency | Keep separately gated |
 | Phase 38 | Public/spectator readiness | Sanitized public/guest spectation plus spectator count/list presence only after privacy/RLS approval | Keep separately gated |
 | Phase 39 | Public profiles and private matchmaking | Clickable profile surfaces, richer safe player identity, custom-code private games, and direct unranked match requests | Keep separately gated |
 | Phase 40 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, and beginner-friendly help/tutorial UX | Keep separately gated |
-| Phase 41 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
-| Phase 42 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
+| Phase 41 | Progression HUD and Focus Mode shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode navigation/page-chrome reduction | Keep late and separately gated |
+| Phase 42 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
+| Phase 43 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-The key optimization after Phase 34 is to repair the remaining ranked Live identity fallback first, then stabilize auth/deployment/account/Profile surfaces before moving into Leaderboard/Stats navigation, gameplay navigation ergonomics, public/spectator features, profile/social expansion, private matchmaking, public stats, onboarding, or theme work. Themes remain valuable but mostly cosmetic; implementing them before these major user and multiplayer surfaces settle would create avoidable compatibility churn after each feature phase.
+The key optimization after Phase 36 is to keep Phase 37 focused on navigation/gameplay ergonomics and the small solo invalid-guess sound bug before moving into public/spectator features, profile/social expansion, private matchmaking, public stats, onboarding, progression HUD, Focus Mode, or theme work. Themes remain valuable but mostly cosmetic; implementing them before these major user and multiplayer surfaces settle would create avoidable compatibility churn after each feature phase.
 
 ---
 
@@ -269,6 +270,7 @@ Core requirements:
 - auto-center or focus the gameplay area when a player enters, joins, resumes, or notification-routes into a game;
 - design browser back/forward integration for route, main tab, subtab, and selected-game history;
 - fall back safely when a selected game is hidden, stale, completed, deleted, or unavailable;
+- make solo invalid guesses in OG and GO use the same invalid-guess sound cue as multiplayer invalid guesses;
 - preserve Daily claim safety, ranked queue routing, notification direct-resume behavior, and all gameplay/Elo rules.
 
 ---
@@ -314,16 +316,31 @@ Core requirements:
 
 ---
 
-## Phase 41 Theme Strategy
+## Phase 41 Progression HUD And Focus Mode Strategy
 
-Phase 41 should modernize theme proposal artifacts before broad theme implementation.
+Phase 41 or later should handle late-stage shell polish after the major route, multiplayer, public/spectator, profile/social, private matchmaking, stats/dashboard, onboarding/help, and account surfaces are clearer.
+
+Core requirements:
+
+- show EXP, coins, and any other real earnable/collectible counters near the top/header area only after those resources have clear gameplay function;
+- support both guest players and signed-in players, preserving guest-to-account transfer expectations;
+- add a player-toggleable Focus Mode only after the main shell is stable enough to avoid repeated compatibility churn;
+- keep the compact navigation fully functional and accessible;
+- persist any Focus Mode default only through approved guest/account settings paths;
+- preserve gameplay legibility, route discoverability, responsive behavior, and all tile-state/gameplay semantics.
+
+---
+
+## Phase 42 Theme Strategy
+
+Phase 42 should modernize theme proposal artifacts before broad theme implementation.
 
 Required review surfaces:
 
 - `themes/proposals/template_proposals/`
 - `themes/proposals/theme_proposals.csv`
 - `themes/proposals/README.md`
-- current app UI surfaces after ranking, Live/notification stabilization, auth/deployment readiness, profile/social surfaces, spectator planning, site stats, onboarding, and multiplayer postgame systems
+- current app UI surfaces after ranking, Live/notification stabilization, auth/deployment readiness, profile/social surfaces, spectator planning, site stats, onboarding, progression HUD, Focus Mode, and multiplayer postgame systems
 
 Goal:
 
@@ -334,9 +351,9 @@ Goal:
 
 ---
 
-## Phase 42+ Full Theme Implementation Strategy
+## Phase 43+ Full Theme Implementation Strategy
 
-Phase 42 or later should implement concrete themes only after the templates are modernized.
+Phase 43 or later should implement concrete themes only after the templates are modernized.
 
 Candidate work:
 

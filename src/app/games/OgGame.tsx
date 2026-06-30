@@ -28,7 +28,9 @@ import { calculatePayToContinueCost } from '../../progression'
 import { useSound } from '../../sound'
 import { Button, Keyboard, Panel, ShareButton } from '../../ui'
 import { classNames } from '../../ui/classNames'
+import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../gameplayAutoCenter'
 import { CustomizeMenu } from './CustomizeMenu'
+import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
 
 interface OgGameProps {
   readonly coins: number
@@ -97,7 +99,13 @@ function GuessGrid({ session }: { readonly session: PuzzleSessionState }) {
   }), [session.currentGuess, session.guesses, session.maxAttempts, session.status, session.wordLength])
 
   return (
-    <div aria-label="Guess grid" className="@container space-y-1.5 sm:space-y-2" role="grid">
+    <div
+      aria-label="Guess grid"
+      className="@container space-y-1.5 sm:space-y-2"
+      role="grid"
+      tabIndex={-1}
+      {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.solo }}
+    >
       {rows.map((row, rowIndex) => (
         <div
           className={classNames('mx-auto grid gap-1 sm:gap-1.5', session.lastValidation && rowIndex === session.guesses.length ? 'motion-safe:animate-[brrrdle-row-shake_180ms_ease-in-out]' : undefined)}
@@ -256,7 +264,9 @@ function OgGameSession({
   const sound = useSound()
   const handleInput = useCallback((input: KeyboardInput) => {
     setContinuationMessage(undefined)
-    sound.play('keyboard-click')
+    for (const event of getSoloInputSoundEvents(input)) {
+      sound.play(event)
+    }
     setSession((currentSession) => {
       if (input.type === 'letter') {
         return enterLetter(currentSession, input.value)
@@ -267,13 +277,11 @@ function OgGameSession({
       }
 
       const nextSession = submitGuess(currentSession)
-      if (nextSession === currentSession) {
-        sound.play('invalid-guess')
-      } else {
-        sound.play('tile-flip')
-        if (nextSession.status === 'won') {
-          sound.play('correct-guess')
-        }
+      for (const event of getSoloSubmitSoundEvents({
+        solved: nextSession.status === 'won',
+        validationFailed: Boolean(nextSession.lastValidation),
+      })) {
+        sound.play(event)
       }
       return nextSession
     })

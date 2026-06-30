@@ -17,60 +17,60 @@ This checklist helps the user manually verify Phase 36 behavior. It does not rep
 
 ## Must Manually Verify
 
-- [ ] The main navigation includes `Leaderboard` between `Stats` and `Words`.
-  - Expected: `Leaderboard` is a first-class top-level tab and appears between `Stats` and `Words` on desktop and narrow/mobile layouts.
-  - Suggested steps: inspect the primary navigation on desktop and a narrow/mobile viewport.
-  - Evidence: `progress/PROGRESS-STEP-298.md`; visual scenario `Primary navigation`.
-
-- [ ] Stats is focused on local/personal gameplay statistics.
-  - Expected: Stats shows local stats, streaks, XP, and coin trend content, and does not render the public ranked leaderboard or competitive multiplayer rating panel.
-  - Suggested steps: open Stats and inspect all visible sections.
-  - Evidence: `progress/PROGRESS-STEP-298.md`; visual scenario `Stats local-only`.
-
-- [ ] Leaderboard contains public ranked Practice leaderboard content.
-  - Expected: the public ranked leaderboard appears on Leaderboard, remains display-only, and still exposes only approved untimed ranked Practice OG/GO views.
-  - Suggested steps: open Leaderboard and inspect the public ranked leaderboard tabs/filters.
-  - Evidence: `progress/PROGRESS-STEP-298.md`; visual scenario `Leaderboard route`.
-
-- [ ] Leaderboard contains competitive multiplayer rating content.
-  - Expected: Multiplayer Ratings / competitive multiplayer rating summaries live on Leaderboard rather than Stats.
-  - Suggested steps: open Leaderboard while signed in and inspect the rating summary area.
-  - Evidence: `progress/PROGRESS-STEP-298.md`.
-
-- [ ] Active Games prefers safe rival public/profile names when available.
-  - Expected: from creator and joined-player perspectives, Active Games rows use safe public/profile names for the rival when available; `Rival` appears only when safe identity is genuinely unavailable.
-  - Suggested steps: create or resume active games with two signed-in public-profile test accounts and inspect Multiplayer -> Active Games from both accounts.
-  - Evidence: `progress/PROGRESS-STEP-297.md`.
-
-- [ ] Active Games reserves `You` for the current viewer's own participant context.
-  - Expected: `You` appears only for the viewer's own turn/context; rival labels do not incorrectly become `You`.
-  - Suggested steps: inspect Active Games rows from both participant accounts.
-  - Evidence: `progress/PROGRESS-STEP-297.md`.
-
-- [ ] Settings sections are ordered correctly.
-  - Expected: Settings top-level sections appear as Gameplay, Sound effects, Notifications, Account management.
-  - Suggested steps: open Settings and scroll through the sections from top to bottom.
-  - Evidence: `progress/PROGRESS-STEP-299.md`; visual scenario `Settings order`.
-
-- [ ] Settings uses `Sound effects` capitalization.
-  - Expected: the section heading reads `Sound effects`, not `Sound Effects`.
-  - Suggested steps: open Settings and inspect the sound section heading.
-  - Evidence: `progress/PROGRESS-STEP-299.md`.
-
-- [ ] Account management is consolidated and truthful.
-  - Expected: signed-in email/status, sign-out, Profile routing, password change, email-change gate, sync/account status, and destructive account/local-progress actions are grouped under Account management without pretending Settings owns full profile editing.
-  - Suggested steps: open Settings signed in and signed out; inspect Account management.
-  - Evidence: `progress/PROGRESS-STEP-299.md`.
-
-- [ ] Signed-in password-update failures do not mention reset links.
+- [x] Phase 36 visual handoff artifacts remain local-only and ignored.
+  - Expected: `test-results/visual-review/phase-36-stage-36-5/` may exist locally, but screenshots/manifests are not tracked or staged.
+  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-36-stage-36-5/` if reviewing locally; confirm artifacts are ignored/local-only.
+  - Evidence: `progress/PROGRESS-STEP-300.md`.
+- [x] Signed-in password-update failures do not mention reset links.
   - Expected: password update failures use password-update-specific copy; same-current-password wording is used only when the provider error is reliably classifiable.
   - Suggested steps: use a safe signed-in test account and inspect the password-change failure state.
   - Evidence: `progress/PROGRESS-STEP-299.md`.
 
-- [ ] Phase 36 visual handoff artifacts remain local-only and ignored.
-  - Expected: `test-results/visual-review/phase-36-stage-36-5/` may exist locally, but screenshots/manifests are not tracked or staged.
-  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-36-stage-36-5/` if reviewing locally; confirm artifacts are ignored/local-only.
-  - Evidence: `progress/PROGRESS-STEP-300.md`.
+- [x] Account management is consolidated and truthful.
+  - Expected: signed-in email/status, sign-out, Profile routing, password change, email-change gate, sync/account status, and destructive account/local-progress actions are grouped under Account management without pretending Settings owns full profile editing.
+  - Suggested steps: open Settings signed in and signed out; inspect Account management.
+  - Evidence: `progress/PROGRESS-STEP-299.md`.
+
+- [x] Settings uses `Sound effects` capitalization.
+  - Expected: the section heading reads `Sound effects`, not `Sound Effects`.
+  - Suggested steps: open Settings and inspect the sound section heading.
+  - Evidence: `progress/PROGRESS-STEP-299.md`.
+
+- [x] Settings sections are ordered correctly.
+  - Expected: Settings top-level sections appear as Gameplay, Sound effects, Notifications, Account management.
+  - Suggested steps: open Settings and scroll through the sections from top to bottom.
+  - Evidence: `progress/PROGRESS-STEP-299.md`; visual scenario `Settings order`.
+
+- [x] Active Games reserves `You` for the current viewer's own participant context.
+  - Expected: `You` appears only for the viewer's own turn/context; rival labels do not incorrectly become `You`.
+  - Suggested steps: inspect Active Games rows from both participant accounts.
+  - Evidence: `progress/PROGRESS-STEP-297.md`.
+
+- [x] Active Games prefers safe rival public/profile names when available.
+  - Expected: from creator and joined-player perspectives, Active Games rows use safe public/profile names for the rival when available; `Rival` appears only when safe identity is genuinely unavailable.
+  - Suggested steps: create or resume active games with two signed-in public-profile test accounts and inspect Multiplayer -> Active Games from both accounts.
+  - Evidence: `progress/PROGRESS-STEP-297.md`.
+
+- [x] Leaderboard contains competitive multiplayer rating content.
+  - Expected: Multiplayer Ratings / competitive multiplayer rating summaries live on Leaderboard rather than Stats.
+  - Suggested steps: open Leaderboard while signed in and inspect the rating summary area.
+  - Evidence: `progress/PROGRESS-STEP-298.md`.
+
+- [x] Leaderboard contains public ranked Practice leaderboard content.
+  - Expected: the public ranked leaderboard appears on Leaderboard, remains display-only, and still exposes only approved untimed ranked Practice OG/GO views.
+  - Suggested steps: open Leaderboard and inspect the public ranked leaderboard tabs/filters.
+  - Evidence: `progress/PROGRESS-STEP-298.md`; visual scenario `Leaderboard route`.
+
+- [x] Stats is focused on local/personal gameplay statistics.
+  - Expected: Stats shows local stats, streaks, XP, and coin trend content, and does not render the public ranked leaderboard or competitive multiplayer rating panel.
+  - Suggested steps: open Stats and inspect all visible sections.
+  - Evidence: `progress/PROGRESS-STEP-298.md`; visual scenario `Stats local-only`.
+
+- [x] The main navigation includes `Leaderboard` between `Stats` and `Words`.
+  - Expected: `Leaderboard` is a first-class top-level tab and appears between `Stats` and `Words` on desktop and narrow/mobile layouts.
+  - Suggested steps: inspect the primary navigation on desktop and a narrow/mobile viewport.
+  - Evidence: `progress/PROGRESS-STEP-298.md`; visual scenario `Primary navigation`.
+
 
 ## Optional Nice-To-Check
 

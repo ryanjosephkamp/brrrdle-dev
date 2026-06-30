@@ -20,7 +20,7 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 
 ---
 
-## Current State After Phase 34
+## Current State After Phase 36
 
 - Phase 23 stabilized the core Solo and Multiplayer gameplay model and added broad local plus real Supabase-backed E2E coverage.
 - Phase 24 made Solo, Multiplayer, History, Lobby, and Live v0 first-class app areas.
@@ -35,7 +35,9 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 - Phase 32 stabilized rematch lifecycle, ranked/lobby auto-routing, participant identity routing, account avatar accent propagation, no-comma rating display, and real two-client E2E coverage.
 - Phase 33 added canonical five-minute timed ranked Practice, display-only rank bands, public ranked leaderboard `All buckets` removal, timed ranked two-client E2E coverage, visual handoff review, and a manual review checklist.
 - Phase 34 stabilized current Multiplayer Live/Lobby/notification surfaces with Live badge readability, Live safe-name labels, Live ranked/unranked labels, guarded one-click Lobby join, notification direct-resume routing, Active Games `Your turn` cues, visual handoff review, and a manual review checklist.
-- After Phase 34 manual review, user testing found a persistent ranked Live safe-name regression in participant and signed-in spectator views. Phase 35 is now routed to repair that regression first, then address auth/deployment/account-management and Profile tab readiness before broader navigation, public/spectator, social, stats, onboarding/help, and theme work.
+- Phase 35 repaired persistent ranked Live safe-name fallbacks, added ranked Live spectator identity support, improved auth redirects/copy, added signed-in password-change access, documented email-change configuration gates, added a first-class Profile tab, and cleaned up Settings/Danger Zone responsibilities.
+- Phase 36 added a first-class Leaderboard tab, moved public ranked Practice leaderboard and competitive multiplayer ratings out of Stats, kept Stats focused on local/personal gameplay statistics, repaired Active Games safe names, and cleaned up Settings/password-copy behavior.
+- After Phase 36 manual review, the user reported no Phase 36 issues. Phase 37 is now routed to gameplay entry/resume ergonomics, browser back/forward navigation readiness, and solo invalid-guess sound consistency.
 
 ---
 
@@ -56,14 +58,15 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 | Phase 32 | Multiplayer stabilization, identity routing, and rating display consistency | Rematch lifecycle repair, ranked/lobby auto-routing, rival labels, account avatar accent propagation, no-comma Elo/rating displays, and regression coverage | Complete |
 | Phase 33 | Competitive ladder v2 readiness | Canonical five-minute timed ranked Practice, display-only rank bands, public leaderboard cleanup, and timed ranked E2E | Complete |
 | Phase 34 | Live/Lobby/notification current-surface stabilization | Live badge readability, Live safe identity labels, ranked/unranked Live cards, direct Lobby join, notification direct-resume routing, and active-game turn cues | Complete |
-| Phase 35 | Live identity, auth, deployment, and account-management readiness | Persistent ranked Live safe-name repair, Vercel protection/magic-link redirect diagnosis, Supabase auth URL audit, auth copy, password/email management, Settings/Danger Zone cleanup, and Profile tab readiness | Next planning target |
-| Phase 36 | Leaderboard and Stats navigation split | New main Leaderboard tab between Stats and Words; move public ranked leaderboard and Multiplayer Ratings out of Stats while preserving local Stats content | Future |
-| Phase 37 | Navigation and gameplay ergonomics | Gameplay-area auto-centering on enter/join/resume and careful browser back/forward route/subtab history integration | Future |
+| Phase 35 | Live identity, auth, deployment, and account-management readiness | Persistent ranked Live safe-name repair, Vercel protection/magic-link redirect diagnosis, Supabase auth URL audit, auth copy, password/email management, Settings/Danger Zone cleanup, and Profile tab readiness | Complete |
+| Phase 36 | Leaderboard and Stats navigation split | New main Leaderboard tab between Stats and Words; move public ranked leaderboard and Multiplayer Ratings out of Stats while preserving local Stats content | Complete |
+| Phase 37 | Navigation and gameplay ergonomics | Gameplay-area auto-centering on enter/join/resume, browser back/forward route/subtab history integration, and solo invalid-guess sound consistency | Next planning target |
 | Phase 38 | Public/spectator readiness | Public/guest spectation only after sanitized projections; spectator count/list presence if privacy-safe | Future |
 | Phase 39 | Public profiles and private matchmaking | Clickable public profiles, richer profile identity in matches, custom-code private games, and direct player match requests if anti-abuse rules are approved | Future |
 | Phase 40 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private developer dashboard, beginner onboarding, help, and tutorial UX | Future |
-| Phase 41 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
-| Phase 42 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
+| Phase 41 | Progression HUD and Focus Mode shell polish | Header/top-site EXP, coin, and collectible counters after earnable systems have clear gameplay functions; late Focus Mode navigation/page-chrome reduction | Future |
+| Phase 42 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
+| Phase 43 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
 | Later phases | Expansion | Deeper social/community systems, marketplace, additional modes, and other expansion work | Future |
 
 ---
@@ -233,7 +236,7 @@ Requirements to preserve:
 
 ## Phase 35 - Live Identity, Auth, Deployment, And Account-Management Readiness
 
-Phase 35 should address the persistent ranked Live safe-name regression found during Phase 34 manual review before moving into user-observed auth/deployment and account-management readiness issues.
+Phase 35 is complete. It addressed the persistent ranked Live safe-name regression found during Phase 34 manual review before moving into user-observed auth/deployment and account-management readiness issues.
 
 Candidate work:
 
@@ -247,13 +250,13 @@ Candidate work:
 - clean up Settings account-management and Danger Zone responsibilities;
 - if the unified spec confirms source-only scope, add a first-class Profile tab for the current player's private/public profile and account-management surfaces while keeping public profile browsing deferred.
 
-Phase 35 should not deploy, configure Vercel/Supabase, or change production access without separate explicit authorization.
+Phase 35 did not deploy, configure Vercel/Supabase, or change production access.
 
 ---
 
 ## Phase 36 - Leaderboard And Stats Navigation Split
 
-Phase 36 should add the requested main `Leaderboard` tab after Phase 35 account/profile routing is stable.
+Phase 36 is complete. It added the requested main `Leaderboard` tab after Phase 35 account/profile routing stabilized.
 
 Candidate work:
 
@@ -267,13 +270,14 @@ Candidate work:
 
 ## Phase 37 - Navigation And Gameplay Ergonomics
 
-Phase 37 should handle focused navigation and gameplay-entry ergonomics after the Profile and Leaderboard navigation work is clearer.
+Phase 37 should handle focused navigation and gameplay-entry ergonomics after the Profile and Leaderboard navigation work is clearer. It should also repair the newly reported solo invalid-guess sound inconsistency while preserving multiplayer's existing invalid-guess behavior.
 
 Candidate work:
 
 - automatically scroll or focus the gameplay area when a player enters, joins, resumes, or is routed directly into a game;
 - consider whether upper multiplayer/game metadata should be collapsible without hiding critical state;
 - design browser back/forward integration for route, tab, subtab, selected game, and stale-game fallback behavior;
+- make solo invalid guesses in OG and GO use the same invalid-guess sound cue as multiplayer invalid guesses, without changing validation rules or valid-submit sounds;
 - preserve gameplay state, Daily claim rules, ranked queue safety, notification direct-routing, and browser history expectations.
 
 ---
@@ -322,23 +326,39 @@ This phase may need schema/RLS/admin planning before implementation.
 
 ---
 
-## Phase 41 - Theme Proposal And Template Modernization
+## Phase 41 - Progression HUD And Focus Mode Shell Polish
 
-Phase 41 should review and modernize the theme proposal system under:
+Phase 41 or a later gated phase should add late-stage shell polish only after major gameplay, navigation, public/spectator, social/profile, private matchmaking, stats/dashboard, onboarding/help, and account surfaces have stabilized.
+
+Candidate work:
+
+- show EXP, coins, and any other real earnable/collectible counters near the top/header area for both guest and signed-in players;
+- keep guest-to-account transfer compatibility for any displayed progression resources;
+- add a player-toggleable Focus Mode that can collapse the side navigation into a compact but functional form and reduce nonessential page chrome during play;
+- persist Focus Mode preferences safely per player/device/account as approved by the future spec;
+- preserve accessibility, route discoverability, responsive navigation, gameplay readability, and tile-state semantics.
+
+This phase should not invent new economy functions by itself. Header counters should display resources only after those resources have clear gameplay meaning.
+
+---
+
+## Phase 42 - Theme Proposal And Template Modernization
+
+Phase 42 should review and modernize the theme proposal system under:
 
 - `themes/proposals/template_proposals/`
 - `themes/proposals/theme_proposals.csv`
 - `themes/proposals/README.md`
 
-The goal is to preserve the original template ideas while updating them for the post-Phase-40 app surface. This late routing avoids repeated compatibility churn while profile, leaderboard, ranked expansion, public spectator, private matchmaking, site stats, onboarding, and multiplayer surfaces are still changing.
+The goal is to preserve the original template ideas while updating them for the post-Phase-41 app surface. This late routing avoids repeated compatibility churn while profile, leaderboard, ranked expansion, public spectator, private matchmaking, site stats, onboarding, Focus Mode, progression HUD, and multiplayer surfaces are still changing.
 
-Phase 41 should decide which templates become full concrete theme proposals and which specific themes should be implemented first. It should not be treated as full theme implementation unless a later approved spec explicitly includes that work.
+Phase 42 should decide which templates become full concrete theme proposals and which specific themes should be implemented first. It should not be treated as full theme implementation unless a later approved spec explicitly includes that work.
 
 ---
 
-## Phase 42 Or Later - Full Concrete Themes
+## Phase 43 Or Later - Full Concrete Themes
 
-Phase 42 or a later dedicated phase should create and implement concrete themes after the template system has been modernized.
+Phase 43 or a later dedicated phase should create and implement concrete themes after the template system has been modernized.
 
 Candidate work:
 

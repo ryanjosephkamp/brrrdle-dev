@@ -32,8 +32,10 @@ import { calculatePayToContinueCost } from '../../progression'
 import { Button, Keyboard, Panel, ShareButton } from '../../ui'
 import { useSound } from '../../sound'
 import { classNames } from '../../ui/classNames'
+import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../gameplayAutoCenter'
 import { CustomizeMenu } from './CustomizeMenu'
 import { getSoloGoSolvedTransition, type SoloGoSolvedTransition } from './goTransitions'
+import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
 
 interface GoGameProps {
   readonly coins: number
@@ -107,7 +109,13 @@ function GuessGrid({ session }: { readonly session: PuzzleSessionState }) {
   }), [session.currentGuess, session.guesses, session.maxAttempts, session.status, session.wordLength])
 
   return (
-    <div aria-label="Go guess grid" className="@container space-y-1.5 sm:space-y-2" role="grid">
+    <div
+      aria-label="Go guess grid"
+      className="@container space-y-1.5 sm:space-y-2"
+      role="grid"
+      tabIndex={-1}
+      {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.solo }}
+    >
       {rows.map((row, rowIndex) => (
         <div
           className={classNames('mx-auto grid gap-1 sm:gap-1.5', session.lastValidation && rowIndex === session.guesses.length ? 'motion-safe:animate-[brrrdle-row-shake_180ms_ease-in-out]' : undefined)}
@@ -311,7 +319,9 @@ function GoGameSession({
   const sound = useSound()
   const handleInput = useCallback((input: KeyboardInput) => {
     setContinuationMessage(undefined)
-    sound.play('keyboard-click')
+    for (const event of getSoloInputSoundEvents(input)) {
+      sound.play(event)
+    }
     setSession((currentSession) => {
       if (input.type === 'letter') {
         return enterGoLetter(currentSession, input.value)
@@ -322,15 +332,16 @@ function GoGameSession({
       }
 
       const nextSession = submitGoGuess(currentSession)
-      if (nextSession === currentSession) {
-        sound.play('invalid-guess')
-      } else {
-        const transition = getSoloGoSolvedTransition(currentSession, nextSession)
-        sound.play('tile-flip')
-        if (transition) {
-          sound.play('correct-guess')
-          setSolvedTransition(transition)
-        }
+      const transition = getSoloGoSolvedTransition(currentSession, nextSession)
+      const activePuzzle = nextSession.puzzles[nextSession.currentPuzzleIndex]
+      for (const event of getSoloSubmitSoundEvents({
+        solved: Boolean(transition),
+        validationFailed: Boolean(activePuzzle?.lastValidation),
+      })) {
+        sound.play(event)
+      }
+      if (transition) {
+        setSolvedTransition(transition)
       }
       return nextSession
     })

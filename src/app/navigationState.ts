@@ -103,7 +103,8 @@ function normalizeHistoryFilters(value: unknown): HistoryFilters {
   }
 }
 
-function normalizeNavigationRecord(record: Record<string, unknown>): NavigationState {
+export function normalizeNavigationState(value: unknown): NavigationState {
+  const record = (typeof value === 'object' && value !== null ? value : {}) as Record<string, unknown>
   const legacyPracticeMode = isLegacyPracticeMode(record.legacyPracticeMode)
     ? record.legacyPracticeMode
     : isLegacyPracticeMode(record.practiceMode)
@@ -137,12 +138,12 @@ export function loadNavigationState(storage: StorageLike | undefined = getDefaul
 
   const v2Record = readRecord(storage, NAVIGATION_STORAGE_KEY)
   if (v2Record) {
-    return normalizeNavigationRecord(v2Record)
+    return normalizeNavigationState(v2Record)
   }
 
   const legacyRecord = readRecord(storage, LEGACY_NAVIGATION_STORAGE_KEY)
   if (legacyRecord) {
-    return normalizeNavigationRecord(legacyRecord)
+    return normalizeNavigationState(legacyRecord)
   }
 
   return DEFAULT_NAVIGATION_STATE
@@ -155,7 +156,7 @@ export function saveNavigationState(patch: Partial<NavigationState>, storage: St
 
   try {
     const current = loadNavigationState(storage)
-    const next = normalizeNavigationRecord({ ...current, ...patch })
+    const next = normalizeNavigationState({ ...current, ...patch })
     storage.setItem(NAVIGATION_STORAGE_KEY, JSON.stringify(next))
   } catch {
     // Browser storage is best-effort only; navigation still works without it.

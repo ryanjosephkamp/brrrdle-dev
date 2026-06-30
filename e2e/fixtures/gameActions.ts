@@ -67,7 +67,10 @@ export async function selectMultiplayerGame(page: Page, gameId: string): Promise
 }
 
 export async function joinMultiplayerMatch(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /^Join multiplayer match$/i }).click()
+  const joinButton = page.getByRole('button', { name: /^Join multiplayer match$/i }).first()
+  if (await joinButton.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await joinButton.click()
+  }
   await expect(page.getByText(/Joined multiplayer match|Waiting for the next player|Your turn|Rival joined/i)).toBeVisible()
 }
 
