@@ -25,6 +25,7 @@ The detailed planning system now lives under `planning/`:
 - `planning/specs/`
 - `planning/testing/`
 - `planning/governance/PROMPT-PACKAGE-STANDARD.md`: standard for Codex-generated prompt packages and next-step handoff prompts.
+- `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md`: guidance for batching cohesive work into larger macro-phases while keeping implementation stages narrow and verification gates intact.
 
 ## Rule Of Thumb
 
@@ -33,3 +34,4 @@ The detailed planning system now lives under `planning/`:
 - Put completed specs under `planning/specs/`.
 - Put long completed histories under `planning/history/`.
 - Keep progress tracking under root `progress/`.
+- Use `PHASE-SCOPE-SIZING-GUIDE.md` when deciding whether future roadmap items should be batched into a larger phase or split into separate gated phases.

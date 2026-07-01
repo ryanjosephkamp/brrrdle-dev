@@ -48,9 +48,39 @@ export async function openMultiplayerMatch(page: Page): Promise<void> {
   await expect(page.getByTestId('multiplayer-status-message')).toContainText(/Multiplayer match opened|Ranked multiplayer match opened|Custom multiplayer lobby/i)
 }
 
-export async function selectMultiplayerGame(page: Page, gameId: string): Promise<void> {
+type MultiplayerRenderedStatus = 'cancelled' | 'expired' | 'lost' | 'playing' | 'waiting' | 'won'
+
+interface SelectMultiplayerGameOptions {
+  readonly reloadOnStaleStatus?: boolean
+  readonly status?: MultiplayerRenderedStatus | RegExp
+  readonly timeoutMs?: number
+}
+
+interface JoinWaitingMultiplayerGameOptions {
+  readonly via?: 'lobby' | 'selected'
+}
+
+async function expectSelectedMultiplayerGame(page: Page, gameId: string, options: SelectMultiplayerGameOptions = {}): Promise<void> {
+  const timeout = options.timeoutMs ?? 30_000
+  const selectedGame = page.getByTestId('multiplayer-selected-game')
+  await expect(selectedGame).toHaveAttribute('data-game-id', gameId, { timeout })
+  if (options.status) {
+    await expect(selectedGame).toHaveAttribute('data-status', options.status, { timeout })
+  }
+}
+
+export async function selectMultiplayerGame(page: Page, gameId: string, options: SelectMultiplayerGameOptions = {}): Promise<void> {
   const selectedGame = page.getByTestId('multiplayer-selected-game')
   if (await selectedGame.getAttribute('data-game-id', { timeout: 1_000 }).catch(() => null) === gameId) {
+    try {
+      await expectSelectedMultiplayerGame(page, gameId, options)
+    } catch (error) {
+      if (!options.status || !options.reloadOnStaleStatus) {
+        throw error
+      }
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await expectSelectedMultiplayerGame(page, gameId, options)
+    }
     return
   }
   const panelTab = page.getByTestId(`multiplayer-game-tab-${gameId}`)
@@ -67,7 +97,7 @@ export async function selectMultiplayerGame(page: Page, gameId: string): Promise
       await page.getByTestId(`multiplayer-active-resume-${gameId}`).click({ timeout: 10_000 })
     }
   }
-  await expect(page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-game-id', gameId)
+  await expectSelectedMultiplayerGame(page, gameId, options)
 }
 
 export async function joinMultiplayerMatch(page: Page): Promise<void> {
@@ -76,6 +106,37 @@ export async function joinMultiplayerMatch(page: Page): Promise<void> {
     await joinButton.click()
   }
   await expect(page.getByText(/Joined multiplayer match|Waiting for the next player|Your turn|Rival joined/i)).toBeVisible()
+}
+
+export async function joinWaitingMultiplayerGame(page: Page, gameId: string, options: JoinWaitingMultiplayerGameOptions = {}): Promise<void> {
+  if (options.via === 'selected') {
+    const joinButton = page.getByRole('button', { name: /^Join multiplayer match$/i }).first()
+    await expect(joinButton).toBeVisible({ timeout: 20_000 })
+    await joinButton.click({ timeout: 20_000 })
+    try {
+      await expectSelectedMultiplayerGame(page, gameId, { status: 'playing' })
+    } catch {
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await expectSelectedMultiplayerGame(page, gameId, { status: 'playing' })
+    }
+    return
+  }
+
+  const lobbyTab = page.getByRole('tab', { name: /^Lobby$/i })
+  await expect(lobbyTab).toBeVisible({ timeout: 20_000 })
+  await lobbyTab.click()
+  const lobbyAction = page.getByTestId(`multiplayer-lobby-action-${gameId}`)
+  try {
+    await expect(lobbyAction).toBeVisible({ timeout: 30_000 })
+  } catch {
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(lobbyTab).toBeVisible({ timeout: 20_000 })
+    await lobbyTab.click()
+    await expect(lobbyAction).toBeVisible({ timeout: 30_000 })
+  }
+  await lobbyAction.click({ timeout: 20_000 })
+  await expect(page.getByText(/Joined multiplayer match|Waiting for the next player|Your turn|Rival joined/i)).toBeVisible()
+  await expectSelectedMultiplayerGame(page, gameId, { status: 'playing' })
 }
 
 export async function submitGuessWithKeyboard(page: Page, guess: string): Promise<void> {

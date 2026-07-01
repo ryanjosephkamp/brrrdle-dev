@@ -3,7 +3,7 @@ import { expectNoConsoleFailures, installConsoleGuards } from '../fixtures/asser
 import { getValidWrongGuess, projectionFromRow } from '../fixtures/answers'
 import { cleanupE2eRun } from '../fixtures/cleanup'
 import {
-  joinMultiplayerMatch,
+  joinWaitingMultiplayerGame,
   navigateToPracticeMultiplayer,
   openMultiplayerMatch,
   selectMultiplayerGame,
@@ -106,8 +106,7 @@ test.describe('Live v1 spectator @multiplayer', () => {
       })
 
       await navigateToPracticeMultiplayer(rival.page)
-      await selectMultiplayerGame(rival.page, waitingRow.id)
-      await joinMultiplayerMatch(rival.page)
+      await joinWaitingMultiplayerGame(rival.page, waitingRow.id)
       const playingRow = await waitForMultiplayerRowForUsers({
         mode: 'og',
         scope: 'practice',
@@ -117,7 +116,7 @@ test.describe('Live v1 spectator @multiplayer', () => {
       const game = projectionFromRow(playingRow)
       const wrongGuess = getValidWrongGuess(game)
 
-      await selectMultiplayerGame(host.page, playingRow.id)
+      await selectMultiplayerGame(host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await waitForTurn(host.page)
       await submitGuessWithKeyboard(host.page, wrongGuess)
       await waitForTurn(rival.page)

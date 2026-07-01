@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { expectNoConsoleFailures, expectVisibleStatus } from '../fixtures/assertions'
 import { getCurrentAnswer, getValidWrongGuess, projectionFromRow } from '../fixtures/answers'
-import { navigateToPracticeMultiplayer, openMultiplayerMatch, joinMultiplayerMatch, selectMultiplayerGame, setPracticeMultiplayerTimeLimit, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
+import { navigateToPracticeMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, setPracticeMultiplayerTimeLimit, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
 import { updateMultiplayerProjection, upsertPublicProfileForUser, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession, type TwoClientSession } from '../fixtures/twoClientGame'
 
@@ -19,8 +19,7 @@ async function openAndJoinPracticeOgMatch(session: TwoClientSession) {
   })
 
   await navigateToPracticeMultiplayer(session.rival.page)
-  await selectMultiplayerGame(session.rival.page, waitingRow.id)
-  await joinMultiplayerMatch(session.rival.page)
+  await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id)
 
   return waitForMultiplayerRowForUsers({
     mode: 'og',
@@ -41,7 +40,7 @@ async function finishPracticeOgMatchAsHost(session: TwoClientSession, gameId: st
   const game = projectionFromRow(playingRow)
   const answer = getCurrentAnswer(game)
 
-  await selectMultiplayerGame(session.host.page, playingRow.id)
+  await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
   await waitForTurn(session.host.page)
   await submitGuessWithKeyboard(session.host.page, answer)
 
@@ -105,8 +104,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       })
 
       await navigateToPracticeMultiplayer(session.rival.page)
-      await selectMultiplayerGame(session.rival.page, waitingRow.id)
-      await joinMultiplayerMatch(session.rival.page)
+      await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id)
 
       const playingRow = await waitForMultiplayerRowForUsers({
         mode: 'og',
@@ -117,7 +115,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       const game = projectionFromRow(playingRow)
       const answer = getCurrentAnswer(game)
 
-      await selectMultiplayerGame(session.host.page, playingRow.id)
+      await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await waitForTurn(session.host.page)
       await submitGuessWithKeyboard(session.host.page, answer)
 
@@ -151,8 +149,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       })
 
       await navigateToPracticeMultiplayer(session.rival.page)
-      await selectMultiplayerGame(session.rival.page, waitingRow.id)
-      await joinMultiplayerMatch(session.rival.page)
+      await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id)
       const playingRow = await waitForMultiplayerRowForUsers({
         mode: 'og',
         scope: 'practice',
@@ -162,7 +159,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       const game = projectionFromRow(playingRow)
       const wrongGuess = getValidWrongGuess(game)
 
-      await selectMultiplayerGame(session.host.page, playingRow.id)
+      await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await waitForTurn(session.host.page)
       await submitGuessWithKeyboard(session.host.page, wrongGuess)
       await waitForTurn(session.rival.page)
@@ -201,8 +198,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       })
 
       await navigateToPracticeMultiplayer(session.rival.page)
-      await selectMultiplayerGame(session.rival.page, waitingRow.id)
-      await joinMultiplayerMatch(session.rival.page)
+      await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id)
       const playingRow = await waitForMultiplayerRowForUsers({
         mode: 'og',
         scope: 'practice',
@@ -211,7 +207,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       })
       const game = projectionFromRow(playingRow)
       expect(game.timeLimitMs).toBe(30_000)
-      await selectMultiplayerGame(session.host.page, playingRow.id)
+      await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await waitForTurn(session.host.page)
       const backdatedGame = {
         ...game,
@@ -453,8 +449,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       await selectMultiplayerGame(session.host.page, terminalRow.id)
       await expectSelectedGame(session.host.page, terminalRow.id)
 
-      await selectMultiplayerGame(session.rival.page, waitingRow.id)
-      await joinMultiplayerMatch(session.rival.page)
+      await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id)
       const joinedRow = await waitForMultiplayerRowForUsers({
         mode: 'og',
         scope: 'practice',
