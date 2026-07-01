@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { expectKeyboardState, expectNoConsoleFailures } from '../fixtures/assertions'
 import { getCurrentAnswer, projectionFromRow } from '../fixtures/answers'
-import { chooseMultiplayerMode, launchDailyMultiplayer, openMultiplayerMatch, joinMultiplayerMatch, selectMultiplayerGame, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
+import { chooseMultiplayerMode, launchDailyMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
 import { waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession } from '../fixtures/twoClientGame'
 
@@ -21,8 +21,7 @@ test.describe('Daily Multiplayer GO @daily @multiplayer', () => {
 
       await launchDailyMultiplayer(session.rival.page)
       await chooseMultiplayerMode(session.rival.page, 'go', 'daily')
-      await selectMultiplayerGame(session.rival.page, waitingRow.id)
-      await joinMultiplayerMatch(session.rival.page)
+      await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id, { via: 'selected' })
       const playingRow = await waitForMultiplayerRowForUsers({
         mode: 'go',
         scope: 'daily',
@@ -35,7 +34,7 @@ test.describe('Daily Multiplayer GO @daily @multiplayer', () => {
       expect(game.hardMode).toBe(false)
       const firstAnswer = getCurrentAnswer(game)
 
-      await selectMultiplayerGame(session.host.page, playingRow.id)
+      await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await waitForTurn(session.host.page)
       await submitGuessWithKeyboard(session.host.page, firstAnswer)
 

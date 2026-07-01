@@ -314,9 +314,9 @@ export function WordExplorerPanel() {
             </tbody>
           </table>
 
-          <ul className="grid gap-2 p-3 md:hidden">
+          <ul className="brrrdle-word-explorer-mobile-list grid gap-2 p-3 md:hidden">
             {pageEntries.map((entry) => (
-              <li key={entry.word} className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-sm text-slate-100">
+              <li key={entry.word} className="brrrdle-word-explorer-mobile-row rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-sm text-slate-100">
                 <p className="font-mono text-base">{entry.word}</p>
                 <p className="mt-1 text-xs text-slate-300">{typeBadgeLabel(entry.types)}</p>
                 <p className="mt-1 text-xs text-slate-400">{difficultyBadgeLabel(entry.difficulty)}</p>

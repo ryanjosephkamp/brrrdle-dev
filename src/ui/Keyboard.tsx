@@ -63,7 +63,7 @@ export function Keyboard({ disabled = false, letterStates = {}, onInput }: Keybo
   return (
     <section
       aria-label="Keyboard"
-      className="@container mx-auto w-full max-w-2xl space-y-1.5 rounded-xl bg-slate-900/0 max-md:sticky max-md:bottom-0 max-md:z-10 max-md:bg-slate-900/70 max-md:px-2 max-md:py-2 max-md:backdrop-blur-sm sm:space-y-2"
+      className="@container mx-auto w-full max-w-2xl space-y-1.5 rounded-xl bg-slate-900/0 max-md:sticky max-md:bottom-0 max-md:z-10 max-md:border max-md:border-white/10 max-md:bg-slate-950/85 max-md:px-2 max-md:py-2 sm:space-y-2"
     >
       {keyboardRows.map((row, rowIndex) => (
         <div className="flex justify-center gap-1 sm:gap-1.5" key={row}>

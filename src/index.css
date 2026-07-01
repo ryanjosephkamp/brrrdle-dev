@@ -1070,6 +1070,34 @@ body {
   .brrrdle-lunar-route-head h1 {
     font-size: 2.25rem;
   }
+
+  .brrrdle-lunar-brand,
+  .brrrdle-lunar-daily-status,
+  .brrrdle-lunar-command,
+  .brrrdle-lunar-dock-chip,
+  .brrrdle-lunar-rail-button,
+  .brrrdle-lunar-panel,
+  .brrrdle-lunar-playfield,
+  .brrrdle-notification-panel,
+  .brrrdle-daily-countdown {
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .brrrdle-lunar-rail-button[aria-current='page'] {
+    box-shadow: none;
+  }
+}
+
+@media (width < 768px) {
+  .brrrdle-word-explorer-mobile-row {
+    contain: layout paint;
+  }
+
+  .brrrdle-word-explorer-mobile-row button {
+    box-shadow: none;
+  }
 }
 
 @media (width < 420px) and (height < 740px) {

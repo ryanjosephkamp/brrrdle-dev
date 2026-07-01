@@ -105,6 +105,7 @@ Emphasize:
 - required spec or plan contents;
 - open decisions and deferrals;
 - lightweight markdown verification.
+- whether the phase should remain narrow or use the macro-phase guidance in `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md`.
 
 ### 4.2 Implementation Work
 
@@ -116,6 +117,7 @@ Emphasize:
 - final verification gate;
 - progress and changelog expectations;
 - explicit halt at each stage gate.
+- larger phase payloads do not imply broader implementation-stage authority; stages should remain single-purpose unless the prompt explicitly says otherwise.
 
 ### 4.3 Verification Or Baseline Work
 
@@ -209,6 +211,16 @@ Emphasize:
 - local Codex skills under `/Users/noir/.codex/skills/` remain local-only and must not be committed;
 - secret/artifact scans, ignored-artifact checks, visible PR checks, PR metadata checks, and tree-equivalence checks are required stop gates;
 - never force-push `main`, bypass visible check failures, or delete a branch whose merge safety cannot be proven.
+
+### 4.11 Phase Scope Sizing Work
+
+Emphasize:
+
+- phase-level batching is allowed only for cohesive work with shared product area, data contracts, test harnesses, privacy/RLS boundaries, or UI ownership;
+- implementation stages should remain narrow, single-purpose, and independently reviewable;
+- migration/RLS, deployment/configuration, Git/GitHub, release, gameplay-rule, and Elo changes remain separately authorized protected actions;
+- focused tests should run during implementation stages, while full final verification stays at the final hardening or pre-handoff gate for major phases;
+- documentation-only scope-sizing passes should use lightweight verification and should not create the next phase planning brief unless explicitly authorized.
 
 ## 5. Next Prompt Package Rule
 

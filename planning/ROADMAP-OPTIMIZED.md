@@ -1,7 +1,7 @@
 # brrrdle Optimized Development Roadmap
 
 **Status**: Active optimized roadmap for staged execution
-**Last Updated**: 2026-06-27
+**Last Updated**: 2026-07-01
 **Repository Target**: `brrrdle-dev`
 **Source Roadmap**: `planning/ROADMAP.md`
 **Purpose**: Refine the long-term roadmap into lower-risk gated phases with clear deferrals, verification expectations, and protected-action boundaries.
@@ -22,6 +22,8 @@ This document is a planning artifact. It does not authorize implementation by it
 
 All Phase 24+ development targets `brrrdle-dev`. The original stable `brrrdle` repository remains untouched unless explicitly authorized.
 
+Future planning should also use `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md`: phases may become larger cohesive macro-phases when that improves verification economy, but implementation stages should remain narrow, single-purpose, and explicitly gated.
+
 ---
 
 ## Optimized Phase Map
@@ -41,16 +43,17 @@ All Phase 24+ development targets `brrrdle-dev`. The original stable `brrrdle` r
 | Phase 34 | Live/Lobby/notification current-surface stabilization | Repair Live identity labels/readability, add Live ranked labels, streamline Lobby join, improve notification direct-resume, and strengthen turn cues | Complete |
 | Phase 35 | Live identity, auth, deployment, and account-management readiness | Repair persistent ranked Live safe-name fallback, diagnose Vercel magic-link access and Supabase redirects, improve auth copy, password/email management, Settings/Danger Zone responsibilities, and Profile tab readiness | Complete |
 | Phase 36 | Leaderboard and Stats navigation split | Add a main Leaderboard tab, move public leaderboard and Multiplayer Ratings there, and keep local stats in Stats | Complete |
-| Phase 37 | Navigation and gameplay ergonomics | Auto-center gameplay on enter/join/resume, design browser back/forward history integration, and repair solo invalid-guess sound consistency | Keep separately gated |
-| Phase 38 | Public/spectator readiness | Sanitized public/guest spectation plus spectator count/list presence only after privacy/RLS approval | Keep separately gated |
-| Phase 39 | Public profiles and private matchmaking | Clickable profile surfaces, richer safe player identity, custom-code private games, and direct unranked match requests | Keep separately gated |
-| Phase 40 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, and beginner-friendly help/tutorial UX | Keep separately gated |
-| Phase 41 | Progression HUD and Focus Mode shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode navigation/page-chrome reduction | Keep late and separately gated |
-| Phase 42 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
-| Phase 43 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
+| Phase 37 | Navigation and gameplay ergonomics | Auto-center gameplay on enter/join/resume, add browser back/forward history integration, and repair solo invalid-guess sound consistency | Complete |
+| Phase 38 | Public/spectator readiness | Sanitized public/guest Practice Live spectation with spectator presence/count/list deferred | Complete |
+| Phase 39 | Mobile performance and scroll smoothness | Audit mobile scroll latency, add feasible measurement guards, and tune complex current surfaces without broad redesign | Next planning target |
+| Phase 40 | Public profiles and private matchmaking | Clickable profile surfaces, richer safe player identity, custom-code private games, and direct unranked match requests | Keep separately gated |
+| Phase 41 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, and beginner-friendly help/tutorial UX | Keep separately gated |
+| Phase 42 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
+| Phase 43 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
+| Phase 44 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-The key optimization after Phase 36 is to keep Phase 37 focused on navigation/gameplay ergonomics and the small solo invalid-guess sound bug before moving into public/spectator features, profile/social expansion, private matchmaking, public stats, onboarding, progression HUD, Focus Mode, or theme work. Themes remain valuable but mostly cosmetic; implementing them before these major user and multiplayer surfaces settle would create avoidable compatibility churn after each feature phase.
+The key optimization after Phase 38 is to reroute Phase 39 to the user-reported mobile scroll smoothness issue before adding more public/social UI surface area. Phase 39 may be a cohesive macro-phase for scroll/performance audit, measurement, targeted source/CSS tuning, and final hardening, but its implementation stages should remain narrow. Public profiles/private matchmaking, public stats/onboarding, progression HUD/Focus Mode/mobile UX overhaul, and theme work remain separately gated.
 
 ---
 
@@ -263,7 +266,7 @@ Core requirements:
 
 ## Phase 37 Navigation/Game Ergonomics Strategy
 
-Phase 37 should improve route ergonomics and gameplay-entry comfort without changing gameplay rules.
+Phase 37 is complete. It improved route ergonomics and gameplay-entry comfort without changing gameplay rules.
 
 Core requirements:
 
@@ -277,7 +280,7 @@ Core requirements:
 
 ## Phase 38 Public/Spectator Strategy
 
-Phase 38 or later may add public/guest spectation and spectator presence if a sanitized public projection remains product-desirable.
+Phase 38 is complete. It added public/guest Practice Live discovery and read-only spectation after a sanitized public projection was approved and verified. Spectator presence/count/list work remains deferred.
 
 Core requirements:
 
@@ -289,9 +292,24 @@ Core requirements:
 
 ---
 
-## Phase 39 Public Profile And Private Matchmaking Strategy
+## Phase 39 Mobile Performance And Scroll Smoothness Strategy
 
-Phase 39 or later should handle public profile browsing and private/custom match invitation design.
+Phase 39 should address user-reported mobile page-scroll latency before adding more public/social UI surface area.
+
+Core requirements:
+
+- audit global CSS, app shell, shared UI primitives, and complex current workspaces for likely scroll-jank causes;
+- reproduce or characterize the issue without assuming the root cause;
+- add feasible scroll/layout/performance guards without brittle absolute frame-rate thresholds;
+- make targeted source/CSS improvements only when supported by audit evidence;
+- preserve fast gameplay input, Phase 38 public/guest spectator behavior, Phase 37 browser history/gameplay auto-centering, and all gameplay/Elo rules;
+- keep broad mobile navigation redesign, Focus Mode, and compact shell overhaul deferred to Phase 42 or later.
+
+---
+
+## Phase 40 Public Profile And Private Matchmaking Strategy
+
+Phase 40 or later should handle public profile browsing and private/custom match invitation design after mobile performance readiness.
 
 Core requirements:
 
@@ -303,9 +321,9 @@ Core requirements:
 
 ---
 
-## Phase 40 Stats, Dashboard, Onboarding, And Help Strategy
+## Phase 41 Stats, Dashboard, Onboarding, And Help Strategy
 
-Phase 40 or later should handle observability and beginner UX after account/deployment and public/social routing are clearer.
+Phase 41 or later should handle observability and beginner UX after account/deployment and public/social routing are clearer.
 
 Core requirements:
 
@@ -316,31 +334,32 @@ Core requirements:
 
 ---
 
-## Phase 41 Progression HUD And Focus Mode Strategy
+## Phase 42 Progression HUD, Focus Mode, And Mobile UX Strategy
 
-Phase 41 or later should handle late-stage shell polish after the major route, multiplayer, public/spectator, profile/social, private matchmaking, stats/dashboard, onboarding/help, and account surfaces are clearer.
+Phase 42 or later should handle late-stage shell polish after the major route, multiplayer, public/spectator, profile/social, private matchmaking, stats/dashboard, onboarding/help, and account surfaces are clearer.
 
 Core requirements:
 
 - show EXP, coins, and any other real earnable/collectible counters near the top/header area only after those resources have clear gameplay function;
 - support both guest players and signed-in players, preserving guest-to-account transfer expectations;
 - add a player-toggleable Focus Mode only after the main shell is stable enough to avoid repeated compatibility churn;
+- consider broader mobile UX improvements such as compact navigation and reduced top-of-page chrome after the current performance-focused Phase 39 is complete;
 - keep the compact navigation fully functional and accessible;
 - persist any Focus Mode default only through approved guest/account settings paths;
 - preserve gameplay legibility, route discoverability, responsive behavior, and all tile-state/gameplay semantics.
 
 ---
 
-## Phase 42 Theme Strategy
+## Phase 43 Theme Strategy
 
-Phase 42 should modernize theme proposal artifacts before broad theme implementation.
+Phase 43 should modernize theme proposal artifacts before broad theme implementation.
 
 Required review surfaces:
 
 - `themes/proposals/template_proposals/`
 - `themes/proposals/theme_proposals.csv`
 - `themes/proposals/README.md`
-- current app UI surfaces after ranking, Live/notification stabilization, auth/deployment readiness, profile/social surfaces, spectator planning, site stats, onboarding, progression HUD, Focus Mode, and multiplayer postgame systems
+- current app UI surfaces after ranking, Live/notification stabilization, auth/deployment readiness, profile/social surfaces, spectator planning, mobile performance tuning, site stats, onboarding, progression HUD, Focus Mode, and multiplayer postgame systems
 
 Goal:
 
@@ -351,9 +370,9 @@ Goal:
 
 ---
 
-## Phase 43+ Full Theme Implementation Strategy
+## Phase 44+ Full Theme Implementation Strategy
 
-Phase 43 or later should implement concrete themes only after the templates are modernized.
+Phase 44 or later should implement concrete themes only after the templates are modernized.
 
 Candidate work:
 
@@ -371,7 +390,7 @@ Candidate work:
 - Practice Multiplayer Hard Mode and time-limit behavior remain unchanged unless a later approved spec explicitly changes them.
 - Ranked Practice includes Phase 27 untimed ranked Practice plus Phase 33 canonical five-minute timed ranked Practice; Daily ranked and ranked custom/private-code games remain deferred until a later approved competitive-integrity gate.
 - Match points and Elo/rank movement remain separate.
-- Live v1 spectator behavior remains read-only; public/guest spectation remains unavailable unless a later approved phase explicitly implements sanitized public projections.
+- Live v1 spectator behavior remains read-only; public/guest spectation remains Practice-only, read-only, and limited to the sanitized Phase 38 public projection unless a later approved phase explicitly changes that boundary.
 - Existing scoring, timeout, forfeit, rating/ELO, GO transition, solved-row hold, keyboard-state, Solo Daily fixed-five behavior, and Practice 2-35 word-length behavior remain unchanged unless specifically approved.
 - Dashboard, notification, sound, theme, profile, ranking, leaderboard, and spectator state must not become gameplay authority.
 - No migrations, deployments, releases, merges, branch deletion, or original stable `brrrdle` repository work occur without explicit authorization.
@@ -381,6 +400,8 @@ Candidate work:
 ## Verification Expectations
 
 Every future implementation phase should define focused tests and a final gate before source changes begin.
+
+The preferred cadence is larger cohesive phase scope when justified, focused stage-level verification during implementation, and broad final verification before Git handoff. Do not broaden a stage simply because the phase is larger.
 
 Baseline local gate remains:
 

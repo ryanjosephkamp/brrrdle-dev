@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { expectKeyboardState, expectNoConsoleFailures } from '../fixtures/assertions'
 import { getCurrentAnswer, projectionFromRow } from '../fixtures/answers'
-import { chooseMultiplayerMode, navigateToPracticeMultiplayer, openMultiplayerMatch, joinMultiplayerMatch, selectMultiplayerGame, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
+import { chooseMultiplayerMode, navigateToPracticeMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
 import { waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession } from '../fixtures/twoClientGame'
 
@@ -21,8 +21,7 @@ test.describe('Practice Multiplayer GO @practice @multiplayer', () => {
 
       await navigateToPracticeMultiplayer(session.rival.page)
       await chooseMultiplayerMode(session.rival.page, 'go')
-      await selectMultiplayerGame(session.rival.page, waitingRow.id)
-      await joinMultiplayerMatch(session.rival.page)
+      await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id)
 
       const playingRow = await waitForMultiplayerRowForUsers({
         mode: 'go',
@@ -33,7 +32,7 @@ test.describe('Practice Multiplayer GO @practice @multiplayer', () => {
       const game = projectionFromRow(playingRow)
       const firstAnswer = getCurrentAnswer(game)
 
-      await selectMultiplayerGame(session.host.page, playingRow.id)
+      await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await waitForTurn(session.host.page)
       await submitGuessWithKeyboard(session.host.page, firstAnswer)
 
@@ -45,7 +44,7 @@ test.describe('Practice Multiplayer GO @practice @multiplayer', () => {
       await expectKeyboardState(session.rival.page, firstAnswer[0], 'correct')
 
       await session.rival.page.reload()
-      await selectMultiplayerGame(session.rival.page, playingRow.id)
+      await selectMultiplayerGame(session.rival.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await expect(session.rival.page.getByText(/Puzzle 2 of 5/i).first()).toBeVisible({ timeout: 20_000 })
       await expect(session.rival.page.getByText(visibleAnswer, { exact: true }).first()).toBeVisible()
 

@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. After Phase 37 navigation/gameplay ergonomics, browser-history integration, gameplay auto-centering, and solo invalid-guess sound cleanup, the next routed planning target is Phase 38 public/spectator readiness.
+7. The active or next phase plan. Phase 39 is currently planned as mobile performance and scroll smoothness readiness after the clean Phase 38 manual review and user-reported mobile scroll latency observations. Use the phase scope sizing guide if later scopes should become larger cohesive macro-phases.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -37,6 +37,7 @@ For normal future work, read:
 - `planning/phase-36/`: Phase 36 planning brief, implementation plan, changelog, and review checklist for Leaderboard/Stats navigation split, Active Games safe-name cleanup, password-copy polish, and Settings section ordering.
 - `planning/phase-37/`: Phase 37 planning brief, implementation plan, changelog, and review checklist for gameplay entry/resume ergonomics, browser back/forward navigation readiness, and solo invalid-guess sound consistency.
 - `planning/phase-38/`: Phase 38 planning brief, implementation plan, changelog, and review checklist for public/spectator readiness, including public/guest spectation audit, privacy/RLS gates, read-only public spectator integration, and spectator presence routing.
+- `planning/phase-39/`: Phase 39 planning brief and implementation plan for mobile performance and scroll smoothness readiness, including audit/measurement planning, targeted source/CSS optimization routing, complex workspace scroll tuning, and later mobile UX overhaul deferral.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
@@ -53,11 +54,13 @@ For normal future work, read:
 - `planning/specs/phase-36/`: Phase 36 Leaderboard/Stats split, Active Games safe-name, password-copy, and Settings cleanup specs.
 - `planning/specs/phase-37/`: Phase 37 navigation, gameplay-entry ergonomics, browser history, and solo invalid-guess sound specs.
 - `planning/specs/phase-38/`: Phase 38 public/spectator readiness specs for public/guest spectation audit, migration/RLS gates, sanitized Live discovery, and read-only spectator boundaries.
+- `planning/specs/phase-39/`: Phase 39 mobile performance and scroll smoothness specs for audit, measurement harness planning, targeted shell/CSS/shared-UI optimization, complex workspace tuning, and final hardening gates.
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.
 - `planning/governance/`: guidance for active governance file locations.
 - `planning/governance/PROMPT-PACKAGE-STANDARD.md`: standard for Codex-generated prompt packages and next-step handoff prompts.
+- `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md`: guidance for safely making future phases larger while keeping implementation stages narrow, gated, and verification-friendly.
 - `planning/skills/`: documentation for brrrdle-specific local Codex workflow skills; the actual skills live under `/Users/noir/.codex/skills/` and are not committed.
 - `planning/testing/`: testing-suite strategy and verification philosophy.
 
@@ -72,6 +75,7 @@ Theme proposal modernization is intentionally deferred until after the current m
 - Do not treat planning documents as implementation authorization unless the user explicitly authorizes execution.
 - Keep `progress/` at the repository root as the canonical progress ledger.
 - For completed user-visible phases, use `planning/phase-<N>/REVIEW-CHECKLIST.md` as the committed manual review aid when explicitly authorized. It is not a replacement for automated verification.
+- When a future phase can safely batch more work, follow `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md`: enlarge cohesive macro-phase scope, not individual implementation-stage scope.
 
 ## Testing Strategy
 
