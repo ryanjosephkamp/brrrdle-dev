@@ -1,3 +1,4 @@
+import { normalizePublicProfileId } from '../account/publicProfile'
 import { DEFAULT_ROUTE_ID, getRouteCompatibilityTarget, isAppRouteId, type AppRouteId } from './routes'
 
 export type LegacyPracticeMode = 'og' | 'go'
@@ -25,6 +26,7 @@ export interface NavigationState {
   readonly multiplayerSubtab: MultiplayerSubtabId
   readonly selectedSoloGameKey?: string
   readonly selectedMultiplayerGameId?: string
+  readonly selectedPublicProfileId?: string
   readonly historyFilters: HistoryFilters
 }
 
@@ -122,6 +124,7 @@ export function normalizeNavigationState(value: unknown): NavigationState {
     legacyPracticeMode,
     multiplayerSubtab: isMultiplayerSubtabId(record.multiplayerSubtab) ? record.multiplayerSubtab : DEFAULT_NAVIGATION_STATE.multiplayerSubtab,
     selectedMultiplayerGameId: normalizeOptionalString(record.selectedMultiplayerGameId),
+    selectedPublicProfileId: normalizePublicProfileId(record.selectedPublicProfileId),
     selectedSoloGameKey: normalizeOptionalString(record.selectedSoloGameKey),
     soloSubtab: routeWasPracticeCompatibility
       ? 'practice'

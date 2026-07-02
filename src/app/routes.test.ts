@@ -16,7 +16,7 @@ describe('APP_ROUTES', () => {
 
   it('includes minimal play and support navigation groups', () => {
     expect(getRoutesByGroup('play').map((route) => route.id)).toEqual(['home', 'solo', 'calendar', 'og-daily', 'go-daily', 'practice', 'multiplayer'])
-    expect(getRoutesByGroup('support').map((route) => route.id)).toEqual(['history', 'leaderboard', 'word-explorer', 'profile', 'definitions', 'stats', 'settings', 'feedback', 'about', 'admin'])
+    expect(getRoutesByGroup('support').map((route) => route.id)).toEqual(['history', 'leaderboard', 'word-explorer', 'profile', 'public-profile', 'definitions', 'stats', 'settings', 'feedback', 'about', 'admin'])
   })
 
   it('keeps hidden compatibility routes out of primary navigation while promoting multiplayer', () => {
@@ -29,6 +29,7 @@ describe('APP_ROUTES', () => {
     expect(getRouteById('multiplayer')).toMatchObject({ navigationGroup: 'play' })
     expect(getRouteById('history').hidden).toBeUndefined()
     expect(getRouteById('history')).toMatchObject({ navigationGroup: 'support' })
+    expect(getRouteById('public-profile')).toMatchObject({ hidden: true, navigationGroup: 'support' })
     expect(getRouteById('leaderboard')).toMatchObject({
       label: 'Leaderboard',
       navigationGroup: 'support',

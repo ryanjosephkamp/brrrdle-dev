@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -108,6 +108,15 @@ type ParticipantIdentityActions = Pick<
   MultiplayerRepository,
   'getParticipantIdentitySummaries'
 >
+type PrivateMatchActions = Pick<
+  MultiplayerRepository,
+  'acceptPrivateMatchRequest'
+  | 'cancelPrivateMatchRequest'
+  | 'createPrivateMatchRequest'
+  | 'declinePrivateMatchRequest'
+  | 'listPrivateMatchRequests'
+  | 'load'
+>
 
 const LIVE_SPECTATOR_ACTIVE_POLL_INTERVAL_MS = 5_000
 const LIVE_SPECTATOR_IDLE_POLL_INTERVAL_MS = 30_000
@@ -147,6 +156,7 @@ function PracticeGameSwitcher({
   practiceMode,
   practiceSeeds,
   postgameActions,
+  privateMatchActions,
   participantIdentityActions,
   rankedQueueActions,
   resumeSlots,
@@ -174,6 +184,7 @@ function PracticeGameSwitcher({
   readonly practiceMode: PracticeMode
   readonly practiceSeeds: PracticeSeedState
   readonly postgameActions?: PracticeRematchActions
+  readonly privateMatchActions?: PrivateMatchActions
   readonly participantIdentityActions?: ParticipantIdentityActions
   readonly rankedQueueActions?: RankedQueueActions
   readonly resumeSlots: ResumeSlotCollection
@@ -202,6 +213,7 @@ function PracticeGameSwitcher({
         onCompetitiveChange={onCompetitiveMultiplayerChange}
         onOpenEloAbout={onOpenEloAbout}
         postgameActions={postgameActions}
+        privateMatchActions={privateMatchActions}
         participantIdentityActions={participantIdentityActions}
         rankedQueueActions={rankedQueueActions}
         scope="practice"
@@ -431,6 +443,7 @@ function RoutePanel({
   onSavePublicProfile,
   onOpenAuthModal,
   onOpenProfilePanel,
+  onOpenPublicProfile,
   onOpenPasswordChange,
   onPracticeModeChange,
   onPracticeSeedAdvance,
@@ -439,6 +452,7 @@ function RoutePanel({
   soloSubtab,
   selectedSoloGameKey,
   selectedMultiplayerGameId,
+  selectedPublicProfileId,
   focusedLiveSpectatorGameId,
   multiplayerSubtab,
   historyFilters,
@@ -460,9 +474,11 @@ function RoutePanel({
   calendarLaunch,
   onCalendarLaunchConsumed,
   postgameActions,
+  privateMatchActions,
   participantIdentityActions,
   rankedQueueActions,
   onOpenEloAbout,
+  publicProfileRepository,
   publicRankedLeaderboardRepository,
 }: {
   readonly authState: AuthState
@@ -500,11 +516,13 @@ function RoutePanel({
   readonly onSavePublicProfile: (input: PublicProfileUpdateInput) => Promise<void> | void
   readonly onOpenAuthModal: () => void
   readonly onOpenProfilePanel: () => void
+  readonly onOpenPublicProfile: (publicProfileId: string) => void
   readonly onOpenPasswordChange: () => void
   readonly practiceMode: PracticeMode
   readonly soloDailyMode: SoloMode
   readonly selectedSoloGameKey?: SoloActiveGameKey
   readonly selectedMultiplayerGameId?: string
+  readonly selectedPublicProfileId?: string
   readonly focusedLiveSpectatorGameId?: string
   readonly resumeSlots: ResumeSlotCollection
   readonly route: AppRoute
@@ -532,9 +550,11 @@ function RoutePanel({
   readonly calendarLaunch: CalendarLaunchRequest | null
   readonly onCalendarLaunchConsumed: () => void
   readonly postgameActions?: PracticeRematchActions
+  readonly privateMatchActions?: PrivateMatchActions
   readonly participantIdentityActions?: ParticipantIdentityActions
   readonly rankedQueueActions?: RankedQueueActions
   readonly onOpenEloAbout?: () => void
+  readonly publicProfileRepository?: Pick<PublicProfileRepository, 'loadPublicProfile'>
   readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
 }) {
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
@@ -655,6 +675,7 @@ function RoutePanel({
         onGameplayAutoCenterRequest={requestMultiplayerGameplayAutoCenter}
         onSelectedGameChange={onSelectMultiplayerGame}
         postgameActions={postgameActions}
+        privateMatchActions={privateMatchActions}
         participantIdentityActions={participantIdentityActions}
         rankedQueueActions={rankedQueueActions}
         scope={scope}
@@ -725,7 +746,7 @@ function RoutePanel({
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
+    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} privateMatchActions={privateMatchActions} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
   }
 
   if (route.id === 'multiplayer') {
@@ -791,8 +812,21 @@ function RoutePanel({
         authStatus={authState.status}
         competitiveMultiplayer={guestProgress.competitiveMultiplayer}
         onOpenEloAbout={onOpenEloAbout}
+        onOpenPublicProfile={onOpenPublicProfile}
         publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
         viewerUserId={authState.user?.id}
+      />
+    )
+  }
+
+  if (route.id === 'public-profile') {
+    return (
+      <PublicProfilePage
+        authStatus={authState.status}
+        privateMatchActions={privateMatchActions}
+        onBack={() => onSelectRoute('leaderboard')}
+        publicProfileId={selectedPublicProfileId}
+        repository={publicProfileRepository}
       />
     )
   }
@@ -896,6 +930,10 @@ function AppInner() {
       : undefined,
     [authState.status, supabaseClient],
   )
+  const publicProfileRepository = useMemo<PublicProfileRepository | undefined>(
+    () => supabaseClient ? createSupabasePublicProfileRepository(supabaseClient) : undefined,
+    [supabaseClient],
+  )
   const multiplayerRepositoryRef = useRef(multiplayerRepository)
   const trustedRankedSettlementInFlightRef = useRef(new Set<string>())
   const trustedRankedSettlementCompletedRef = useRef(new Set<string>())
@@ -922,6 +960,7 @@ function AppInner() {
   const [soloSubtab, setSoloSubtab] = useState<SoloSubtabId>(() => initialNavigation.soloSubtab)
   const [multiplayerSubtab, setMultiplayerSubtab] = useState<MultiplayerSubtabId>(() => initialNavigation.multiplayerSubtab)
   const [selectedMultiplayerGameId, setSelectedMultiplayerGameId] = useState<string | undefined>(() => initialNavigation.selectedMultiplayerGameId)
+  const [selectedPublicProfileId, setSelectedPublicProfileId] = useState<string | undefined>(() => initialNavigation.selectedPublicProfileId)
   const [focusedLiveSpectatorGameId, setFocusedLiveSpectatorGameId] = useState<string | undefined>(() => initialBrowserNavigation?.focusedLiveSpectatorGameId)
   const [multiplayerLiveSurfaceActive, setMultiplayerLiveSurfaceActive] = useState(false)
   const [historyFilters, setHistoryFilters] = useState(() => initialNavigation.historyFilters)
@@ -1041,6 +1080,7 @@ function AppInner() {
     legacyPracticeMode: practiceMode,
     multiplayerSubtab,
     selectedMultiplayerGameId,
+    selectedPublicProfileId,
     selectedSoloGameKey,
     soloSubtab,
   }), [
@@ -1050,6 +1090,7 @@ function AppInner() {
     multiplayerSubtab,
     practiceMode,
     selectedMultiplayerGameId,
+    selectedPublicProfileId,
     selectedSoloGameKey,
     soloSubtab,
   ])
@@ -1084,6 +1125,7 @@ function AppInner() {
     }
     setMultiplayerSubtab(navigation.multiplayerSubtab)
     setSelectedMultiplayerGameId(navigation.selectedMultiplayerGameId)
+    setSelectedPublicProfileId(navigation.selectedPublicProfileId)
     setFocusedLiveSpectatorGameId(resolved.focusedLiveSpectatorGameId)
     setHistoryFilters(navigation.historyFilters)
     saveNavigationState(navigation)
@@ -1232,6 +1274,15 @@ function AppInner() {
     setActiveRouteId(routeId)
     saveNavigationState({ activeRouteId: routeId })
   }, [daily.dateKey])
+  const handleOpenPublicProfile = useCallback((publicProfileId: string) => {
+    setFocusedLiveSpectatorGameId(undefined)
+    setSelectedPublicProfileId(publicProfileId)
+    setActiveRouteId('public-profile')
+    saveNavigationState({
+      activeRouteId: 'public-profile',
+      selectedPublicProfileId: publicProfileId,
+    })
+  }, [])
   const handleOpenEloAbout = useCallback(() => {
     handleNavigate('about')
     if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -2211,6 +2262,7 @@ function AppInner() {
             onOpenEloAbout={handleOpenEloAbout}
             onOpenAuthModal={handleOpenAuthModal}
             onOpenPasswordChange={handleOpenPasswordChange}
+            onOpenPublicProfile={handleOpenPublicProfile}
             onCloseFocusedLiveSpectatorGame={handleCloseFocusedLiveSpectatorGame}
             onLiveSurfaceActiveChange={handleLiveSurfaceActiveChange}
             onOpenMultiplayerHistory={handleOpenMultiplayerHistory}
@@ -2239,8 +2291,10 @@ function AppInner() {
             onToggleSound={sound.setEnabled}
             onUpdateSettings={handleUpdateSettings}
             practiceMode={practiceMode}
+            publicProfileRepository={publicProfileRepository}
             publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
             postgameActions={multiplayerRepository}
+            privateMatchActions={multiplayerRepository}
             profileBusy={profileBusy}
             profileMessage={profileMessage}
             publicProfile={publicProfile}
@@ -2253,6 +2307,7 @@ function AppInner() {
             route={activeRoute}
             focusedLiveSpectatorGameId={focusedLiveSpectatorGameId}
             selectedMultiplayerGameId={selectedMultiplayerGameId}
+            selectedPublicProfileId={selectedPublicProfileId}
             selectedSoloGameKey={selectedSoloGameKey}
             soundEnabled={sound.enabled}
             soloDailyMode={soloDailyMode}

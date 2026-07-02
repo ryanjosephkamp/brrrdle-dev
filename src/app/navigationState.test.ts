@@ -32,6 +32,7 @@ describe('navigationState', () => {
       legacyPracticeMode: 'go',
       multiplayerSubtab: 'lobby',
       selectedMultiplayerGameId: 'game-123',
+      selectedPublicProfileId: '123e4567-e89b-42d3-a456-426614174000',
       selectedSoloGameKey: 'practice-go',
       soloSubtab: 'daily',
     }, storage)
@@ -42,6 +43,7 @@ describe('navigationState', () => {
       legacyPracticeMode: 'go',
       multiplayerSubtab: 'lobby',
       selectedMultiplayerGameId: 'game-123',
+      selectedPublicProfileId: '123e4567-e89b-42d3-a456-426614174000',
       selectedSoloGameKey: 'practice-go',
       soloSubtab: 'daily',
     })
@@ -55,6 +57,7 @@ describe('navigationState', () => {
         legacyPracticeMode: 'invalid',
         multiplayerSubtab: 'invalid',
         selectedMultiplayerGameId: '',
+        selectedPublicProfileId: 'raw-auth-id',
         selectedSoloGameKey: '',
         soloSubtab: 'invalid',
       }),

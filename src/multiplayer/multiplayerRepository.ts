@@ -39,6 +39,11 @@ export interface MultiplayerRepository {
   readonly cancelPracticeRematch: (requestId: string) => Promise<PracticeRematchRequestResult>
   readonly declinePracticeRematch: (requestId: string) => Promise<PracticeRematchRequestResult>
   readonly acceptPracticeRematch: (input: AcceptPracticeRematchInput) => Promise<PracticeRematchRequestResult>
+  readonly createPrivateMatchRequest: (input: CreatePrivateMatchRequestInput) => Promise<PrivateMatchRequestResult>
+  readonly listPrivateMatchRequests: (input?: ListPrivateMatchRequestsInput) => Promise<readonly PrivateMatchRequestResult[]>
+  readonly cancelPrivateMatchRequest: (requestId: string) => Promise<PrivateMatchRequestResult>
+  readonly declinePrivateMatchRequest: (requestId: string) => Promise<PrivateMatchRequestResult>
+  readonly acceptPrivateMatchRequest: (input: AcceptPrivateMatchInput) => Promise<PrivateMatchRequestResult>
   readonly getParticipantIdentitySummaries: (input: GetParticipantIdentitySummariesInput) => Promise<readonly ParticipantIdentitySummaryResult[]>
   readonly subscribe: (listener: (snapshot: MultiplayerRepositorySnapshot) => void) => () => void
 }
@@ -135,6 +140,19 @@ export function createLocalStorageMultiplayerRepository(
     },
     acceptPracticeRematch: async () => {
       throw new Error('Practice rematch requests require authenticated Supabase multiplayer.')
+    },
+    createPrivateMatchRequest: async () => {
+      throw new Error('Private match requests require authenticated Supabase multiplayer.')
+    },
+    listPrivateMatchRequests: async () => [],
+    cancelPrivateMatchRequest: async () => {
+      throw new Error('Private match requests require authenticated Supabase multiplayer.')
+    },
+    declinePrivateMatchRequest: async () => {
+      throw new Error('Private match requests require authenticated Supabase multiplayer.')
+    },
+    acceptPrivateMatchRequest: async () => {
+      throw new Error('Private match requests require authenticated Supabase multiplayer.')
     },
     getParticipantIdentitySummaries: async () => [],
     subscribe: (listener) => {
@@ -349,6 +367,65 @@ export interface AcceptPracticeRematchInput {
   readonly requestId: string
 }
 
+export type PrivateMatchRequestStatus = 'cancelled' | 'created' | 'declined' | 'expired' | 'requested'
+export type PrivateMatchViewerRole = 'opponent' | 'participant' | 'requester'
+
+export interface PrivateMatchProfileSummary {
+  readonly accentColor?: string
+  readonly avatarUrl?: string
+  readonly displayName?: string
+  readonly flairKey?: string
+  readonly identityAvailable: boolean
+  readonly publicProfileId?: string
+  readonly updatedAt?: string
+}
+
+export interface PrivateMatchRequestResult {
+  readonly created: boolean
+  readonly createdAt: string
+  readonly createdGameId?: string
+  readonly expired: boolean
+  readonly expiresAt: string
+  readonly goPuzzleCount?: number
+  readonly hardMode: boolean
+  readonly idempotent: boolean
+  readonly mode: GameMode
+  readonly opponent: PrivateMatchProfileSummary
+  readonly requestId: string
+  readonly requester: PrivateMatchProfileSummary
+  readonly requestStatus: PrivateMatchRequestStatus
+  readonly respondedAt?: string
+  readonly timeLimitMs?: number
+  readonly updatedAt: string
+  readonly viewerCanAccept: boolean
+  readonly viewerCanCancel: boolean
+  readonly viewerCanDecline: boolean
+  readonly viewerRole: PrivateMatchViewerRole
+  readonly wordLength: number
+}
+
+export interface CreatePrivateMatchRequestInput {
+  readonly expiresAt?: string
+  readonly goPuzzleCount?: number
+  readonly hardMode?: boolean
+  readonly idempotencyKey?: string
+  readonly mode: GameMode
+  readonly targetPublicProfileId: string
+  readonly timeLimitMs?: number | null
+  readonly wordLength: number
+}
+
+export interface ListPrivateMatchRequestsInput {
+  readonly limit?: number
+  readonly status?: PrivateMatchRequestStatus | null
+}
+
+export interface AcceptPrivateMatchInput {
+  readonly game: MultiplayerGame
+  readonly idempotencyKey?: string
+  readonly requestId: string
+}
+
 export interface GetParticipantIdentitySummariesInput {
   readonly gameId?: string | null
   readonly rankedRequestId?: string | null
@@ -496,6 +573,41 @@ const PRACTICE_REMATCH_ALLOWED_KEYS = new Set([
   'word_length',
 ])
 
+const PRIVATE_MATCH_REQUEST_ALLOWED_KEYS = new Set([
+  'created',
+  'created_at',
+  'created_game_id',
+  'expires_at',
+  'go_puzzle_count',
+  'hard_mode',
+  'idempotent',
+  'mode',
+  'opponent_accent_color',
+  'opponent_avatar_url',
+  'opponent_display_name',
+  'opponent_flair_key',
+  'opponent_identity_available',
+  'opponent_profile_updated_at',
+  'opponent_public_profile_id',
+  'request_id',
+  'request_status',
+  'requester_accent_color',
+  'requester_avatar_url',
+  'requester_display_name',
+  'requester_flair_key',
+  'requester_identity_available',
+  'requester_profile_updated_at',
+  'requester_public_profile_id',
+  'responded_at',
+  'time_limit_ms',
+  'updated_at',
+  'viewer_can_accept',
+  'viewer_can_cancel',
+  'viewer_can_decline',
+  'viewer_role',
+  'word_length',
+])
+
 const PARTICIPANT_IDENTITY_ALLOWED_KEYS = new Set([
   'accent_color',
   'avatar_url',
@@ -535,6 +647,55 @@ const FORBIDDEN_PRACTICE_REMATCH_KEYS = new Set([
   'projection',
   'queue_id',
   'rating_bucket',
+  'rating_transaction_id',
+  'rawMoveId',
+  'raw_move_id',
+  'request_idempotency_key',
+  'requester_user_id',
+  'seed',
+  'seeds',
+  'serializedSession',
+  'serialized_session',
+  'session',
+  'sessions',
+  'settlement_id',
+  'token',
+  'tokens',
+  'userId',
+  'user_id',
+])
+
+const FORBIDDEN_PRIVATE_MATCH_REQUEST_KEYS = new Set([
+  'accept_idempotency_key',
+  'answer',
+  'answers',
+  'answerWord',
+  'answerWords',
+  'authId',
+  'auth_id',
+  'auth_user_id',
+  'daily_claim_id',
+  'email',
+  'game_projection',
+  'hostUserId',
+  'host_user_id',
+  'match_id',
+  'matchmaking_request_id',
+  'opponent_user_id',
+  'playerOneUserId',
+  'playerSessions',
+  'playerTwoUserId',
+  'playerUserIds',
+  'player_one_user_id',
+  'player_sessions',
+  'player_two_user_id',
+  'player_user_ids',
+  'projection',
+  'queue_id',
+  'rating',
+  'rating_bucket',
+  'rating_snapshot',
+  'rating_transaction',
   'rating_transaction_id',
   'rawMoveId',
   'raw_move_id',
@@ -652,6 +813,18 @@ function hasForbiddenPracticeRematchKey(value: unknown): boolean {
   ))
 }
 
+function hasForbiddenPrivateMatchRequestKey(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.some(hasForbiddenPrivateMatchRequestKey)
+  }
+  if (!isRecord(value)) {
+    return false
+  }
+  return Object.entries(value).some(([key, child]) => (
+    FORBIDDEN_PRIVATE_MATCH_REQUEST_KEYS.has(key) || hasForbiddenPrivateMatchRequestKey(child)
+  ))
+}
+
 function hasForbiddenParticipantIdentityKey(value: unknown): boolean {
   if (Array.isArray(value)) {
     return value.some(hasForbiddenParticipantIdentityKey)
@@ -666,6 +839,10 @@ function hasForbiddenParticipantIdentityKey(value: unknown): boolean {
 
 function hasOnlyPracticeRematchKeys(record: Record<string, unknown>): boolean {
   return Object.keys(record).every((key) => PRACTICE_REMATCH_ALLOWED_KEYS.has(key))
+}
+
+function hasOnlyPrivateMatchRequestKeys(record: Record<string, unknown>): boolean {
+  return Object.keys(record).every((key) => PRIVATE_MATCH_REQUEST_ALLOWED_KEYS.has(key))
 }
 
 function hasOnlyParticipantIdentityKeys(record: Record<string, unknown>): boolean {
@@ -797,6 +974,16 @@ function parsePracticeRematchRequestStatus(value: unknown): PracticeRematchReque
 }
 
 function parsePracticeRematchViewerRole(value: unknown): PracticeRematchViewerRole | undefined {
+  return value === 'requester' || value === 'opponent' || value === 'participant' ? value : undefined
+}
+
+function parsePrivateMatchRequestStatus(value: unknown): PrivateMatchRequestStatus | undefined {
+  return value === 'requested' || value === 'created' || value === 'declined' || value === 'cancelled' || value === 'expired'
+    ? value
+    : undefined
+}
+
+function parsePrivateMatchViewerRole(value: unknown): PrivateMatchViewerRole | undefined {
   return value === 'requester' || value === 'opponent' || value === 'participant' ? value : undefined
 }
 
@@ -996,6 +1183,104 @@ function parsePracticeRematchRequestRow(row: unknown, now = new Date()): Practic
     updatedAt,
     viewerCanAccept: expired ? false : viewerCanAccept,
     viewerCanCancel,
+    viewerRole,
+    wordLength,
+  }
+}
+
+function parsePrivateMatchProfileSummary(
+  row: Record<string, unknown>,
+  prefix: 'opponent' | 'requester',
+): PrivateMatchProfileSummary | undefined {
+  const identityAvailable = getBoolean(row, `${prefix}_identity_available`)
+  if (identityAvailable === undefined) {
+    return undefined
+  }
+  const publicProfileId = getString(row, `${prefix}_public_profile_id`)
+  const displayName = getString(row, `${prefix}_display_name`)
+  const updatedAt = parseTimestamp(row[`${prefix}_profile_updated_at`])
+  if (identityAvailable && (!publicProfileId || !displayName || !updatedAt)) {
+    return undefined
+  }
+  return {
+    accentColor: identityAvailable ? getString(row, `${prefix}_accent_color`) : undefined,
+    avatarUrl: identityAvailable ? getString(row, `${prefix}_avatar_url`) : undefined,
+    displayName: identityAvailable ? displayName : undefined,
+    flairKey: identityAvailable ? getString(row, `${prefix}_flair_key`) : undefined,
+    identityAvailable,
+    publicProfileId: identityAvailable ? publicProfileId : undefined,
+    updatedAt: identityAvailable ? updatedAt : undefined,
+  }
+}
+
+function parsePrivateMatchRequestRow(row: unknown, now = new Date()): PrivateMatchRequestResult | undefined {
+  if (!isRecord(row) || !hasOnlyPrivateMatchRequestKeys(row) || hasForbiddenPrivateMatchRequestKey(row)) {
+    return undefined
+  }
+  const requestId = getString(row, 'request_id')
+  const requestStatus = parsePrivateMatchRequestStatus(row.request_status)
+  const viewerRole = parsePrivateMatchViewerRole(row.viewer_role)
+  const viewerCanAccept = getBoolean(row, 'viewer_can_accept')
+  const viewerCanCancel = getBoolean(row, 'viewer_can_cancel')
+  const viewerCanDecline = getBoolean(row, 'viewer_can_decline')
+  const mode = parseMode(row.mode)
+  const wordLength = getPositiveInteger(row, 'word_length')
+  const hardMode = getBoolean(row, 'hard_mode')
+  const timeLimitMs = getPositiveInteger(row, 'time_limit_ms')
+  const goPuzzleCount = getPositiveInteger(row, 'go_puzzle_count')
+  const createdAt = parseTimestamp(row.created_at)
+  const expiresAt = parseTimestamp(row.expires_at)
+  const respondedAt = parseTimestamp(row.responded_at)
+  const updatedAt = parseTimestamp(row.updated_at)
+  const created = getBoolean(row, 'created')
+  const idempotent = getBoolean(row, 'idempotent')
+  const createdGameId = getString(row, 'created_game_id')
+  const requester = parsePrivateMatchProfileSummary(row, 'requester')
+  const opponent = parsePrivateMatchProfileSummary(row, 'opponent')
+
+  if (
+    !requestId || !requestStatus || !viewerRole
+    || viewerCanAccept === undefined || viewerCanCancel === undefined || viewerCanDecline === undefined
+    || !mode || !wordLength || hardMode === undefined || !createdAt || !expiresAt || !updatedAt
+    || created === undefined || idempotent === undefined || !requester || !opponent
+  ) {
+    return undefined
+  }
+  if (mode === 'go' && goPuzzleCount === undefined) {
+    return undefined
+  }
+  if (mode === 'og' && goPuzzleCount !== undefined) {
+    return undefined
+  }
+  if (requestStatus === 'created' && !createdGameId) {
+    return undefined
+  }
+
+  const expiresAtMs = Date.parse(expiresAt)
+  const nowMs = Number.isFinite(now.getTime()) ? now.getTime() : Date.now()
+  const expired = requestStatus === 'expired' || expiresAtMs <= nowMs
+  const createdState = created || requestStatus === 'created'
+
+  return {
+    created: createdState,
+    createdAt,
+    createdGameId,
+    expired,
+    expiresAt,
+    goPuzzleCount,
+    hardMode,
+    idempotent,
+    mode,
+    opponent,
+    requestId,
+    requester,
+    requestStatus,
+    respondedAt,
+    timeLimitMs,
+    updatedAt,
+    viewerCanAccept: expired ? false : viewerCanAccept,
+    viewerCanCancel: expired ? false : viewerCanCancel,
+    viewerCanDecline: expired ? false : viewerCanDecline,
     viewerRole,
     wordLength,
   }
@@ -1373,6 +1658,16 @@ export function normalizePracticeRematchRequestRows(
   return value.flatMap((row) => parsePracticeRematchRequestRow(row, now) ?? [])
 }
 
+export function normalizePrivateMatchRequestRows(
+  value: unknown,
+  now = new Date(),
+): readonly PrivateMatchRequestResult[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.flatMap((row) => parsePrivateMatchRequestRow(row, now) ?? [])
+}
+
 export function normalizeParticipantIdentitySummaryRows(value: unknown): readonly ParticipantIdentitySummaryResult[] {
   if (!Array.isArray(value)) {
     return []
@@ -1481,6 +1776,12 @@ function gameToRow(game: MultiplayerGame, userId: string) {
 
 function rowToGame(row: MultiplayerGameRow): MultiplayerGame | undefined {
   return normalizeMultiplayerState({ games: [row.projection] }).games[0]
+}
+
+function removePrivateMatchAcceptPlayerUserIds(game: MultiplayerGame): MultiplayerGame {
+  const { playerUserIds: omittedPlayerUserIds, ...projection } = game
+  void omittedPlayerUserIds
+  return projection
 }
 
 function hasGameProjectionChanged(previous: MultiplayerGame | undefined, next: MultiplayerGame): boolean {
@@ -1785,6 +2086,85 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
         data,
         (row) => parsePracticeRematchRequestRow(row),
         'Unable to parse Practice rematch accept result.',
+      )
+    },
+    createPrivateMatchRequest: async (input) => {
+      const { data, error } = await client.rpc('create_private_multiplayer_match_request', {
+        p_expires_at: input.expiresAt ?? null,
+        p_go_puzzle_count: input.mode === 'go' ? input.goPuzzleCount ?? null : null,
+        p_hard_mode: input.hardMode === true,
+        p_idempotency_key: input.idempotencyKey ?? null,
+        p_mode: input.mode,
+        p_target_public_profile_id: input.targetPublicProfileId,
+        p_time_limit_ms: input.timeLimitMs ?? null,
+        p_word_length: input.wordLength,
+      })
+      if (error) {
+        throw new Error(`Unable to create private match request: ${error.message}`)
+      }
+      return parseSingleRpcRow(
+        data,
+        (row) => parsePrivateMatchRequestRow(row),
+        'Unable to parse private match request result.',
+      )
+    },
+    listPrivateMatchRequests: async (input = {}) => {
+      const limit = input.limit ?? 50
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        throw new Error('Private match request limit must be between 1 and 100.')
+      }
+      const status = input.status ?? null
+      if (status !== null && !parsePrivateMatchRequestStatus(status)) {
+        throw new Error('Unsupported private match request status filter.')
+      }
+      const { data, error } = await client.rpc('get_private_multiplayer_match_requests', {
+        p_limit: limit,
+        p_status: status,
+      })
+      if (error) {
+        return []
+      }
+      return normalizePrivateMatchRequestRows(data)
+    },
+    cancelPrivateMatchRequest: async (requestId) => {
+      const { data, error } = await client.rpc('cancel_private_multiplayer_match_request', {
+        p_request_id: requestId,
+      })
+      if (error) {
+        throw new Error(`Unable to cancel private match request: ${error.message}`)
+      }
+      return parseSingleRpcRow(
+        data,
+        (row) => parsePrivateMatchRequestRow(row),
+        'Unable to parse private match cancellation result.',
+      )
+    },
+    declinePrivateMatchRequest: async (requestId) => {
+      const { data, error } = await client.rpc('decline_private_multiplayer_match_request', {
+        p_request_id: requestId,
+      })
+      if (error) {
+        throw new Error(`Unable to decline private match request: ${error.message}`)
+      }
+      return parseSingleRpcRow(
+        data,
+        (row) => parsePrivateMatchRequestRow(row),
+        'Unable to parse private match decline result.',
+      )
+    },
+    acceptPrivateMatchRequest: async (input) => {
+      const { data, error } = await client.rpc('accept_private_multiplayer_match_request_v2', {
+        p_game_projection: removePrivateMatchAcceptPlayerUserIds(input.game),
+        p_idempotency_key: input.idempotencyKey ?? null,
+        p_request_id: input.requestId,
+      })
+      if (error) {
+        throw new Error(`Unable to accept private match request: ${error.message}`)
+      }
+      return parseSingleRpcRow(
+        data,
+        (row) => parsePrivateMatchRequestRow(row),
+        'Unable to parse private match accept result.',
       )
     },
     getParticipantIdentitySummaries: async (input) => {

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   createSupabasePublicProfileRepository,
+  normalizePublicProfileId,
   normalizePublicProfileAvatarUrl,
   normalizePublicProfileBio,
   normalizePublicProfileDisplayName,
@@ -29,6 +30,12 @@ function client(rpc: ReturnType<typeof vi.fn>): BrrrdleSupabaseClient {
 }
 
 describe('public profile text normalization', () => {
+  it('normalizes only opaque public profile ids', () => {
+    expect(normalizePublicProfileId(` ${PUBLIC_PROFILE_ID} `)).toBe(PUBLIC_PROFILE_ID)
+    expect(normalizePublicProfileId('raw-auth-id')).toBeUndefined()
+    expect(normalizePublicProfileId('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa@example.test')).toBeUndefined()
+  })
+
   it('normalizes public display name and bio as bounded plain text', () => {
     expect(normalizePublicProfileDisplayName('  Ada Lovelace  ')).toBe('Ada Lovelace')
     expect(normalizePublicProfileDisplayName('Ada\u0001Lovelace')).toBeUndefined()

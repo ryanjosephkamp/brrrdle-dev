@@ -45,15 +45,15 @@ Future planning should also use `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md
 | Phase 36 | Leaderboard and Stats navigation split | Add a main Leaderboard tab, move public leaderboard and Multiplayer Ratings there, and keep local stats in Stats | Complete |
 | Phase 37 | Navigation and gameplay ergonomics | Auto-center gameplay on enter/join/resume, add browser back/forward history integration, and repair solo invalid-guess sound consistency | Complete |
 | Phase 38 | Public/spectator readiness | Sanitized public/guest Practice Live spectation with spectator presence/count/list deferred | Complete |
-| Phase 39 | Mobile performance and scroll smoothness | Audit mobile scroll latency, add feasible measurement guards, and tune complex current surfaces without broad redesign | Next planning target |
-| Phase 40 | Public profiles and private matchmaking | Clickable profile surfaces, richer safe player identity, custom-code private games, and direct unranked match requests | Keep separately gated |
+| Phase 39 | Mobile performance and scroll smoothness | Audit mobile scroll latency, add feasible measurement guards, and tune complex current surfaces without broad redesign | Complete |
+| Phase 40 | Public profiles and private matchmaking | Clickable profile surfaces, richer safe player identity, custom-code private games, and direct unranked match requests | Next planning target |
 | Phase 41 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, and beginner-friendly help/tutorial UX | Keep separately gated |
 | Phase 42 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
 | Phase 43 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
 | Phase 44 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-The key optimization after Phase 38 is to reroute Phase 39 to the user-reported mobile scroll smoothness issue before adding more public/social UI surface area. Phase 39 may be a cohesive macro-phase for scroll/performance audit, measurement, targeted source/CSS tuning, and final hardening, but its implementation stages should remain narrow. Public profiles/private matchmaking, public stats/onboarding, progression HUD/Focus Mode/mobile UX overhaul, and theme work remain separately gated.
+After Phase 39, mobile scroll smoothness is complete and manually reviewed. Phase 40 can proceed as the next cohesive macro-phase for public profiles and private matchmaking, but its implementation stages should remain narrow and audit/RLS-gated. Public stats/onboarding, progression HUD/Focus Mode/mobile UX overhaul, and theme work remain separately gated.
 
 ---
 
@@ -294,7 +294,7 @@ Core requirements:
 
 ## Phase 39 Mobile Performance And Scroll Smoothness Strategy
 
-Phase 39 should address user-reported mobile page-scroll latency before adding more public/social UI surface area.
+Phase 39 is complete and manually reviewed. It addressed user-reported mobile page-scroll latency before adding more public/social UI surface area.
 
 Core requirements:
 
@@ -309,7 +309,7 @@ Core requirements:
 
 ## Phase 40 Public Profile And Private Matchmaking Strategy
 
-Phase 40 or later should handle public profile browsing and private/custom match invitation design after mobile performance readiness.
+Phase 40 should handle public profile browsing and private/custom match invitation design after mobile performance readiness, beginning with privacy/RLS and anti-abuse audit gates.
 
 Core requirements:
 

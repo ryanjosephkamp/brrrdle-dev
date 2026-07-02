@@ -94,6 +94,14 @@ function getString(record: Record<string, unknown>, key: string): string | undef
   return typeof value === 'string' ? value : undefined
 }
 
+export function normalizePublicProfileId(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+  const trimmed = value.trim()
+  return UUID_PATTERN.test(trimmed) ? trimmed : undefined
+}
+
 function normalizePlainText(candidate: unknown, maxLength: number): string | undefined {
   if (typeof candidate !== 'string') {
     return undefined
@@ -207,8 +215,7 @@ function parseTimestamp(record: Record<string, unknown>, key: string): string | 
 }
 
 function parsePublicProfileId(record: Record<string, unknown>): string | undefined {
-  const id = getString(record, 'public_profile_id')
-  return id && UUID_PATTERN.test(id) ? id : undefined
+  return normalizePublicProfileId(getString(record, 'public_profile_id'))
 }
 
 export function parseOwnerPublicProfileDto(value: unknown): OwnerPublicProfile | undefined {
@@ -369,8 +376,8 @@ export function createSupabasePublicProfileRepository(client: BrrrdleSupabaseCli
       return parsed
     },
     async loadPublicProfile(publicProfileId) {
-      const trimmed = publicProfileId.trim()
-      if (!UUID_PATTERN.test(trimmed)) {
+      const trimmed = normalizePublicProfileId(publicProfileId)
+      if (!trimmed) {
         return undefined
       }
       const { data, error } = await client.rpc('get_public_player_profile', {

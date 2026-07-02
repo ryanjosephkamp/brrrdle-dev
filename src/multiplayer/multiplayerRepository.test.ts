@@ -19,6 +19,7 @@ import {
   normalizeAuthenticatedLiveSpectatorRows,
   normalizeParticipantIdentitySummaryRows,
   normalizePracticeRematchRequestRows,
+  normalizePrivateMatchRequestRows,
   normalizePublicLiveSpectatorRows,
   normalizeTrustedRankedSettlementRows,
 } from './multiplayerRepository'
@@ -249,6 +250,44 @@ function createPracticeRematchRequestRow(overrides: Record<string, unknown> = {}
     viewer_can_accept: false,
     viewer_can_cancel: true,
     viewer_role: 'requester',
+    word_length: 5,
+    ...overrides,
+  }
+}
+
+function createPrivateMatchRequestRow(overrides: Record<string, unknown> = {}) {
+  return {
+    created: false,
+    created_at: '2026-07-01T23:45:00.000Z',
+    created_game_id: null,
+    expires_at: '2099-07-02T00:00:00.000Z',
+    go_puzzle_count: null,
+    hard_mode: false,
+    idempotent: false,
+    mode: 'og',
+    opponent_accent_color: 'ice',
+    opponent_avatar_url: 'https://example.test/opponent.png',
+    opponent_display_name: 'Kiki',
+    opponent_flair_key: 'none',
+    opponent_identity_available: true,
+    opponent_profile_updated_at: '2026-07-01T23:40:00.000Z',
+    opponent_public_profile_id: '22222222-2222-4222-8222-222222222222',
+    request_id: 'private-request-1',
+    request_status: 'requested',
+    requester_accent_color: 'aurora',
+    requester_avatar_url: 'https://example.test/requester.png',
+    requester_display_name: 'Claudine',
+    requester_flair_key: 'none',
+    requester_identity_available: true,
+    requester_profile_updated_at: '2026-07-01T23:39:00.000Z',
+    requester_public_profile_id: '11111111-1111-4111-8111-111111111111',
+    responded_at: null,
+    time_limit_ms: null,
+    updated_at: '2026-07-01T23:45:00.000Z',
+    viewer_can_accept: true,
+    viewer_can_cancel: false,
+    viewer_can_decline: true,
+    viewer_role: 'opponent',
     word_length: 5,
     ...overrides,
   }
@@ -1046,6 +1085,163 @@ describe('multiplayer repository seam', () => {
       p_idempotency_key: 'phase31-rematch:accept:rematch-request-1:rematch-game-1',
       p_request_id: 'rematch-request-1',
     })
+  })
+
+  it('normalizes Phase 40 private match request rows and safe profile summaries', () => {
+    const rows = normalizePrivateMatchRequestRows([
+      createPrivateMatchRequestRow(),
+      createPrivateMatchRequestRow({
+        created: true,
+        created_game_id: 'private-game-1',
+        idempotent: true,
+        request_id: 'private-request-2',
+        request_status: 'created',
+        responded_at: '2026-07-01T23:50:00.000Z',
+        viewer_can_accept: false,
+        viewer_can_decline: false,
+      }),
+      createPrivateMatchRequestRow({
+        expires_at: '2026-07-01T23:30:00.000Z',
+        request_id: 'private-request-3',
+      }),
+    ], new Date('2026-07-01T23:40:00.000Z'))
+
+    expect(rows).toHaveLength(3)
+    expect(rows[0]).toMatchObject({
+      created: false,
+      expired: false,
+      mode: 'og',
+      opponent: {
+        displayName: 'Kiki',
+        identityAvailable: true,
+        publicProfileId: '22222222-2222-4222-8222-222222222222',
+      },
+      requestId: 'private-request-1',
+      requester: {
+        displayName: 'Claudine',
+        identityAvailable: true,
+        publicProfileId: '11111111-1111-4111-8111-111111111111',
+      },
+      requestStatus: 'requested',
+      viewerCanAccept: true,
+      viewerCanCancel: false,
+      viewerCanDecline: true,
+      viewerRole: 'opponent',
+      wordLength: 5,
+    })
+    expect(rows[1]).toMatchObject({
+      created: true,
+      createdGameId: 'private-game-1',
+      idempotent: true,
+      requestStatus: 'created',
+      respondedAt: '2026-07-01T23:50:00.000Z',
+    })
+    expect(rows[2]).toMatchObject({
+      expired: true,
+      viewerCanAccept: false,
+      viewerCanCancel: false,
+      viewerCanDecline: false,
+    })
+  })
+
+  it('rejects Phase 40 private match rows that include private, projection, or unknown fields', () => {
+    expect(normalizePrivateMatchRequestRows([
+      createPrivateMatchRequestRow({ requester_user_id: 'raw-user-id' }),
+      createPrivateMatchRequestRow({ projection: { serializedSession: { answer: 'crane' } } }),
+      createPrivateMatchRequestRow({ playerUserIds: { 'player-one': 'raw-user-id' } }),
+      createPrivateMatchRequestRow({ unknown_field: 'surprise' }),
+    ])).toEqual([])
+  })
+
+  it('uses Phase 40 private match RPCs and omits playerUserIds from v2 accept payloads', async () => {
+    const acceptedGame = createMultiplayerGame({
+      id: 'private-game-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'requester-user', 'player-two': 'opponent-user' },
+      scope: 'practice',
+      seed: 40,
+      wordLength: 5,
+    })
+    const rpc = vi.fn(async (name: string, params?: Record<string, unknown>) => {
+      void params
+      if (name === 'create_private_multiplayer_match_request') {
+        return { data: [createPrivateMatchRequestRow({ viewer_can_accept: false, viewer_can_cancel: true, viewer_can_decline: false, viewer_role: 'requester' })], error: null }
+      }
+      if (name === 'get_private_multiplayer_match_requests') {
+        return { data: [createPrivateMatchRequestRow()], error: null }
+      }
+      if (name === 'cancel_private_multiplayer_match_request') {
+        return { data: [createPrivateMatchRequestRow({ request_status: 'cancelled', viewer_can_cancel: false })], error: null }
+      }
+      if (name === 'decline_private_multiplayer_match_request') {
+        return { data: [createPrivateMatchRequestRow({ request_status: 'declined', viewer_can_accept: false, viewer_can_decline: false })], error: null }
+      }
+      if (name === 'accept_private_multiplayer_match_request_v2') {
+        return {
+          data: [createPrivateMatchRequestRow({
+            created: true,
+            created_game_id: 'private-game-1',
+            idempotent: false,
+            request_status: 'created',
+            responded_at: '2026-07-01T23:55:00.000Z',
+            viewer_can_accept: false,
+            viewer_can_decline: false,
+          })],
+          error: null,
+        }
+      }
+      return { data: null, error: { message: `Unexpected RPC ${name}` } }
+    })
+    const client = { rpc } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'opponent-user' })
+
+    const requested = await repository.createPrivateMatchRequest({
+      hardMode: false,
+      idempotencyKey: 'phase40-private-request:create:test',
+      mode: 'og',
+      targetPublicProfileId: '22222222-2222-4222-8222-222222222222',
+      timeLimitMs: null,
+      wordLength: 5,
+    })
+    const listed = await repository.listPrivateMatchRequests({ limit: 10 })
+    const cancelled = await repository.cancelPrivateMatchRequest('private-request-1')
+    const declined = await repository.declinePrivateMatchRequest('private-request-1')
+    const accepted = await repository.acceptPrivateMatchRequest({
+      game: acceptedGame,
+      idempotencyKey: 'phase40-private-request:accept:v2:private-request-1:private-game-1',
+      requestId: 'private-request-1',
+    })
+
+    expect(requested.viewerRole).toBe('requester')
+    expect(listed[0]).toMatchObject({ viewerCanAccept: true, viewerRole: 'opponent' })
+    expect(cancelled.requestStatus).toBe('cancelled')
+    expect(declined.requestStatus).toBe('declined')
+    expect(accepted).toMatchObject({
+      created: true,
+      createdGameId: 'private-game-1',
+      requestStatus: 'created',
+    })
+    expect(rpc).toHaveBeenCalledWith('create_private_multiplayer_match_request', {
+      p_expires_at: null,
+      p_go_puzzle_count: null,
+      p_hard_mode: false,
+      p_idempotency_key: 'phase40-private-request:create:test',
+      p_mode: 'og',
+      p_target_public_profile_id: '22222222-2222-4222-8222-222222222222',
+      p_time_limit_ms: null,
+      p_word_length: 5,
+    })
+    expect(rpc).toHaveBeenCalledWith('get_private_multiplayer_match_requests', {
+      p_limit: 10,
+      p_status: null,
+    })
+    const acceptCall = rpc.mock.calls.find(([name]) => name === 'accept_private_multiplayer_match_request_v2')
+    expect(acceptCall).toBeDefined()
+    expect(acceptCall?.[1]).toMatchObject({
+      p_idempotency_key: 'phase40-private-request:accept:v2:private-request-1:private-game-1',
+      p_request_id: 'private-request-1',
+    })
+    expect((acceptCall?.[1] as { readonly p_game_projection?: Record<string, unknown> }).p_game_projection?.playerUserIds).toBeUndefined()
   })
 
   it('normalizes Stage 32.3 participant identity summary rows and rejects private fields', () => {

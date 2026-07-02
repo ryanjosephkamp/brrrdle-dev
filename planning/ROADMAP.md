@@ -64,8 +64,8 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 | Phase 36 | Leaderboard and Stats navigation split | New main Leaderboard tab between Stats and Words; move public ranked leaderboard and Multiplayer Ratings out of Stats while preserving local Stats content | Complete |
 | Phase 37 | Navigation and gameplay ergonomics | Gameplay-area auto-centering on enter/join/resume, browser back/forward route/subtab history integration, and solo invalid-guess sound consistency | Complete |
 | Phase 38 | Public/spectator readiness | Public/guest Practice Live discovery and read-only spectation after sanitized projections; spectator presence/count/list deferred | Complete |
-| Phase 39 | Mobile performance and scroll smoothness | Audit and improve mobile page scroll smoothness, create feasible measurement guards, and tune complex current surfaces without broad redesign | Next planning target |
-| Phase 40 | Public profiles and private matchmaking | Clickable public profiles, richer profile identity in matches, custom-code private games, and direct player match requests if anti-abuse rules are approved | Future |
+| Phase 39 | Mobile performance and scroll smoothness | Audit and improve mobile page scroll smoothness, create feasible measurement guards, and tune complex current surfaces without broad redesign | Complete |
+| Phase 40 | Public profiles and private matchmaking | Clickable public profiles, richer profile identity in matches, custom-code private games, and direct player match requests if anti-abuse rules are approved | Next planning target |
 | Phase 41 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private developer dashboard, beginner onboarding, help, and tutorial UX | Future |
 | Phase 42 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site EXP, coin, and collectible counters after earnable systems have clear gameplay functions; late Focus Mode, compact navigation, and broader mobile UX improvements | Future |
 | Phase 43 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
@@ -303,7 +303,7 @@ Delivered:
 
 ## Phase 39 - Mobile Performance And Scroll Smoothness
 
-Phase 39 should address the user-reported mobile page-scrolling latency before adding more public/social UI surface area.
+Phase 39 is complete. It addressed the user-reported mobile page-scrolling latency before adding more public/social UI surface area.
 
 Candidate work:
 
@@ -318,7 +318,7 @@ Candidate work:
 
 ## Phase 40 - Public Profiles And Private Matchmaking
 
-Phase 40 or a later gated phase may expand social/profile routing and private game invitations after mobile performance readiness.
+Phase 40 may expand social/profile routing and private game invitations after mobile performance readiness, using an audit-first plan with migration/RLS addendum gates where needed.
 
 Candidate work:
 

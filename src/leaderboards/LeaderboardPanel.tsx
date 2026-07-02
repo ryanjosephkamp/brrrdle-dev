@@ -6,6 +6,7 @@ interface LeaderboardPanelProps {
   readonly authStatus?: PublicRankedLeaderboardAuthStatus
   readonly competitiveMultiplayer?: MultiplayerCompetitiveState
   readonly onOpenEloAbout?: () => void
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
   readonly viewerUserId?: string
 }
@@ -14,6 +15,7 @@ export function LeaderboardPanel({
   authStatus = 'unconfigured',
   competitiveMultiplayer,
   onOpenEloAbout,
+  onOpenPublicProfile,
   publicRankedLeaderboardRepository,
   viewerUserId,
 }: LeaderboardPanelProps) {
@@ -29,6 +31,7 @@ export function LeaderboardPanel({
 
       <PublicRankedLeaderboardPanel
         authStatus={authStatus}
+        onOpenPublicProfile={onOpenPublicProfile}
         repository={publicRankedLeaderboardRepository}
       />
 

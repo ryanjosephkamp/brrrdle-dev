@@ -1,0 +1,307 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Button, LoadingState, Panel } from '../ui'
+import { classNames } from '../ui/classNames'
+import {
+  normalizePublicProfileId,
+  type PublicPlayerProfile,
+  type PublicProfileRepository,
+} from './publicProfile'
+import type { MultiplayerRepository } from '../multiplayer/multiplayerRepository'
+
+export type PublicProfilePageStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error'
+
+type PrivateMatchActions = Pick<MultiplayerRepository, 'createPrivateMatchRequest'>
+type PublicProfileAuthStatus = 'anonymous' | 'authenticated' | 'unconfigured'
+
+interface PublicProfilePageProps {
+  readonly authStatus?: PublicProfileAuthStatus
+  readonly privateMatchActions?: PrivateMatchActions
+  readonly onBack?: () => void
+  readonly publicProfileId?: string
+  readonly repository?: Pick<PublicProfileRepository, 'loadPublicProfile'>
+}
+
+interface PublicProfileCardProps {
+  readonly authStatus?: PublicProfileAuthStatus
+  readonly errorMessage?: string
+  readonly privateMatchBusy?: boolean
+  readonly privateMatchMessage?: string
+  readonly privateMatchRequestsAvailable?: boolean
+  readonly onRequestPrivateMatch?: () => void
+  readonly onBack?: () => void
+  readonly profile?: PublicPlayerProfile
+  readonly status: PublicProfilePageStatus
+}
+
+const accentAvatarClasses = {
+  amber: 'from-amber-300 to-orange-700 text-slate-950',
+  aurora: 'from-emerald-300 to-cyan-700 text-slate-950',
+  cyan: 'from-cyan-200 to-sky-700 text-slate-950',
+  ice: 'from-slate-100 to-cyan-500 text-slate-950',
+  rose: 'from-rose-200 to-fuchsia-700 text-slate-950',
+  violet: 'from-violet-200 to-indigo-700 text-slate-950',
+} as const
+
+function formatPublicProfileUpdatedAt(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown'
+  }
+  return new Intl.DateTimeFormat('en-US', {
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    month: 'short',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  }).format(date)
+}
+
+function getInitials(displayName: string): string {
+  const parts = displayName.split(/[\s._-]+/u).filter(Boolean)
+  if (parts.length >= 2) {
+    return `${parts[0]!.charAt(0)}${parts[parts.length - 1]!.charAt(0)}`.toLocaleUpperCase('en-US')
+  }
+  return displayName.charAt(0).toLocaleUpperCase('en-US') || '?'
+}
+
+function PublicProfileAvatar({ profile }: { readonly profile: PublicPlayerProfile }) {
+  if (profile.avatarUrl) {
+    return (
+      <img
+        alt={`${profile.displayName} public avatar`}
+        className="h-16 w-16 rounded-2xl border border-white/15 object-cover"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        src={profile.avatarUrl}
+      />
+    )
+  }
+
+  return (
+    <span className={classNames(
+      'flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br text-xl font-black shadow-inner shadow-white/20',
+      accentAvatarClasses[profile.accentColor],
+    )}>
+      {getInitials(profile.displayName)}
+    </span>
+  )
+}
+
+export function PublicProfileCard({
+  authStatus = 'unconfigured',
+  errorMessage,
+  privateMatchBusy = false,
+  privateMatchMessage,
+  privateMatchRequestsAvailable = false,
+  onRequestPrivateMatch,
+  onBack,
+  profile,
+  status,
+}: PublicProfileCardProps) {
+  const updatedLabel = profile ? formatPublicProfileUpdatedAt(profile.updatedAt) : undefined
+
+  return (
+    <section className="space-y-4" aria-labelledby="public-profile-title">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">public profile</p>
+          <h2 id="public-profile-title" className="text-3xl font-bold text-white">Player profile</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+            This display-only profile uses active opt-in public fields. Private account data, raw auth identity, game sessions, queues, rating internals, and tokens stay hidden.
+          </p>
+        </div>
+        {onBack ? (
+          <Button onClick={onBack} size="sm" variant="secondary">
+            Back to leaderboard
+          </Button>
+        ) : null}
+      </div>
+
+      <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
+        {status === 'loading' ? <LoadingState label="Loading public profile..." /> : null}
+
+        {status === 'error' ? (
+          <p className="rounded-lg border border-rose-300/30 bg-rose-950/20 p-4 text-rose-100" role="alert">
+            {errorMessage ?? 'Unable to load this public profile right now.'}
+          </p>
+        ) : null}
+
+        {status === 'unavailable' || status === 'idle' ? (
+          <p className="rounded-lg border border-white/10 bg-black/25 p-4 text-slate-300">
+            This public profile is unavailable. The player may be private, hidden, suspended, missing, or no longer visible.
+          </p>
+        ) : null}
+
+        {status === 'ready' && profile ? (
+          <div className="space-y-4">
+            <div className="flex min-w-0 items-center gap-4">
+              <PublicProfileAvatar profile={profile} />
+              <div className="min-w-0">
+                <p className="break-words text-2xl font-black text-white">{profile.displayName}</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Updated {updatedLabel}</p>
+              </div>
+            </div>
+
+            {profile.bio ? (
+              <p className="rounded-lg border border-white/10 bg-black/25 p-4 text-slate-200">{profile.bio}</p>
+            ) : (
+              <p className="rounded-lg border border-white/10 bg-black/25 p-4 text-slate-400">No public bio yet.</p>
+            )}
+
+            <dl className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-white/10 bg-black/25 p-3">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Flair</dt>
+                <dd className="mt-1 font-semibold text-cyan-50">{profile.flairKey === 'none' ? 'None' : profile.flairKey}</dd>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/25 p-3">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Profile visibility</dt>
+                <dd className="mt-1 font-semibold text-cyan-50">Active public profile</dd>
+              </div>
+            </dl>
+
+            <div className="rounded-lg border border-cyan-300/25 bg-cyan-300/10 p-4">
+              <p className="font-bold text-cyan-50">Private Practice match</p>
+              <p className="mt-1 text-xs leading-5 text-cyan-100">
+                Send an authenticated, unranked 5-letter OG Practice request. Private requests are visible only to the two signed-in players and never expose raw account ids.
+              </p>
+              {authStatus === 'authenticated' && privateMatchRequestsAvailable && onRequestPrivateMatch ? (
+                <Button className="mt-3" disabled={privateMatchBusy} onClick={onRequestPrivateMatch} size="sm" variant="primary">
+                  {privateMatchBusy ? 'Sending request' : 'Request Practice match'}
+                </Button>
+              ) : (
+                <p className="mt-3 rounded-md border border-white/10 bg-black/20 p-2 text-xs text-cyan-100">
+                  {authStatus === 'authenticated'
+                    ? 'Private match requests require authenticated Supabase multiplayer.'
+                    : 'Sign in to send private Practice match requests.'}
+                </p>
+              )}
+              {privateMatchMessage ? (
+                <p className="mt-3 rounded-md border border-white/10 bg-black/20 p-2 font-semibold text-cyan-50" role="status">
+                  {privateMatchMessage}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </Panel>
+    </section>
+  )
+}
+
+export function PublicProfilePage({
+  authStatus = 'unconfigured',
+  privateMatchActions,
+  onBack,
+  publicProfileId,
+  repository,
+}: PublicProfilePageProps) {
+  const normalizedPublicProfileId = useMemo(() => normalizePublicProfileId(publicProfileId), [publicProfileId])
+  const [loadResult, setLoadResult] = useState<{
+    readonly errorMessage?: string
+    readonly profile?: PublicPlayerProfile
+    readonly publicProfileId?: string
+    readonly status: Exclude<PublicProfilePageStatus, 'idle' | 'loading'>
+  }>({ status: 'unavailable' })
+  const [privateMatchState, setPrivateMatchState] = useState<{
+    readonly busy: boolean
+    readonly message?: string
+    readonly publicProfileId?: string
+  }>({ busy: false })
+
+  useEffect(() => {
+    if (!normalizedPublicProfileId || !repository) {
+      return undefined
+    }
+
+    let cancelled = false
+    void repository.loadPublicProfile(normalizedPublicProfileId)
+      .then((nextProfile) => {
+        if (cancelled) {
+          return
+        }
+        setLoadResult({
+          profile: nextProfile,
+          publicProfileId: normalizedPublicProfileId,
+          status: nextProfile ? 'ready' : 'unavailable',
+        })
+      })
+      .catch(() => {
+        if (cancelled) {
+          return
+        }
+        setLoadResult({
+          errorMessage: 'Unable to load this public profile right now.',
+          publicProfileId: normalizedPublicProfileId,
+          status: 'error',
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [normalizedPublicProfileId, repository])
+
+  const status: PublicProfilePageStatus = !normalizedPublicProfileId || !repository
+    ? 'unavailable'
+    : loadResult.publicProfileId === normalizedPublicProfileId
+      ? loadResult.status
+      : 'loading'
+  const profile = status === 'ready' ? loadResult.profile : undefined
+  const errorMessage = status === 'error' ? loadResult.errorMessage : undefined
+  const privateMatchMessage = privateMatchState.publicProfileId === profile?.publicProfileId
+    ? privateMatchState.message
+    : undefined
+  const privateMatchBusy = privateMatchState.publicProfileId === profile?.publicProfileId
+    ? privateMatchState.busy
+    : false
+
+  const requestPrivatePracticeMatch = async () => {
+    if (!profile || authStatus !== 'authenticated' || !privateMatchActions) {
+      return
+    }
+    setPrivateMatchState({
+      busy: true,
+      publicProfileId: profile.publicProfileId,
+    })
+    try {
+      const request = await privateMatchActions.createPrivateMatchRequest({
+        hardMode: false,
+        idempotencyKey: `phase40-private-request:create:${profile.publicProfileId}:${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+        mode: 'og',
+        targetPublicProfileId: profile.publicProfileId,
+        timeLimitMs: null,
+        wordLength: 5,
+      })
+      setPrivateMatchState({
+        busy: false,
+        message: request.requestStatus === 'requested'
+          ? 'Private Practice match request sent. You can review outgoing requests in Practice Multiplayer.'
+          : `Private Practice match request is ${request.requestStatus}.`,
+        publicProfileId: profile.publicProfileId,
+      })
+    } catch (error) {
+      setPrivateMatchState({
+        busy: false,
+        message: error instanceof Error && error.message.trim()
+          ? error.message
+          : 'Unable to send private match request right now.',
+        publicProfileId: profile.publicProfileId,
+      })
+    }
+  }
+
+  return (
+    <PublicProfileCard
+      authStatus={authStatus}
+      errorMessage={errorMessage}
+      privateMatchBusy={privateMatchBusy}
+      privateMatchMessage={privateMatchMessage}
+      privateMatchRequestsAvailable={Boolean(privateMatchActions)}
+      onRequestPrivateMatch={() => { void requestPrivatePracticeMatch() }}
+      onBack={onBack}
+      profile={profile}
+      status={status}
+    />
+  )
+}

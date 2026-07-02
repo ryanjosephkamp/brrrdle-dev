@@ -18,6 +18,7 @@ import { createDailyMultiplayerGoSetup } from './dailyMultiplayer'
 import { getPracticePostgameActions } from './postgameActions'
 import {
   MultiplayerPanel,
+  PrivateMatchRequestsPanel,
   PracticePostgameActionsPanel,
 } from './MultiplayerPanel'
 import {
@@ -34,6 +35,7 @@ import {
 import type {
   MultiplayerRepository,
   PracticeRematchRequestResult,
+  PrivateMatchRequestResult,
   RankedQueueCancellationResult,
   RankedQueueClaimResult,
   RankedQueueFinalizationResult,
@@ -107,6 +109,41 @@ function createPracticeRematchRequestFixture(
   }
 }
 
+function createPrivateMatchRequestFixture(
+  overrides: Partial<PrivateMatchRequestResult> = {},
+): PrivateMatchRequestResult {
+  return {
+    created: false,
+    createdAt: '2026-07-01T23:45:00.000Z',
+    expired: false,
+    expiresAt: '2026-07-02T00:00:00.000Z',
+    hardMode: false,
+    idempotent: false,
+    mode: 'og',
+    opponent: {
+      displayName: 'Kiki',
+      identityAvailable: true,
+      publicProfileId: '22222222-2222-4222-8222-222222222222',
+      updatedAt: '2026-07-01T23:40:00.000Z',
+    },
+    requestId: 'private-request-1',
+    requester: {
+      displayName: 'Claudine',
+      identityAvailable: true,
+      publicProfileId: '11111111-1111-4111-8111-111111111111',
+      updatedAt: '2026-07-01T23:39:00.000Z',
+    },
+    requestStatus: 'requested',
+    updatedAt: '2026-07-01T23:45:00.000Z',
+    viewerCanAccept: true,
+    viewerCanCancel: false,
+    viewerCanDecline: true,
+    viewerRole: 'opponent',
+    wordLength: 5,
+    ...overrides,
+  }
+}
+
 function createPracticeRematchActionsFixture(): PracticeRematchActionsFixture {
   const result = createPracticeRematchRequestFixture()
   return {
@@ -161,6 +198,54 @@ function createRankedQueueActionsFixture(): RankedQueueActionsFixture {
     getRankedQueueStatus: async () => status,
   }
 }
+
+describe('PrivateMatchRequestsPanel', () => {
+  it('renders incoming private match actions without exposing opaque profile ids', () => {
+    const html = renderToStaticMarkup(
+      <PrivateMatchRequestsPanel
+        busy={false}
+        onAccept={noop}
+        onCancel={noop}
+        onDecline={noop}
+        requests={[createPrivateMatchRequestFixture()]}
+      />,
+    )
+
+    expect(html).toContain('Private Practice requests')
+    expect(html).toContain('Claudine requested a private match.')
+    expect(html).toContain('Accept private match')
+    expect(html).toContain('Decline')
+    expect(html).not.toContain('11111111-1111-4111-8111-111111111111')
+    expect(html).not.toContain('22222222-2222-4222-8222-222222222222')
+    expect(html).not.toContain('user_id')
+    expect(html).not.toContain('playerUserIds')
+  })
+
+  it('renders outgoing private match cancellation as requester-only', () => {
+    const html = renderToStaticMarkup(
+      <PrivateMatchRequestsPanel
+        busy={false}
+        message="Private match request cancelled."
+        onAccept={noop}
+        onCancel={noop}
+        onDecline={noop}
+        requests={[
+          createPrivateMatchRequestFixture({
+            viewerCanAccept: false,
+            viewerCanCancel: true,
+            viewerCanDecline: false,
+            viewerRole: 'requester',
+          }),
+        ]}
+      />,
+    )
+
+    expect(html).toContain('Waiting on Kiki.')
+    expect(html).toContain('Cancel request')
+    expect(html).toContain('Private match request cancelled.')
+    expect(html).not.toContain('Accept private match')
+  })
+})
 
 describe('MultiplayerPanel', () => {
   it('shows creator-only cancellation for an unjoined multiplayer lobby', () => {

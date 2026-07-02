@@ -139,6 +139,26 @@ describe('PublicRankedLeaderboardView', () => {
     expect(html).toContain('Peak 1200')
     expect(html).not.toContain('Peak 1,200')
   })
+
+  it('renders clickable safe leaderboard identity without exposing the public profile id in markup', () => {
+    const html = renderToStaticMarkup(
+      <PublicRankedLeaderboardView
+        authStatus="authenticated"
+        bucket="multiplayer:go"
+        limit={25}
+        onOpenPublicProfile={() => undefined}
+        rows={[ROW]}
+        status="ready"
+      />,
+    )
+
+    expect(html).toContain('Open public profile for Public Ada')
+    expect(html).toContain('<button')
+    expect(html).toContain('Public Ada')
+    expect(html).not.toContain(ROW.publicProfileId)
+    expect(html).not.toContain('user_id')
+    expect(html).not.toContain('email')
+  })
 })
 
 describe('PublicRankedLeaderboardPanel', () => {
