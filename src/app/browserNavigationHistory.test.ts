@@ -63,6 +63,7 @@ describe('browser navigation history', () => {
       activeRouteId: 'multiplayer',
       focusedLiveSpectatorGameId: 'live-1',
       multiplayerSubtab: 'live',
+      selectedPublicProfileId: '123e4567-e89b-42d3-a456-426614174000',
       selectedMultiplayerGameId: 'match-1',
       submitGuess: 'crane',
     } as unknown as Parameters<typeof createBrowserNavigationViewState>[0])
@@ -71,9 +72,22 @@ describe('browser navigation history', () => {
 
     const rawState = JSON.stringify(history.state)
     expect(rawState).toContain('selectedMultiplayerGameId')
+    expect(rawState).toContain('selectedPublicProfileId')
     expect(rawState).not.toContain('submitGuess')
     expect(rawState).not.toContain('crane')
     expect(readCurrentBrowserNavigationViewState()).toEqual(viewState)
+  })
+
+  it('keeps public profile history as normalized display-only route state', () => {
+    const viewState = createBrowserNavigationViewState({
+      activeRouteId: 'public-profile',
+      selectedPublicProfileId: '123e4567-e89b-42d3-a456-426614174000',
+      user_id: 'raw-auth-id',
+    } as unknown as Parameters<typeof createBrowserNavigationViewState>[0])
+
+    expect(viewState.navigation.activeRouteId).toBe('public-profile')
+    expect(viewState.navigation.selectedPublicProfileId).toBe('123e4567-e89b-42d3-a456-426614174000')
+    expect(JSON.stringify(viewState)).not.toContain('raw-auth-id')
   })
 
   it('pushes changed view states and replaces duplicate view states', () => {

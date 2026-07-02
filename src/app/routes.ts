@@ -1,6 +1,6 @@
 import type { GameMode, PlayScope } from '../game/types'
 
-export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'leaderboard' | 'word-explorer' | 'profile' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'about' | 'admin'
+export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'leaderboard' | 'word-explorer' | 'profile' | 'public-profile' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'about' | 'admin'
 
 export interface AppRoute {
   readonly id: AppRouteId
@@ -106,6 +106,14 @@ export const APP_ROUTES = [
     shortLabel: 'Profile',
     description: 'Manage your current-player private and public profile settings.',
     navigationGroup: 'support',
+  },
+  {
+    id: 'public-profile',
+    label: 'Public Profile',
+    shortLabel: 'Profile',
+    description: 'View a display-only public player profile opened from an approved public identity surface.',
+    navigationGroup: 'support',
+    hidden: true,
   },
   {
     id: 'definitions',

@@ -139,6 +139,20 @@ Phase 38 Stage 38.3B Daily claim hardening uses the additive migration:
 
 This migration explicitly revokes `public` and `anon` execution from `public.claim_daily_multiplayer_participation(text, text, text, text, text, text)` while preserving authenticated/internal trusted claim behavior. It closes the pre-existing anonymous claim-RPC grant found during public spectator migration probes before public/guest spectator source integration proceeds. It does not alter Daily claim rules, game mutation behavior, the public spectator projection RPC, authenticated spectator RPCs, participant identity RPCs, or source/UI behavior.
 
+Phase 40 private matchmaking SQL/RLS readiness uses the additive migration:
+
+- `supabase/migrations/20260701221500_phase40_private_match_requests.sql`
+
+This migration creates `public.multiplayer_private_match_requests` and authenticated-only RPCs for direct unranked Practice private match requests between active public profiles. Request lifecycle is limited to create, list, cancel, decline, expire, and opponent-only accept. Accepted requests may create one fresh unranked Practice `async_multiplayer_games` row through the trusted RPC path, with no Daily date key, no ranked flag, no rating bucket, no ranked queue/matchmaking request ID, and no custom game code. Direct table grants and helper-function browser grants remain denied.
+
+Private match request payloads may include only allow-listed request lifecycle fields, viewer capability flags, same-settings Practice fields, created game id, timestamps, idempotency booleans, and active public profile display summaries. They must never expose raw auth emails, raw auth ids, auth metadata, private profile fields, public profile drafts, progress/settings/history/stats, answers, seeds, serialized sessions, player sessions, raw projections, moves, guesses, queue internals, rating internals, rating transactions, Daily claim ids, service ids, tokens, Supabase keys, Vercel tokens, screenshots, videos, traces, auth state, or local/session artifacts. The migration does not implement source/UI private matchmaking by itself; app integration remains later Phase 40 source work after migration and probe verification.
+
+Phase 40 Stage 40.5B private matchmaking accept-contract repair uses the additive migration:
+
+- `supabase/migrations/20260701232434_phase40_private_match_accept_contract_repair.sql`
+
+This migration adds authenticated-only RPC `public.accept_private_multiplayer_match_request_v2(p_request_id text, p_game_projection jsonb, p_idempotency_key text default null)` and revokes browser execution from the original v1 accept RPC. Browser accept payloads must omit `playerUserIds`; v2 derives requester/opponent raw auth ids from the locked private request row server-side, injects canonical `playerUserIds` into the stored `async_multiplayer_games.projection`, and returns only the existing sanitized private match request response shape. It preserves Practice-only, unranked-only, opponent-only acceptance, active-public-profile eligibility, idempotency, Daily/ranked/custom-code/spectator/rating/queue exclusions, and direct table/helper grant denial. This migration does not implement source/UI private matchmaking by itself; Stage 40.5 source integration must call v2, keep raw auth ids out of browser state, and refresh the accepted game through participant-owned repository reads.
+
 For the Phase 23 Stage 3 online-multiplayer stabilization, also apply `supabase/migrations/20260604050824_phase23_online_multiplayer_fixes.sql` after the live and competitive migrations. It creates:
 
 - `async_multiplayer_games`

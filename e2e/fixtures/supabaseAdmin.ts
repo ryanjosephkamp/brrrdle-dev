@@ -14,6 +14,10 @@ interface AsyncMultiplayerGameRow {
   readonly winner_player_id?: string | null
 }
 
+interface PrivateMatchRequestRow {
+  readonly id: string
+}
+
 export function createAnonSupabaseClient(): SupabaseClient {
   const env = getE2eEnv()
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -35,6 +39,41 @@ export function createAdminSupabaseClient(): SupabaseClient {
       persistSession: false,
     },
   })
+}
+
+export async function deletePrivateMatchRequestsForUsers(userIds: readonly string[]): Promise<number> {
+  if (userIds.length === 0) {
+    return 0
+  }
+
+  const admin = createAdminSupabaseClient()
+  const requestIds = new Set<string>()
+  for (const column of ['requester_user_id', 'opponent_user_id'] as const) {
+    const { data, error } = await admin
+      .from('multiplayer_private_match_requests')
+      .select('id')
+      .in(column, [...userIds])
+    if (error) {
+      throw new Error(`Unable to inspect ${column} private match requests for cleanup: ${error.message}`)
+    }
+    for (const row of (data ?? []) as readonly PrivateMatchRequestRow[]) {
+      requestIds.add(row.id)
+    }
+  }
+
+  if (requestIds.size === 0) {
+    return 0
+  }
+
+  const { error } = await admin
+    .from('multiplayer_private_match_requests')
+    .delete()
+    .in('id', [...requestIds])
+  if (error) {
+    throw new Error(`Unable to delete temporary private match requests: ${error.message}`)
+  }
+
+  return requestIds.size
 }
 
 export async function deleteMultiplayerRowsForUsers(userIds: readonly string[]): Promise<number> {
@@ -155,6 +194,19 @@ export async function updateMultiplayerProjection(game: {
   if (error) {
     throw new Error(`Unable to update temporary multiplayer projection: ${error.message}`)
   }
+}
+
+export async function fetchPublicProfileIdForUser(user: E2eUser): Promise<string> {
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin
+    .from('public_player_profiles')
+    .select('public_profile_id')
+    .eq('user_id', user.id)
+    .single()
+  if (error || typeof data?.public_profile_id !== 'string') {
+    throw new Error(`Unable to load public profile id for E2E user ${user.label}: ${error?.message ?? 'missing public profile id'}`)
+  }
+  return data.public_profile_id
 }
 
 export async function upsertPublicProfileForUser(user: E2eUser, accentColor = 'ice'): Promise<void> {

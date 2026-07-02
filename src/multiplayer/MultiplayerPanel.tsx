@@ -40,6 +40,7 @@ import {
 import type {
   MultiplayerRepository,
   ParticipantIdentitySummaryResult,
+  PrivateMatchRequestResult,
 } from './multiplayerRepository'
 import type { PracticeRematchRequestResult } from './multiplayerRepository'
 import { RivalIdentityCard } from './RivalIdentityCard'
@@ -50,6 +51,10 @@ import {
   type PracticePostgameActions,
   type PracticePostgameSettings,
 } from './postgameActions'
+import {
+  createPrivateMatchGameProjection,
+  getPrivateMatchAcceptIdempotencyKey,
+} from './privateMatchmaking'
 import {
   getCreatorJoinedGameAutoRouteId,
   getMultiplayerPlayerDisplayLabel,
@@ -79,6 +84,14 @@ type PracticeRematchActions = Pick<
   | 'listPracticeRematchRequests'
   | 'requestPracticeRematch'
 >
+type PrivateMatchActions = Pick<
+  MultiplayerRepository,
+  'acceptPrivateMatchRequest'
+  | 'cancelPrivateMatchRequest'
+  | 'declinePrivateMatchRequest'
+  | 'listPrivateMatchRequests'
+  | 'load'
+>
 type ParticipantIdentityActions = Pick<
   MultiplayerRepository,
   'getParticipantIdentitySummaries'
@@ -96,6 +109,19 @@ async function loadPracticeRematchRequestsForGame(
   return actions.listPracticeRematchRequests({
     limit: PRACTICE_REMATCH_REQUEST_LIMIT,
     sourceGameId,
+  })
+}
+
+async function loadPrivateMatchRequests(
+  actions: PrivateMatchActions | undefined,
+  canLoad: boolean,
+  readOnly: boolean,
+): Promise<readonly PrivateMatchRequestResult[]> {
+  if (!canLoad || !actions || readOnly) {
+    return []
+  }
+  return actions.listPrivateMatchRequests({
+    limit: PRIVATE_MATCH_REQUEST_LIMIT,
   })
 }
 
@@ -129,6 +155,7 @@ interface MultiplayerPanelProps {
   readonly onOpenEloAbout?: () => void
   readonly onSelectedGameChange?: (gameId: string) => void
   readonly postgameActions?: PracticeRematchActions
+  readonly privateMatchActions?: PrivateMatchActions
   readonly participantIdentityActions?: ParticipantIdentityActions
   readonly rankedQueueActions?: RankedQueueActions
   readonly readOnly?: boolean
@@ -237,6 +264,8 @@ function moveStateClass(state: string): string {
 const TERMINAL_SOLVED_SURFACE_HOLD_MS = 2000
 const PRACTICE_REMATCH_REQUEST_LIMIT = 10
 const PRACTICE_REMATCH_REFRESH_INTERVAL_MS = 5000
+const PRIVATE_MATCH_REQUEST_LIMIT = 20
+const PRIVATE_MATCH_REFRESH_INTERVAL_MS = 5000
 const PARTICIPANT_IDENTITY_FETCH_DELAY_MS = 750
 const RANKED_QUEUE_REFRESH_INTERVAL_MS = 5000
 const RANKED_PRACTICE_TIME_LIMIT_OPTIONS = [
@@ -511,6 +540,124 @@ export function PracticePostgameActionsPanel({
   )
 }
 
+function getPrivateMatchProfileLabel(profile: PrivateMatchRequestResult['requester'], fallback: string): string {
+  return profile.identityAvailable && profile.displayName ? profile.displayName : fallback
+}
+
+function getPrivateMatchSettingsLabel(request: PrivateMatchRequestResult): string {
+  const mode = request.mode.toUpperCase()
+  const clock = request.timeLimitMs ? `${formatClock(request.timeLimitMs)} per side` : 'no clock'
+  const hardMode = request.hardMode ? 'Hard Mode on' : 'Hard Mode off'
+  const goPuzzles = request.mode === 'go' && request.goPuzzleCount ? `, ${request.goPuzzleCount} puzzles` : ''
+  return `${mode}, ${request.wordLength} letters${goPuzzles}, ${hardMode}, ${clock}`
+}
+
+function getPrivateMatchLifecycleMessage(request: PrivateMatchRequestResult): string | undefined {
+  if (request.expired || request.requestStatus === 'expired') {
+    return 'Private match request expired.'
+  }
+  if (request.requestStatus === 'declined') {
+    return 'Private match request declined.'
+  }
+  if (request.requestStatus === 'cancelled') {
+    return 'Private match request cancelled.'
+  }
+  if (request.requestStatus === 'created') {
+    return request.idempotent ? 'Private match already created.' : 'Private match created.'
+  }
+  return undefined
+}
+
+interface PrivateMatchRequestsPanelProps {
+  readonly busy: boolean
+  readonly message?: string
+  readonly onAccept: (request: PrivateMatchRequestResult) => void
+  readonly onCancel: (request: PrivateMatchRequestResult) => void
+  readonly onDecline: (request: PrivateMatchRequestResult) => void
+  readonly requests: readonly PrivateMatchRequestResult[]
+}
+
+export function PrivateMatchRequestsPanel({
+  busy,
+  message,
+  onAccept,
+  onCancel,
+  onDecline,
+  requests,
+}: PrivateMatchRequestsPanelProps) {
+  const visibleRequests = requests.filter((request) => (
+    request.requestStatus === 'requested' || request.requestStatus === 'created'
+  ))
+
+  return (
+    <section
+      className="space-y-3 rounded-lg border border-cyan-300/25 bg-cyan-300/10 p-3 text-sm leading-6 text-cyan-50"
+      data-testid="private-match-requests"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-bold">Private Practice requests</p>
+          <p className="text-xs text-cyan-100">Authenticated-only, unranked Practice requests between active public profiles.</p>
+        </div>
+        <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-xs font-semibold text-cyan-50">
+          {visibleRequests.length} active
+        </span>
+      </div>
+
+      {visibleRequests.length === 0 ? (
+        <p className="rounded-md border border-white/10 bg-black/20 p-2 text-xs text-cyan-100">
+          No active private match requests.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {visibleRequests.map((request) => {
+            const requesterLabel = getPrivateMatchProfileLabel(request.requester, 'Requester')
+            const opponentLabel = getPrivateMatchProfileLabel(request.opponent, 'Opponent')
+            const isIncoming = request.viewerRole === 'opponent'
+            const lifecycleMessage = getPrivateMatchLifecycleMessage(request)
+            return (
+              <article
+                className="rounded-md border border-white/10 bg-black/25 p-3"
+                data-request-id={request.requestId}
+                key={request.requestId}
+              >
+                <p className="font-semibold text-cyan-50">
+                  {isIncoming ? `${requesterLabel} requested a private match.` : `Waiting on ${opponentLabel}.`}
+                </p>
+                <p className="text-xs text-cyan-100">{getPrivateMatchSettingsLabel(request)}</p>
+                {lifecycleMessage ? (
+                  <p className="mt-2 rounded border border-white/10 bg-black/20 p-2 text-xs font-semibold text-cyan-50">
+                    {lifecycleMessage}
+                  </p>
+                ) : null}
+                {request.requestStatus === 'requested' ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {request.viewerCanAccept ? (
+                      <Button disabled={busy} onClick={() => onAccept(request)} size="sm" variant="primary">Accept private match</Button>
+                    ) : null}
+                    {request.viewerCanDecline ? (
+                      <Button disabled={busy} onClick={() => onDecline(request)} size="sm" variant="secondary">Decline</Button>
+                    ) : null}
+                    {request.viewerCanCancel ? (
+                      <Button disabled={busy} onClick={() => onCancel(request)} size="sm" variant="secondary">Cancel request</Button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </article>
+            )
+          })}
+        </div>
+      )}
+
+      {message ? (
+        <p className="rounded-md border border-white/10 bg-black/20 p-2 font-semibold text-cyan-50" role="status">
+          {message}
+        </p>
+      ) : null}
+    </section>
+  )
+}
+
 export function MultiplayerPanel({
   authStatus = 'unconfigured',
   competitiveState,
@@ -523,6 +670,7 @@ export function MultiplayerPanel({
   onOpenEloAbout,
   onSelectedGameChange,
   postgameActions,
+  privateMatchActions,
   participantIdentityActions,
   rankedQueueActions,
   readOnly = false,
@@ -548,6 +696,9 @@ export function MultiplayerPanel({
   const [postgameMessage, setPostgameMessage] = useState<PostgameStatusMessage | undefined>(undefined)
   const [postgameBusy, setPostgameBusy] = useState(false)
   const [practiceRematchRequests, setPracticeRematchRequests] = useState<readonly PracticeRematchRequestResult[]>([])
+  const [privateMatchRequests, setPrivateMatchRequests] = useState<readonly PrivateMatchRequestResult[]>([])
+  const [privateMatchBusy, setPrivateMatchBusy] = useState(false)
+  const [privateMatchMessage, setPrivateMatchMessage] = useState<string | undefined>(undefined)
   const [participantIdentityState, setParticipantIdentityState] = useState<{
     readonly gameId: string
     readonly profiles: Partial<Record<MultiplayerPlayerId, MultiplayerProfileSummary>>
@@ -570,6 +721,7 @@ export function MultiplayerPanel({
   }, [needsClock])
   const activeCount = getActiveMultiplayerGames(normalized, viewerUserId).length
   const onlineReady = authStatus === 'authenticated' && Boolean(viewerUserId)
+  const canLoadPrivateMatchRequests = scope === 'practice' && onlineReady && Boolean(privateMatchActions)
   const dailyClaimedForMode = scope === 'daily'
     ? hasDailyMultiplayerParticipation(normalized, dailyDateKey, mode, viewerUserId)
     : false
@@ -923,6 +1075,141 @@ export function MultiplayerPanel({
       })
     } finally {
       setRankedQueueBusy(false)
+    }
+  }
+
+  const refreshPrivateMatchRequests = useCallback(async () => {
+    try {
+      setPrivateMatchRequests(await loadPrivateMatchRequests(
+        privateMatchActions,
+        canLoadPrivateMatchRequests,
+        readOnly,
+      ))
+    } catch {
+      setPrivateMatchRequests([])
+    }
+  }, [canLoadPrivateMatchRequests, privateMatchActions, readOnly])
+
+  useEffect(() => {
+    let active = true
+    void loadPrivateMatchRequests(
+      privateMatchActions,
+      canLoadPrivateMatchRequests,
+      readOnly,
+    ).then((requests) => {
+      if (active) {
+        setPrivateMatchRequests(requests)
+      }
+    }).catch(() => {
+      if (active) {
+        setPrivateMatchRequests([])
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [canLoadPrivateMatchRequests, privateMatchActions, readOnly])
+
+  useEffect(() => {
+    if (!canLoadPrivateMatchRequests || !privateMatchActions || readOnly) {
+      return undefined
+    }
+    const refreshIfVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return
+      }
+      void refreshPrivateMatchRequests()
+    }
+    const intervalId = window.setInterval(refreshIfVisible, PRIVATE_MATCH_REFRESH_INTERVAL_MS)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshIfVisible()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      window.clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [
+    canLoadPrivateMatchRequests,
+    privateMatchActions,
+    readOnly,
+    refreshPrivateMatchRequests,
+  ])
+
+  const upsertPrivateMatchRequest = (request: PrivateMatchRequestResult) => {
+    setPrivateMatchRequests((current) => [
+      request,
+      ...current.filter((entry) => entry.requestId !== request.requestId),
+    ])
+  }
+
+  const cancelPrivateMatchRequest = async (request: PrivateMatchRequestResult) => {
+    if (!privateMatchActions) {
+      return
+    }
+    setPrivateMatchBusy(true)
+    try {
+      const cancelled = await privateMatchActions.cancelPrivateMatchRequest(request.requestId)
+      upsertPrivateMatchRequest(cancelled)
+      await refreshPrivateMatchRequests()
+      setPrivateMatchMessage('Private match request cancelled.')
+    } catch (error) {
+      setPrivateMatchMessage(getPostgameErrorMessage(error, 'Unable to cancel private match request.'))
+    } finally {
+      setPrivateMatchBusy(false)
+    }
+  }
+
+  const declinePrivateMatchRequest = async (request: PrivateMatchRequestResult) => {
+    if (!privateMatchActions) {
+      return
+    }
+    setPrivateMatchBusy(true)
+    try {
+      const declined = await privateMatchActions.declinePrivateMatchRequest(request.requestId)
+      upsertPrivateMatchRequest(declined)
+      await refreshPrivateMatchRequests()
+      setPrivateMatchMessage('Private match request declined.')
+    } catch (error) {
+      setPrivateMatchMessage(getPostgameErrorMessage(error, 'Unable to decline private match request.'))
+    } finally {
+      setPrivateMatchBusy(false)
+    }
+  }
+
+  const acceptPrivateMatchRequest = async (request: PrivateMatchRequestResult) => {
+    if (!privateMatchActions) {
+      return
+    }
+    const projection = createPrivateMatchGameProjection(request, {
+      defaultDifficulty,
+      defaultGoPuzzleCount,
+    })
+    if (!projection) {
+      setPrivateMatchMessage('Unable to create a safe private Practice game from this request.')
+      return
+    }
+    setPrivateMatchBusy(true)
+    try {
+      const accepted = await privateMatchActions.acceptPrivateMatchRequest({
+        game: projection,
+        idempotencyKey: getPrivateMatchAcceptIdempotencyKey(request, projection.id),
+        requestId: request.requestId,
+      })
+      upsertPrivateMatchRequest(accepted)
+      const snapshot = await privateMatchActions.load()
+      onChange(snapshot.state)
+      const createdGameId = accepted.createdGameId ?? projection.id
+      selectGame(createdGameId)
+      setPrivateMatchMessage(accepted.idempotent ? 'Opening existing private match.' : 'Private match created.')
+      onGameplayAutoCenterRequest?.()
+      await refreshPrivateMatchRequests()
+    } catch (error) {
+      setPrivateMatchMessage(getPostgameErrorMessage(error, 'Unable to accept private match request.'))
+    } finally {
+      setPrivateMatchBusy(false)
     }
   }
 
@@ -1532,6 +1819,17 @@ export function MultiplayerPanel({
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {scope === 'practice' && authStatus === 'authenticated' && privateMatchActions && !readOnly ? (
+        <PrivateMatchRequestsPanel
+          busy={privateMatchBusy}
+          message={privateMatchMessage}
+          onAccept={(request) => { void acceptPrivateMatchRequest(request) }}
+          onCancel={(request) => { void cancelPrivateMatchRequest(request) }}
+          onDecline={(request) => { void declinePrivateMatchRequest(request) }}
+          requests={privateMatchRequests}
+        />
       ) : null}
 
       {visibleGames.length > 0 ? (

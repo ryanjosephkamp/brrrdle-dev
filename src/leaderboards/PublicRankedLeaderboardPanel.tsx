@@ -20,6 +20,7 @@ export type PublicRankedLeaderboardLoadStatus = 'idle' | 'loading' | 'ready' | '
 
 interface PublicRankedLeaderboardPanelProps {
   readonly authStatus: PublicRankedLeaderboardAuthStatus
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly repository?: PublicRankedLeaderboardRepository
 }
 
@@ -30,6 +31,7 @@ export interface PublicRankedLeaderboardViewProps {
   readonly limit: number
   readonly onBucketChange?: (bucket: PublicRankedLeaderboardBucket) => void
   readonly onLimitChange?: (limit: number) => void
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly onRefresh?: () => void
   readonly rows: readonly PublicRankedLeaderboardRow[]
   readonly status: PublicRankedLeaderboardLoadStatus
@@ -68,7 +70,46 @@ function renderAvatar(row: PublicRankedLeaderboardViewRow) {
   )
 }
 
-function PublicRankedLeaderboardRows({ rows }: { readonly rows: readonly PublicRankedLeaderboardViewRow[] }) {
+function PublicRankedLeaderboardIdentity({
+  onOpenPublicProfile,
+  row,
+}: {
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
+  readonly row: PublicRankedLeaderboardViewRow
+}) {
+  const content = (
+    <>
+      {renderAvatar(row)}
+      <div className="min-w-0">
+        <p className="truncate font-semibold text-white">{row.displayName}</p>
+        <p className="text-xs text-slate-500">{row.gamesLabel}</p>
+      </div>
+    </>
+  )
+
+  if (!onOpenPublicProfile) {
+    return <div className="flex min-w-48 items-center gap-3">{content}</div>
+  }
+
+  return (
+    <button
+      aria-label={`Open public profile for ${row.displayName}`}
+      className="group flex min-w-48 items-center gap-3 rounded-lg text-left transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-cyan-200/70"
+      onClick={() => onOpenPublicProfile(row.publicProfileId)}
+      type="button"
+    >
+      {content}
+    </button>
+  )
+}
+
+function PublicRankedLeaderboardRows({
+  onOpenPublicProfile,
+  rows,
+}: {
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
+  readonly rows: readonly PublicRankedLeaderboardViewRow[]
+}) {
   return (
     <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/25">
       <table className="min-w-full divide-y divide-white/10 text-left text-sm text-slate-200">
@@ -89,13 +130,7 @@ function PublicRankedLeaderboardRows({ rows }: { readonly rows: readonly PublicR
             <tr className="align-top" key={`${row.bucket}-${row.publicProfileId}`}>
               <td className="px-3 py-4 text-lg font-black text-white">{row.rankLabel}</td>
               <td className="px-3 py-4">
-                <div className="flex min-w-48 items-center gap-3">
-                  {renderAvatar(row)}
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-white">{row.displayName}</p>
-                    <p className="text-xs text-slate-500">{row.gamesLabel}</p>
-                  </div>
-                </div>
+                <PublicRankedLeaderboardIdentity onOpenPublicProfile={onOpenPublicProfile} row={row} />
               </td>
               <td className="px-3 py-4 text-slate-300">{row.bucketLabel}</td>
               <td className="px-3 py-4">
@@ -136,6 +171,7 @@ export function PublicRankedLeaderboardView({
   limit,
   onBucketChange,
   onLimitChange,
+  onOpenPublicProfile,
   onRefresh,
   rows,
   status,
@@ -229,13 +265,13 @@ export function PublicRankedLeaderboardView({
       ) : null}
 
       {isSignedIn && status !== 'loading' && status !== 'error' && viewRows.length > 0 ? (
-        <PublicRankedLeaderboardRows rows={viewRows} />
+        <PublicRankedLeaderboardRows onOpenPublicProfile={onOpenPublicProfile} rows={viewRows} />
       ) : null}
     </Panel>
   )
 }
 
-export function PublicRankedLeaderboardPanel({ authStatus, repository }: PublicRankedLeaderboardPanelProps) {
+export function PublicRankedLeaderboardPanel({ authStatus, onOpenPublicProfile, repository }: PublicRankedLeaderboardPanelProps) {
   const [bucket, setBucket] = useState<PublicRankedLeaderboardBucket>(DEFAULT_PUBLIC_RANKED_LEADERBOARD_BUCKET)
   const [limit, setLimit] = useState(50)
   const [reloadNonce, setReloadNonce] = useState(0)
@@ -295,6 +331,7 @@ export function PublicRankedLeaderboardPanel({ authStatus, repository }: PublicR
       limit={limit}
       onBucketChange={setBucket}
       onLimitChange={setLimit}
+      onOpenPublicProfile={onOpenPublicProfile}
       onRefresh={handleRefresh}
       rows={effectiveRows}
       status={effectiveStatus}
