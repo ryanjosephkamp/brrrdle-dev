@@ -63,7 +63,9 @@ import {
   getMultiplayerPlayerDisplayLabel,
   getRankedQueueActiveRequestId,
   mergeFinalizedRankedGameIntoLocalState,
+  type RankedQueueRefreshTrigger,
   shouldAutoRefreshRankedQueue,
+  shouldShowRankedQueueBusyForRefresh,
 } from './multiplayerPanelRouting'
 import {
   buildFinalizedRankedGameFromStatus,
@@ -730,7 +732,9 @@ export function MultiplayerPanel({
   const [clockNow, setClockNow] = useState(() => new Date())
   const previousVisibleGamesRef = useRef<readonly MultiplayerGame[]>(visibleGames)
   const openedPrivateMatchGameIdsRef = useRef<Set<string>>(new Set())
-  const refreshRankedQueueRef = useRef<() => Promise<void>>(async () => undefined)
+  const rankedQueueRefreshInFlightRef = useRef(false)
+  const rankedQueueMutationVersionRef = useRef(0)
+  const refreshRankedQueueRef = useRef<(trigger?: RankedQueueRefreshTrigger) => Promise<void>>(async () => undefined)
   const needsClock = useMemo(
     () => visibleGames.some((game) => game.scope === 'practice' && game.timeLimitMs && game.status === 'playing'),
     [visibleGames],
@@ -973,6 +977,7 @@ export function MultiplayerPanel({
       })
       return
     }
+    rankedQueueMutationVersionRef.current += 1
     setRankedQueue({
       message: requestInput.timeLimitMs
         ? 'Creating timed ranked queue request.'
@@ -1013,18 +1018,29 @@ export function MultiplayerPanel({
     }
   }
 
-  const refreshRankedQueue = useCallback(async () => {
-    if (!rankedQueueActions || !rankedQueue.requestId) {
+  const refreshRankedQueue = useCallback(async (trigger: RankedQueueRefreshTrigger = 'manual') => {
+    if (!rankedQueueActions || !rankedQueue.requestId || rankedQueueRefreshInFlightRef.current) {
       return
     }
-    setRankedQueueBusy(true)
+    const shouldShowBusy = shouldShowRankedQueueBusyForRefresh(trigger)
+    const mutationVersion = rankedQueueMutationVersionRef.current
+    rankedQueueRefreshInFlightRef.current = true
+    if (shouldShowBusy) {
+      setRankedQueueBusy(true)
+    }
     try {
       const status = await rankedQueueActions.getRankedQueueStatus(rankedQueue.requestId)
       if (status.requestStatus === 'matched') {
+        if (mutationVersion !== rankedQueueMutationVersionRef.current) {
+          return
+        }
         await finalizeRankedQueueMatch(status.requestId)
         return
       }
       if (status.requestStatus !== 'queued') {
+        if (mutationVersion !== rankedQueueMutationVersionRef.current) {
+          return
+        }
         const nextStatus = getRankedQueueUiStatus(status.requestStatus)
         setRankedQueue({
           message: getRankedQueueStatusMessage(status.requestStatus),
@@ -1037,6 +1053,9 @@ export function MultiplayerPanel({
         return
       }
       const claim = await rankedQueueActions.claimRankedQueuePair({ requestId: status.requestId })
+      if (mutationVersion !== rankedQueueMutationVersionRef.current) {
+        return
+      }
       if (claim.requestStatus === 'matched') {
         await finalizeRankedQueueMatch(claim.requestId)
         return
@@ -1047,13 +1066,18 @@ export function MultiplayerPanel({
         status: 'queued',
       })
     } catch (error) {
-      setRankedQueue({
-        message: getRankedQueueErrorMessage(error),
-        requestId: rankedQueue.requestId,
-        status: 'error',
-      })
+      if (mutationVersion === rankedQueueMutationVersionRef.current) {
+        setRankedQueue({
+          message: getRankedQueueErrorMessage(error),
+          requestId: rankedQueue.requestId,
+          status: 'error',
+        })
+      }
     } finally {
-      setRankedQueueBusy(false)
+      rankedQueueRefreshInFlightRef.current = false
+      if (shouldShowBusy) {
+        setRankedQueueBusy(false)
+      }
     }
   }, [finalizeRankedQueueMatch, rankedQueue.requestId, rankedQueueActions])
   useEffect(() => {
@@ -1073,7 +1097,7 @@ export function MultiplayerPanel({
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
         return
       }
-      void refreshRankedQueueRef.current()
+      void refreshRankedQueueRef.current('auto')
     }
     const intervalId = window.setInterval(refreshIfVisible, RANKED_QUEUE_REFRESH_INTERVAL_MS)
     const handleVisibilityChange = () => {
@@ -1098,6 +1122,7 @@ export function MultiplayerPanel({
     if (!rankedQueueActions || !rankedQueue.requestId) {
       return
     }
+    rankedQueueMutationVersionRef.current += 1
     setRankedQueueBusy(true)
     try {
       const cancellation = await rankedQueueActions.cancelRankedQueueRequest(rankedQueue.requestId)
@@ -1918,7 +1943,7 @@ export function MultiplayerPanel({
           <p>{rankedQueue.message}</p>
           {rankedQueue.status === 'queued' && rankedQueue.requestId ? (
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button disabled={rankedQueueBusy} onClick={() => { void refreshRankedQueue() }} size="sm" variant="primary">
+              <Button disabled={rankedQueueBusy} onClick={() => { void refreshRankedQueue('manual') }} size="sm" variant="primary">
                 Check ranked queue
               </Button>
               <Button disabled={rankedQueueBusy} onClick={() => { void cancelRankedQueue() }} size="sm" variant="secondary">

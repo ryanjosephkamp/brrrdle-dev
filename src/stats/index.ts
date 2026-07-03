@@ -1,3 +1,5 @@
+export * from './PublicSiteStatsPanel'
+export * from './siteStats'
 export * from './StatsDashboard'
 export * from './statistics'
 export * from './statsSelectors'

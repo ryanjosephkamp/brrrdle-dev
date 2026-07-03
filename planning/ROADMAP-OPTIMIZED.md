@@ -47,14 +47,14 @@ Future planning should also use `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md
 | Phase 38 | Public/spectator readiness | Sanitized public/guest Practice Live spectation with spectator presence/count/list deferred | Complete |
 | Phase 39 | Mobile performance and scroll smoothness | Audit mobile scroll latency, add feasible measurement guards, and tune complex current surfaces without broad redesign | Complete |
 | Phase 40 | Public profiles and private matchmaking | Clickable public profile surfaces, private Practice match requests, safe accepted-game routing, and two-client E2E hardening | Complete |
-| Phase 41 | Multiplayer reliability and real E2E hardening | Ranked queue/search-again reliability, leaderboard freshness, private request stale-state cleanup, mobile multiplayer freshness, and two/three-client E2E expansion | Next planning target |
-| Phase 42 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, and beginner-friendly help/tutorial UX | Keep separately gated |
+| Phase 41 | Multiplayer reliability and real E2E hardening | Ranked queue/search-again reliability, leaderboard freshness, private request stale-state cleanup, mobile multiplayer freshness, and two/three-client E2E expansion | Complete |
+| Phase 42 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, beginner-friendly help/tutorial UX, and the remaining ranked queue button/status flashing follow-up | Next planning target |
 | Phase 43 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
 | Phase 44 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
 | Phase 45 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-After Phase 40, public profiles and private matchmaking are complete and manually reviewed with follow-up multiplayer reliability issues. Phase 41 should be rerouted as a cohesive reliability and real E2E hardening macro-phase, while its implementation stages remain narrow and audit/RLS-gated. Public stats/onboarding, progression HUD/Focus Mode/mobile UX overhaul, and theme work remain separately gated.
+After Phase 41, multiplayer reliability and real E2E hardening are complete and manually reviewed with one remaining minor/cosmetic follow-up: ranked Practice queue buttons can still flash roughly every five seconds after queue entry. Phase 42 should proceed as the observability and beginner UX macro-phase while absorbing that issue as a narrow early source/test-only follow-up if audit confirms it is bounded. Progression HUD/Focus Mode/mobile UX overhaul and theme work remain separately gated.
 
 ---
 
@@ -339,13 +339,14 @@ Core requirements:
 
 ## Phase 42 Stats, Dashboard, Onboarding, And Help Strategy
 
-Phase 42 or later should handle observability and beginner UX after multiplayer reliability and real E2E hardening are complete.
+Phase 42 should handle observability and beginner UX after multiplayer reliability and real E2E hardening are complete, while carrying the remaining ranked Practice queue button/status flashing issue as a narrow early follow-up.
 
 Core requirements:
 
 - public site stats must avoid leaking private user, session, or game data;
 - private developer dashboards need admin authorization and privacy review;
 - onboarding/help/tutorial surfaces should teach without changing gameplay rules;
+- ranked Practice queue button/status flashing should be reproduced or characterized before any source/test-only repair;
 - any telemetry/presence model should be planned before implementation.
 
 ---

@@ -1,6 +1,6 @@
 import type { GameMode, PlayScope } from '../game/types'
 
-export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'leaderboard' | 'word-explorer' | 'profile' | 'public-profile' | 'feedback' | 'definitions' | 'stats' | 'settings' | 'about' | 'admin'
+export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'leaderboard' | 'word-explorer' | 'profile' | 'public-profile' | 'feedback' | 'definitions' | 'stats' | 'help' | 'settings' | 'about' | 'admin'
 
 export interface AppRoute {
   readonly id: AppRouteId
@@ -130,6 +130,13 @@ export const APP_ROUTES = [
     navigationGroup: 'support',
   },
   {
+    id: 'help',
+    label: 'Help',
+    shortLabel: 'Help',
+    description: 'Learn current brrrdle modes, navigation, public surfaces, and multiplayer boundaries.',
+    navigationGroup: 'support',
+  },
+  {
     id: 'settings',
     label: 'Settings',
     shortLabel: 'Settings',
@@ -170,6 +177,7 @@ export const PRIMARY_NAVIGATION_ROUTE_IDS = [
   'leaderboard',
   'word-explorer',
   'profile',
+  'help',
   'settings',
   'feedback',
   'about',

@@ -81,6 +81,22 @@ describe('Settings', () => {
     expect(html).not.toContain('service worker script')
   })
 
+  it('renders a Help and tutorials doorway when a Help route handler is provided', () => {
+    const html = renderToStaticMarkup(
+      <Settings
+        authState={anonymousAuthState}
+        guestProgress={createDefaultGuestProgress()}
+        onOpenHelp={() => undefined}
+        onResetProgress={() => undefined}
+        syncStatus={createSyncStatus('idle')}
+      />,
+    )
+
+    expect(html).toContain('Help and tutorials')
+    expect(html).toContain('Open Help')
+    expect(html).toContain('modes, multiplayer, public profiles, ranked Practice, settings, stats, history, and feedback')
+  })
+
   it('renders signed-in account management with a password-change affordance and email-change gate copy', () => {
     const html = renderToStaticMarkup(
       <Settings

@@ -7,6 +7,7 @@ import {
 import type { PrivateMatchRequestResult } from './multiplayerRepository'
 
 export type RankedQueueAutoRefreshStatus = 'cancelled' | 'error' | 'idle' | 'matched' | 'queued'
+export type RankedQueueRefreshTrigger = 'auto' | 'manual'
 
 export function getRankedQueueActiveRequestId({
   requestId,
@@ -30,6 +31,10 @@ export function shouldAutoRefreshRankedQueue({
   readonly status: RankedQueueAutoRefreshStatus
 }): boolean {
   return status === 'queued' && Boolean(requestId) && hasRankedQueueActions && !readOnly
+}
+
+export function shouldShowRankedQueueBusyForRefresh(trigger: RankedQueueRefreshTrigger): boolean {
+  return trigger === 'manual'
 }
 
 export function getActivePrivateMatchRequests(
