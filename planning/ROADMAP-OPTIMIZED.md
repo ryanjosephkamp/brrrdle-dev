@@ -1,7 +1,7 @@
 # brrrdle Optimized Development Roadmap
 
 **Status**: Active optimized roadmap for staged execution
-**Last Updated**: 2026-07-01
+**Last Updated**: 2026-07-02
 **Repository Target**: `brrrdle-dev`
 **Source Roadmap**: `planning/ROADMAP.md`
 **Purpose**: Refine the long-term roadmap into lower-risk gated phases with clear deferrals, verification expectations, and protected-action boundaries.
@@ -46,14 +46,15 @@ Future planning should also use `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md
 | Phase 37 | Navigation and gameplay ergonomics | Auto-center gameplay on enter/join/resume, add browser back/forward history integration, and repair solo invalid-guess sound consistency | Complete |
 | Phase 38 | Public/spectator readiness | Sanitized public/guest Practice Live spectation with spectator presence/count/list deferred | Complete |
 | Phase 39 | Mobile performance and scroll smoothness | Audit mobile scroll latency, add feasible measurement guards, and tune complex current surfaces without broad redesign | Complete |
-| Phase 40 | Public profiles and private matchmaking | Clickable profile surfaces, richer safe player identity, custom-code private games, and direct unranked match requests | Next planning target |
-| Phase 41 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, and beginner-friendly help/tutorial UX | Keep separately gated |
-| Phase 42 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
-| Phase 43 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
-| Phase 44 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
+| Phase 40 | Public profiles and private matchmaking | Clickable public profile surfaces, private Practice match requests, safe accepted-game routing, and two-client E2E hardening | Complete |
+| Phase 41 | Multiplayer reliability and real E2E hardening | Ranked queue/search-again reliability, leaderboard freshness, private request stale-state cleanup, mobile multiplayer freshness, and two/three-client E2E expansion | Next planning target |
+| Phase 42 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, and beginner-friendly help/tutorial UX | Keep separately gated |
+| Phase 43 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
+| Phase 44 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
+| Phase 45 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-After Phase 39, mobile scroll smoothness is complete and manually reviewed. Phase 40 can proceed as the next cohesive macro-phase for public profiles and private matchmaking, but its implementation stages should remain narrow and audit/RLS-gated. Public stats/onboarding, progression HUD/Focus Mode/mobile UX overhaul, and theme work remain separately gated.
+After Phase 40, public profiles and private matchmaking are complete and manually reviewed with follow-up multiplayer reliability issues. Phase 41 should be rerouted as a cohesive reliability and real E2E hardening macro-phase, while its implementation stages remain narrow and audit/RLS-gated. Public stats/onboarding, progression HUD/Focus Mode/mobile UX overhaul, and theme work remain separately gated.
 
 ---
 
@@ -303,13 +304,13 @@ Core requirements:
 - add feasible scroll/layout/performance guards without brittle absolute frame-rate thresholds;
 - make targeted source/CSS improvements only when supported by audit evidence;
 - preserve fast gameplay input, Phase 38 public/guest spectator behavior, Phase 37 browser history/gameplay auto-centering, and all gameplay/Elo rules;
-- keep broad mobile navigation redesign, Focus Mode, and compact shell overhaul deferred to Phase 42 or later.
+- keep broad mobile navigation redesign, Focus Mode, and compact shell overhaul deferred to Phase 43 or later.
 
 ---
 
 ## Phase 40 Public Profile And Private Matchmaking Strategy
 
-Phase 40 should handle public profile browsing and private/custom match invitation design after mobile performance readiness, beginning with privacy/RLS and anti-abuse audit gates.
+Phase 40 is complete. It handled public profile browsing and authenticated-only unranked Practice private match invitations after mobile performance readiness, with privacy/RLS and anti-abuse audit gates.
 
 Core requirements:
 
@@ -321,9 +322,24 @@ Core requirements:
 
 ---
 
-## Phase 41 Stats, Dashboard, Onboarding, And Help Strategy
+## Phase 41 Multiplayer Reliability And Real E2E Strategy
 
-Phase 41 or later should handle observability and beginner UX after account/deployment and public/social routing are clearer.
+Phase 41 should address Phase 40 manual-review follow-up issues before the roadmap continues into observability and beginner UX. It should focus on reliability, reproduction, and durable real E2E coverage for current multiplayer surfaces.
+
+Core requirements:
+
+- ranked Practice search-again, queue cancellation, stale queue participation, and queue-button status stability must be audited and repaired only within trusted ranked queue boundaries;
+- public ranked leaderboard freshness or eligibility issues must be fixed without making the public leaderboard authoritative or exposing private fields;
+- private Practice request cancel, decline, expire, accept, requester feedback, and accepted-game routing must remain authenticated-only, Practice-only, unranked-only, and public-profile-targeted;
+- real two-client and three-client Supabase-backed E2E harnesses should be expanded with deterministic cleanup and bounded waits;
+- mobile Practice Multiplayer request/lobby/list freshness should be covered where feasible;
+- final hardening should include a Codex-assisted manual-review preflight that documents automated evidence, Codex-attempted browser/manual checks, and remaining user-only review items.
+
+---
+
+## Phase 42 Stats, Dashboard, Onboarding, And Help Strategy
+
+Phase 42 or later should handle observability and beginner UX after multiplayer reliability and real E2E hardening are complete.
 
 Core requirements:
 
@@ -334,9 +350,9 @@ Core requirements:
 
 ---
 
-## Phase 42 Progression HUD, Focus Mode, And Mobile UX Strategy
+## Phase 43 Progression HUD, Focus Mode, And Mobile UX Strategy
 
-Phase 42 or later should handle late-stage shell polish after the major route, multiplayer, public/spectator, profile/social, private matchmaking, stats/dashboard, onboarding/help, and account surfaces are clearer.
+Phase 43 or later should handle late-stage shell polish after the major route, multiplayer, public/spectator, profile/social, private matchmaking, stats/dashboard, onboarding/help, and account surfaces are clearer.
 
 Core requirements:
 
@@ -350,9 +366,9 @@ Core requirements:
 
 ---
 
-## Phase 43 Theme Strategy
+## Phase 44 Theme Strategy
 
-Phase 43 should modernize theme proposal artifacts before broad theme implementation.
+Phase 44 should modernize theme proposal artifacts before broad theme implementation.
 
 Required review surfaces:
 
@@ -370,9 +386,9 @@ Goal:
 
 ---
 
-## Phase 44+ Full Theme Implementation Strategy
+## Phase 45+ Full Theme Implementation Strategy
 
-Phase 44 or later should implement concrete themes only after the templates are modernized.
+Phase 45 or later should implement concrete themes only after the templates are modernized.
 
 Candidate work:
 

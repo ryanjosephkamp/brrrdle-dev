@@ -1,6 +1,9 @@
 import type { Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
+const NAVIGATION_STORAGE_KEY = 'brrrdle:navigation:v2'
+const BROWSER_NAVIGATION_HISTORY_KEY = '__brrrdleNavigation'
+
 export async function navigateToSoloPractice(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^Solo$/i }).click()
   await expect(page.locator('#solo-workspace-title')).toBeVisible()
@@ -25,6 +28,11 @@ export async function navigateToCalendar(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: /^Calendar$/i })).toBeVisible()
 }
 
+export async function navigateToLeaderboard(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^Leaderboard$/i }).click()
+  await expect(page.locator('#leaderboard-title')).toBeVisible()
+}
+
 export async function chooseMultiplayerMode(page: Page, mode: 'go' | 'og', scope: 'daily' | 'practice' = 'practice'): Promise<void> {
   const panel = page.getByTestId(`multiplayer-panel-${scope}`)
   await expect(panel).toBeVisible()
@@ -41,6 +49,32 @@ export async function setPracticeMultiplayerTimeLimit(page: Page, valueMs: strin
   await expect(timeLimitSelect).toBeVisible()
   await timeLimitSelect.selectOption(valueMs)
   await expect(timeLimitSelect).toHaveValue(valueMs)
+}
+
+export async function setPracticeMultiplayerMatchType(page: Page, matchType: 'custom' | 'ranked' | 'unranked'): Promise<void> {
+  const panel = page.getByTestId('multiplayer-panel-practice')
+  const matchTypeSelect = panel.locator('select').nth(1)
+  await expect(matchTypeSelect).toBeVisible()
+  await matchTypeSelect.selectOption(matchType)
+  await expect(matchTypeSelect).toHaveValue(matchType)
+}
+
+export async function enterRankedPracticeQueue(
+  page: Page,
+  { expectQueuedStatus = true }: { readonly expectQueuedStatus?: boolean } = {},
+): Promise<void> {
+  await navigateToPracticeMultiplayer(page)
+  await setPracticeMultiplayerMatchType(page, 'ranked')
+  await page.getByRole('button', { name: /^Enter ranked queue$/i }).click()
+  if (expectQueuedStatus) {
+    await expect(page.getByTestId('ranked-queue-status')).toContainText(/Waiting for a compatible signed-in rival|Ranked queue request created/i)
+  }
+}
+
+export async function cancelRankedPracticeQueue(page: Page): Promise<void> {
+  const rankedStatus = page.getByTestId('ranked-queue-status')
+  await rankedStatus.getByRole('button', { name: /^Cancel ranked queue$/i }).click()
+  await expect(rankedStatus).toContainText(/Ranked queue request cancelled\./i)
 }
 
 export async function openMultiplayerMatch(page: Page): Promise<void> {
@@ -110,8 +144,13 @@ export async function joinMultiplayerMatch(page: Page): Promise<void> {
 
 export async function joinWaitingMultiplayerGame(page: Page, gameId: string, options: JoinWaitingMultiplayerGameOptions = {}): Promise<void> {
   if (options.via === 'selected') {
-    const joinButton = page.getByRole('button', { name: /^Join multiplayer match$/i }).first()
-    await expect(joinButton).toBeVisible({ timeout: 20_000 })
+    const findJoinButton = () => page.getByRole('button', { name: /^Join multiplayer match$/i }).first()
+    let joinButton = findJoinButton()
+    if (!await joinButton.isVisible({ timeout: 20_000 }).catch(() => false)) {
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      joinButton = findJoinButton()
+      await expect(joinButton).toBeVisible({ timeout: 20_000 })
+    }
     await joinButton.click({ timeout: 20_000 })
     try {
       await expectSelectedMultiplayerGame(page, gameId, { status: 'playing' })
@@ -163,4 +202,37 @@ export async function launchDailyMultiplayer(page: Page): Promise<void> {
   await navigateToCalendar(page)
   await page.getByRole('button', { name: /^Daily Multiplayer$/i }).click()
   await expect(page.getByRole('heading', { name: /^Daily Multiplayer$/i })).toBeVisible()
+}
+
+export async function openPublicProfileRoute(page: Page, publicProfileId: string): Promise<void> {
+  await page.evaluate(({ historyKey, key, profileId }) => {
+    const navigation = {
+      activeRouteId: 'public-profile',
+      historyFilters: {
+        mode: 'all',
+        player: 'all',
+        scope: 'all',
+      },
+      legacyPracticeMode: 'og',
+      multiplayerSubtab: 'overview',
+      selectedPublicProfileId: profileId,
+      soloSubtab: 'overview',
+    }
+    window.localStorage.setItem(key, JSON.stringify(navigation))
+    window.history.replaceState({
+      [historyKey]: {
+        version: 1,
+        viewState: {
+          navigation,
+        },
+      },
+    }, '', window.location.href)
+    window.location.assign('/')
+  }, {
+    historyKey: BROWSER_NAVIGATION_HISTORY_KEY,
+    key: NAVIGATION_STORAGE_KEY,
+    profileId: publicProfileId,
+  })
+  await page.waitForLoadState('domcontentloaded')
+  await expect(page.getByRole('heading', { name: /^Player profile$/i })).toBeVisible({ timeout: 30_000 })
 }

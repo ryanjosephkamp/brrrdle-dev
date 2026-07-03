@@ -341,6 +341,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
         mode: 'og',
         scope: 'practice',
         status: 'playing',
+        timeoutMs: 45_000,
         userIds: [session.host.user.id, session.rival.user.id],
       })
       expect(nextRankedRow.id).not.toBe(firstRankedRow.id)
@@ -410,6 +411,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
         mode: 'og',
         scope: 'practice',
         status: 'playing',
+        timeoutMs: 45_000,
         userIds: [session.host.user.id, session.rival.user.id],
       })
       expect(nextTimedRankedRow.id).not.toBe(timedRankedRow.id)

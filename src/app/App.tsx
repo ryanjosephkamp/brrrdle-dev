@@ -1368,6 +1368,16 @@ function AppInner() {
     trustedRankedSettlementInFlightRef.current.clear()
     trustedRankedSettlementCompletedRef.current.clear()
   }, [authenticatedMultiplayerUserId])
+  const applyRemoteMultiplayerSnapshot = useCallback((snapshotState: MultiplayerState) => {
+    setMultiplayer(snapshotState)
+    saveMultiplayerState(snapshotState)
+    setGuestProgress((currentProgress) => {
+      const nextProgress = cacheMultiplayerProgress(currentProgress, snapshotState)
+      saveGuestProgress(nextProgress)
+      return nextProgress
+    })
+    settleTrustedRankedGames(snapshotState)
+  }, [cacheMultiplayerProgress, settleTrustedRankedGames])
   const handleMultiplayerChange = useCallback((multiplayer: MultiplayerState) => {
     setMultiplayer(multiplayer)
     setGuestProgress((currentProgress) => {
@@ -1936,14 +1946,7 @@ function AppInner() {
       if (!isActive) {
         return
       }
-      setMultiplayer(snapshotState)
-      saveMultiplayerState(snapshotState)
-      setGuestProgress((currentProgress) => {
-        const nextProgress = cacheMultiplayerProgress(currentProgress, snapshotState)
-        saveGuestProgress(nextProgress)
-        return nextProgress
-      })
-      settleTrustedRankedGames(snapshotState)
+      applyRemoteMultiplayerSnapshot(snapshotState)
     }
     const unsubscribe = multiplayerRepository.subscribe((snapshot) => {
       applySnapshot(snapshot.state)
@@ -1955,7 +1958,57 @@ function AppInner() {
       isActive = false
       unsubscribe()
     }
-  }, [authState, cacheMultiplayerProgress, multiplayerRepository, settleTrustedRankedGames])
+  }, [applyRemoteMultiplayerSnapshot, authState, multiplayerRepository])
+
+  useEffect(() => {
+    if (activeRouteId !== 'multiplayer') {
+      return undefined
+    }
+
+    let isActive = true
+    let inFlight = false
+    const isDocumentVisible = () => typeof document === 'undefined' || document.visibilityState === 'visible'
+    const refresh = () => {
+      if (inFlight || !isDocumentVisible()) {
+        return
+      }
+      inFlight = true
+      void multiplayerRepository.load()
+        .then((snapshot) => {
+          if (isActive) {
+            applyRemoteMultiplayerSnapshot(snapshot.state)
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          inFlight = false
+        })
+    }
+    const handleVisibilityChange = () => {
+      if (isDocumentVisible()) {
+        refresh()
+      }
+    }
+
+    const timeoutId = setTimeout(refresh, 0)
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', refresh)
+    }
+
+    return () => {
+      isActive = false
+      clearTimeout(timeoutId)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', refresh)
+      }
+    }
+  }, [activeRouteId, applyRemoteMultiplayerSnapshot, multiplayerRepository, multiplayerSubtab, selectedMultiplayerGameId])
 
   useEffect(() => {
     if (!supabaseClient) {

@@ -20,6 +20,7 @@ export type PublicRankedLeaderboardLoadStatus = 'idle' | 'loading' | 'ready' | '
 
 interface PublicRankedLeaderboardPanelProps {
   readonly authStatus: PublicRankedLeaderboardAuthStatus
+  readonly freshnessKey?: string
   readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly repository?: PublicRankedLeaderboardRepository
 }
@@ -271,7 +272,12 @@ export function PublicRankedLeaderboardView({
   )
 }
 
-export function PublicRankedLeaderboardPanel({ authStatus, onOpenPublicProfile, repository }: PublicRankedLeaderboardPanelProps) {
+export function PublicRankedLeaderboardPanel({
+  authStatus,
+  freshnessKey,
+  onOpenPublicProfile,
+  repository,
+}: PublicRankedLeaderboardPanelProps) {
   const [bucket, setBucket] = useState<PublicRankedLeaderboardBucket>(DEFAULT_PUBLIC_RANKED_LEADERBOARD_BUCKET)
   const [limit, setLimit] = useState(50)
   const [reloadNonce, setReloadNonce] = useState(0)
@@ -310,7 +316,7 @@ export function PublicRankedLeaderboardPanel({ authStatus, onOpenPublicProfile, 
       isActive = false
       clearTimeout(timeoutId)
     }
-  }, [authStatus, bucket, limit, reloadNonce, repository])
+  }, [authStatus, bucket, freshnessKey, limit, reloadNonce, repository])
 
   const handleRefresh = useCallback(() => {
     setReloadNonce((current) => current + 1)

@@ -87,7 +87,8 @@ Required for the committed real two-client tests:
 - `SUPABASE_SERVICE_ROLE_KEY` or `E2E_SUPABASE_SERVICE_ROLE_KEY`
 
 The service-role key is used only from Node-side Playwright fixtures to create
-and delete temporary auth users and to probe/clean test multiplayer rows. Never
+and delete temporary auth users and to probe/clean test multiplayer, ranked
+queue, private request, public leaderboard, and related temporary rows. Never
 print, commit, or paste secret values. The suite records only whether variables
 are present.
 
@@ -105,17 +106,25 @@ are present.
 | Daily Multiplayer OG | Yes | Yes | Yes | `npm run test:e2e:daily`, `npm run test:e2e:multiplayer` | Create/join, completion, five-letter/no-clock/no-Hard-Mode checks, and claim guard. |
 | Daily Multiplayer GO | Yes | Yes | Yes | `npm run test:e2e:daily`, `npm run test:e2e:multiplayer` | Real two-client solved transition, prior answer visibility, keyboard evidence, and Daily invariant checks. |
 | Authenticated two-client harness | N/A | N/A | Yes | `npm run test:e2e:multiplayer` | `authenticated-two-client-smoke.spec.ts` validates temp-user creation, UI sign-in, isolated contexts, and cleanup. |
+| Public/guest Live spectation | Yes | Yes | Yes | `npm run test:e2e:multiplayer` | `live-v1-spectator.spec.ts` protects public/guest read-only Practice Live discovery and Daily exclusion. |
+| Private matchmaking | Yes | Yes | Yes | `npm run test:e2e:multiplayer` | `private-matchmaking.spec.ts` covers safe public-profile request creation, incoming request visibility, accept, and participant-owned created-game routing. |
+| Multiplayer reliability | Yes | Yes | Yes | `npm run test:e2e:multiplayer` | `multiplayer-reliability.spec.ts` covers three-client ranked queue cancellation/stale-row denial, ranked search-again, public leaderboard freshness, private request lifecycle cleanup, accepted-game routing, and mobile route-entry freshness. |
+| Mobile route layout/scroll | N/A | N/A | Yes | `npx playwright test e2e/layout/mobile-scroll.spec.ts` | Deterministic route scroll/layout harness for mobile overflow, reachability, and sticky/fixed overlay checks. |
 
 ## Current E2E Files
 
 - `e2e/gameplay/authenticated-two-client-smoke.spec.ts`
-- `e2e/gameplay/practice-multiplayer-og.spec.ts`
-- `e2e/gameplay/practice-multiplayer-go.spec.ts`
 - `e2e/gameplay/daily-multiplayer-og.spec.ts`
 - `e2e/gameplay/daily-multiplayer-go.spec.ts`
-- `e2e/gameplay/solo-practice-go.spec.ts`
-- `e2e/gameplay/solo-daily-go.spec.ts`
 - `e2e/gameplay/daily-rotation.spec.ts`
+- `e2e/gameplay/live-v1-spectator.spec.ts`
+- `e2e/gameplay/multiplayer-reliability.spec.ts`
+- `e2e/gameplay/practice-multiplayer-og.spec.ts`
+- `e2e/gameplay/practice-multiplayer-go.spec.ts`
+- `e2e/gameplay/private-matchmaking.spec.ts`
+- `e2e/gameplay/solo-daily-go.spec.ts`
+- `e2e/gameplay/solo-practice-go.spec.ts`
+- `e2e/layout/mobile-scroll.spec.ts`
 
 Shared fixtures live under `e2e/fixtures/`.
 
@@ -141,7 +150,8 @@ The E2E fixtures:
 
 - Generate unique temporary emails per run.
 - Create confirmed auth users through the Supabase Admin API.
-- Delete multiplayer rows associated with temporary users.
+- Delete multiplayer rows, ranked queue rows, ranked rating/leaderboard test
+  rows, and private match request rows associated with temporary users.
 - Delete temporary users after browser contexts close.
 
 If cleanup credentials are missing or a cleanup call fails, stop and report the
