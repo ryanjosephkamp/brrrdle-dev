@@ -4,19 +4,25 @@ import { createEmptyStatistics } from './statistics'
 import { StatsDashboard } from './StatsDashboard'
 
 describe('StatsDashboard', () => {
-  it('keeps Stats focused on local gameplay statistics after the Leaderboard split', () => {
+  it('keeps public aggregate stats separate from local gameplay statistics after the Leaderboard split', () => {
     const html = renderToStaticMarkup(
       <StatsDashboard stats={createEmptyStatistics()} />,
     )
 
     expect(html).toContain('Statistics')
     expect(html).toContain('Local stats stay private on this device')
+    expect(html).toContain('Live site snapshot')
+    expect(html).toContain('public site stats')
+    expect(html).toContain('Supabase is not configured')
     expect(html).toContain('og daily')
     expect(html).toContain('Win rate by mode &amp; scope')
     expect(html).not.toContain('Ranked Practice leaderboard')
     expect(html).not.toContain('Sign in to view public ranked Practice leaderboards')
     expect(html).not.toContain('Competitive multiplayer')
     expect(html).not.toContain('multiplayer ratings')
+    expect(html).not.toContain('user_id')
+    expect(html).not.toContain('email')
+    expect(html).not.toContain('rating_transaction_id')
   })
 
   it('keeps chart accessibility tables visually hidden with the project helper', () => {

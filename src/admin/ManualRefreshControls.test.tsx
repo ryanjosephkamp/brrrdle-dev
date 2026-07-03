@@ -29,7 +29,7 @@ describe('ManualRefreshControls (structural)', () => {
 })
 
 describe('AdminPanel allowed branch composition', () => {
-  it('renders both the existing descriptive paragraphs and the new ManualRefreshControls for admin users', () => {
+  it('renders protected dashboard and ManualRefreshControls for admin users', () => {
     const html = renderToStaticMarkup(
       <AdminPanel
         authState={{ status: 'authenticated', user: { id: 'admin', roles: ['admin'] } }}
@@ -39,22 +39,24 @@ describe('AdminPanel allowed branch composition', () => {
     // Existing descriptive copy is preserved.
     expect(html).toContain('Manual refresh requests must be sent through the protected')
     expect(html).toContain('The browser never receives service-role credentials')
-    // The new actionable controls are rendered alongside.
+    expect(html).toContain('Operational dashboard')
     expect(html).toContain('Refresh now')
     expect(html).toContain('aria-live="polite"')
   })
 
   it('renders the locked ErrorState for non-admin authenticated users (no leak of refresh button)', () => {
     const html = renderToStaticMarkup(
-      <AdminPanel authState={{ status: 'authenticated', user: { id: 'u', roles: [] } }} />,
+        <AdminPanel authState={{ status: 'authenticated', user: { id: 'u', roles: [] } }} />,
     )
-    expect(html).toContain('Admin controls locked')
+    expect(html).toContain('Developer operations locked')
     expect(html).not.toContain('Refresh now')
+    expect(html).not.toContain('Operational dashboard')
   })
 
   it('renders the locked ErrorState when unauthenticated', () => {
     const html = renderToStaticMarkup(<AdminPanel authState={{ status: 'anonymous' }} />)
-    expect(html).toContain('Admin controls locked')
+    expect(html).toContain('Developer operations locked')
     expect(html).not.toContain('Refresh now')
+    expect(html).not.toContain('Operational dashboard')
   })
 })

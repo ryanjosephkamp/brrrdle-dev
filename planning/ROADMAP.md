@@ -20,7 +20,7 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 
 ---
 
-## Current State After Phase 40
+## Current State After Phase 41
 
 - Phase 23 stabilized the core Solo and Multiplayer gameplay model and added broad local plus real Supabase-backed E2E coverage.
 - Phase 24 made Solo, Multiplayer, History, Lobby, and Live v0 first-class app areas.
@@ -41,7 +41,8 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 - Phase 38 added privacy-safe public/guest Practice Live discovery and read-only spectation, created the public spectator projection migration, hardened a pre-existing Daily claim RPC anonymous grant, preserved authenticated spectator/participant paths, and deferred spectator presence/count/list work.
 - Phase 39 repaired mobile scroll smoothness with deterministic mobile scroll/layout E2E coverage, shell/shared UI visual-effect reductions, and Word Explorer mobile row tuning.
 - Phase 40 added public profile routes/cards, clickable safe leaderboard identity, authenticated-only unranked Practice private match requests, private request lifecycle UI, and two-client private matchmaking E2E hardening.
-- Phase 40 manual review completed with follow-up multiplayer reliability issues around ranked queue/search-again behavior, private request stale states, requester-side accepted-game routing, leaderboard freshness, mobile Practice Multiplayer freshness, and real E2E coverage gaps. Phase 41 is formally rerouted to multiplayer reliability and real E2E hardening before continuing into stats/dashboard/onboarding work.
+- Phase 40 manual review completed with follow-up multiplayer reliability issues around ranked queue/search-again behavior, private request stale states, requester-side accepted-game routing, leaderboard freshness, mobile Practice Multiplayer freshness, and real E2E coverage gaps. Phase 41 was formally rerouted to multiplayer reliability and real E2E hardening before continuing into stats/dashboard/onboarding work.
+- Phase 41 expanded real Supabase-backed multiplayer reliability E2E coverage, added reusable three-client harness support, repaired ranked queue/search-again reliability, public ranked leaderboard freshness, private request lifecycle/routing, mobile Practice Multiplayer freshness, and added Codex-assisted manual-review preflight. Manual review found one remaining minor/cosmetic issue: ranked Practice queue buttons on the Practice Multiplayer subtab can still flash roughly every five seconds after queue entry. Phase 42 should absorb that as a narrow early follow-up while proceeding into public stats, developer dashboard, onboarding, and help planning.
 
 ---
 
@@ -68,8 +69,8 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 | Phase 38 | Public/spectator readiness | Public/guest Practice Live discovery and read-only spectation after sanitized projections; spectator presence/count/list deferred | Complete |
 | Phase 39 | Mobile performance and scroll smoothness | Audit and improve mobile page scroll smoothness, create feasible measurement guards, and tune complex current surfaces without broad redesign | Complete |
 | Phase 40 | Public profiles and private matchmaking | Clickable public profiles, safe public profile route/cards, authenticated-only unranked Practice private match requests, private request lifecycle UI, and two-client E2E hardening | Complete |
-| Phase 41 | Multiplayer reliability and real E2E hardening | Ranked Practice search-again/queue cancellation/status reliability, leaderboard freshness, private request lifecycle cleanup, mobile multiplayer freshness, and expanded real E2E harnesses | Next planning target |
-| Phase 42 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private developer dashboard, beginner onboarding, help, and tutorial UX | Future |
+| Phase 41 | Multiplayer reliability and real E2E hardening | Ranked Practice search-again/queue cancellation/status reliability, leaderboard freshness, private request lifecycle cleanup, mobile multiplayer freshness, and expanded real E2E harnesses | Complete |
+| Phase 42 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private developer dashboard, beginner onboarding, help, tutorial UX, and the remaining ranked queue button/status flashing follow-up | Next planning target |
 | Phase 43 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site EXP, coin, and collectible counters after earnable systems have clear gameplay functions; late Focus Mode, compact navigation, and broader mobile UX improvements | Future |
 | Phase 44 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
 | Phase 45 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
@@ -354,7 +355,7 @@ Do not use this phase to add a full mailbox redesign, spectator presence/count/l
 
 ## Phase 42 - Site Stats, Developer Dashboard, Onboarding, And Help
 
-Phase 42 or later should handle public site statistics, private developer/admin observability, and beginner-friendly onboarding/help after the Phase 41 multiplayer reliability pass.
+Phase 42 should handle public site statistics, private developer/admin observability, and beginner-friendly onboarding/help after the Phase 41 multiplayer reliability pass. It should also absorb the one remaining Phase 41 manual-review follow-up: ranked Practice queue buttons on the Practice Multiplayer subtab can still flash roughly every five seconds after queue entry.
 
 Candidate work:
 
@@ -362,6 +363,7 @@ Candidate work:
 - private developer dashboard with stronger authorization and privacy rules;
 - first-time-player onboarding, help, walkthrough, and tutorial surfaces;
 - durable Help access from Settings or a dedicated route.
+- narrow ranked Practice queue button/status flashing audit and source/test-only repair if the issue remains cosmetic and bounded.
 
 This phase may need schema/RLS/admin planning before implementation.
 

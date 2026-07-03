@@ -33,6 +33,7 @@ import {
   mergeFinalizedRankedGameIntoLocalState,
   getMultiplayerPlayerDisplayLabel,
   getRankedQueueActiveRequestId,
+  shouldShowRankedQueueBusyForRefresh,
   shouldAutoRefreshRankedQueue,
 } from './multiplayerPanelRouting'
 import type {
@@ -552,6 +553,11 @@ describe('MultiplayerPanel', () => {
       requestId: 'queue-request-1',
       status: 'queued',
     })).toBe(false)
+  })
+
+  it('keeps automatic ranked queue polling out of visible busy button state', () => {
+    expect(shouldShowRankedQueueBusyForRefresh('auto')).toBe(false)
+    expect(shouldShowRankedQueueBusyForRefresh('manual')).toBe(true)
   })
 
   it('builds ranked queue payloads for untimed and canonical timed Practice only', () => {

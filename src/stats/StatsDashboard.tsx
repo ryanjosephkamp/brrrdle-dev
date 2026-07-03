@@ -9,11 +9,14 @@ import {
   selectWinRateByTier,
   selectXpProgress,
 } from './statsSelectors'
+import { PublicSiteStatsPanel } from './PublicSiteStatsPanel'
+import type { PublicSiteStatsRepository } from './siteStats'
 import type { StatisticsState } from './types'
 
 interface StatsDashboardProps {
   readonly history?: readonly GameHistoryEntry[]
   readonly progression?: GuestProgressionState
+  readonly publicSiteStatsRepository?: PublicSiteStatsRepository
   readonly stats: StatisticsState
 }
 
@@ -35,6 +38,7 @@ const EMPTY_PROGRESSION: GuestProgressionState = {
 export function StatsDashboard({
   history = EMPTY_HISTORY,
   progression = EMPTY_PROGRESSION,
+  publicSiteStatsRepository,
   stats,
 }: StatsDashboardProps) {
   const winRateByScope = selectWinRateByScope(stats)
@@ -51,6 +55,8 @@ export function StatsDashboard({
         <h2 id="stats-dashboard-title" className="text-3xl font-bold text-white">Statistics</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Local stats stay private on this device and focus on your gameplay history, streaks, XP, and coin trends.</p>
       </div>
+
+      <PublicSiteStatsPanel repository={publicSiteStatsRepository} />
 
       <div className="grid gap-3 md:grid-cols-2">
         {buckets.map((item) => {

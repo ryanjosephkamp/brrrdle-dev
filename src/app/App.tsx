@@ -3,10 +3,11 @@ import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, 
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
-import { AdminPanel } from '../admin'
-import { StatsDashboard } from '../stats'
+import { AdminPanel, createSupabaseAdminOperationalDashboardRepository, type AdminOperationalDashboardRepository } from '../admin'
+import { StatsDashboard, createSupabasePublicSiteStatsRepository, type PublicSiteStatsRepository } from '../stats'
 import { LeaderboardPanel, createSupabasePublicRankedLeaderboardRepository, type PublicRankedLeaderboardRepository } from '../leaderboards'
 import { WordExplorerPanel } from '../wordExplorer'
+import { HelpPanel } from '../help'
 import { FeedbackPanel } from '../feedback'
 import { SoundProvider, useSound } from '../sound'
 import { DailyCountdown, MULTIPLAYER_DAILY_VARIANT, SimulateTimePanel, useDailyCycle } from '../daily'
@@ -480,6 +481,8 @@ function RoutePanel({
   onOpenEloAbout,
   publicProfileRepository,
   publicRankedLeaderboardRepository,
+  publicSiteStatsRepository,
+  adminDashboardRepository,
 }: {
   readonly authState: AuthState
   readonly authMessage?: string
@@ -556,6 +559,8 @@ function RoutePanel({
   readonly onOpenEloAbout?: () => void
   readonly publicProfileRepository?: Pick<PublicProfileRepository, 'loadPublicProfile'>
   readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
+  readonly publicSiteStatsRepository?: PublicSiteStatsRepository
+  readonly adminDashboardRepository?: AdminOperationalDashboardRepository
 }) {
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
     ? createMultiplayerProfileSummary(authState.user.profile, 'Player')
@@ -801,9 +806,14 @@ function RoutePanel({
       <StatsDashboard
         history={guestProgress.history}
         progression={guestProgress.progression}
+        publicSiteStatsRepository={publicSiteStatsRepository}
         stats={guestProgress.stats}
       />
     )
+  }
+
+  if (route.id === 'help') {
+    return <HelpPanel onNavigate={onSelectRoute} />
   }
 
   if (route.id === 'leaderboard') {
@@ -860,6 +870,7 @@ function RoutePanel({
         authState={authState}
         guestProgress={guestProgress}
         onOpenAuthModal={onOpenAuthModal}
+        onOpenHelp={() => onSelectRoute('help')}
         onOpenPasswordChange={onOpenPasswordChange}
         onOpenProfilePanel={onOpenProfilePanel}
         onResetProgress={onResetProgress}
@@ -881,7 +892,7 @@ function RoutePanel({
   }
 
   if (route.id === 'admin') {
-    return <AdminPanel authState={authState} supabaseClient={supabaseClient} />
+    return <AdminPanel adminDashboardRepository={adminDashboardRepository} authState={authState} supabaseClient={supabaseClient} />
   }
 
   return (
@@ -929,6 +940,14 @@ function AppInner() {
       ? createSupabasePublicRankedLeaderboardRepository(supabaseClient)
       : undefined,
     [authState.status, supabaseClient],
+  )
+  const publicSiteStatsRepository = useMemo<PublicSiteStatsRepository | undefined>(
+    () => supabaseClient ? createSupabasePublicSiteStatsRepository(supabaseClient) : undefined,
+    [supabaseClient],
+  )
+  const adminDashboardRepository = useMemo<AdminOperationalDashboardRepository | undefined>(
+    () => supabaseClient ? createSupabaseAdminOperationalDashboardRepository(supabaseClient) : undefined,
+    [supabaseClient],
   )
   const publicProfileRepository = useMemo<PublicProfileRepository | undefined>(
     () => supabaseClient ? createSupabasePublicProfileRepository(supabaseClient) : undefined,
@@ -2344,8 +2363,10 @@ function AppInner() {
             onToggleSound={sound.setEnabled}
             onUpdateSettings={handleUpdateSettings}
             practiceMode={practiceMode}
+            adminDashboardRepository={adminDashboardRepository}
             publicProfileRepository={publicProfileRepository}
             publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
+            publicSiteStatsRepository={publicSiteStatsRepository}
             postgameActions={multiplayerRepository}
             privateMatchActions={multiplayerRepository}
             profileBusy={profileBusy}
