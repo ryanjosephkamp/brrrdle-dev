@@ -18,6 +18,32 @@ interface PrivateMatchRequestRow {
   readonly id: string
 }
 
+interface RankedQueueRow {
+  readonly expires_at?: string | null
+  readonly hard_mode?: boolean | null
+  readonly id: string
+  readonly matched_game_id?: string | null
+  readonly matched_match_id?: string | null
+  readonly mode?: string
+  readonly queued_at?: string
+  readonly rating_bucket?: string
+  readonly scope?: string
+  readonly status?: string
+  readonly time_limit_ms?: number | null
+  readonly user_id?: string
+  readonly word_length?: number | null
+}
+
+interface MatchResultReferenceRow {
+  readonly id?: string
+  readonly match_result_id?: string
+}
+
+interface RatingProfileReferenceRow {
+  readonly bucket?: string
+  readonly user_id?: string
+}
+
 export function createAnonSupabaseClient(): SupabaseClient {
   const env = getE2eEnv()
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -26,6 +52,18 @@ export function createAnonSupabaseClient(): SupabaseClient {
       persistSession: false,
     },
   })
+}
+
+export async function createAuthenticatedSupabaseClient(user: E2eUser): Promise<SupabaseClient> {
+  const client = createAnonSupabaseClient()
+  const { error } = await client.auth.signInWithPassword({
+    email: user.email,
+    password: user.password,
+  })
+  if (error) {
+    throw new Error(`Unable to authenticate E2E Supabase client for ${user.label}: ${error.message}`)
+  }
+  return client
 }
 
 export function createAdminSupabaseClient(): SupabaseClient {
@@ -74,6 +112,120 @@ export async function deletePrivateMatchRequestsForUsers(userIds: readonly strin
   }
 
   return requestIds.size
+}
+
+export async function deleteRankedQueueRowsForUsers(userIds: readonly string[]): Promise<number> {
+  if (userIds.length === 0) {
+    return 0
+  }
+
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin
+    .from('multiplayer_matchmaking_queue')
+    .select('id')
+    .in('user_id', [...userIds])
+  if (error) {
+    throw new Error(`Unable to inspect ranked queue rows for cleanup: ${error.message}`)
+  }
+
+  const rowIds = (data ?? [])
+    .map((row) => typeof row.id === 'string' ? row.id : undefined)
+    .filter((id): id is string => Boolean(id))
+  if (rowIds.length === 0) {
+    return 0
+  }
+
+  const { error: deleteError } = await admin
+    .from('multiplayer_matchmaking_queue')
+    .delete()
+    .in('id', rowIds)
+  if (deleteError) {
+    throw new Error(`Unable to delete temporary ranked queue rows: ${deleteError.message}`)
+  }
+
+  return rowIds.length
+}
+
+export async function deleteRankedRatingRowsForUsers(userIds: readonly string[]): Promise<number> {
+  if (userIds.length === 0) {
+    return 0
+  }
+
+  const admin = createAdminSupabaseClient()
+  const matchResultIds = new Set<string>()
+  const ratingTransactionIds = new Set<string>()
+
+  const { data: playerResults, error: playerResultsError } = await admin
+    .from('multiplayer_player_results')
+    .select('match_result_id')
+    .in('user_id', [...userIds])
+  if (playerResultsError) {
+    throw new Error(`Unable to inspect ranked player results for cleanup: ${playerResultsError.message}`)
+  }
+  for (const row of (playerResults ?? []) as readonly MatchResultReferenceRow[]) {
+    if (typeof row.match_result_id === 'string') {
+      matchResultIds.add(row.match_result_id)
+    }
+  }
+
+  for (const column of ['user_id', 'opponent_user_id'] as const) {
+    const { data, error } = await admin
+      .from('multiplayer_rating_transactions')
+      .select('id, match_result_id')
+      .in(column, [...userIds])
+    if (error) {
+      throw new Error(`Unable to inspect ${column} rating transactions for cleanup: ${error.message}`)
+    }
+    for (const row of (data ?? []) as readonly MatchResultReferenceRow[]) {
+      if (typeof row.id === 'string') {
+        ratingTransactionIds.add(row.id)
+      }
+      if (typeof row.match_result_id === 'string') {
+        matchResultIds.add(row.match_result_id)
+      }
+    }
+  }
+
+  const { data: profiles, error: profilesError } = await admin
+    .from('multiplayer_rating_profiles')
+    .select('user_id, bucket')
+    .in('user_id', [...userIds])
+  if (profilesError) {
+    throw new Error(`Unable to inspect ranked rating profiles for cleanup: ${profilesError.message}`)
+  }
+
+  if (matchResultIds.size > 0) {
+    const { error } = await admin
+      .from('multiplayer_match_results')
+      .delete()
+      .in('id', [...matchResultIds])
+    if (error) {
+      throw new Error(`Unable to delete temporary ranked match results: ${error.message}`)
+    }
+  }
+
+  if (ratingTransactionIds.size > 0) {
+    const { error } = await admin
+      .from('multiplayer_rating_transactions')
+      .delete()
+      .in('id', [...ratingTransactionIds])
+    if (error) {
+      throw new Error(`Unable to delete temporary ranked rating transactions: ${error.message}`)
+    }
+  }
+
+  const profileCount = ((profiles ?? []) as readonly RatingProfileReferenceRow[]).length
+  if (profileCount > 0) {
+    const { error } = await admin
+      .from('multiplayer_rating_profiles')
+      .delete()
+      .in('user_id', [...userIds])
+    if (error) {
+      throw new Error(`Unable to delete temporary ranked rating profiles: ${error.message}`)
+    }
+  }
+
+  return matchResultIds.size + ratingTransactionIds.size + profileCount
 }
 
 export async function deleteMultiplayerRowsForUsers(userIds: readonly string[]): Promise<number> {
@@ -140,6 +292,15 @@ export async function fetchMultiplayerRowsForUsers(userIds: readonly string[]) {
   })
 }
 
+function hasExactPlayerUserIds(row: AsyncMultiplayerGameRow, userIds: readonly string[]): boolean {
+  if (userIds.length !== 2 || !row.player_one_user_id || !row.player_two_user_id) {
+    return false
+  }
+  const expected = [...userIds].sort()
+  const actual = [row.player_one_user_id, row.player_two_user_id].sort()
+  return actual[0] === expected[0] && actual[1] === expected[1]
+}
+
 export async function waitForMultiplayerRowForUsers({
   mode,
   scope,
@@ -169,6 +330,109 @@ export async function waitForMultiplayerRowForUsers({
   }
 
   throw new Error(`Timed out waiting for multiplayer row. Last rows: ${latestRows.map((row) => `${row.id}:${row.scope}:${row.mode}:${row.status}`).join(', ') || 'none'}`)
+}
+
+export async function waitForMultiplayerRowForExactUsers({
+  mode,
+  scope,
+  status,
+  timeoutMs = 20_000,
+  userIds,
+}: {
+  readonly mode?: 'go' | 'og'
+  readonly scope?: 'daily' | 'practice'
+  readonly status?: string
+  readonly timeoutMs?: number
+  readonly userIds: readonly [string, string]
+}): Promise<AsyncMultiplayerGameRow> {
+  const startedAt = Date.now()
+  let latestRows: readonly AsyncMultiplayerGameRow[] = []
+  while (Date.now() - startedAt < timeoutMs) {
+    latestRows = await fetchMultiplayerRowsForUsers(userIds) as readonly AsyncMultiplayerGameRow[]
+    const match = latestRows.find((row) => (
+      hasExactPlayerUserIds(row, userIds)
+      && (!mode || row.mode === mode)
+      && (!scope || row.scope === scope)
+      && (!status || row.status === status)
+    ))
+    if (match) {
+      return match
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+
+  throw new Error(`Timed out waiting for exact-player multiplayer row. Last rows: ${latestRows.map((row) => `${row.scope}:${row.mode}:${row.status}`).join(', ') || 'none'}`)
+}
+
+export async function fetchRankedQueueRowsForUsers(userIds: readonly string[]): Promise<readonly RankedQueueRow[]> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin
+    .from('multiplayer_matchmaking_queue')
+    .select('id, user_id, mode, scope, word_length, hard_mode, rating_bucket, status, matched_game_id, matched_match_id, queued_at, expires_at, time_limit_ms')
+    .in('user_id', [...userIds])
+    .order('queued_at', { ascending: false })
+  if (error) {
+    throw new Error(`Unable to inspect ranked queue rows: ${error.message}`)
+  }
+
+  return (data ?? []) as readonly RankedQueueRow[]
+}
+
+export async function waitForRankedQueueRowsForUsers({
+  minCount = 1,
+  status,
+  timeoutMs = 20_000,
+  userIds,
+}: {
+  readonly minCount?: number
+  readonly status?: string
+  readonly timeoutMs?: number
+  readonly userIds: readonly string[]
+}): Promise<readonly RankedQueueRow[]> {
+  const startedAt = Date.now()
+  let latestRows: readonly RankedQueueRow[] = []
+  while (Date.now() - startedAt < timeoutMs) {
+    latestRows = await fetchRankedQueueRowsForUsers(userIds)
+    const matchingRows = latestRows.filter((row) => !status || row.status === status)
+    if (matchingRows.length >= minCount) {
+      return matchingRows
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+
+  throw new Error(`Timed out waiting for ranked queue rows. Last statuses: ${latestRows.map((row) => `${row.scope}:${row.mode}:${row.status}`).join(', ') || 'none'}`)
+}
+
+export async function fetchPublicRankedLeaderboardRowsForUser(
+  user: E2eUser,
+  {
+    bucket = 'multiplayer:og',
+    limit = 20,
+    offset = 0,
+  }: {
+    readonly bucket?: 'multiplayer:go' | 'multiplayer:og'
+    readonly limit?: number
+    readonly offset?: number
+  } = {},
+): Promise<readonly Record<string, unknown>[]> {
+  const client = await createAuthenticatedSupabaseClient(user)
+  try {
+    const { data, error } = await client.rpc('get_public_ranked_leaderboard', {
+      p_bucket: bucket,
+      p_limit: limit,
+      p_offset: offset,
+    })
+    if (error) {
+      throw new Error(`Unable to load public ranked leaderboard probe rows: ${error.message}`)
+    }
+    return Array.isArray(data) ? data as readonly Record<string, unknown>[] : []
+  } finally {
+    await client.auth.signOut()
+  }
 }
 
 export async function updateMultiplayerProjection(game: {

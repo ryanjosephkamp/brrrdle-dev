@@ -27,9 +27,12 @@ import {
   getRankedQueueFinalizationIdempotencyKey,
 } from './multiplayerPanelRankedQueue'
 import {
+  getActivePrivateMatchRequests,
   getCreatorJoinedGameAutoRouteId,
+  getPrivateMatchCreatedGameAutoRouteId,
   mergeFinalizedRankedGameIntoLocalState,
   getMultiplayerPlayerDisplayLabel,
+  getRankedQueueActiveRequestId,
   shouldAutoRefreshRankedQueue,
 } from './multiplayerPanelRouting'
 import type {
@@ -245,6 +248,66 @@ describe('PrivateMatchRequestsPanel', () => {
     expect(html).toContain('Private match request cancelled.')
     expect(html).not.toContain('Accept private match')
   })
+
+  it('keeps created, cancelled, declined, and expired private match rows out of active request lists', () => {
+    const createdRequest = createPrivateMatchRequestFixture({
+      created: true,
+      createdGameId: 'private-game-1',
+      requestStatus: 'created',
+      viewerCanAccept: false,
+      viewerCanDecline: false,
+      viewerRole: 'requester',
+    })
+    const cancelledRequest = createPrivateMatchRequestFixture({
+      requestId: 'private-request-cancelled',
+      requestStatus: 'cancelled',
+      viewerCanAccept: false,
+      viewerCanCancel: false,
+      viewerCanDecline: false,
+      viewerRole: 'requester',
+    })
+    const declinedRequest = createPrivateMatchRequestFixture({
+      requestId: 'private-request-declined',
+      requestStatus: 'declined',
+      viewerCanAccept: false,
+      viewerCanCancel: false,
+      viewerCanDecline: false,
+    })
+    const expiredRequest = createPrivateMatchRequestFixture({
+      expired: true,
+      requestId: 'private-request-expired',
+      viewerCanAccept: false,
+      viewerCanDecline: false,
+    })
+    const activeRequest = createPrivateMatchRequestFixture({ requestId: 'private-request-active' })
+
+    expect(getActivePrivateMatchRequests([
+      createdRequest,
+      cancelledRequest,
+      declinedRequest,
+      expiredRequest,
+      activeRequest,
+    ])).toEqual([activeRequest])
+
+    const html = renderToStaticMarkup(
+      <PrivateMatchRequestsPanel
+        busy={false}
+        message="Private match ready. Opening it now."
+        onAccept={noop}
+        onCancel={noop}
+        onDecline={noop}
+        requests={[createdRequest, cancelledRequest, declinedRequest, expiredRequest]}
+      />,
+    )
+
+    expect(html).toContain('0 active')
+    expect(html).toContain('No active private match requests.')
+    expect(html).toContain('Private match ready. Opening it now.')
+    expect(html).not.toContain('Private match created.')
+    expect(html).not.toContain('Cancel request')
+    expect(html).not.toContain('Accept private match')
+    expect(html).not.toContain('Decline')
+  })
 })
 
 describe('MultiplayerPanel', () => {
@@ -362,6 +425,50 @@ describe('MultiplayerPanel', () => {
     })).toBeUndefined()
   })
 
+  it('auto-routes created private matches only when the viewer owns the created game', () => {
+    const createdGame = createMultiplayerGame({
+      id: 'private-game-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'requester-user', 'player-two': 'opponent-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const createdRequest = createPrivateMatchRequestFixture({
+      created: true,
+      createdGameId: createdGame.id,
+      requestStatus: 'created',
+      viewerCanAccept: false,
+      viewerCanCancel: false,
+      viewerCanDecline: false,
+      viewerRole: 'requester',
+    })
+
+    expect(getPrivateMatchCreatedGameAutoRouteId({
+      requests: [createdRequest],
+      selectedGameId: undefined,
+      viewerUserId: 'requester-user',
+      visibleGames: [createdGame],
+    })).toBe(createdGame.id)
+    expect(getPrivateMatchCreatedGameAutoRouteId({
+      requests: [createdRequest],
+      selectedGameId: createdGame.id,
+      viewerUserId: 'requester-user',
+      visibleGames: [createdGame],
+    })).toBeUndefined()
+    expect(getPrivateMatchCreatedGameAutoRouteId({
+      requests: [createdRequest],
+      selectedGameId: undefined,
+      viewerUserId: 'spectator-user',
+      visibleGames: [createdGame],
+    })).toBeUndefined()
+    expect(getPrivateMatchCreatedGameAutoRouteId({
+      requests: [createPrivateMatchRequestFixture()],
+      selectedGameId: undefined,
+      viewerUserId: 'requester-user',
+      visibleGames: [createdGame],
+    })).toBeUndefined()
+  })
+
   it('preserves an existing terminal ranked game when finalization is idempotent', () => {
     const terminalRanked = terminalPracticeGame({
       id: 'ranked-terminal-1',
@@ -392,6 +499,23 @@ describe('MultiplayerPanel', () => {
   })
 
   it('polls queued ranked requests only while the creator has a valid active queue', () => {
+    expect(getRankedQueueActiveRequestId({
+      requestId: 'queue-request-1',
+      status: 'queued',
+    })).toBe('queue-request-1')
+    expect(getRankedQueueActiveRequestId({
+      requestId: 'queue-request-1',
+      status: 'cancelled',
+    })).toBeUndefined()
+    expect(getRankedQueueActiveRequestId({
+      requestId: 'queue-request-1',
+      status: 'matched',
+    })).toBeUndefined()
+    expect(getRankedQueueActiveRequestId({
+      requestId: 'queue-request-1',
+      status: 'error',
+    })).toBeUndefined()
+
     expect(shouldAutoRefreshRankedQueue({
       hasRankedQueueActions: true,
       readOnly: false,
@@ -403,6 +527,18 @@ describe('MultiplayerPanel', () => {
       readOnly: false,
       requestId: 'queue-request-1',
       status: 'matched',
+    })).toBe(false)
+    expect(shouldAutoRefreshRankedQueue({
+      hasRankedQueueActions: true,
+      readOnly: false,
+      requestId: 'queue-request-1',
+      status: 'cancelled',
+    })).toBe(false)
+    expect(shouldAutoRefreshRankedQueue({
+      hasRankedQueueActions: true,
+      readOnly: false,
+      requestId: 'queue-request-1',
+      status: 'error',
     })).toBe(false)
     expect(shouldAutoRefreshRankedQueue({
       hasRankedQueueActions: true,

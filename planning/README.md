@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 40 is currently planned as public profiles and private matchmaking after the clean Phase 39 manual review and completed mobile scroll smoothness work. Use the phase scope sizing guide to keep this as a cohesive macro-phase with narrow implementation stages.
+7. The active or next phase plan. Phase 40 is complete and backed up; Phase 41 is formally rerouted to multiplayer reliability and real E2E hardening. Use the Phase 41 planning brief plus the phase scope sizing guide to keep the macro-phase cohesive with narrow implementation stages.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -39,6 +39,7 @@ For normal future work, read:
 - `planning/phase-38/`: Phase 38 planning brief, implementation plan, changelog, and review checklist for public/spectator readiness, including public/guest spectation audit, privacy/RLS gates, read-only public spectator integration, and spectator presence routing.
 - `planning/phase-39/`: Phase 39 planning brief, implementation plan, changelog, and review checklist for mobile performance and scroll smoothness readiness, including audit/measurement planning, targeted source/CSS optimization routing, complex workspace scroll tuning, and later mobile UX overhaul deferral.
 - `planning/phase-40/`: Phase 40 planning brief and implementation plan for public profiles and private matchmaking, including public profile privacy audit, safe clickable identity surfaces, private/custom invitation routing, anti-abuse gates, and migration/RLS addendum expectations.
+- `planning/phase-41/`: Phase 41 planning brief, strategy intake, and implementation plan for multiplayer reliability, real E2E hardening, and Phase 40 manual-review bug routing.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
@@ -57,6 +58,7 @@ For normal future work, read:
 - `planning/specs/phase-38/`: Phase 38 public/spectator readiness specs for public/guest spectation audit, migration/RLS gates, sanitized Live discovery, and read-only spectator boundaries.
 - `planning/specs/phase-39/`: Phase 39 mobile performance and scroll smoothness specs for audit, measurement harness planning, targeted shell/CSS/shared-UI optimization, complex workspace tuning, and final hardening gates.
 - `planning/specs/phase-40/`: Phase 40 public profile and private matchmaking specs.
+- `planning/specs/phase-41/`: Phase 41 multiplayer reliability and real E2E hardening specs for ranked queue, public leaderboard, private request, mobile freshness, and Codex-assisted manual-review preflight gates.
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.

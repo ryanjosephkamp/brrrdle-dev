@@ -1,5 +1,6 @@
 import { MultiplayerStatsPanel, type MultiplayerCompetitiveState } from '../multiplayer'
 import { PublicRankedLeaderboardPanel, type PublicRankedLeaderboardAuthStatus } from './PublicRankedLeaderboardPanel'
+import { getPublicRankedLeaderboardFreshnessKey } from './leaderboardFreshness'
 import type { PublicRankedLeaderboardRepository } from './publicRankedLeaderboard'
 
 interface LeaderboardPanelProps {
@@ -31,6 +32,7 @@ export function LeaderboardPanel({
 
       <PublicRankedLeaderboardPanel
         authStatus={authStatus}
+        freshnessKey={getPublicRankedLeaderboardFreshnessKey(competitiveMultiplayer)}
         onOpenPublicProfile={onOpenPublicProfile}
         repository={publicRankedLeaderboardRepository}
       />

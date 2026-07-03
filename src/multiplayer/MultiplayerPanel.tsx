@@ -41,6 +41,7 @@ import type {
   MultiplayerRepository,
   ParticipantIdentitySummaryResult,
   PrivateMatchRequestResult,
+  RankedQueueStatusResult,
 } from './multiplayerRepository'
 import type { PracticeRematchRequestResult } from './multiplayerRepository'
 import { RivalIdentityCard } from './RivalIdentityCard'
@@ -56,8 +57,11 @@ import {
   getPrivateMatchAcceptIdempotencyKey,
 } from './privateMatchmaking'
 import {
+  getActivePrivateMatchRequests,
   getCreatorJoinedGameAutoRouteId,
+  getPrivateMatchCreatedGameAutoRouteId,
   getMultiplayerPlayerDisplayLabel,
+  getRankedQueueActiveRequestId,
   mergeFinalizedRankedGameIntoLocalState,
   shouldAutoRefreshRankedQueue,
 } from './multiplayerPanelRouting'
@@ -294,6 +298,26 @@ function getRankedQueueErrorMessage(error: unknown): string {
   return error instanceof Error && error.message.trim()
     ? error.message
     : 'Unable to update ranked queue.'
+}
+
+function getRankedQueueUiStatus(status: RankedQueueStatusResult['requestStatus']): RankedQueueUiState['status'] {
+  if (status === 'queued' || status === 'matched' || status === 'cancelled') {
+    return status
+  }
+  return 'idle'
+}
+
+function getRankedQueueStatusMessage(status: RankedQueueStatusResult['requestStatus']): string {
+  if (status === 'queued') {
+    return 'Ranked queue request is waiting for a compatible signed-in rival.'
+  }
+  if (status === 'cancelled') {
+    return 'Ranked queue request cancelled.'
+  }
+  if (status === 'expired') {
+    return 'Ranked queue request expired.'
+  }
+  return `Ranked queue request is ${status}.`
 }
 
 function getLatestSolvedMoveId(game: MultiplayerGame | undefined): string | undefined {
@@ -585,9 +609,7 @@ export function PrivateMatchRequestsPanel({
   onDecline,
   requests,
 }: PrivateMatchRequestsPanelProps) {
-  const visibleRequests = requests.filter((request) => (
-    request.requestStatus === 'requested' || request.requestStatus === 'created'
-  ))
+  const visibleRequests = getActivePrivateMatchRequests(requests)
 
   return (
     <section
@@ -707,6 +729,7 @@ export function MultiplayerPanel({
   const [rankedQueueBusy, setRankedQueueBusy] = useState(false)
   const [clockNow, setClockNow] = useState(() => new Date())
   const previousVisibleGamesRef = useRef<readonly MultiplayerGame[]>(visibleGames)
+  const openedPrivateMatchGameIdsRef = useRef<Set<string>>(new Set())
   const refreshRankedQueueRef = useRef<() => Promise<void>>(async () => undefined)
   const needsClock = useMemo(
     () => visibleGames.some((game) => game.scope === 'practice' && game.timeLimitMs && game.status === 'playing'),
@@ -884,10 +907,14 @@ export function MultiplayerPanel({
     }
     const status = await rankedQueueActions.getRankedQueueStatus(requestId)
     if (status.requestStatus !== 'matched' || !status.matchedGameId) {
+      const nextStatus = getRankedQueueUiStatus(status.requestStatus)
       setRankedQueue({
-        message: 'Ranked queue request is waiting for a compatible signed-in rival.',
-        requestId: status.requestId,
-        status: status.requestStatus === 'queued' ? 'queued' : 'idle',
+        message: getRankedQueueStatusMessage(status.requestStatus),
+        requestId: getRankedQueueActiveRequestId({
+          requestId: status.requestId,
+          status: nextStatus,
+        }),
+        status: nextStatus,
       })
       return
     }
@@ -946,9 +973,17 @@ export function MultiplayerPanel({
       })
       return
     }
+    setRankedQueue({
+      message: requestInput.timeLimitMs
+        ? 'Creating timed ranked queue request.'
+        : 'Creating ranked queue request.',
+      status: 'idle',
+    })
     setRankedQueueBusy(true)
+    let createdRequestId: string | undefined
     try {
       const request = await rankedQueueActions.createRankedQueueRequest(requestInput)
+      createdRequestId = request.requestId
       const claim = await rankedQueueActions.claimRankedQueuePair({ requestId: request.requestId })
       if (claim.requestStatus !== 'matched' || !claim.matchedGameId) {
         setRankedQueue({
@@ -970,8 +1005,8 @@ export function MultiplayerPanel({
     } catch (error) {
       setRankedQueue({
         message: getRankedQueueErrorMessage(error),
-        requestId: rankedQueue.requestId,
-        status: 'error',
+        requestId: createdRequestId,
+        status: createdRequestId ? 'queued' : 'error',
       })
     } finally {
       setRankedQueueBusy(false)
@@ -990,10 +1025,14 @@ export function MultiplayerPanel({
         return
       }
       if (status.requestStatus !== 'queued') {
+        const nextStatus = getRankedQueueUiStatus(status.requestStatus)
         setRankedQueue({
-          message: `Ranked queue request is ${status.requestStatus}.`,
-          requestId: status.requestId,
-          status: status.requestStatus === 'cancelled' ? 'cancelled' : 'idle',
+          message: getRankedQueueStatusMessage(status.requestStatus),
+          requestId: getRankedQueueActiveRequestId({
+            requestId: status.requestId,
+            status: nextStatus,
+          }),
+          status: nextStatus,
         })
         return
       }
@@ -1063,9 +1102,12 @@ export function MultiplayerPanel({
     try {
       const cancellation = await rankedQueueActions.cancelRankedQueueRequest(rankedQueue.requestId)
       setRankedQueue({
-        message: 'Ranked queue request cancelled.',
-        requestId: cancellation.requestId,
-        status: 'cancelled',
+        message: getRankedQueueStatusMessage(cancellation.requestStatus),
+        requestId: getRankedQueueActiveRequestId({
+          requestId: cancellation.requestId,
+          status: getRankedQueueUiStatus(cancellation.requestStatus),
+        }),
+        status: getRankedQueueUiStatus(cancellation.requestStatus),
       })
     } catch (error) {
       setRankedQueue({
@@ -1212,6 +1254,72 @@ export function MultiplayerPanel({
       setPrivateMatchBusy(false)
     }
   }
+
+  useEffect(() => {
+    if (!canLoadPrivateMatchRequests || !privateMatchActions || readOnly || privateMatchBusy) {
+      return undefined
+    }
+    const createdGameId = privateMatchRequests
+      .filter((request) => (
+        request.requestStatus === 'created'
+        && request.createdGameId
+        && !request.expired
+        && request.createdGameId !== effectiveSelectedGameId
+        && !openedPrivateMatchGameIdsRef.current.has(request.createdGameId)
+      ))
+      .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+      .map((request) => request.createdGameId)
+      .find((gameId): gameId is string => Boolean(gameId))
+    if (!createdGameId) {
+      return undefined
+    }
+    let active = true
+    const timeoutId = window.setTimeout(() => {
+      void privateMatchActions.load()
+        .then((snapshot) => {
+          if (!active) {
+            return
+          }
+          const nextVisibleGames = normalizeMultiplayerState(snapshot.state).games.filter((game) => game.scope === 'practice')
+          const nextGameId = getPrivateMatchCreatedGameAutoRouteId({
+            requests: privateMatchRequests,
+            selectedGameId: effectiveSelectedGameId,
+            viewerUserId,
+            visibleGames: nextVisibleGames,
+          })
+          if (!nextGameId || openedPrivateMatchGameIdsRef.current.has(nextGameId)) {
+            return
+          }
+          openedPrivateMatchGameIdsRef.current.add(nextGameId)
+          onChange(snapshot.state)
+          selectGame(nextGameId)
+          setPrivateMatchMessage('Private match ready. Opening it now.')
+          onGameplayAutoCenterRequest?.()
+          void refreshPrivateMatchRequests()
+        })
+        .catch(() => {
+          if (active) {
+            setPrivateMatchMessage('Private match is ready, but it could not be opened automatically. Refresh Practice Multiplayer to try again.')
+          }
+        })
+    }, 0)
+    return () => {
+      active = false
+      window.clearTimeout(timeoutId)
+    }
+  }, [
+    canLoadPrivateMatchRequests,
+    effectiveSelectedGameId,
+    onChange,
+    onGameplayAutoCenterRequest,
+    privateMatchActions,
+    privateMatchBusy,
+    privateMatchRequests,
+    readOnly,
+    refreshPrivateMatchRequests,
+    selectGame,
+    viewerUserId,
+  ])
 
   const createGame = () => {
     if (existingDailyClaim) {

@@ -37,7 +37,13 @@ export async function createTwoClientSession(browser: Browser): Promise<TwoClien
   let cleaned = false
   async function cleanup(): Promise<CleanupSummary> {
     if (cleaned) {
-      return { multiplayerRowsDeleted: 0, usersDeleted: 0 }
+      return {
+        multiplayerRowsDeleted: 0,
+        privateMatchRequestsDeleted: 0,
+        rankedQueueRowsDeleted: 0,
+        rankedRatingRowsDeleted: 0,
+        usersDeleted: 0,
+      }
     }
     cleaned = true
     await Promise.allSettled([

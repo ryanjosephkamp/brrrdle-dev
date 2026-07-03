@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { expectNoConsoleFailures } from '../fixtures/assertions'
-import { navigateToPracticeMultiplayer, selectMultiplayerGame } from '../fixtures/gameActions'
+import { navigateToPracticeMultiplayer } from '../fixtures/gameActions'
 import { fetchPublicProfileIdForUser, upsertPublicProfileForUser, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession } from '../fixtures/twoClientGame'
 
@@ -74,7 +74,11 @@ test.describe('Private matchmaking @multiplayer', () => {
       await expect(session.rival.page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-status', 'playing')
 
       await navigateToPracticeMultiplayer(session.host.page)
-      await selectMultiplayerGame(session.host.page, createdRow.id, { reloadOnStaleStatus: true, status: 'playing' })
+      const hostRequests = session.host.page.getByTestId('private-match-requests')
+      await expect(hostRequests).toContainText('0 active', { timeout: 30_000 })
+      await expect(hostRequests).toContainText(/No active private match requests\./i)
+      await expect(session.host.page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-game-id', createdRow.id, { timeout: 30_000 })
+      await expect(session.host.page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-status', 'playing')
       await expect(session.host.page.getByTestId('multiplayer-selected-game')).toContainText(/Rival joined|Your turn/i, { timeout: 30_000 })
 
       await expect(session.host.page.locator('body')).not.toContainText(rivalPublicProfileId)

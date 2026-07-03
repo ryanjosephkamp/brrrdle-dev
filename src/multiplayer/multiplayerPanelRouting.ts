@@ -4,8 +4,19 @@ import {
   type MultiplayerGame,
   type MultiplayerPlayerId,
 } from './multiplayer'
+import type { PrivateMatchRequestResult } from './multiplayerRepository'
 
-type RankedQueueAutoRefreshStatus = 'cancelled' | 'error' | 'idle' | 'matched' | 'queued'
+export type RankedQueueAutoRefreshStatus = 'cancelled' | 'error' | 'idle' | 'matched' | 'queued'
+
+export function getRankedQueueActiveRequestId({
+  requestId,
+  status,
+}: {
+  readonly requestId?: string
+  readonly status: RankedQueueAutoRefreshStatus
+}): string | undefined {
+  return status === 'queued' ? requestId : undefined
+}
 
 export function shouldAutoRefreshRankedQueue({
   hasRankedQueueActions,
@@ -19,6 +30,48 @@ export function shouldAutoRefreshRankedQueue({
   readonly status: RankedQueueAutoRefreshStatus
 }): boolean {
   return status === 'queued' && Boolean(requestId) && hasRankedQueueActions && !readOnly
+}
+
+export function getActivePrivateMatchRequests(
+  requests: readonly PrivateMatchRequestResult[],
+): readonly PrivateMatchRequestResult[] {
+  return requests.filter((request) => request.requestStatus === 'requested' && !request.expired)
+}
+
+export function getPrivateMatchCreatedGameAutoRouteId({
+  requests,
+  selectedGameId,
+  viewerUserId,
+  visibleGames,
+}: {
+  readonly requests: readonly PrivateMatchRequestResult[]
+  readonly selectedGameId: string | undefined
+  readonly viewerUserId: string | undefined
+  readonly visibleGames: readonly MultiplayerGame[]
+}): string | undefined {
+  if (!viewerUserId) {
+    return undefined
+  }
+  const createdGameIds = requests
+    .filter((request) => (
+      request.requestStatus === 'created'
+      && Boolean(request.createdGameId)
+      && !request.expired
+    ))
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+    .map((request) => request.createdGameId)
+    .filter((gameId): gameId is string => Boolean(gameId))
+
+  for (const gameId of createdGameIds) {
+    if (gameId === selectedGameId) {
+      continue
+    }
+    const game = visibleGames.find((entry) => entry.id === gameId)
+    if (game && getViewerMultiplayerPlayerId(game, viewerUserId)) {
+      return game.id
+    }
+  }
+  return undefined
 }
 
 export function getCreatorJoinedGameAutoRouteId({
