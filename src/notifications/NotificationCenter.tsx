@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { NotificationItemViewModel } from './notificationViewModels'
 import type { NotificationCenterViewModel } from './notificationViewModels'
 
@@ -65,6 +65,7 @@ export function NotificationCenter({
   viewModel,
 }: NotificationCenterProps) {
   const [open, setOpen] = useState(defaultOpen)
+  const rootRef = useRef<HTMLDivElement>(null)
   const { items, readCount, unreadCount } = viewModel
   const unreadVisibleItems = items.filter((item) => !item.dismissed && !item.read)
   const panelId = 'brrrdle-notification-center-panel'
@@ -72,8 +73,36 @@ export function NotificationCenter({
     unreadCount === 1 ? '1 unread notification' : `${unreadCount} unread notifications`
   const toggleAction = open ? 'Close' : 'Open'
 
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') {
+      return undefined
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const root = rootRef.current
+      const target = event.target
+      if (!root || !(target instanceof Node) || root.contains(target)) {
+        return
+      }
+      setOpen(false)
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
+
   return (
-    <div className="brrrdle-notification-center">
+    <div className="brrrdle-notification-center" data-open={open ? 'true' : 'false'} ref={rootRef}>
       <button
         aria-controls={panelId}
         aria-expanded={open}

@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 41 is complete, backed up, merged, and manually reviewed with one minor Phase 42 follow-up. Use the Phase 42 planning brief, unified specification, implementation plan, and phase scope sizing guide to keep the macro-phase cohesive with narrow implementation stages.
+7. The active or next phase plan. Phase 42 is complete, backed up, merged, and manually reviewed. Use the Phase 43 intake, recommendations/routing document, planning brief, unified specification, and implementation plan before beginning Stage 43.0.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -40,7 +40,8 @@ For normal future work, read:
 - `planning/phase-39/`: Phase 39 planning brief, implementation plan, changelog, and review checklist for mobile performance and scroll smoothness readiness, including audit/measurement planning, targeted source/CSS optimization routing, complex workspace scroll tuning, and later mobile UX overhaul deferral.
 - `planning/phase-40/`: Phase 40 planning brief and implementation plan for public profiles and private matchmaking, including public profile privacy audit, safe clickable identity surfaces, private/custom invitation routing, anti-abuse gates, and migration/RLS addendum expectations.
 - `planning/phase-41/`: Phase 41 planning brief, strategy intake, implementation plan, changelog, and review checklist for multiplayer reliability, real E2E hardening, and Phase 40 manual-review bug routing.
-- `planning/phase-42/`: Phase 42 planning brief and implementation plan for public site stats, private developer/admin dashboard, onboarding/help/tutorial UX, and the remaining ranked Practice queue button/status flashing follow-up.
+- `planning/phase-42/`: Phase 42 planning brief, implementation plan, changelog, and review checklist for public site stats, private developer/admin dashboard, onboarding/help/tutorial UX, and the ranked Practice queue button/status flashing follow-up.
+- `planning/phase-43/`: Phase 43 planning brief, implementation plan, intake, and recommendation/routing artifacts for current-surface UX cleanup, ranked queue follow-up, gameplay comfort, and later-phase routing.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
@@ -61,6 +62,7 @@ For normal future work, read:
 - `planning/specs/phase-40/`: Phase 40 public profile and private matchmaking specs.
 - `planning/specs/phase-41/`: Phase 41 multiplayer reliability and real E2E hardening specs for ranked queue, public leaderboard, private request, mobile freshness, and Codex-assisted manual-review preflight gates.
 - `planning/specs/phase-42/`: Phase 42 site stats, developer dashboard, onboarding/help/tutorial UX, and narrow ranked Practice queue flashing follow-up specs.
+- `planning/specs/phase-43/`: Phase 43 current-surface UX cleanup, ranked queue follow-up, gameplay comfort, route/shell density cleanup, and visual-review specs.
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.
@@ -70,7 +72,7 @@ For normal future work, read:
 - `planning/skills/`: documentation for brrrdle-specific local Codex workflow skills; the actual skills live under `/Users/noir/.codex/skills/` and are not committed.
 - `planning/testing/`: testing-suite strategy and verification philosophy.
 
-Theme proposal modernization is intentionally deferred until after the current multiplayer, auth/deployment, public/spectator, profile/social, and onboarding readiness phases. Theme materials remain under `themes/proposals/`, outside this `planning/` directory.
+Theme proposal modernization is intentionally deferred until after the current multiplayer, auth/deployment, public/spectator, profile/social, onboarding, current-surface UX cleanup, and shell-comfort readiness phases. Theme materials remain under `themes/proposals/`, outside this `planning/` directory.
 
 ## Planning Rules
 

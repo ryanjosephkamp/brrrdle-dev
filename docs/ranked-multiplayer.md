@@ -66,6 +66,7 @@ Ranked Practice v1 preserves these boundaries:
 - Phase 33 supports only that one timed ranked clock. Other Practice time-limit options remain unranked.
 - Timed ranked uses separate rating buckets from untimed ranked Practice: `async:og:timed:v1` / `async:go:timed:v1` in storage and `multiplayer:og:timed:v1` / `multiplayer:go:timed:v1` in app projections.
 - The ranked queue matches compatible mode, word length, Hard Mode setting, rating bucket, and exact ranked time control.
+- Phase 43 ranked queue selection softly avoids immediate same-settings repeat opponents when another compatible player is already waiting. A recent rematch remains allowed when no compatible non-recent opponent exists.
 - Daily ranked remains deferred until Phase 33 planning proves claim safety, UTC-day uniqueness, answer separation, no-clock behavior, and anti-cheat implications.
 - Timed Practice ranked remains limited to the trusted ranked queue, trusted finalization, and trusted settlement path. Real two-client verification remains part of Phase 33 final hardening before Git handoff.
 - Ranked custom/private-code games remain deferred unless a later approved spec authorizes them.

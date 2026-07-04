@@ -65,7 +65,7 @@ function ModeSelector({
   readonly onSelect: (mode: SoloMode) => void
 }) {
   return (
-    <div aria-label={label} className="flex flex-wrap gap-2 rounded-lg border border-white/10 bg-slate-950/60 p-2 shadow-inner shadow-white/5" role="group">
+    <div aria-label={label} className="inline-flex w-fit flex-wrap gap-1 rounded-lg border border-white/10 bg-slate-950/60 p-1 shadow-inner shadow-white/5" role="group">
       <Button isActive={activeMode === 'og'} onClick={() => onSelect('og')} size="sm" variant="secondary">OG</Button>
       <Button isActive={activeMode === 'go'} onClick={() => onSelect('go')} size="sm" variant="secondary">GO</Button>
     </div>
@@ -167,33 +167,20 @@ function RecentResultsList({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[42rem] border-separate border-spacing-y-2 text-left text-sm">
-        <thead className="text-xs uppercase tracking-[0.18em] text-slate-400">
-          <tr>
-            <th className="px-3 py-1">Game</th>
-            <th className="px-3 py-1">Result</th>
-            <th className="px-3 py-1">Word</th>
-            <th className="px-3 py-1">Completed</th>
-            <th className="px-3 py-1">Rewards</th>
-            <th className="px-3 py-1"><span className="sr-only">Open</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {recentResults.map((result) => (
-            <tr className="bg-black/30 text-slate-200" key={result.gameId}>
-              <td className="rounded-l-lg border-y border-l border-white/10 px-3 py-3 font-semibold">{result.scopeLabel} {result.modeLabel}</td>
-              <td className="border-y border-white/10 px-3 py-3">{result.statusLabel} · {result.attemptsLabel}</td>
-              <td className="border-y border-white/10 px-3 py-3 font-mono text-cyan-100">{result.wordLabel}</td>
-              <td className="border-y border-white/10 px-3 py-3">{formatDateTime(result.completedAt)}</td>
-              <td className="border-y border-white/10 px-3 py-3">{result.rewardLabel}</td>
-              <td className="rounded-r-lg border-y border-r border-white/10 px-3 py-3 text-right">
-                <Button onClick={() => onOpenHistory({ mode: result.mode, scope: result.scope })} size="sm" variant="ghost">History</Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="grid min-w-0 gap-3 md:grid-cols-2">
+      {recentResults.map((result) => (
+        <article className="min-w-0 rounded-lg border border-white/10 bg-black/30 p-4 text-sm text-slate-200" key={result.gameId}>
+          <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ice-200)]">{result.scopeLabel} {result.modeLabel}</p>
+              <h4 className="mt-1 break-words text-base font-bold text-white">{result.statusLabel} · {result.attemptsLabel}</h4>
+            </div>
+            <Button onClick={() => onOpenHistory({ mode: result.mode, scope: result.scope })} size="sm" variant="ghost">History</Button>
+          </div>
+          <p className="mt-3 break-words font-mono text-sm text-cyan-100">{result.wordLabel}</p>
+          <p className="mt-2 break-words text-xs text-slate-400">{result.rewardLabel} · Completed {formatDateTime(result.completedAt)}</p>
+        </article>
+      ))}
     </div>
   )
 }
@@ -275,10 +262,10 @@ function DailySoloPanel({
 }) {
   return (
     <div className="space-y-5">
-      <Panel className="flex flex-wrap items-center justify-between gap-3" tone="muted">
+      <div className="flex flex-wrap items-center gap-2">
         <ModeSelector activeMode={dailyMode} label="Daily Solo mode" onSelect={onDailyModeChange} />
         <Button onClick={onOpenCalendar} variant="ghost">Calendar</Button>
-      </Panel>
+      </div>
       {renderDailyGame(dailyMode)}
     </div>
   )
@@ -295,9 +282,9 @@ function PracticeSoloPanel({
 }) {
   return (
     <div className="space-y-5">
-      <Panel className="flex flex-wrap items-center justify-between gap-3" tone="muted">
+      <div className="flex flex-wrap items-center gap-2">
         <ModeSelector activeMode={practiceMode} label="Practice Solo mode" onSelect={onPracticeModeChange} />
-      </Panel>
+      </div>
       {renderPracticeGame(practiceMode)}
     </div>
   )

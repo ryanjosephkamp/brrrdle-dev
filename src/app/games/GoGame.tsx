@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BUNDLED_WORD_LIST_LENGTHS, DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
+import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
 import { DEFAULT_GO_PUZZLE_COUNT, type GoPuzzleCount } from '../../game/constants'
 import type { CompletedGameInput, GoResumeSlot, ResumeCapture } from '../../account'
 import { createAccountPracticeSeed } from '../../account/practiceSeeds'
@@ -414,25 +414,6 @@ function GoGameSession({
       </div>
 
       <Panel className="space-y-4" tone="muted">
-        <div className="grid gap-3 text-sm text-slate-300 sm:grid-cols-4">
-          <div>
-            <p className="font-semibold text-cyan-100">Word length</p>
-            <p>{session.wordLength} letters</p>
-          </div>
-          <div>
-            <p className="font-semibold text-cyan-100">Current puzzle</p>
-            <p>{session.currentPuzzleIndex + 1} of {session.puzzles.length}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-cyan-100">Chain status</p>
-            <p className="capitalize">{session.status}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-cyan-100">Seed lists</p>
-            <p>{BUNDLED_WORD_LIST_LENGTHS.join(', ')}</p>
-          </div>
-        </div>
-
         {scope === 'practice' ? (
           <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-700 bg-slate-950/50 p-3">
             <label className="grid gap-1 text-sm font-semibold text-cyan-100">
@@ -495,9 +476,9 @@ function GoGameSession({
 
         <GuessGrid session={displayPuzzle} />
 
-        <div aria-live="polite" className="rounded-2xl border border-slate-700 bg-slate-950/70 p-3 text-sm leading-6 text-slate-200" role="status">
+        <div aria-live="polite" className="min-h-20 rounded-2xl border border-slate-700 bg-slate-950/70 p-3 text-sm leading-6 text-slate-200" role="status">
           <p>{statusMessage}</p>
-          {currentPuzzle.lastValidation ? <p className="mt-1 font-semibold text-amber-100">{currentPuzzle.lastValidation.message}</p> : null}
+          {currentPuzzle.lastValidation ? <p className="mt-1 min-h-6 font-semibold text-amber-100">{currentPuzzle.lastValidation.message}</p> : <p aria-hidden="true" className="mt-1 min-h-6" />}
         </div>
 
         {canPayToContinue ? (

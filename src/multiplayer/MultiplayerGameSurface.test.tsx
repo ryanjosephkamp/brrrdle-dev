@@ -32,6 +32,8 @@ describe('MultiplayerGameSurface', () => {
 
     expect(html).toContain('Multiplayer guess grid')
     expect(html).toContain('Use the on-screen keyboard')
+    expect(html).toContain('min-h-20')
+    expect(html).toContain('aria-hidden="true"')
     expect(html).toContain('Q')
     expect(html).toContain('Enter')
     expect(html).not.toContain('Pay to Continue')

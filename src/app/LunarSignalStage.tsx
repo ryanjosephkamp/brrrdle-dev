@@ -24,7 +24,6 @@ interface LunarSignalStageProps {
   readonly onNavigate: (routeId: AppRouteId) => void
   readonly routeAttention?: RouteAttentionMap
   readonly routes: readonly AppRoute[]
-  readonly statusLines: readonly SignalMetric[]
   /**
    * Surface theme controlling the shell backdrop. Defaults to the minimalist
    * surface; `lunar-signal` restores the animated Lunar Signal Deck treatment
@@ -279,7 +278,6 @@ export function LunarSignalStage({
   onNavigate,
   routeAttention,
   routes,
-  statusLines,
   surfaceTheme = DEFAULT_SURFACE_THEME,
 }: LunarSignalStageProps) {
   const isLunarSurface = surfaceTheme === 'lunar-signal'
@@ -474,39 +472,20 @@ export function LunarSignalStage({
                   <h1 id="active-route-title">{activeRoute.label}</h1>
                   <span>{activeRoute.description}</span>
                 </div>
-                <span className="brrrdle-lunar-live-chip">Ready</span>
+                <div className="brrrdle-lunar-route-meta" aria-label="Brrrdle route summary">
+                  <span className="brrrdle-lunar-live-chip">Ready</span>
+                  {metrics.map((metric) => (
+                    <span className="brrrdle-lunar-route-chip" key={metric.label}>
+                      <span>{metric.label}</span>
+                      <strong>{metric.value}</strong>
+                    </span>
+                  ))}
+                </div>
               </div>
               <div className="brrrdle-lunar-route-body">
                 {children}
               </div>
             </section>
-
-            <aside className="brrrdle-lunar-side" aria-label="Deck readout">
-              <section className="brrrdle-lunar-panel brrrdle-lunar-status">
-                <p>Mode deck</p>
-                <h2>{activeRoute.shortLabel}</h2>
-                <span>Use the rail to switch tabs, or tap brrrdle to return to the lunar route field.</span>
-              </section>
-
-              <section className="brrrdle-lunar-panel brrrdle-lunar-metrics" aria-label="Brrrdle status">
-                {metrics.map((metric) => (
-                  <div key={metric.label}>
-                    <span>{metric.label}</span>
-                    <strong>{metric.value}</strong>
-                  </div>
-                ))}
-              </section>
-
-              <section className="brrrdle-lunar-panel brrrdle-lunar-lines" aria-label="System readout">
-                {statusLines.map((line) => (
-                  <p key={line.label}>
-                    <span>{line.label}</span>
-                    <span className="brrrdle-lunar-line-value">{line.value}</span>
-                  </p>
-                ))}
-              </section>
-
-            </aside>
           </main>
         )}
       </div>

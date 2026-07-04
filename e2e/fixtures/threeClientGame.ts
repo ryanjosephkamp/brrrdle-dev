@@ -1,5 +1,5 @@
 import type { Browser, BrowserContext, Page } from '@playwright/test'
-import { cleanupE2eRun, type CleanupSummary } from './cleanup'
+import { cleanupE2eRun, cleanupStaleE2eArtifactsOnce, type CleanupSummary } from './cleanup'
 import { expectNoConsoleFailures, installConsoleGuards } from './assertions'
 import { createE2eUser, createRunId, signInThroughUi, type E2eUser } from './testUsers'
 
@@ -41,6 +41,7 @@ async function createActor(browser: Browser, label: string, runId: string): Prom
 }
 
 export async function createThreeClientSession(browser: Browser): Promise<ThreeClientSession> {
+  await cleanupStaleE2eArtifactsOnce()
   const runId = createRunId()
   const host = await createActor(browser, 'host', runId)
   const rival = await createActor(browser, 'rival', runId)

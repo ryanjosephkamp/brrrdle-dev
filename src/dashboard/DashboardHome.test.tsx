@@ -204,6 +204,10 @@ describe('DashboardHome', () => {
     expect(html).toContain('Recent Results')
     expect(html).toContain('Daily Solo OG')
     expect(html).toContain('Won · 3/6 guesses')
+    expect(html).toContain('Completed Jun 14, 2026')
+    expect(html).not.toContain('<table')
+    expect(html).not.toContain('min-w-[40rem]')
+    expect(html).not.toContain('overflow-x-auto')
   })
 
   it('renders empty states without phantom dashboard content', () => {

@@ -52,9 +52,9 @@ function SummaryMetric({
     : 'border-white/10 bg-black/30 text-slate-100'
 
   return (
-    <div className={`min-w-0 rounded-lg border p-3 ${toneClasses}`}>
-      <p className="text-2xl font-black text-white">{value}</p>
-      <p className="mt-1 break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+    <div className={`flex min-w-0 items-center justify-between gap-3 rounded-lg border px-3 py-2 ${toneClasses}`}>
+      <p className="min-w-0 break-words text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{label}</p>
+      <p className="shrink-0 text-xl font-black text-white">{value}</p>
     </div>
   )
 }
@@ -98,7 +98,7 @@ function QuickActions({
     <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6" aria-label="Dashboard quick actions">
       {actions.map((action) => (
         <Button
-          className="h-full min-h-20 flex-col items-start justify-center text-left"
+          className="h-full min-h-14 flex-col items-start justify-center text-left"
           key={action.id}
           onClick={() => onAction(action.actionTarget)}
           variant={action.attentionCount > 0 ? 'primary' : 'secondary'}
@@ -339,31 +339,22 @@ function RecentResults({
   }
 
   return (
-    <div className="max-w-full overflow-x-auto">
-      <table className="w-full min-w-[40rem] border-separate border-spacing-y-2 text-left text-sm">
-        <thead className="text-xs uppercase tracking-[0.18em] text-slate-400">
-          <tr>
-            <th className="px-3 py-1">Area</th>
-            <th className="px-3 py-1">Game</th>
-            <th className="px-3 py-1">Result</th>
-            <th className="px-3 py-1">Completed</th>
-            <th className="px-3 py-1"><span className="sr-only">Open</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr className="bg-black/30 text-slate-200" key={row.id}>
-              <td className="rounded-l-lg border-y border-l border-white/10 px-3 py-3 font-semibold">{row.source}</td>
-              <td className="border-y border-white/10 px-3 py-3">{row.title}</td>
-              <td className="border-y border-white/10 px-3 py-3">{row.detail}</td>
-              <td className="border-y border-white/10 px-3 py-3">{formatDateTime(row.completedAt)}</td>
-              <td className="rounded-r-lg border-y border-r border-white/10 px-3 py-3 text-right">
-                <Button onClick={() => onAction(row.actionTarget)} size="sm" variant="ghost">History</Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="grid min-w-0 gap-3 md:grid-cols-2">
+      {rows.map((row) => (
+        <article className="min-w-0 rounded-lg border border-white/10 bg-black/30 p-4 text-sm text-slate-200" key={row.id}>
+          <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ice-200)]">{row.source}</p>
+              <h4 className="mt-1 break-words text-base font-bold text-white">{row.title}</h4>
+            </div>
+            <Button onClick={() => onAction(row.actionTarget)} size="sm" variant="ghost">History</Button>
+          </div>
+          <p className="mt-3 break-words text-sm leading-6 text-slate-300">{row.detail}</p>
+          <p className="mt-2 break-words text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            Completed {formatDateTime(row.completedAt)}
+          </p>
+        </article>
+      ))}
     </div>
   )
 }
@@ -381,7 +372,7 @@ export function DashboardHome({ dashboard, onAction }: DashboardHomeProps) {
         </p>
       </div>
 
-      <div className="grid min-w-0 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryMetric label="Active Solo" value={dashboard.summary.activeSoloCount} />
         <SummaryMetric label="Active Multiplayer" value={dashboard.summary.activeMultiplayerCount} />
         <SummaryMetric label="Your Turn" tone={dashboard.summary.yourTurnMultiplayerCount > 0 ? 'attention' : 'neutral'} value={dashboard.summary.yourTurnMultiplayerCount} />

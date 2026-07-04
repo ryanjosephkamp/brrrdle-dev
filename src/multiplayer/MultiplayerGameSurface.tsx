@@ -412,9 +412,9 @@ export function MultiplayerGameSurface({ disabled = false, game, onSubmitGuess, 
 
       <GuessGrid session={displayPuzzle ?? activePuzzle} />
 
-      <div aria-live="polite" className="rounded-2xl border border-slate-700 bg-black/30 p-3 text-sm leading-6 text-slate-200" role="status">
+      <div aria-live="polite" className="min-h-20 rounded-2xl border border-slate-700 bg-black/30 p-3 text-sm leading-6 text-slate-200" role="status">
         <p>{inputDisabled ? statusLabel : 'Use the on-screen keyboard to enter your guess.'}</p>
-        {activePuzzle.lastValidation ? <p className="mt-1 font-semibold text-amber-100">{activePuzzle.lastValidation.message}</p> : null}
+        {activePuzzle.lastValidation ? <p className="mt-1 min-h-6 font-semibold text-amber-100">{activePuzzle.lastValidation.message}</p> : <p aria-hidden="true" className="mt-1 min-h-6" />}
       </div>
 
       <Keyboard disabled={inputDisabled} letterStates={letterStates} onInput={handleInput} />

@@ -11,7 +11,7 @@ import { HelpPanel } from '../help'
 import { FeedbackPanel } from '../feedback'
 import { SoundProvider, useSound } from '../sound'
 import { DailyCountdown, MULTIPLAYER_DAILY_VARIANT, SimulateTimePanel, useDailyCycle } from '../daily'
-import { applySurfaceTheme, applyTheme, DEFAULT_SURFACE_THEME, getThemeMeta, isTheme, THEMES, type Theme } from '../theme'
+import { applySurfaceTheme, applyTheme, DEFAULT_SURFACE_THEME } from '../theme'
 import {
   DashboardHome,
   createDashboardViewModel,
@@ -83,6 +83,7 @@ import {
   writeBrowserNavigationViewState,
   type BrowserNavigationViewState,
 } from './browserNavigationHistory'
+import { BackToTopButton } from './BackToTopButton'
 import { GAMEPLAY_AUTOCENTER_TARGETS, scheduleGameplayAutoCenter } from './gameplayAutoCenter'
 import { LunarSignalStage } from './LunarSignalStage'
 import { getPrimaryNavigationRoutes, getRouteById, type AppRoute, type AppRouteId } from './routes'
@@ -226,18 +227,6 @@ function PracticeGameSwitcher({
   )
 }
 
-function getAuthDisplay(authState: AuthState): string {
-  if (authState.status === 'authenticated') {
-    return 'Signed in'
-  }
-
-  if (authState.status === 'unconfigured') {
-    return 'Local only'
-  }
-
-  return 'Guest'
-}
-
 export function AboutBrrrdlePanel() {
   return (
     <section className="space-y-5" aria-labelledby="about-brrrdle-title">
@@ -261,6 +250,42 @@ export function AboutBrrrdlePanel() {
         <div>
           <p className="font-semibold text-cyan-100">Credits</p>
           <p>Release notes, design notes, feedback, and account controls live in their dedicated workspaces.</p>
+        </div>
+      </Panel>
+
+      <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100">Rules and surfaces</p>
+          <h3 className="text-2xl font-bold text-white">Current brrrdle reference</h3>
+          <p>
+            Help stays focused on quick orientation. This page keeps the deeper reference material for modes, public surfaces, and multiplayer boundaries.
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+            <p className="font-semibold text-cyan-100">Daily and Practice</p>
+            <p className="mt-1">
+              Daily games are fixed shared puzzles. Practice games are configurable before the first submitted guess, including word length, difficulty, GO chain length, and Hard Mode where the mode allows it.
+            </p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+            <p className="font-semibold text-cyan-100">OG and GO</p>
+            <p className="mt-1">
+              OG is one board. GO is a chain of boards where prior solved rows carry forward as visible context while each board keeps its own answer.
+            </p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+            <p className="font-semibold text-cyan-100">Multiplayer boundaries</p>
+            <p className="mt-1">
+              Practice Multiplayer supports OG, GO, lobbies, private Practice requests, active-game resume, and signed-in ranked Practice. Daily Multiplayer stays asynchronous, five letters, UTC-day keyed, and separate from Solo Daily.
+            </p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+            <p className="font-semibold text-cyan-100">Public surfaces</p>
+            <p className="mt-1">
+              Leaderboards show eligible public ranked Practice rows. Public profile links use approved public fields only, Stats separates private local play from aggregate site totals, History keeps completed results browsable, and public or guest Live spectator surfaces stay read-only with Daily spectator access excluded.
+            </p>
+          </div>
         </div>
       </Panel>
 
@@ -446,6 +471,7 @@ function RoutePanel({
   onOpenProfilePanel,
   onOpenPublicProfile,
   onOpenPasswordChange,
+  onSyncNow,
   onPracticeModeChange,
   onPracticeSeedAdvance,
   practiceMode,
@@ -521,6 +547,7 @@ function RoutePanel({
   readonly onOpenProfilePanel: () => void
   readonly onOpenPublicProfile: (publicProfileId: string) => void
   readonly onOpenPasswordChange: () => void
+  readonly onSyncNow: () => void
   readonly practiceMode: PracticeMode
   readonly soloDailyMode: SoloMode
   readonly selectedSoloGameKey?: SoloActiveGameKey
@@ -870,7 +897,6 @@ function RoutePanel({
         authState={authState}
         guestProgress={guestProgress}
         onOpenAuthModal={onOpenAuthModal}
-        onOpenHelp={() => onSelectRoute('help')}
         onOpenPasswordChange={onOpenPasswordChange}
         onOpenProfilePanel={onOpenProfilePanel}
         onResetProgress={onResetProgress}
@@ -879,6 +905,7 @@ function RoutePanel({
         onSignInWithPassword={onSignInWithPassword}
         onSignOut={onSignOut}
         onSignUpWithPassword={onSignUpWithPassword}
+        onSyncNow={onSyncNow}
         onToggleSound={onToggleSound}
         onUpdateSettings={onUpdateSettings}
         soundEnabled={soundEnabled}
@@ -1251,7 +1278,8 @@ function AppInner() {
       multiplayerSubtab: 'live',
       selectedMultiplayerGameId: id,
     })
-  }, [])
+    requestMultiplayerGameplayAutoCenter()
+  }, [requestMultiplayerGameplayAutoCenter])
   const handleCloseFocusedLiveSpectatorGame = useCallback(() => {
     setFocusedLiveSpectatorGameId(undefined)
     setMultiplayerSubtab('live')
@@ -1878,19 +1906,6 @@ function AppInner() {
       cancelled = true
     }
   }, [authState.status, authState.user, profileSurfaceActive, supabaseClient])
-  const handleAccountHudClick = useCallback(() => {
-    if (authState.status === 'authenticated') {
-      handleOpenProfilePanel()
-      return
-    }
-
-    if (authState.status === 'anonymous') {
-      handleOpenAuthModal()
-      return
-    }
-
-    handleNavigate('settings')
-  }, [authState.status, handleNavigate, handleOpenAuthModal, handleOpenProfilePanel])
   const handleSyncNow = useCallback(() => {
     if (authState.status !== 'authenticated' || !authState.user || !supabaseClient) {
       if (authState.status === 'anonymous') {
@@ -2261,58 +2276,6 @@ function AppInner() {
         onNavigate={handleNavigate}
         routeAttention={routeAttention}
         routes={prismRoutes}
-        statusLines={[
-          {
-            label: 'Account',
-            value: (
-              <button className="brrrdle-lunar-line-action" onClick={handleAccountHudClick} type="button">
-                {getAuthDisplay(authState)}
-              </button>
-            ),
-          },
-          {
-            label: 'Sync',
-            value: (
-              <button className="brrrdle-lunar-line-action" onClick={handleSyncNow} type="button">
-                {syncStatus.kind}
-              </button>
-            ),
-          },
-          {
-            label: 'Sound',
-            value: (
-              <button
-                aria-checked={sound.enabled}
-                className="brrrdle-lunar-switch"
-                onClick={() => sound.setEnabled(!sound.enabled)}
-                role="switch"
-                type="button"
-              >
-                <span aria-hidden="true" />
-                <strong>{sound.enabled ? 'On' : 'Off'}</strong>
-              </button>
-            ),
-          },
-          {
-            label: 'Theme',
-            value: (
-              <select
-                aria-label="Theme"
-                className="brrrdle-lunar-line-select"
-                onChange={(event) => {
-                  if (isTheme(event.target.value)) {
-                    handleUpdateSettings({ themeDefault: event.target.value as Theme })
-                  }
-                }}
-                value={guestProgress.settings.themeDefault}
-              >
-                {THEMES.map((theme) => (
-                  <option key={theme} value={theme}>{getThemeMeta(theme).label}</option>
-                ))}
-              </select>
-            ),
-          },
-        ]}
       >
           <RoutePanel
             authMessage={authMessage}
@@ -2360,6 +2323,7 @@ function AppInner() {
             onSoloDailyModeChange={handleSoloDailyModeChange}
             onSoloSubtabChange={handleSoloSubtabChange}
             onSpendCoins={handleSpendCoins}
+            onSyncNow={handleSyncNow}
             onToggleSound={sound.setEnabled}
             onUpdateSettings={handleUpdateSettings}
             practiceMode={practiceMode}
@@ -2393,6 +2357,7 @@ function AppInner() {
             todayDateKey={daily.dateKey}
           />
       </LunarSignalStage>
+      <BackToTopButton />
 
       {import.meta.env.DEV ? <SimulateTimePanel /> : null}
 

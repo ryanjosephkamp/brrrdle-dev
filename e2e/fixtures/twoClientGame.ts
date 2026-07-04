@@ -1,5 +1,5 @@
 import type { Browser, BrowserContext, Page } from '@playwright/test'
-import { cleanupE2eRun, type CleanupSummary } from './cleanup'
+import { cleanupE2eRun, cleanupStaleE2eArtifactsOnce, type CleanupSummary } from './cleanup'
 import { createE2eUser, createRunId, signInThroughUi, type E2eUser } from './testUsers'
 import { expectNoConsoleFailures, installConsoleGuards } from './assertions'
 
@@ -21,6 +21,7 @@ export interface TwoClientSession {
 }
 
 export async function createTwoClientSession(browser: Browser): Promise<TwoClientSession> {
+  await cleanupStaleE2eArtifactsOnce()
   const runId = createRunId()
   const hostUser = await createE2eUser('host', runId)
   const rivalUser = await createE2eUser('rival', runId)

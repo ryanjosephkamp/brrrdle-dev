@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { MultiplayerWorkspaceAttentionMap } from '../app/attentionViewModels'
+import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../app/gameplayAutoCenter'
 import type { MultiplayerSubtabId } from '../app/navigationState'
 import { Button, Panel, SubtabBar, type SubtabOption } from '../ui'
 import { getViewerMultiplayerPlayerId, normalizeMultiplayerState, type MultiplayerState } from './multiplayer'
@@ -163,7 +164,12 @@ function FocusedSpectatorView({
   }
 
   return (
-    <Panel className="space-y-5" tone="muted">
+      <Panel
+        className="space-y-5"
+        tabIndex={-1}
+        tone="muted"
+        {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.multiplayer }}
+      >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100">Focused spectator view</p>

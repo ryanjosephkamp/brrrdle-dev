@@ -65,6 +65,7 @@ describe('NotificationCenter', () => {
     )
 
     expect(html).toContain('Close in-app notifications. 2 unread notifications.')
+    expect(html).toContain('data-open="true"')
     expect(html).toContain('aria-live="polite"')
     expect(html).toContain('Notifications')
     expect(html).toContain('2 unread · 0 read')

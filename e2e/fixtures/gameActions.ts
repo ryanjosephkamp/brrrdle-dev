@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
 const NAVIGATION_STORAGE_KEY = 'brrrdle:navigation:v2'
@@ -103,6 +103,18 @@ async function expectSelectedMultiplayerGame(page: Page, gameId: string, options
   }
 }
 
+async function expandCollapsedMultiplayerGameTab(page: Page, panelTab: Locator): Promise<void> {
+  const collapsedDetails = page.locator('details').filter({ has: panelTab }).first()
+  if (await collapsedDetails.count() === 0) {
+    return
+  }
+
+  const isOpen = await collapsedDetails.evaluate((node) => (node as HTMLDetailsElement).open)
+  if (!isOpen) {
+    await collapsedDetails.locator('summary').click()
+  }
+}
+
 export async function selectMultiplayerGame(page: Page, gameId: string, options: SelectMultiplayerGameOptions = {}): Promise<void> {
   const selectedGame = page.getByTestId('multiplayer-selected-game')
   if (await selectedGame.getAttribute('data-game-id', { timeout: 1_000 }).catch(() => null) === gameId) {
@@ -119,6 +131,7 @@ export async function selectMultiplayerGame(page: Page, gameId: string, options:
   }
   const panelTab = page.getByTestId(`multiplayer-game-tab-${gameId}`)
   try {
+    await expandCollapsedMultiplayerGameTab(page, panelTab)
     await panelTab.click({ timeout: 5_000 })
   } catch {
     const lobbyTab = page.getByRole('tab', { name: /^Lobby$/i })

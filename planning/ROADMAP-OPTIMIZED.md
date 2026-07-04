@@ -1,7 +1,7 @@
 # brrrdle Optimized Development Roadmap
 
 **Status**: Active optimized roadmap for staged execution
-**Last Updated**: 2026-07-02
+**Last Updated**: 2026-07-03
 **Repository Target**: `brrrdle-dev`
 **Source Roadmap**: `planning/ROADMAP.md`
 **Purpose**: Refine the long-term roadmap into lower-risk gated phases with clear deferrals, verification expectations, and protected-action boundaries.
@@ -48,13 +48,15 @@ Future planning should also use `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md
 | Phase 39 | Mobile performance and scroll smoothness | Audit mobile scroll latency, add feasible measurement guards, and tune complex current surfaces without broad redesign | Complete |
 | Phase 40 | Public profiles and private matchmaking | Clickable public profile surfaces, private Practice match requests, safe accepted-game routing, and two-client E2E hardening | Complete |
 | Phase 41 | Multiplayer reliability and real E2E hardening | Ranked queue/search-again reliability, leaderboard freshness, private request stale-state cleanup, mobile multiplayer freshness, and two/three-client E2E expansion | Complete |
-| Phase 42 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, beginner-friendly help/tutorial UX, and the remaining ranked queue button/status flashing follow-up | Next planning target |
-| Phase 43 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
-| Phase 44 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
-| Phase 45 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
+| Phase 42 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, beginner-friendly help/tutorial UX, ranked queue flashing repair, and Supabase grant/RLS hardening | Complete |
+| Phase 43 | Current-surface UX cleanup, ranked queue follow-up, and gameplay comfort | Clean up Home/shell/Stats/Help/Settings/Solo/Practice Multiplayer density, ranked queue follow-up, gameplay viewport comfort, and testing protocol | Next planning target |
+| Phase 44 | Profile and multiplayer contract simplification | Profile model cleanup, custom-code/private Daily/ranked Daily routing, and reviewed contract gates | Future |
+| Phase 45 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
+| Phase 46 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
+| Phase 47 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-After Phase 41, multiplayer reliability and real E2E hardening are complete and manually reviewed with one remaining minor/cosmetic follow-up: ranked Practice queue buttons can still flash roughly every five seconds after queue entry. Phase 42 should proceed as the observability and beginner UX macro-phase while absorbing that issue as a narrow early source/test-only follow-up if audit confirms it is bounded. Progression HUD/Focus Mode/mobile UX overhaul and theme work remain separately gated.
+After Phase 42, public stats, private developer/admin dashboard, onboarding/help/tutorial UX, ranked queue flashing repair, and Supabase stats/dashboard hardening are complete. The Phase 43 intake and recommendation/routing pass reroute the next planning target to current-surface UX cleanup, ranked queue follow-up, gameplay comfort, and testing-protocol updates. Progression HUD, Focus Mode, broad compact navigation, profile/data-contract simplification, social inbox work, draw-by-repetition, and theme work remain separately gated.
 
 ---
 
@@ -304,7 +306,7 @@ Core requirements:
 - add feasible scroll/layout/performance guards without brittle absolute frame-rate thresholds;
 - make targeted source/CSS improvements only when supported by audit evidence;
 - preserve fast gameplay input, Phase 38 public/guest spectator behavior, Phase 37 browser history/gameplay auto-centering, and all gameplay/Elo rules;
-- keep broad mobile navigation redesign, Focus Mode, and compact shell overhaul deferred to Phase 43 or later.
+- keep broad mobile navigation redesign, Focus Mode, and compact shell overhaul deferred to Phase 45 or later.
 
 ---
 
@@ -339,7 +341,7 @@ Core requirements:
 
 ## Phase 42 Stats, Dashboard, Onboarding, And Help Strategy
 
-Phase 42 should handle observability and beginner UX after multiplayer reliability and real E2E hardening are complete, while carrying the remaining ranked Practice queue button/status flashing issue as a narrow early follow-up.
+Phase 42 is complete. It delivered public aggregate stats, private admin/developer dashboard surfaces, beginner Help/onboarding UX, ranked Practice queue flashing repair, and the supporting Supabase stats/dashboard and grant/RLS hardening.
 
 Core requirements:
 
@@ -351,9 +353,33 @@ Core requirements:
 
 ---
 
-## Phase 43 Progression HUD, Focus Mode, And Mobile UX Strategy
+## Phase 43 Current-Surface UX Cleanup Strategy
 
-Phase 43 or later should handle late-stage shell polish after the major route, multiplayer, public/spectator, profile/social, private matchmaking, stats/dashboard, onboarding/help, and account surfaces are clearer.
+Phase 43 should use the Phase 43 intake and recommendations/routing document to clean up the current app before adding larger shell modes or new social/progression systems.
+
+Core requirements:
+
+- reproduce and repair ranked Practice queue follow-up issues where source/test-only;
+- simplify Home, shell chrome, Stats, Help, About, Settings, Solo, and Practice Multiplayer surfaces;
+- remove normal-zoom horizontal overflow and reduce dense completed-game/status grids;
+- improve account dropdown, notification click-away, back-to-top, and clock presentation;
+- improve invalid-guess keyboard stability and bounded spectator latest-turn viewport comfort;
+- promote durable manually confirmed UX expectations into focused regression coverage where practical;
+- preserve public/private stats, profile/privacy, private matchmaking, spectator, Daily claim, gameplay, and Elo boundaries.
+
+## Phase 44 Profile And Multiplayer Contract Strategy
+
+Phase 44 or later should handle profile simplification, custom-code removal/rerouting, private Daily requests, ranked Daily separation, and draw-by-repetition only through dedicated contract or gameplay-rule gates.
+
+Core requirements:
+
+- require migration/RLS review before profile or request-contract expansion;
+- preserve Daily claim safety before private Daily or ranked Daily work;
+- keep draw-by-repetition out of UI cleanup and route it to a gameplay-rule spec.
+
+## Phase 45 Progression HUD, Focus Mode, And Mobile UX Strategy
+
+Phase 45 or later should handle late-stage shell polish after current-surface cleanup and profile/multiplayer contract decisions are clearer.
 
 Core requirements:
 
@@ -367,9 +393,9 @@ Core requirements:
 
 ---
 
-## Phase 44 Theme Strategy
+## Phase 46 Theme Strategy
 
-Phase 44 should modernize theme proposal artifacts before broad theme implementation.
+Phase 46 should modernize theme proposal artifacts before broad theme implementation.
 
 Required review surfaces:
 

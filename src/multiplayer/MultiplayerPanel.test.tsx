@@ -216,6 +216,7 @@ describe('PrivateMatchRequestsPanel', () => {
     )
 
     expect(html).toContain('Private Practice requests')
+    expect(html.match(/<details[^>]*data-testid="private-match-requests"[^>]*>/)?.[0]).toContain('open=""')
     expect(html).toContain('Claudine requested a private match.')
     expect(html).toContain('Accept private match')
     expect(html).toContain('Decline')
@@ -223,6 +224,24 @@ describe('PrivateMatchRequestsPanel', () => {
     expect(html).not.toContain('22222222-2222-4222-8222-222222222222')
     expect(html).not.toContain('user_id')
     expect(html).not.toContain('playerUserIds')
+  })
+
+  it('keeps the empty private request shelf collapsed by default', () => {
+    const html = renderToStaticMarkup(
+      <PrivateMatchRequestsPanel
+        busy={false}
+        onAccept={noop}
+        onCancel={noop}
+        onDecline={noop}
+        requests={[]}
+      />,
+    )
+    const detailsTag = html.match(/<details[^>]*data-testid="private-match-requests"[^>]*>/)?.[0]
+
+    expect(detailsTag).toBeDefined()
+    expect(detailsTag).not.toContain('open=""')
+    expect(html).toContain('0 active')
+    expect(html).toContain('No active private match requests.')
   })
 
   it('renders outgoing private match cancellation as requester-only', () => {
@@ -853,6 +872,40 @@ describe('MultiplayerPanel', () => {
     expect(html).not.toContain('Each ranked bucket starts at 1200')
     expect(html).not.toContain('Your first 10 ranked Practice games are provisional with K=40')
     expect(html).not.toContain('standard 400-point Elo curve')
+    expect(html).toContain('<summary')
+    expect(html).toContain('Details')
+  })
+
+  it('separates active Practice matches from completed and inactive match clutter', () => {
+    const waitingGame = createMultiplayerGame({
+      id: 'active-practice-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const activeGame = joinMultiplayerGame(addMultiplayerGame(createEmptyMultiplayerState(), waitingGame), {
+      gameId: waitingGame.id,
+      userId: 'rival-user',
+    }).game!
+    const terminalGame = terminalPracticeGame({ id: 'terminal-practice-1' })
+    const html = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        scope="practice"
+        state={{ games: [activeGame, terminalGame] }}
+        viewerUserId="host-user"
+      />,
+    )
+
+    expect(html).toContain('Current matches')
+    expect(html).toContain('Completed and inactive matches (1)')
+    expect(html).toContain('Use History for completed-game review.')
+    expect(html).toContain('data-game-id="active-practice-1"')
+    expect(html).toContain('data-game-id="terminal-practice-1"')
   })
 
   it('explains ranked selected-game settlement and forfeit behavior', () => {

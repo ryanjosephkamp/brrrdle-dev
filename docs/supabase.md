@@ -117,6 +117,12 @@ This migration keeps browser authority on authenticated RPC seams and adds SQL/R
 
 Timed ranked public and RPC payloads must continue to avoid raw auth emails, raw auth ids, private profile metadata, private progress, answers, seeds, sessions, raw game projections beyond trusted participant RPC needs, queue internals beyond existing participant context, rating transaction ids, settlement ids, service ids, tokens, local/session artifacts, and unapproved public/guest spectator data. The migration does not change Elo math, gameplay rules, match-points semantics, Daily Multiplayer claims, public leaderboard authority, or public profile privacy.
 
+Phase 43 ranked queue matching fairness uses the additive migration:
+
+- `supabase/migrations/20260703230106_phase43_ranked_queue_matching_fairness.sql`
+
+This migration preserves the browser-facing `public.claim_ranked_async_matchmaking_pair(p_request_id text, p_matched_game_id text default null)` signature and response shape while adding a server-side soft recent-opponent penalty. When a compatible non-recent ranked Practice opponent is queued, the claim RPC prefers that player over an immediate same-settings repeat opponent; when only a recent compatible opponent is waiting, the rematch can still proceed. The repair preserves mode, word length, Hard Mode, rating bucket, exact ranked time-control compatibility, queue cancellation, expiration, stale-row denial, trusted finalization, trusted settlement, Daily ranked deferral, authenticated-only grants, and direct table grant denial. It does not change Elo math, gameplay rules, public profile privacy, public/guest spectator boundaries, private matchmaking, public stats/admin dashboard contracts, or source/UI behavior by itself.
+
 Phase 35 ranked Live identity SQL/RLS repair uses the additive migration:
 
 - `supabase/migrations/20260627230835_phase35_ranked_live_identity_spectator_profiles.sql`

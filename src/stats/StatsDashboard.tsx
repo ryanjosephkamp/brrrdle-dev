@@ -56,8 +56,6 @@ export function StatsDashboard({
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Local stats stay private on this device and focus on your gameplay history, streaks, XP, and coin trends.</p>
       </div>
 
-      <PublicSiteStatsPanel repository={publicSiteStatsRepository} />
-
       <div className="grid gap-3 md:grid-cols-2">
         {buckets.map((item) => {
           const bucket = getStatsBucket(stats, item.mode, item.scope)
@@ -77,6 +75,8 @@ export function StatsDashboard({
           )
         })}
       </div>
+
+      <PublicSiteStatsPanel repository={publicSiteStatsRepository} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-3xl border border-slate-700 bg-slate-950/70 p-4">
