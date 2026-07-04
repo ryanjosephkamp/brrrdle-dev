@@ -594,6 +594,10 @@ function getPrivateMatchLifecycleMessage(request: PrivateMatchRequestResult): st
   return undefined
 }
 
+function isTerminalMultiplayerGame(game: MultiplayerGame): boolean {
+  return game.status === 'won' || game.status === 'lost' || game.status === 'expired' || game.status === 'cancelled'
+}
+
 interface PrivateMatchRequestsPanelProps {
   readonly busy: boolean
   readonly message?: string
@@ -612,13 +616,15 @@ export function PrivateMatchRequestsPanel({
   requests,
 }: PrivateMatchRequestsPanelProps) {
   const visibleRequests = getActivePrivateMatchRequests(requests)
+  const shouldOpen = visibleRequests.length > 0 || Boolean(message)
 
   return (
-    <section
-      className="space-y-3 rounded-lg border border-cyan-300/25 bg-cyan-300/10 p-3 text-sm leading-6 text-cyan-50"
+    <details
+      className="rounded-lg border border-cyan-300/25 bg-cyan-300/10 p-3 text-sm leading-6 text-cyan-50"
       data-testid="private-match-requests"
+      open={shouldOpen}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]">
         <div>
           <p className="font-bold">Private Practice requests</p>
           <p className="text-xs text-cyan-100">Authenticated-only, unranked Practice requests between active public profiles.</p>
@@ -626,59 +632,61 @@ export function PrivateMatchRequestsPanel({
         <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-xs font-semibold text-cyan-50">
           {visibleRequests.length} active
         </span>
-      </div>
+      </summary>
 
-      {visibleRequests.length === 0 ? (
-        <p className="rounded-md border border-white/10 bg-black/20 p-2 text-xs text-cyan-100">
-          No active private match requests.
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {visibleRequests.map((request) => {
-            const requesterLabel = getPrivateMatchProfileLabel(request.requester, 'Requester')
-            const opponentLabel = getPrivateMatchProfileLabel(request.opponent, 'Opponent')
-            const isIncoming = request.viewerRole === 'opponent'
-            const lifecycleMessage = getPrivateMatchLifecycleMessage(request)
-            return (
-              <article
-                className="rounded-md border border-white/10 bg-black/25 p-3"
-                data-request-id={request.requestId}
-                key={request.requestId}
-              >
-                <p className="font-semibold text-cyan-50">
-                  {isIncoming ? `${requesterLabel} requested a private match.` : `Waiting on ${opponentLabel}.`}
-                </p>
-                <p className="text-xs text-cyan-100">{getPrivateMatchSettingsLabel(request)}</p>
-                {lifecycleMessage ? (
-                  <p className="mt-2 rounded border border-white/10 bg-black/20 p-2 text-xs font-semibold text-cyan-50">
-                    {lifecycleMessage}
+      <div className="mt-3 space-y-3">
+        {visibleRequests.length === 0 ? (
+          <p className="rounded-md border border-white/10 bg-black/20 p-2 text-xs text-cyan-100">
+            No active private match requests.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {visibleRequests.map((request) => {
+              const requesterLabel = getPrivateMatchProfileLabel(request.requester, 'Requester')
+              const opponentLabel = getPrivateMatchProfileLabel(request.opponent, 'Opponent')
+              const isIncoming = request.viewerRole === 'opponent'
+              const lifecycleMessage = getPrivateMatchLifecycleMessage(request)
+              return (
+                <article
+                  className="rounded-md border border-white/10 bg-black/25 p-3"
+                  data-request-id={request.requestId}
+                  key={request.requestId}
+                >
+                  <p className="font-semibold text-cyan-50">
+                    {isIncoming ? `${requesterLabel} requested a private match.` : `Waiting on ${opponentLabel}.`}
                   </p>
-                ) : null}
-                {request.requestStatus === 'requested' ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {request.viewerCanAccept ? (
-                      <Button disabled={busy} onClick={() => onAccept(request)} size="sm" variant="primary">Accept private match</Button>
-                    ) : null}
-                    {request.viewerCanDecline ? (
-                      <Button disabled={busy} onClick={() => onDecline(request)} size="sm" variant="secondary">Decline</Button>
-                    ) : null}
-                    {request.viewerCanCancel ? (
-                      <Button disabled={busy} onClick={() => onCancel(request)} size="sm" variant="secondary">Cancel request</Button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </article>
-            )
-          })}
-        </div>
-      )}
+                  <p className="text-xs text-cyan-100">{getPrivateMatchSettingsLabel(request)}</p>
+                  {lifecycleMessage ? (
+                    <p className="mt-2 rounded border border-white/10 bg-black/20 p-2 text-xs font-semibold text-cyan-50">
+                      {lifecycleMessage}
+                    </p>
+                  ) : null}
+                  {request.requestStatus === 'requested' ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {request.viewerCanAccept ? (
+                        <Button disabled={busy} onClick={() => onAccept(request)} size="sm" variant="primary">Accept private match</Button>
+                      ) : null}
+                      {request.viewerCanDecline ? (
+                        <Button disabled={busy} onClick={() => onDecline(request)} size="sm" variant="secondary">Decline</Button>
+                      ) : null}
+                      {request.viewerCanCancel ? (
+                        <Button disabled={busy} onClick={() => onCancel(request)} size="sm" variant="secondary">Cancel request</Button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </article>
+              )
+            })}
+          </div>
+        )}
 
-      {message ? (
-        <p className="rounded-md border border-white/10 bg-black/20 p-2 font-semibold text-cyan-50" role="status">
-          {message}
-        </p>
-      ) : null}
-    </section>
+        {message ? (
+          <p className="rounded-md border border-white/10 bg-black/20 p-2 font-semibold text-cyan-50" role="status">
+            {message}
+          </p>
+        ) : null}
+      </div>
+    </details>
   )
 }
 
@@ -710,6 +718,8 @@ export function MultiplayerPanel({
     () => normalized.games.filter((game) => game.scope === scope && (scope === 'practice' || game.dailyDateKey === dailyDateKey)),
     [dailyDateKey, normalized.games, scope],
   )
+  const activeVisibleGames = visibleGames.filter((game) => !isTerminalMultiplayerGame(game))
+  const terminalVisibleGames = visibleGames.filter(isTerminalMultiplayerGame)
   const [internalSelectedGameId, setInternalSelectedGameId] = useState<string | undefined>(() => visibleGames[0]?.id)
   const [mode, setMode] = useState<GameMode>('og')
   const [matchKind, setMatchKind] = useState<MultiplayerMatchKind>('unranked')
@@ -1897,20 +1907,21 @@ export function MultiplayerPanel({
           </Button>
           </div>
           {scope === 'practice' ? (
-            <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-50">
-              <div className="flex flex-wrap items-start justify-between gap-2">
+            <details className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-50">
+              <summary className="flex cursor-pointer list-none flex-wrap items-start justify-between gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]">
                 <p className="font-bold uppercase tracking-wide">Ranked Practice v1</p>
-                {onOpenEloAbout ? (
-                  <Button onClick={onOpenEloAbout} size="sm" variant="ghost">How is Elo calculated?</Button>
-                ) : null}
-              </div>
+                <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-[0.68rem] font-semibold uppercase tracking-wide text-cyan-100">Details</span>
+              </summary>
+              {onOpenEloAbout ? (
+                <Button className="mt-2" onClick={onOpenEloAbout} size="sm" variant="ghost">How is Elo calculated?</Button>
+              ) : null}
               <p className="mt-1">
                 Ranked is signed-in Practice only. Choose no clock for the current ranked track or 5 minutes for the separate timed ranked track. The queue matches mode, word length, Hard Mode, rating bucket, and ranked time control.
               </p>
               <p className="mt-1">
                 Points decide the match result first. Elo changes afterward only after trusted settlement confirms durable ranked evidence. Daily ranked and ranked custom-code games remain deferred.
               </p>
-            </div>
+            </details>
           ) : (
             <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-50">
               <p className="font-bold uppercase tracking-wide">Daily ranked deferred</p>
@@ -1966,18 +1977,46 @@ export function MultiplayerPanel({
       ) : null}
 
       {visibleGames.length > 0 ? (
-        <div className="flex min-w-0 flex-wrap gap-2">
-          {visibleGames.map((game) => (
-            <Button
-              data-game-id={game.id}
-              data-testid={`multiplayer-game-tab-${game.id}`}
-              key={game.id}
-              onClick={() => { selectGame(game.id); setLocalMessage(undefined); onGameplayAutoCenterRequest?.() }}
-              variant={game.id === selectedGame?.id ? 'primary' : 'secondary'}
-            >
-              {game.mode.toUpperCase()} · {game.status}
-            </Button>
-          ))}
+        <div className="min-w-0 space-y-3">
+          {activeVisibleGames.length > 0 ? (
+            <div className="min-w-0 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Current matches</p>
+              <div className="flex min-w-0 flex-wrap gap-2">
+                {activeVisibleGames.map((game) => (
+                  <Button
+                    data-game-id={game.id}
+                    data-testid={`multiplayer-game-tab-${game.id}`}
+                    key={game.id}
+                    onClick={() => { selectGame(game.id); setLocalMessage(undefined); onGameplayAutoCenterRequest?.() }}
+                    variant={game.id === selectedGame?.id ? 'primary' : 'secondary'}
+                  >
+                    {game.mode.toUpperCase()} · {game.status}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {terminalVisibleGames.length > 0 ? (
+            <details className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
+              <summary className="cursor-pointer list-none font-semibold text-cyan-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]">
+                Completed and inactive matches ({terminalVisibleGames.length})
+              </summary>
+              <p className="mt-2 text-xs text-slate-400">Use History for completed-game review. Select one here only to reopen its local result details.</p>
+              <div className="mt-3 flex min-w-0 flex-wrap gap-2">
+                {terminalVisibleGames.map((game) => (
+                  <Button
+                    data-game-id={game.id}
+                    data-testid={`multiplayer-game-tab-${game.id}`}
+                    key={game.id}
+                    onClick={() => { selectGame(game.id); setLocalMessage(undefined); onGameplayAutoCenterRequest?.() }}
+                    variant={game.id === selectedGame?.id ? 'primary' : 'secondary'}
+                  >
+                    {game.mode.toUpperCase()} · {game.status}
+                  </Button>
+                ))}
+              </div>
+            </details>
+          ) : null}
         </div>
       ) : (
         <p className="rounded-lg border border-white/10 bg-black/30 p-3">

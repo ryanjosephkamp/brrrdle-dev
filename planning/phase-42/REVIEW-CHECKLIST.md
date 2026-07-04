@@ -44,81 +44,81 @@ Codex intentionally did not verify:
 
 ## Must Manually Verify
 
-- [ ] Ranked Practice queue buttons remain visually stable after queue entry.
-  - Expected: after entering a ranked Practice queue, background polling does not flash the primary queue button or churn visible action states roughly every five seconds.
-  - Suggested steps: sign in with a safe test account, open Multiplayer -> Practice, create a ranked Practice queue request, wait through at least two background refresh intervals, and watch the visible queue buttons/status.
-  - Evidence: `progress/PROGRESS-STEP-364.md`; `progress/PROGRESS-STEP-374.md`; visual manifest scenario `multiplayer-practice-mobile`.
-
-- [ ] Public site stats appear aggregate-only on the Stats route.
-  - Expected: Stats shows a `Public site stats` / `Live site snapshot` section with aggregate totals and freshness timestamps only, separate from private local player stats.
-  - Suggested steps: open Stats as a guest or normal user and confirm no raw auth IDs, emails, private profile fields, sessions, queue ids, answers, seeds, or private row details are visible.
-  - Evidence: `progress/PROGRESS-STEP-372.md`; `planning/phase-42/CHANGELOG.md`; visual manifest scenario `stats-public-site-desktop`.
-
-- [ ] Developer/admin dashboard remains locked for non-admin users.
-  - Expected: anonymous and signed-in non-admin users do not see admin operational metrics or manual refresh controls.
-  - Suggested steps: open the app as a guest and as a non-admin test account if available; confirm the Admin route is unavailable or locked and no admin data is shown.
-  - Evidence: `progress/PROGRESS-STEP-372.md`; `progress/PROGRESS-STEP-374.md`.
-
-- [ ] Admin operational dashboard shows only aggregate operational data for an admin test account.
-  - Expected: an admin test account can see aggregate operational counts/freshness data, not secrets, tokens, raw user IDs, raw emails, private profile fields, sessions, answers, seeds, or private row payloads.
-  - Suggested steps: if a safe admin test account is available, sign in, open Admin, and inspect the dashboard content.
-  - Evidence: `progress/PROGRESS-STEP-366.md`; `progress/PROGRESS-STEP-372.md`.
-
-- [ ] Help route is discoverable and readable.
-  - Expected: Help appears in navigation, opens a durable Help/tutorial page, and covers current Solo, Daily, Practice, OG/GO, Hard Mode, Multiplayer, ranked Practice, Leaderboard, profile privacy, private request, spectator, Settings, Feedback, Definitions, Stats, and History behavior.
-  - Suggested steps: open Help on desktop and mobile, scroll the page, and spot-check that guidance is read-only and does not force a modal or change settings.
-  - Evidence: `progress/PROGRESS-STEP-373.md`; visual manifest scenarios `help-desktop` and `help-mobile`.
-
-- [ ] Settings exposes the Help and tutorials doorway.
-  - Expected: Settings includes a non-mutating `Help and tutorials` entry near the top and an `Open Help` action.
-  - Suggested steps: open Settings on mobile and desktop, confirm the doorway is visible, use `Open Help`, and confirm it navigates to Help without changing settings.
-  - Evidence: `progress/PROGRESS-STEP-373.md`; visual manifest scenario `settings-help-mobile`.
-
-- [ ] Public/guest Live spectation still works read-only.
-  - Expected: signed-out or guest viewers can still see eligible public Practice Live rows and focused spectator details, with no join/resume/submit/forfeit/mutation actions exposed.
-  - Suggested steps: with a safe eligible Practice Live game available, open Multiplayer -> Live as a signed-out or guest viewer and inspect the list/detail path.
-  - Evidence: `progress/PROGRESS-STEP-371.md`; `progress/PROGRESS-STEP-374.md`.
-
-- [ ] Phase 39 mobile scroll smoothness still feels intact.
+- [x] Phase 42 visual handoff artifacts remain local-only and ignored.
+  - Expected: `test-results/visual-review/phase-42-stage-42-7/` may exist locally, but screenshots/manifests are not tracked or staged.
+  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-42-stage-42-7/` if reviewing locally; confirm artifacts are ignored/local-only.
+  - Evidence: `test-results/visual-review/phase-42-stage-42-7/manifest.md`; `progress/PROGRESS-STEP-374.md`.
+- [x] Phase 39 mobile scroll smoothness still feels intact.
   - Expected: Home, Multiplayer, Stats, Leaderboard, Settings, Help, and Word Explorer scroll smoothly on mobile; no horizontal overflow or obvious overlap appears.
   - Suggested steps: use a narrow/mobile viewport or real mobile device and scroll representative Phase 42 and prior heavy surfaces.
   - Evidence: `progress/PROGRESS-STEP-327.md`; `progress/PROGRESS-STEP-329.md`; `progress/PROGRESS-STEP-373.md`; `progress/PROGRESS-STEP-374.md`.
 
-- [ ] Phase 42 visual handoff artifacts remain local-only and ignored.
-  - Expected: `test-results/visual-review/phase-42-stage-42-7/` may exist locally, but screenshots/manifests are not tracked or staged.
-  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-42-stage-42-7/` if reviewing locally; confirm artifacts are ignored/local-only.
-  - Evidence: `test-results/visual-review/phase-42-stage-42-7/manifest.md`; `progress/PROGRESS-STEP-374.md`.
+- [x] Public/guest Live spectation still works read-only.
+  - Expected: signed-out or guest viewers can still see eligible public Practice Live rows and focused spectator details, with no join/resume/submit/forfeit/mutation actions exposed.
+  - Suggested steps: with a safe eligible Practice Live game available, open Multiplayer -> Live as a signed-out or guest viewer and inspect the list/detail path.
+  - Evidence: `progress/PROGRESS-STEP-371.md`; `progress/PROGRESS-STEP-374.md`.
+
+- [x] Settings exposes the Help and tutorials doorway.
+  - Expected: Settings includes a non-mutating `Help and tutorials` entry near the top and an `Open Help` action.
+  - Suggested steps: open Settings on mobile and desktop, confirm the doorway is visible, use `Open Help`, and confirm it navigates to Help without changing settings.
+  - Evidence: `progress/PROGRESS-STEP-373.md`; visual manifest scenario `settings-help-mobile`.
+
+- [x] Help route is discoverable and readable.
+  - Expected: Help appears in navigation, opens a durable Help/tutorial page, and covers current Solo, Daily, Practice, OG/GO, Hard Mode, Multiplayer, ranked Practice, Leaderboard, profile privacy, private request, spectator, Settings, Feedback, Definitions, Stats, and History behavior.
+  - Suggested steps: open Help on desktop and mobile, scroll the page, and spot-check that guidance is read-only and does not force a modal or change settings.
+  - Evidence: `progress/PROGRESS-STEP-373.md`; visual manifest scenarios `help-desktop` and `help-mobile`.
+
+- [x] Admin operational dashboard shows only aggregate operational data for an admin test account.
+  - Expected: an admin test account can see aggregate operational counts/freshness data, not secrets, tokens, raw user IDs, raw emails, private profile fields, sessions, answers, seeds, or private row payloads.
+  - Suggested steps: if a safe admin test account is available, sign in, open Admin, and inspect the dashboard content.
+  - Evidence: `progress/PROGRESS-STEP-366.md`; `progress/PROGRESS-STEP-372.md`.
+
+- [x] Developer/admin dashboard remains locked for non-admin users.
+  - Expected: anonymous and signed-in non-admin users do not see admin operational metrics or manual refresh controls.
+  - Suggested steps: open the app as a guest and as a non-admin test account if available; confirm the Admin route is unavailable or locked and no admin data is shown.
+  - Evidence: `progress/PROGRESS-STEP-372.md`; `progress/PROGRESS-STEP-374.md`.
+
+- [x] Public site stats appear aggregate-only on the Stats route.
+  - Expected: Stats shows a `Public site stats` / `Live site snapshot` section with aggregate totals and freshness timestamps only, separate from private local player stats.
+  - Suggested steps: open Stats as a guest or normal user and confirm no raw auth IDs, emails, private profile fields, sessions, queue ids, answers, seeds, or private row details are visible.
+  - Evidence: `progress/PROGRESS-STEP-372.md`; `planning/phase-42/CHANGELOG.md`; visual manifest scenario `stats-public-site-desktop`.
+
+- [x] Ranked Practice queue buttons remain visually stable after queue entry.
+  - Expected: after entering a ranked Practice queue, background polling does not flash the primary queue button or churn visible action states roughly every five seconds.
+  - Suggested steps: sign in with a safe test account, open Multiplayer -> Practice, create a ranked Practice queue request, wait through at least two background refresh intervals, and watch the visible queue buttons/status.
+  - Evidence: `progress/PROGRESS-STEP-364.md`; `progress/PROGRESS-STEP-374.md`; visual manifest scenario `multiplayer-practice-mobile`.
+
 
 ## Optional Nice-To-Check
 
-- [ ] Refresh Stats after opening it.
-  - Expected: public stats refresh remains bounded and aggregate-only.
-
-- [ ] Try Help route quick links.
-  - Expected: Help route buttons navigate to existing routes without creating games, changing settings, or mutating account state.
-
-- [ ] Review visual screenshots if the local artifact directory is available.
+- [x] Use a small mobile viewport to open Multiplayer -> Practice after signing in.
+  - Expected: Practice Multiplayer controls stay readable and the ranked queue panel remains understandable.
+- [x] Review visual screenshots if the local artifact directory is available.
   - Expected: each screenshot in `test-results/visual-review/phase-42-stage-42-7/manifest.md` visually matches its scenario description.
 
-- [ ] Use a small mobile viewport to open Multiplayer -> Practice after signing in.
-  - Expected: Practice Multiplayer controls stay readable and the ranked queue panel remains understandable.
+- [x] Try Help route quick links.
+  - Expected: Help route buttons navigate to existing routes without creating games, changing settings, or mutating account state.
+
+- [x] Refresh Stats after opening it.
+  - Expected: public stats refresh remains bounded and aggregate-only.
+
 
 ## Preserved Invariants To Spot-Check
 
-- [ ] Phase 41 multiplayer reliability repairs and real E2E harness behavior remain intact.
-- [ ] Phase 40 public profile route/card, clickable safe identity, and private Practice matchmaking boundaries remain intact.
-- [ ] Phase 38 public/guest Practice Live discovery, read-only public spectation, Daily spectator exclusion, and false-only mutation boundaries remain intact.
-- [ ] Phase 37 browser history, stale selected-game fallbacks, gameplay auto-centering, and solo invalid-guess sound behavior remain intact.
-- [ ] Phase 36 Leaderboard/Stats split, Active Games safe names, Settings cleanup, and password-copy behavior remain intact.
-- [ ] Phase 35 Profile/auth behavior, ranked Live identity repair, authenticated spectator safe-name support, auth redirect hardening, password-change access, and email-change configuration gate documentation remain intact.
-- [ ] Phase 34 Live/Lobby/notification behavior and Active Games turn cues remain intact.
-- [ ] Phase 33 timed ranked Practice behavior, display-only rank bands, public leaderboard cleanup, and timed ranked E2E protections remain intact.
-- [ ] Phase 32 rematch lifecycle, queue/lobby auto-routing, participant identity routing, account avatar accent propagation, no-comma rating display, and E2E protections remain intact.
-- [ ] Phase 31 postgame boundaries remain intact: direct rematches and private requests are Practice-only and do not bypass ranked queue or Daily claim rules.
-- [ ] Phase 30 public leaderboards remain display-only and non-authoritative.
-- [ ] Phase 29 public profile privacy remains default-private and moderated; raw auth IDs/emails/private metadata are not exposed.
-- [ ] Daily Multiplayer remains claim-safe, answer-separated, no-clock, UTC-day keyed, five-letter only, and excluded from public/guest spectator discovery.
-- [ ] Elo algorithm, scoring, timeout, forfeit, GO transition, solved-row hold, keyboard state, Solo Daily fixed-five behavior, and Practice 2-35 word-length rules remain unchanged.
+- [x] Elo algorithm, scoring, timeout, forfeit, GO transition, solved-row hold, keyboard state, Solo Daily fixed-five behavior, and Practice 2-35 word-length rules remain unchanged.
+- [x] Daily Multiplayer remains claim-safe, answer-separated, no-clock, UTC-day keyed, five-letter only, and excluded from public/guest spectator discovery.
+- [x] Phase 29 public profile privacy remains default-private and moderated; raw auth IDs/emails/private metadata are not exposed.
+- [x] Phase 30 public leaderboards remain display-only and non-authoritative.
+- [x] Phase 31 postgame boundaries remain intact: direct rematches and private requests are Practice-only and do not bypass ranked queue or Daily claim rules.
+- [x] Phase 32 rematch lifecycle, queue/lobby auto-routing, participant identity routing, account avatar accent propagation, no-comma rating display, and E2E protections remain intact.
+- [x] Phase 33 timed ranked Practice behavior, display-only rank bands, public leaderboard cleanup, and timed ranked E2E protections remain intact.
+- [x] Phase 34 Live/Lobby/notification behavior and Active Games turn cues remain intact.
+- [x] Phase 35 Profile/auth behavior, ranked Live identity repair, authenticated spectator safe-name support, auth redirect hardening, password-change access, and email-change configuration gate documentation remain intact.
+- [x] Phase 36 Leaderboard/Stats split, Active Games safe names, Settings cleanup, and password-copy behavior remain intact.
+- [x] Phase 37 browser history, stale selected-game fallbacks, gameplay auto-centering, and solo invalid-guess sound behavior remain intact.
+- [x] Phase 38 public/guest Practice Live discovery, read-only public spectation, Daily spectator exclusion, and false-only mutation boundaries remain intact.
+- [x] Phase 40 public profile route/card, clickable safe identity, and private Practice matchmaking boundaries remain intact.
+- [x] Phase 41 multiplayer reliability repairs and real E2E harness behavior remain intact.
 
 ## Known Deferred / Not In Scope
 
@@ -146,5 +146,5 @@ Codex intentionally did not verify:
 
 ## Review Result
 
-- [ ] Any failed item has a follow-up prompt prepared before Phase 43 planning or additional implementation.
-- [ ] Manual review complete.
+- [x] Any failed item has a follow-up prompt prepared before Phase 43 planning or additional implementation.
+- [x] Manual review complete.

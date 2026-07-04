@@ -130,17 +130,17 @@ export const APP_ROUTES = [
     navigationGroup: 'support',
   },
   {
-    id: 'help',
-    label: 'Help',
-    shortLabel: 'Help',
-    description: 'Learn current brrrdle modes, navigation, public surfaces, and multiplayer boundaries.',
-    navigationGroup: 'support',
-  },
-  {
     id: 'settings',
     label: 'Settings',
     shortLabel: 'Settings',
-    description: 'Preferences, accessibility options, and account controls will appear here.',
+    description: 'Manage preferences, notifications, account access, sync, and local progress.',
+    navigationGroup: 'support',
+  },
+  {
+    id: 'help',
+    label: 'Help',
+    shortLabel: 'Help',
+    description: 'Open the quick route guide and first-run tutorial.',
     navigationGroup: 'support',
   },
   {
@@ -177,8 +177,8 @@ export const PRIMARY_NAVIGATION_ROUTE_IDS = [
   'leaderboard',
   'word-explorer',
   'profile',
-  'help',
   'settings',
+  'help',
   'feedback',
   'about',
 ] as const satisfies readonly AppRouteId[]

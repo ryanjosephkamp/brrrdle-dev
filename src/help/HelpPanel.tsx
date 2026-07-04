@@ -12,64 +12,8 @@ const quickLinks = [
   { routeId: 'leaderboard', label: 'Leaderboard', description: 'Public ranked Practice ratings.' },
   { routeId: 'profile', label: 'Profile', description: 'Private account and opt-in public profile controls.' },
   { routeId: 'settings', label: 'Settings', description: 'Preferences, sound, notifications, sync, and account controls.' },
+  { routeId: 'about', label: 'About', description: 'Rules context, public-surface boundaries, and Elo explanation.' },
 ] as const satisfies readonly { readonly routeId: AppRouteId; readonly label: string; readonly description: string }[]
-
-const modeTopics = [
-  {
-    title: 'Solo Daily',
-    body: 'Daily games are fixed daily puzzles. Solo Daily uses your local daily reset, and completed games feed your history, definitions, and stats.',
-  },
-  {
-    title: 'Solo Practice',
-    body: 'Practice games are replayable and configurable. You can choose word length, difficulty, GO chain length, and Hard Mode before your first submitted guess.',
-  },
-  {
-    title: 'OG and GO',
-    body: 'OG is one board. GO is a chain of boards where prior solved rows carry forward as visible context while each board keeps its own answer.',
-  },
-  {
-    title: 'Daily versus Practice',
-    body: 'Daily is the shared day puzzle with tighter rules. Practice is the flexible space for custom lengths, difficulty, Hard Mode defaults, unranked multiplayer, and ranked Practice.',
-  },
-] as const
-
-const multiplayerTopics = [
-  {
-    title: 'Practice Multiplayer',
-    body: 'Practice Multiplayer supports OG and GO, active-game resume, lobbies, private Practice requests, and ranked Practice when signed in.',
-  },
-  {
-    title: 'Daily Multiplayer',
-    body: 'Daily Multiplayer is asynchronous, five letters, UTC-day keyed, and separate from Solo Daily. Daily spectator access remains excluded.',
-  },
-  {
-    title: 'Ranked Practice',
-    body: 'Ranked Practice uses the trusted queue and trusted settlement only. Elo and ranks are display-only explanations after durable ranked Practice evidence is settled.',
-  },
-  {
-    title: 'Private Practice requests',
-    body: 'Private requests target active public profiles, stay unranked Practice only, and route accepted games through participant-owned open or resume flows.',
-  },
-] as const
-
-const publicTopics = [
-  {
-    title: 'Leaderboards and profiles',
-    body: 'Leaderboards show eligible public ranked Practice rows. Public profile links use only approved public profile fields and fall back safely when profiles are private, hidden, suspended, or missing.',
-  },
-  {
-    title: 'Spectating',
-    body: 'Public and guest Live spectator surfaces are read-only. They do not expose Daily games, player private fields, queue internals, scoring authority, or gameplay mutation controls.',
-  },
-  {
-    title: 'Definitions, stats, and history',
-    body: 'Definitions appear after games, Stats summarizes your play and aggregate public site totals, and History keeps completed Solo and Multiplayer results browsable.',
-  },
-  {
-    title: 'Settings and feedback',
-    body: 'Settings controls preferences, themes, sound, notifications, account access, sync, and local progress. Feedback opens the pre-filled report surface.',
-  },
-] as const
 
 const tutorialSteps = [
   'Choose Solo for a private game or Multiplayer for shared games.',
@@ -79,19 +23,6 @@ const tutorialSteps = [
   'Use Profile for public visibility choices, Settings for preferences, and Feedback when something looks wrong.',
 ] as const
 
-function TopicGrid({ topics }: { readonly topics: readonly { readonly title: string; readonly body: string }[] }) {
-  return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {topics.map((topic) => (
-        <article key={topic.title} className="rounded-lg border border-white/10 bg-black/25 p-4">
-          <h4 className="text-base font-semibold text-cyan-100">{topic.title}</h4>
-          <p className="mt-2 text-sm leading-6 text-slate-300">{topic.body}</p>
-        </article>
-      ))}
-    </div>
-  )
-}
-
 export function HelpPanel({ onNavigate }: HelpPanelProps) {
   return (
     <section className="space-y-5" aria-labelledby="help-title">
@@ -99,7 +30,7 @@ export function HelpPanel({ onNavigate }: HelpPanelProps) {
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">Help</p>
         <h2 id="help-title" className="text-3xl font-bold text-white">Help and tutorials</h2>
         <p className="max-w-3xl text-base leading-7 text-slate-300">
-          A read-only guide to the current brrrdle routes, modes, public surfaces, and multiplayer boundaries.
+          A short, read-only route guide for getting oriented without changing settings, claims, queues, or games.
         </p>
       </div>
 
@@ -126,21 +57,6 @@ export function HelpPanel({ onNavigate }: HelpPanelProps) {
       </Panel>
 
       <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
-        <h3 className="text-xl font-bold text-white">Modes and rules of thumb</h3>
-        <TopicGrid topics={modeTopics} />
-      </Panel>
-
-      <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
-        <h3 className="text-xl font-bold text-white">Multiplayer, ranked, and requests</h3>
-        <TopicGrid topics={multiplayerTopics} />
-      </Panel>
-
-      <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
-        <h3 className="text-xl font-bold text-white">Public surfaces and orientation</h3>
-        <TopicGrid topics={publicTopics} />
-      </Panel>
-
-      <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
         <div className="space-y-1">
           <h3 className="text-xl font-bold text-white">A safe first run</h3>
           <p className="text-slate-400">These steps are guidance only. They do not save settings, claim a Daily game, join a queue, or create a match.</p>
@@ -150,6 +66,18 @@ export function HelpPanel({ onNavigate }: HelpPanelProps) {
             <li key={step}>{step}</li>
           ))}
         </ol>
+      </Panel>
+
+      <Panel className="space-y-3 text-sm leading-6 text-slate-300" tone="muted">
+        <div className="space-y-1">
+          <h3 className="text-xl font-bold text-white">Need the rule details?</h3>
+          <p>
+            The About page keeps the deeper OG/GO, Daily/Practice, multiplayer, public profile, spectator, stats, history, and Elo reference material in one place.
+          </p>
+        </div>
+        {onNavigate ? (
+          <Button onClick={() => onNavigate('about')} size="sm" variant="secondary">Open About</Button>
+        ) : null}
       </Panel>
     </section>
   )

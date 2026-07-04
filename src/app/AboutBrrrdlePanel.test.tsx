@@ -3,6 +3,21 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { AboutBrrrdlePanel, RANKED_ELO_ABOUT_SECTION_ID } from './App'
 
 describe('AboutBrrrdlePanel', () => {
+  it('keeps deeper current-surface reference content on About instead of Help', () => {
+    const html = renderToStaticMarkup(<AboutBrrrdlePanel />)
+
+    expect(html).toContain('Current brrrdle reference')
+    expect(html).toContain('Daily games are fixed shared puzzles')
+    expect(html).toContain('Practice games are configurable before the first submitted guess')
+    expect(html).toContain('OG is one board')
+    expect(html).toContain('GO is a chain of boards')
+    expect(html).toContain('Practice Multiplayer supports OG, GO, lobbies, private Practice requests')
+    expect(html).toContain('Daily Multiplayer stays asynchronous, five letters, UTC-day keyed')
+    expect(html).toContain('Public profile links use approved public fields only')
+    expect(html).toContain('Stats separates private local play from aggregate site totals')
+    expect(html).toContain('Daily spectator access excluded')
+  })
+
   it('contains the expanded ranked Elo explanation in a stable About anchor', () => {
     const html = renderToStaticMarkup(<AboutBrrrdlePanel />)
 

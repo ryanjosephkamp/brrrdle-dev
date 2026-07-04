@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BUNDLED_WORD_LIST_LENGTHS, DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
+import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
 import type { CompletedGameInput, OgResumeSlot, ResumeCapture } from '../../account'
 import { createAccountPracticeSeed } from '../../account/practiceSeeds'
 import { DefinitionPanel } from '../../definitions'
@@ -362,21 +362,6 @@ function OgGameSession({
       </div>
 
       <Panel className="space-y-4" tone="muted">
-        <div className="grid gap-3 text-sm text-slate-300 sm:grid-cols-3">
-          <div>
-            <p className="font-semibold text-cyan-100">Word length</p>
-            <p>{session.wordLength} letters</p>
-          </div>
-          <div>
-            <p className="font-semibold text-cyan-100">Puzzle status</p>
-            <p className="capitalize">{session.status}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-cyan-100">Seed lists</p>
-            <p>{BUNDLED_WORD_LIST_LENGTHS.join(', ')}</p>
-          </div>
-        </div>
-
         {scope === 'practice' ? (
           <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-700 bg-slate-950/50 p-3">
             <label className="grid gap-1 text-sm font-semibold text-cyan-100">
@@ -392,7 +377,6 @@ function OgGameSession({
               </select>
             </label>
             <Button onClick={onPracticeSeedChange} variant="secondary">New practice puzzle</Button>
-            <p className="text-sm leading-6 text-slate-300">Practice uses available bundled launch seed lengths while the full data refresh pipeline is completed later.</p>
           </div>
         ) : null}
 
@@ -419,9 +403,9 @@ function OgGameSession({
 
         <GuessGrid session={session} />
 
-        <div aria-live="polite" className="rounded-2xl border border-slate-700 bg-slate-950/70 p-3 text-sm leading-6 text-slate-200" role="status">
+        <div aria-live="polite" className="min-h-20 rounded-2xl border border-slate-700 bg-slate-950/70 p-3 text-sm leading-6 text-slate-200" role="status">
           <p>{statusMessage}</p>
-          {session.lastValidation ? <p className="mt-1 font-semibold text-amber-100">{session.lastValidation.message}</p> : null}
+          {session.lastValidation ? <p className="mt-1 min-h-6 font-semibold text-amber-100">{session.lastValidation.message}</p> : <p aria-hidden="true" className="mt-1 min-h-6" />}
         </div>
 
         {session.status === 'lost' ? (

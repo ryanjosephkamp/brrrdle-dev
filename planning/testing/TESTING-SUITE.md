@@ -1,7 +1,7 @@
 # brrrdle Gameplay Testing Suite
 
 **Status**: Canonical Phase 24 testing strategy.
-**Updated**: 2026-06-11
+**Updated**: 2026-07-03
 **Primary focus**: Gameplay correctness for solo and multiplayer brrrdle.
 
 ## Purpose
@@ -186,6 +186,28 @@ Recommended flow:
 Visual review should not become broad screenshot-diff testing by default.
 Promote a screenshot into automated visual regression only after the surface is
 stable, deterministic, and worth the maintenance cost.
+
+## Promoting Manual UX Findings
+
+When manual review confirms a durable UX behavior, promote it into focused
+automated or manual regression coverage where practical.
+
+Recommended Phase 43-style examples:
+
+- three-client ranked queue/search-again behavior after reproduction;
+- stale ranked queue waiting panels disappearing after match/open/finalization;
+- normal-zoom horizontal overflow checks for Home Recent Results or equivalent
+  row layouts;
+- Stats local/public ordering, Help placeholder/About copy routing, and
+  Settings Help-card removal;
+- account dropdown and notification outside-click dismissal;
+- invalid-guess message behavior that does not shift the on-screen keyboard;
+- persistent-message or spectator latest-turn auto-scroll only when the user is
+  already centered on the relevant gameplay surface;
+- back-to-top controls that do not overlap primary gameplay or navigation.
+
+Prefer behavior assertions, durable selectors, and the existing mobile-scroll
+harness over brittle pixel-perfect checks.
 
 ## Manual Phase Review Checklists
 

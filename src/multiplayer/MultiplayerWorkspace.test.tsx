@@ -262,6 +262,7 @@ describe('MultiplayerWorkspace', () => {
     )
 
     expect(html).toContain('Focused spectator view')
+    expect(html).toContain('data-gameplay-autocenter-target="multiplayer"')
     expect(html).toContain('Practice Multiplayer OG')
     expect(html).toContain('Host player vs Rival player')
     expect(html).toContain('Back to Live list')

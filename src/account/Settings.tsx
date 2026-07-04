@@ -36,9 +36,9 @@ interface SettingsProps {
   readonly onRequestPasswordReset?: (email: string) => void
   readonly onSignOut?: () => void
   readonly onOpenAuthModal?: () => void
-  readonly onOpenHelp?: () => void
   readonly onOpenProfilePanel?: () => void
   readonly onOpenPasswordChange?: () => void
+  readonly onSyncNow?: () => void
   readonly soundEnabled?: boolean
   readonly onToggleSound?: (enabled: boolean) => void
   readonly onUpdateSettings?: (patch: Partial<GuestSettingsState>) => void
@@ -52,9 +52,9 @@ export function Settings({
   onResetProgress,
   onSignOut,
   onOpenAuthModal,
-  onOpenHelp,
   onOpenProfilePanel,
   onOpenPasswordChange,
+  onSyncNow,
   soundEnabled,
   onToggleSound,
   onUpdateSettings,
@@ -91,15 +91,6 @@ export function Settings({
     <section className="space-y-4" aria-labelledby="settings-title">
       <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">account and persistence</p>
       <h2 id="settings-title" className="text-3xl font-bold text-white">Settings</h2>
-      {onOpenHelp ? (
-        <Panel className="space-y-3 text-sm leading-6 text-slate-300" tone="muted">
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold text-white">Help and tutorials</h3>
-            <p>Open the current brrrdle guide for modes, multiplayer, public profiles, ranked Practice, settings, stats, history, and feedback.</p>
-          </div>
-          <Button onClick={onOpenHelp} variant="secondary">Open Help</Button>
-        </Panel>
-      ) : null}
       {onUpdateSettings ? (
         <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
           <h3 className="text-xl font-bold text-white">Gameplay</h3>
@@ -382,6 +373,9 @@ export function Settings({
           <p className="font-semibold text-cyan-100">Cloud sync</p>
           <p>{syncStatus.message}</p>
           <p>After sign-in, guest progress can be transferred and synced to Supabase with conflict-safe merge behavior.</p>
+          {onSyncNow ? (
+            <Button onClick={onSyncNow} variant="secondary">Sync now</Button>
+          ) : null}
         </div>
         <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
           <p className="font-semibold text-cyan-100">Local guest progress</p>

@@ -118,6 +118,26 @@ describe('solo game defaults', () => {
     expect(html).not.toContain('Difficulty is locked because this puzzle has started.')
   })
 
+  it('keeps fresh practice og setup controls without redundant metadata rows', () => {
+    const html = renderToStaticMarkup(
+      <OgGame
+        coins={0}
+        keyboardDisabled
+        onSaveDifficultyDefault={() => undefined}
+        onSpendCoins={spendNothing}
+        scope="practice"
+      />,
+    )
+
+    expect(html).toContain('Practice length')
+    expect(html).toContain('Customize')
+    expect(html).toContain('Hard mode')
+    expect(html).toContain('min-h-20')
+    expect(html).toContain('aria-hidden="true"')
+    expect(html).not.toContain('Puzzle status')
+    expect(html).not.toContain('Seed lists')
+  })
+
   it('keeps Customize unlocked on fresh practice go chains until the first submitted guess', () => {
     const html = renderToStaticMarkup(
       <GoGame
@@ -131,6 +151,28 @@ describe('solo game defaults', () => {
     )
 
     expect(html).not.toContain('Difficulty and chain length are locked because this puzzle has started.')
+  })
+
+  it('keeps fresh practice go setup controls without redundant chain metadata rows', () => {
+    const html = renderToStaticMarkup(
+      <GoGame
+        coins={0}
+        keyboardDisabled
+        onSaveDifficultyDefault={() => undefined}
+        onSaveGoPuzzleCountDefault={() => undefined}
+        onSpendCoins={spendNothing}
+        scope="practice"
+      />,
+    )
+
+    expect(html).toContain('Practice length')
+    expect(html).toContain('Customize')
+    expect(html).toContain('Hard mode')
+    expect(html).toContain('min-h-20')
+    expect(html).toContain('aria-hidden="true"')
+    expect(html).not.toContain('Current puzzle')
+    expect(html).not.toContain('Chain status')
+    expect(html).not.toContain('Seed lists')
   })
 
   it('locks Customize on practice go chains after the first submitted guess', () => {

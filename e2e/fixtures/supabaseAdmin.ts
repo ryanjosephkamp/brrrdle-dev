@@ -34,6 +34,16 @@ interface RankedQueueRow {
   readonly word_length?: number | null
 }
 
+interface AuthUserReference {
+  readonly created_at?: string
+  readonly email?: string
+  readonly id?: string
+  readonly user_metadata?: {
+    readonly displayName?: string
+    readonly display_name?: string
+  }
+}
+
 interface MatchResultReferenceRow {
   readonly id?: string
   readonly match_result_id?: string
@@ -144,6 +154,102 @@ export async function deleteRankedQueueRowsForUsers(userIds: readonly string[]):
   }
 
   return rowIds.length
+}
+
+export async function fetchStaleE2eUsers({
+  olderThanMs,
+}: {
+  readonly olderThanMs: number
+}): Promise<readonly E2eUser[]> {
+  const admin = createAdminSupabaseClient()
+  const cutoffMs = Date.now() - olderThanMs
+  const staleUsers: E2eUser[] = []
+  let page = 1
+
+  for (;;) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error) {
+      throw new Error(`Unable to inspect temporary E2E auth users for cleanup: ${error.message}`)
+    }
+
+    const users = (data?.users ?? []) as readonly AuthUserReference[]
+    for (const user of users) {
+      const email = typeof user.email === 'string' ? user.email.toLocaleLowerCase('en-US') : ''
+      const createdAtMs = Date.parse(typeof user.created_at === 'string' ? user.created_at : '')
+      if (
+        typeof user.id === 'string'
+        && email.startsWith('brrrdle-e2e-')
+        && Number.isFinite(createdAtMs)
+        && createdAtMs < cutoffMs
+      ) {
+        staleUsers.push({
+          displayName: user.user_metadata?.displayName ?? user.user_metadata?.display_name ?? 'Stale E2E user',
+          email,
+          id: user.id,
+          label: 'stale',
+          password: '',
+        })
+      }
+    }
+
+    if (users.length < 1000) {
+      break
+    }
+    page += 1
+  }
+
+  return staleUsers
+}
+
+export async function deleteOrphanedQueuedRankedQueueRows(): Promise<number> {
+  const admin = createAdminSupabaseClient()
+  const knownUserIds = new Set<string>()
+  let page = 1
+
+  for (;;) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error) {
+      throw new Error(`Unable to inspect auth users before orphaned ranked queue cleanup: ${error.message}`)
+    }
+
+    const users = (data?.users ?? []) as readonly AuthUserReference[]
+    for (const user of users) {
+      if (typeof user.id === 'string') {
+        knownUserIds.add(user.id)
+      }
+    }
+
+    if (users.length < 1000) {
+      break
+    }
+    page += 1
+  }
+
+  const { data, error } = await admin
+    .from('multiplayer_matchmaking_queue')
+    .select('id, user_id')
+    .eq('status', 'queued')
+  if (error) {
+    throw new Error(`Unable to inspect queued ranked rows for orphan cleanup: ${error.message}`)
+  }
+
+  const orphanedIds = ((data ?? []) as readonly RankedQueueRow[])
+    .filter((row) => typeof row.id === 'string' && typeof row.user_id === 'string' && !knownUserIds.has(row.user_id))
+    .map((row) => row.id)
+
+  if (orphanedIds.length === 0) {
+    return 0
+  }
+
+  const { error: deleteError } = await admin
+    .from('multiplayer_matchmaking_queue')
+    .delete()
+    .in('id', orphanedIds)
+  if (deleteError) {
+    throw new Error(`Unable to delete orphaned ranked queue rows: ${deleteError.message}`)
+  }
+
+  return orphanedIds.length
 }
 
 export async function deleteRankedRatingRowsForUsers(userIds: readonly string[]): Promise<number> {
