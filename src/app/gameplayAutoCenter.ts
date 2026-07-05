@@ -3,6 +3,7 @@ export const GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE = 'data-gameplay-autocenter-ta
 export const GAMEPLAY_AUTOCENTER_TARGETS = {
   multiplayer: 'multiplayer',
   solo: 'solo',
+  soloKeyboard: 'solo-keyboard',
 } as const
 
 export type GameplayAutoCenterTarget =

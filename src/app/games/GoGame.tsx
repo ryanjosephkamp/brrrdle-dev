@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
 import { DEFAULT_GO_PUZZLE_COUNT, type GoPuzzleCount } from '../../game/constants'
 import type { CompletedGameInput, GoResumeSlot, ResumeCapture } from '../../account'
@@ -35,6 +35,7 @@ import { classNames } from '../../ui/classNames'
 import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../gameplayAutoCenter'
 import { CustomizeMenu } from './CustomizeMenu'
 import { getSoloGoSolvedTransition, type SoloGoSolvedTransition } from './goTransitions'
+import { scheduleSoloKeyboardAutoCenter } from './soloGameplayAutoCenter'
 import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
 
 interface GoGameProps {
@@ -222,6 +223,7 @@ function GoGameSession({
   const [continuationMessage, setContinuationMessage] = useState<string>()
   const [solvedTransition, setSolvedTransition] = useState<SoloGoSolvedTransition | undefined>()
   const [showDefinitions, setShowDefinitions] = useState(true)
+  const previousSubmittedGuessCountRef = useRef<number | undefined>(undefined)
   const currentPuzzle = session.puzzles[session.currentPuzzleIndex]
   const transitionPuzzle = solvedTransition ? session.puzzles[solvedTransition.puzzleIndex] : undefined
   const displayPuzzle = transitionPuzzle ?? currentPuzzle
@@ -288,6 +290,13 @@ function GoGameSession({
       wordLength: session.wordLength,
     })
   }, [difficulty, goPuzzleCount, onResumeCapture, scope, session])
+
+  const submittedGuessCount = session.puzzles.reduce((total, puzzle) => total + puzzle.guesses.length, 0)
+  useEffect(() => {
+    const previousSubmittedGuessCount = previousSubmittedGuessCountRef.current
+    previousSubmittedGuessCountRef.current = submittedGuessCount
+    scheduleSoloKeyboardAutoCenter(previousSubmittedGuessCount, submittedGuessCount)
+  }, [submittedGuessCount])
 
   useEffect(() => {
     if (session.status === 'playing') {
@@ -507,7 +516,12 @@ function GoGameSession({
           </div>
         ) : null}
 
-        <Keyboard disabled={session.status !== 'playing' || isSolvedTransitionActive} letterStates={letterStates} onInput={handleInput} />
+        <div
+          tabIndex={-1}
+          {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard }}
+        >
+          <Keyboard disabled={session.status !== 'playing' || isSolvedTransitionActive} letterStates={letterStates} onInput={handleInput} />
+        </div>
 
 
         {showEndState ? (

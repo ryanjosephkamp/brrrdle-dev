@@ -1,5 +1,7 @@
 import type { BrrrdleSupabaseClient } from './supabaseClient'
 import { mergeGuestProgressIntoCloud } from './guestTransfer'
+import { createDefaultGuestProgress } from './storageSchema'
+import { migrateGuestProgress } from './guestStorage'
 import type { GuestProgressState } from './storageSchema'
 import { createSyncStatus, type SyncStatusState } from './syncStatus'
 
@@ -41,7 +43,7 @@ export function createSupabaseProgressRepository(client: BrrrdleSupabaseClient):
       }
 
       return {
-        progress: data.progress as GuestProgressState,
+        progress: migrateGuestProgress(data.progress) ?? createDefaultGuestProgress(),
         updatedAt: String(data.updated_at),
         userId: String(data.user_id),
       }

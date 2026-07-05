@@ -76,8 +76,6 @@ export function StatsDashboard({
         })}
       </div>
 
-      <PublicSiteStatsPanel repository={publicSiteStatsRepository} />
-
       <div className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-3xl border border-slate-700 bg-slate-950/70 p-4">
           <BarChart caption="Win rate by mode & scope" data={winRateByScope} emptyMessage="Play a game to see win rates by mode." />
@@ -98,6 +96,8 @@ export function StatsDashboard({
           <TrendSparkline caption="Coins earned trend" data={coinTrend} emptyMessage="Earn coins by completing games to see your trend." />
         </article>
       </div>
+
+      <PublicSiteStatsPanel repository={publicSiteStatsRepository} />
     </section>
   )
 }

@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 42 is complete, backed up, merged, and manually reviewed. Use the Phase 43 intake, recommendations/routing document, planning brief, unified specification, and implementation plan before beginning Stage 43.0.
+7. The active or next phase plan. Phase 43 is complete, backed up, merged, and manually reviewed with Phase 44 follow-up issues. Use the Phase 44 intake/routing document and planning brief before creating the unified Phase 44 specification.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -41,7 +41,8 @@ For normal future work, read:
 - `planning/phase-40/`: Phase 40 planning brief and implementation plan for public profiles and private matchmaking, including public profile privacy audit, safe clickable identity surfaces, private/custom invitation routing, anti-abuse gates, and migration/RLS addendum expectations.
 - `planning/phase-41/`: Phase 41 planning brief, strategy intake, implementation plan, changelog, and review checklist for multiplayer reliability, real E2E hardening, and Phase 40 manual-review bug routing.
 - `planning/phase-42/`: Phase 42 planning brief, implementation plan, changelog, and review checklist for public site stats, private developer/admin dashboard, onboarding/help/tutorial UX, and the ranked Practice queue button/status flashing follow-up.
-- `planning/phase-43/`: Phase 43 planning brief, implementation plan, intake, and recommendation/routing artifacts for current-surface UX cleanup, ranked queue follow-up, gameplay comfort, and later-phase routing.
+- `planning/phase-43/`: Phase 43 planning brief, implementation plan, intake, recommendation/routing artifacts, changelog, and review checklist for current-surface UX cleanup, ranked queue follow-up, gameplay comfort, and later-phase routing.
+- `planning/phase-44/`: Phase 44 intake/routing document, planning brief, and implementation plan for account-scoped local state isolation, guest/account boundary repair, private Practice request eligibility follow-up, ranked queue review, and small Phase 43 manual-review UI follow-ups.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
@@ -63,6 +64,7 @@ For normal future work, read:
 - `planning/specs/phase-41/`: Phase 41 multiplayer reliability and real E2E hardening specs for ranked queue, public leaderboard, private request, mobile freshness, and Codex-assisted manual-review preflight gates.
 - `planning/specs/phase-42/`: Phase 42 site stats, developer dashboard, onboarding/help/tutorial UX, and narrow ranked Practice queue flashing follow-up specs.
 - `planning/specs/phase-43/`: Phase 43 current-surface UX cleanup, ranked queue follow-up, gameplay comfort, route/shell density cleanup, and visual-review specs.
+- `planning/specs/phase-44/`: Phase 44 account-scoped local state isolation and manual-review follow-up specs.
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.

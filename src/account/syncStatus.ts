@@ -7,11 +7,11 @@ export interface SyncStatusState {
 
 export const syncStatusMessages: Readonly<Record<SyncStatusKind, string>> = {
   conflict: 'Cloud and local progress differed; the newest compatible record was selected.',
-  error: 'Cloud sync failed. Local guest progress remains available on this device.',
+  error: 'Cloud sync failed. Guest progress remains available on this device.',
   idle: 'Cloud sync is ready when Supabase is configured and you are signed in.',
   offline: 'Cloud sync is paused while the browser is offline.',
   synced: 'Cloud progress is up to date.',
-  syncing: 'Syncing guest progress with Supabase.',
+  syncing: 'Syncing signed-in progress with Supabase.',
 }
 
 export function createSyncStatus(kind: SyncStatusKind): SyncStatusState {

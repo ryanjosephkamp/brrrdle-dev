@@ -3,14 +3,21 @@ import { Button, LoadingState, Panel } from '../ui'
 import { classNames } from '../ui/classNames'
 import {
   normalizePublicProfileId,
+  type OwnerPublicProfile,
   type PublicPlayerProfile,
   type PublicProfileRepository,
 } from './publicProfile'
+import {
+  getPrivateMatchRequestErrorMessage,
+  isOwnerPublicProfileEligibleForPrivateMatch,
+  PRIVATE_MATCH_REQUESTER_PUBLIC_PROFILE_REQUIRED_MESSAGE,
+} from './publicProfilePrivateMatch'
 import type { MultiplayerRepository } from '../multiplayer/multiplayerRepository'
 
 export type PublicProfilePageStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error'
 
 type PrivateMatchActions = Pick<MultiplayerRepository, 'createPrivateMatchRequest'>
+type PublicProfilePageRepository = Pick<PublicProfileRepository, 'loadPublicProfile'> & Partial<Pick<PublicProfileRepository, 'loadMine'>>
 type PublicProfileAuthStatus = 'anonymous' | 'authenticated' | 'unconfigured'
 
 interface PublicProfilePageProps {
@@ -18,7 +25,7 @@ interface PublicProfilePageProps {
   readonly privateMatchActions?: PrivateMatchActions
   readonly onBack?: () => void
   readonly publicProfileId?: string
-  readonly repository?: Pick<PublicProfileRepository, 'loadPublicProfile'>
+  readonly repository?: PublicProfilePageRepository
 }
 
 interface PublicProfileCardProps {
@@ -265,6 +272,19 @@ export function PublicProfilePage({
       publicProfileId: profile.publicProfileId,
     })
     try {
+      let requesterProfile: OwnerPublicProfile | undefined
+      if (repository?.loadMine) {
+        requesterProfile = await repository.loadMine()
+        if (!isOwnerPublicProfileEligibleForPrivateMatch(requesterProfile)) {
+          setPrivateMatchState({
+            busy: false,
+            message: PRIVATE_MATCH_REQUESTER_PUBLIC_PROFILE_REQUIRED_MESSAGE,
+            publicProfileId: profile.publicProfileId,
+          })
+          return
+        }
+      }
+
       const request = await privateMatchActions.createPrivateMatchRequest({
         hardMode: false,
         idempotencyKey: `phase40-private-request:create:${profile.publicProfileId}:${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
@@ -283,9 +303,7 @@ export function PublicProfilePage({
     } catch (error) {
       setPrivateMatchState({
         busy: false,
-        message: error instanceof Error && error.message.trim()
-          ? error.message
-          : 'Unable to send private match request right now.',
+        message: getPrivateMatchRequestErrorMessage(error),
         publicProfileId: profile.publicProfileId,
       })
     }

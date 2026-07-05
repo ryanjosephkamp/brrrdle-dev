@@ -274,7 +274,6 @@ export function LunarSignalStage({
   children,
   commandTitle = 'Command Center',
   dailyCountdown,
-  metrics,
   onNavigate,
   routeAttention,
   routes,
@@ -471,15 +470,6 @@ export function LunarSignalStage({
                   <p>Current tab</p>
                   <h1 id="active-route-title">{activeRoute.label}</h1>
                   <span>{activeRoute.description}</span>
-                </div>
-                <div className="brrrdle-lunar-route-meta" aria-label="Brrrdle route summary">
-                  <span className="brrrdle-lunar-live-chip">Ready</span>
-                  {metrics.map((metric) => (
-                    <span className="brrrdle-lunar-route-chip" key={metric.label}>
-                      <span>{metric.label}</span>
-                      <strong>{metric.value}</strong>
-                    </span>
-                  ))}
                 </div>
               </div>
               <div className="brrrdle-lunar-route-body">

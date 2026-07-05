@@ -78,7 +78,7 @@ describe('Settings', () => {
     expect(html).toContain('Ask this browser for permission')
     expect(html).toContain('foreground browser notifications after this browser grants permission')
     expect(html).toContain('no service worker, push delivery, or background cross-device delivery is used')
-    expect(html).toContain('Preferences sync with guest/cloud progress')
+    expect(html).toContain('Preferences follow the current guest or signed-in progress scope')
     expect(html).toContain('Read and dismissed item state stays local to this browser')
     expect(html).not.toContain('service worker script')
   })

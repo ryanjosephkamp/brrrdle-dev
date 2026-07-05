@@ -219,7 +219,7 @@ export function Settings({
         <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
           <div className="space-y-1">
             <h3 className="text-xl font-bold text-white">Notifications</h3>
-            <p className="text-xs text-slate-400">Preferences sync with guest/cloud progress. Read and dismissed item state stays local to this browser.</p>
+            <p className="text-xs text-slate-400">Preferences follow the current guest or signed-in progress scope. Read and dismissed item state stays local to this browser.</p>
           </div>
           <div className="space-y-2">
             <label className="flex items-center gap-3 text-slate-100">
@@ -372,13 +372,13 @@ export function Settings({
         <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
           <p className="font-semibold text-cyan-100">Cloud sync</p>
           <p>{syncStatus.message}</p>
-          <p>After sign-in, guest progress can be transferred and synced to Supabase with conflict-safe merge behavior.</p>
+          <p>After sign-in, the active account progress syncs to Supabase. Guest progress stays on this device unless a reviewed transfer path is used.</p>
           {onSyncNow ? (
             <Button onClick={onSyncNow} variant="secondary">Sync now</Button>
           ) : null}
         </div>
         <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
-          <p className="font-semibold text-cyan-100">Local guest progress</p>
+          <p className="font-semibold text-cyan-100">Current progress snapshot</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <div><p className="font-semibold text-cyan-100">Level</p><p>{guestProgress.progression.level}</p></div>
             <div><p className="font-semibold text-cyan-100">XP</p><p>{guestProgress.progression.xp}</p></div>
@@ -389,7 +389,7 @@ export function Settings({
             readOnly
             value={exportGuestProgress(guestProgress)}
           />
-          <Button onClick={onResetProgress} variant="secondary">Reset local guest progress</Button>
+          <Button onClick={onResetProgress} variant="secondary">Reset current progress</Button>
         </div>
         <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
           <p className="font-semibold text-cyan-100">Danger zone</p>

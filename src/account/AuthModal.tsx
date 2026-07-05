@@ -25,7 +25,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u
  * Phase 15.2 — Single, clean Auth Modal.
  *
  * Replaces the duplicate-buttons pattern of the inline AuthPanel with:
- *   - one Magic Link / Email + Password tab pair
+ *   - one Email + Password / Magic Link tab pair
  *   - direct password actions ordered as Sign in, Create account, Forgot password
  *   - a Forgot Password inline flow with three states: form, busy, success
  *
@@ -44,7 +44,7 @@ export function AuthModal({
   onRequestPasswordReset,
   authenticated,
 }: AuthModalProps) {
-  const [method, setMethod] = useState<AuthMethod>('magic-link')
+  const [method, setMethod] = useState<AuthMethod>('password')
   const [phase, setPhase] = useState<Phase>('auth')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -160,16 +160,6 @@ export function AuthModal({
         <div className="space-y-3">
           <div role="tablist" aria-label="Sign-in method" className="flex flex-wrap gap-2">
             <Button
-              aria-selected={method === 'magic-link'}
-              isActive={method === 'magic-link'}
-              onClick={() => { setMethod('magic-link'); clearStatus() }}
-              role="tab"
-              size="sm"
-              variant="secondary"
-            >
-              Magic link
-            </Button>
-            <Button
               aria-selected={method === 'password'}
               isActive={method === 'password'}
               onClick={() => { setMethod('password'); clearStatus() }}
@@ -178,6 +168,16 @@ export function AuthModal({
               variant="secondary"
             >
               Email + password
+            </Button>
+            <Button
+              aria-selected={method === 'magic-link'}
+              isActive={method === 'magic-link'}
+              onClick={() => { setMethod('magic-link'); clearStatus() }}
+              role="tab"
+              size="sm"
+              variant="secondary"
+            >
+              Magic link
             </Button>
           </div>
 

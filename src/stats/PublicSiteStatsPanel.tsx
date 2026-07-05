@@ -59,11 +59,11 @@ export function PublicSiteStatsView({ onRefresh, stats, status }: PublicSiteStat
   const loading = status === 'loading'
 
   return (
-    <Panel aria-labelledby="public-site-stats-title" className="space-y-5" tone="muted">
+    <section className="space-y-3" aria-labelledby="public-site-stats-title">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">public site stats</p>
-          <h3 id="public-site-stats-title" className="text-2xl font-bold text-white">Live site snapshot</h3>
+          <h3 id="public-site-stats-title" className="text-3xl font-bold text-white">Live site snapshot</h3>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
             Public totals are aggregate-only and separate from your private local gameplay statistics.
           </p>
@@ -73,47 +73,49 @@ export function PublicSiteStatsView({ onRefresh, stats, status }: PublicSiteStat
         </Button>
       </div>
 
-      {status === 'idle' ? (
-        <p className="rounded-lg border border-white/10 bg-black/30 p-4 text-sm leading-6 text-slate-300">
-          Supabase is not configured in this environment, so public site stats are unavailable here.
-        </p>
-      ) : null}
+      <Panel className="space-y-5" tone="muted">
+        {status === 'idle' ? (
+          <p className="rounded-lg border border-white/10 bg-black/30 p-4 text-sm leading-6 text-slate-300">
+            Supabase is not configured in this environment, so public site stats are unavailable here.
+          </p>
+        ) : null}
 
-      {loading ? <LoadingState label="Loading public site stats..." /> : null}
+        {loading ? <LoadingState label="Loading public site stats..." /> : null}
 
-      {status === 'error' ? (
-        <p className="rounded-lg border border-rose-300/30 bg-rose-950/20 p-4 text-sm leading-6 text-rose-100" role="alert">
-          Unable to load public site stats right now.
-        </p>
-      ) : null}
+        {status === 'error' ? (
+          <p className="rounded-lg border border-rose-300/30 bg-rose-950/20 p-4 text-sm leading-6 text-rose-100" role="alert">
+            Unable to load public site stats right now.
+          </p>
+        ) : null}
 
-      {status === 'ready' && stats ? (
-        <>
-          <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <PublicSiteStatsMetric label="Active public profiles" value={stats.publicProfilesActive} />
-            <PublicSiteStatsMetric label="Ranked Practice players" value={stats.rankedPracticePublicPlayers} />
-            <PublicSiteStatsMetric label="Ranked Practice results" value={stats.rankedPracticePublicPlayerResults} />
-            <PublicSiteStatsMetric label="OG ranked players" value={stats.rankedPracticePublicOgPlayers} />
-            <PublicSiteStatsMetric label="GO ranked players" value={stats.rankedPracticePublicGoPlayers} />
-          </div>
-
-          <dl className="grid min-w-0 gap-3 text-sm text-slate-300 md:grid-cols-3">
-            <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3">
-              <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Generated</dt>
-              <dd className="mt-1 break-words text-slate-100">{formatDateTime(stats.generatedAt)}</dd>
+        {status === 'ready' && stats ? (
+          <>
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <PublicSiteStatsMetric label="Active public profiles" value={stats.publicProfilesActive} />
+              <PublicSiteStatsMetric label="Ranked Practice players" value={stats.rankedPracticePublicPlayers} />
+              <PublicSiteStatsMetric label="Ranked Practice results" value={stats.rankedPracticePublicPlayerResults} />
+              <PublicSiteStatsMetric label="OG ranked players" value={stats.rankedPracticePublicOgPlayers} />
+              <PublicSiteStatsMetric label="GO ranked players" value={stats.rankedPracticePublicGoPlayers} />
             </div>
-            <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3">
-              <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Leaderboard freshness</dt>
-              <dd className="mt-1 break-words text-slate-100">{formatDateTime(stats.leaderboardUpdatedAt)}</dd>
-            </div>
-            <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3">
-              <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Profile freshness</dt>
-              <dd className="mt-1 break-words text-slate-100">{formatDateTime(stats.publicProfilesUpdatedAt)}</dd>
-            </div>
-          </dl>
-        </>
-      ) : null}
-    </Panel>
+
+            <dl className="grid min-w-0 gap-3 text-sm text-slate-300 md:grid-cols-3">
+              <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Generated</dt>
+                <dd className="mt-1 break-words text-slate-100">{formatDateTime(stats.generatedAt)}</dd>
+              </div>
+              <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Leaderboard freshness</dt>
+                <dd className="mt-1 break-words text-slate-100">{formatDateTime(stats.leaderboardUpdatedAt)}</dd>
+              </div>
+              <div className="min-w-0 rounded-lg border border-white/10 bg-black/20 p-3">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Profile freshness</dt>
+                <dd className="mt-1 break-words text-slate-100">{formatDateTime(stats.publicProfilesUpdatedAt)}</dd>
+              </div>
+            </dl>
+          </>
+        ) : null}
+      </Panel>
+    </section>
   )
 }
 
