@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, sendPasswordResetEmail, resetGuestProgress, saveGuestProgress, sendMagicLink, Settings, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, sendPasswordResetEmail, sendMagicLink, Settings, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -45,6 +45,7 @@ import {
   MULTIPLAYER_PROVISIONAL_GAMES,
   MULTIPLAYER_PROVISIONAL_K,
   createLocalStorageMultiplayerRepository,
+  createEmptyMultiplayerState,
   loadAuthenticatedLiveSpectatorRows,
   loadPublicLiveSpectatorRows,
   createMultiplayerProfileSummary,
@@ -1019,6 +1020,28 @@ function AppInner() {
   const browserNavigationPopstateRef = useRef(false)
   const lastBrowserNavigationViewStateRef = useRef<BrowserNavigationViewState | undefined>(undefined)
   const guestProgressRef = useRef(guestProgress)
+  const authStateRef = useRef(authState)
+  const activeProgressScopeRef = useRef<ActiveProgressScope>(getProgressScopeForAuthState(authState))
+  const authHydrationRequestRef = useRef(0)
+  const persistActiveProgress = useCallback((progress: GuestProgressState) => {
+    if (shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
+      saveGuestProgress(progress)
+    }
+  }, [])
+  const persistActiveMultiplayerState = useCallback((state: MultiplayerState) => {
+    if (shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
+      saveMultiplayerState(state)
+    }
+  }, [])
+  const applyScopedProgress = useCallback((progress: GuestProgressState, scope: ActiveProgressScope) => {
+    activeProgressScopeRef.current = scope
+    guestProgressRef.current = progress
+    setGuestProgress(progress)
+    setMultiplayer(progress.multiplayer ?? createEmptyMultiplayerState())
+    if (shouldPersistProgressToGuestStorage(scope)) {
+      saveGuestProgress(progress)
+    }
+  }, [])
   const activeRoute = getRouteById(activeRouteId)
   const liveSpectatorSurfaceActive = activeRouteId === 'multiplayer'
     && (multiplayerLiveSurfaceActive || Boolean(focusedLiveSpectatorGameId))
@@ -1035,10 +1058,10 @@ function AppInner() {
         return currentProgress
       }
       const nextProgress = { ...currentProgress, unlockedDailies: [...current, key] }
-      saveGuestProgress(nextProgress)
+      persistActiveProgress(nextProgress)
       return nextProgress
     })
-  }, [])
+  }, [persistActiveProgress])
   const countdownEnabled = guestProgress.settings.dailyCountdownEnabled
   const dailyMultiplayerCountdownEnabled = guestProgress.settings.dailyMultiplayerCountdownEnabled
   const handleDailyReset = useCallback(() => {
@@ -1292,10 +1315,10 @@ function AppInner() {
     setGuestProgress((currentProgress) => {
       const practiceSeeds = advancePracticeSeedState(currentProgress.practiceSeeds, mode)
       const nextProgress = { ...currentProgress, practiceSeeds }
-      saveGuestProgress(nextProgress)
+      persistActiveProgress(nextProgress)
       return nextProgress
     })
-  }, [])
+  }, [persistActiveProgress])
   const handleNavigate = useCallback((routeId: AppRoute['id']) => {
     // Phase 22 Addendum (§27.10): the dedicated daily routes are retired. Any
     // deep link to them gracefully redirects into the Calendar with today's
@@ -1399,7 +1422,7 @@ function AppInner() {
               settlement.transactions,
             )
             const nextProgress = { ...currentProgress, competitiveMultiplayer }
-            saveGuestProgress(nextProgress)
+            persistActiveProgress(nextProgress)
             return nextProgress
           })
         })
@@ -1410,26 +1433,26 @@ function AppInner() {
           trustedRankedSettlementInFlightRef.current.delete(settlementKey)
         })
     }
-  }, [authState.status])
+  }, [authState.status, persistActiveProgress])
   useEffect(() => {
     trustedRankedSettlementInFlightRef.current.clear()
     trustedRankedSettlementCompletedRef.current.clear()
   }, [authenticatedMultiplayerUserId])
   const applyRemoteMultiplayerSnapshot = useCallback((snapshotState: MultiplayerState) => {
     setMultiplayer(snapshotState)
-    saveMultiplayerState(snapshotState)
+    persistActiveMultiplayerState(snapshotState)
     setGuestProgress((currentProgress) => {
       const nextProgress = cacheMultiplayerProgress(currentProgress, snapshotState)
-      saveGuestProgress(nextProgress)
+      persistActiveProgress(nextProgress)
       return nextProgress
     })
     settleTrustedRankedGames(snapshotState)
-  }, [cacheMultiplayerProgress, settleTrustedRankedGames])
+  }, [cacheMultiplayerProgress, persistActiveMultiplayerState, persistActiveProgress, settleTrustedRankedGames])
   const handleMultiplayerChange = useCallback((multiplayer: MultiplayerState) => {
     setMultiplayer(multiplayer)
     setGuestProgress((currentProgress) => {
       const nextProgress = cacheMultiplayerProgress(currentProgress, multiplayer)
-      saveGuestProgress(nextProgress)
+      persistActiveProgress(nextProgress)
       return nextProgress
     })
     void multiplayerRepositoryRef.current.save(multiplayer).then((snapshot) => {
@@ -1438,26 +1461,26 @@ function AppInner() {
       if (authState.status === 'authenticated') {
         void multiplayerRepositoryRef.current.load().then((snapshot) => {
           setMultiplayer(snapshot.state)
-          saveMultiplayerState(snapshot.state)
+          persistActiveMultiplayerState(snapshot.state)
           setGuestProgress((currentProgress) => {
             const nextProgress = cacheMultiplayerProgress(currentProgress, snapshot.state)
-            saveGuestProgress(nextProgress)
+            persistActiveProgress(nextProgress)
             return nextProgress
           })
           settleTrustedRankedGames(snapshot.state)
         })
         return
       }
-      saveMultiplayerState(multiplayer)
+      persistActiveMultiplayerState(multiplayer)
     })
-  }, [authState.status, cacheMultiplayerProgress, settleTrustedRankedGames])
+  }, [authState.status, cacheMultiplayerProgress, persistActiveMultiplayerState, persistActiveProgress, settleTrustedRankedGames])
   const handleCompetitiveMultiplayerChange = useCallback((competitiveMultiplayer: MultiplayerCompetitiveState) => {
     setGuestProgress((currentProgress) => {
       const nextProgress = { ...currentProgress, competitiveMultiplayer: normalizeCompetitiveMultiplayerState(competitiveMultiplayer) }
-      saveGuestProgress(nextProgress)
+      persistActiveProgress(nextProgress)
       return nextProgress
     })
-  }, [])
+  }, [persistActiveProgress])
   const handleResumeCapture = useCallback((capture: ResumeCapture) => {
     setGuestProgress((currentProgress) => {
       const slotKey = getResumeSlotKey(capture)
@@ -1470,7 +1493,7 @@ function AppInner() {
         }
         const nextSlots = { ...currentSlots, [slotKey]: nextSlot }
         const nextProgress = { ...currentProgress, resumeSlot: getLatestResumeSlot(nextSlots), resumeSlots: nextSlots }
-        saveGuestProgress(nextProgress)
+        persistActiveProgress(nextProgress)
         return nextProgress
       }
       if (!currentSlot) {
@@ -1480,10 +1503,10 @@ function AppInner() {
       delete nextSlots[slotKey]
       const resumeSlotsForSave = Object.keys(nextSlots).length > 0 ? nextSlots : undefined
       const nextProgress = { ...currentProgress, resumeSlot: getLatestResumeSlot(resumeSlotsForSave ?? {}), resumeSlots: resumeSlotsForSave }
-      saveGuestProgress(nextProgress)
+      persistActiveProgress(nextProgress)
       return nextProgress
     })
-  }, [])
+  }, [persistActiveProgress])
   const handleOpenSoloHistory = useCallback((filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => {
     const nextFilters: HistoryFilters = {
       mode: filters?.mode ?? 'all',
@@ -1690,23 +1713,64 @@ function AppInner() {
     requestSoloGameplayAutoCenter()
   }, [requestSoloGameplayAutoCenter])
   // Auto-resume the most recent unfinished game once per signed-in load (spec §2).
+  const clearIdentityScopedSelections = useCallback(() => {
+    setSelectedSoloGameKey(undefined)
+    setSelectedMultiplayerGameId(undefined)
+    setFocusedLiveSpectatorGameId(undefined)
+    saveNavigationState({
+      selectedSoloGameKey: undefined,
+      selectedMultiplayerGameId: undefined,
+    })
+  }, [])
   // Called from async auth callbacks (not synchronously in an effect body).
-  const maybeAutoResume = useCallback((nextAuthState: AuthState) => {
+  const maybeAutoResume = useCallback((nextAuthState: AuthState, progress: GuestProgressState = guestProgressRef.current) => {
     if (nextAuthState.status !== 'authenticated' || autoResumedRef.current) {
       return
     }
-    const slot = getLatestResumeSlot(normalizeResumeSlots(guestProgressRef.current.resumeSlots))
+    const slot = getLatestResumeSlot(normalizeResumeSlots(progress.resumeSlots))
     if (!slot) {
       return
     }
     autoResumedRef.current = true
     navigateToResumeSlot(slot)
   }, [navigateToResumeSlot])
+  const hydrateProgressForAuthState = useCallback((nextAuthState: AuthState, options: { readonly autoResume?: boolean } = {}) => {
+    const requestId = ++authHydrationRequestRef.current
+    if (nextAuthState.status === 'authenticated' && nextAuthState.user && supabaseClient) {
+      const userId = nextAuthState.user.id
+      setSyncStatus(createSyncStatus('syncing'))
+      void loadAuthenticatedProgressForScope({
+        isOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
+        repository: createSupabaseProgressRepository(supabaseClient),
+        userId,
+      }).then((result) => {
+        if (authHydrationRequestRef.current !== requestId) {
+          return
+        }
+        const currentAuth = authStateRef.current
+        if (currentAuth.status !== 'authenticated' || currentAuth.user?.id !== userId) {
+          return
+        }
+        applyScopedProgress(result.progress, { kind: 'authenticated', userId })
+        clearIdentityScopedSelections()
+        setSyncStatus(result.status)
+        if (options.autoResume !== false) {
+          maybeAutoResume(nextAuthState, result.progress)
+        }
+      })
+      return
+    }
+
+    const scope = getProgressScopeForAuthState(nextAuthState)
+    applyScopedProgress(loadGuestProgress(), scope)
+    clearIdentityScopedSelections()
+    setSyncStatus(createSyncStatus(supabaseClient ? 'idle' : 'error'))
+  }, [applyScopedProgress, clearIdentityScopedSelections, maybeAutoResume, supabaseClient])
   const handleGameComplete = useCallback((input: CompletedGameInput) => {
     setGuestProgress((currentProgress) => {
       const nextProgress = recordCompletedGame(input, currentProgress)
       if (nextProgress !== currentProgress) {
-        saveGuestProgress(nextProgress)
+        persistActiveProgress(nextProgress)
       }
       return nextProgress
     })
@@ -1715,18 +1779,19 @@ function AppInner() {
     } else if (input.status === 'lost') {
       sound.play('game-over-loss')
     }
-  }, [sound])
+  }, [persistActiveProgress, sound])
   const handleResetProgress = useCallback(() => {
-    setGuestProgress(resetGuestProgress())
-  }, [])
+    applyScopedProgress(createDefaultGuestProgress(), activeProgressScopeRef.current)
+    clearIdentityScopedSelections()
+  }, [applyScopedProgress, clearIdentityScopedSelections])
   const handleUpdateSettings = useCallback((patch: Partial<ReturnType<typeof loadGuestProgress>['settings']>) => {
     setGuestProgress((currentProgress) => {
       const nextSettings = normalizeGuestSettings({ ...currentProgress.settings, ...patch })
       const nextProgress = { ...currentProgress, settings: nextSettings }
-      saveGuestProgress(nextProgress)
+      persistActiveProgress(nextProgress)
       return nextProgress
     })
-  }, [])
+  }, [persistActiveProgress])
   const handleSpendCoins = useCallback((amount: number) => {
     if (guestProgress.progression.coins < amount) {
       return false
@@ -1739,10 +1804,10 @@ function AppInner() {
         coins: guestProgress.progression.coins - amount,
       },
     }
-    saveGuestProgress(nextProgress)
+    persistActiveProgress(nextProgress)
     setGuestProgress(nextProgress)
     return true
-  }, [guestProgress])
+  }, [guestProgress, persistActiveProgress])
   const handleSendMagicLink = useCallback((email: string) => {
     if (!supabaseClient || !email.trim()) {
       return
@@ -1842,13 +1907,16 @@ function AppInner() {
         return
       }
 
-      setAuthState({ status: 'anonymous' })
+      const anonymousAuthState: AuthState = { status: 'anonymous' }
+      authStateRef.current = anonymousAuthState
+      setAuthState(anonymousAuthState)
+      hydrateProgressForAuthState(anonymousAuthState, { autoResume: false })
       setPublicProfile(undefined)
       setAuthModalOpen(false)
       setPasswordResetOpen(false)
       setProfilePanelOpen(false)
     })
-  }, [authBusy, supabaseClient])
+  }, [authBusy, hydrateProgressForAuthState, supabaseClient])
   const handleOpenAuthModal = useCallback(() => {
     setAuthMessage(undefined)
     setAuthModalOpen(true)
@@ -1917,19 +1985,24 @@ function AppInner() {
       return
     }
 
+    if (!canSyncProgressForAuthState(authState, activeProgressScopeRef.current)) {
+      hydrateProgressForAuthState(authState, { autoResume: false })
+      return
+    }
+
+    const userId = authState.user.id
     setSyncStatus(createSyncStatus('syncing'))
     void syncGuestProgress({
       isOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
       localProgress: guestProgressRef.current,
       localUpdatedAt: new Date().toISOString(),
       repository: createSupabaseProgressRepository(supabaseClient),
-      userId: authState.user.id,
+      userId,
     }).then((result) => {
-      setGuestProgress(result.progress)
-      saveGuestProgress(result.progress)
+      applyScopedProgress(result.progress, { kind: 'authenticated', userId })
       setSyncStatus(result.status)
     })
-  }, [authState, handleNavigate, handleOpenAuthModal, supabaseClient])
+  }, [applyScopedProgress, authState, handleNavigate, handleOpenAuthModal, hydrateProgressForAuthState, supabaseClient])
   const handleSaveProfile = useCallback(async (input: { readonly displayName?: string; readonly accentColor?: ProfileAccentColor; readonly avatarUrl?: string }) => {
     if (!supabaseClient) {
       return
@@ -1945,6 +2018,7 @@ function AppInner() {
     setProfileMessage('Profile saved.')
     // Re-derive AuthState so the new metadata flows to AccountBadge immediately.
     const fresh = await getCurrentAuthState(supabaseClient)
+    authStateRef.current = fresh
     setAuthState(fresh)
     setProfilePanelOpen(false)
   }, [supabaseClient])
@@ -1972,6 +2046,10 @@ function AppInner() {
   useEffect(() => {
     guestProgressRef.current = guestProgress
   }, [guestProgress])
+
+  useEffect(() => {
+    authStateRef.current = authState
+  }, [authState])
 
   useEffect(() => {
     multiplayerRepositoryRef.current = multiplayerRepository
@@ -2136,16 +2214,16 @@ function AppInner() {
       void multiplayerRepositoryRef.current.save(expired).then((snapshot) => {
         settleTrustedRankedGames(snapshot.state)
       }).catch(() => {
-        saveMultiplayerState(expired)
+        persistActiveMultiplayerState(expired)
       })
       setGuestProgress((currentProgress) => {
         const nextProgress = cacheMultiplayerProgress(currentProgress, expired)
-        saveGuestProgress(nextProgress)
+        persistActiveProgress(nextProgress)
         return nextProgress
       })
     }, 0)
     return () => clearTimeout(timeoutId)
-  }, [cacheMultiplayerProgress, multiplayer, dailyMultiplayer.dateKey, settleTrustedRankedGames])
+  }, [cacheMultiplayerProgress, multiplayer, dailyMultiplayer.dateKey, persistActiveMultiplayerState, persistActiveProgress, settleTrustedRankedGames])
 
   const hasTimedPracticeMultiplayerGames = multiplayer.games.some((game) => (
     game.scope === 'practice'
@@ -2167,18 +2245,18 @@ function AppInner() {
         void multiplayerRepositoryRef.current.save(expired).then((snapshot) => {
           settleTrustedRankedGames(snapshot.state)
         }).catch(() => {
-          saveMultiplayerState(expired)
+          persistActiveMultiplayerState(expired)
         })
         setGuestProgress((currentProgress) => {
           const nextProgress = cacheMultiplayerProgress(currentProgress, expired)
-          saveGuestProgress(nextProgress)
+          persistActiveProgress(nextProgress)
           return nextProgress
         })
         return expired
       })
     }, 1000)
     return () => clearInterval(intervalId)
-  }, [authenticatedMultiplayerUserId, cacheMultiplayerProgress, hasTimedPracticeMultiplayerGames, settleTrustedRankedGames])
+  }, [authenticatedMultiplayerUserId, cacheMultiplayerProgress, hasTimedPracticeMultiplayerGames, persistActiveMultiplayerState, persistActiveProgress, settleTrustedRankedGames])
 
   useEffect(() => {
     applyTheme(guestProgress.settings.themeDefault)
@@ -2194,28 +2272,34 @@ function AppInner() {
     let isMounted = true
     void getCurrentAuthState(supabaseClient).then((nextAuthState) => {
       if (isMounted) {
+        const shouldOpenPasswordReset = isPasswordResetUrl() && nextAuthState.status === 'authenticated'
+        authStateRef.current = nextAuthState
         setAuthState(nextAuthState)
-        if (isPasswordResetUrl() && nextAuthState.status === 'authenticated') {
+        hydrateProgressForAuthState(nextAuthState, { autoResume: !shouldOpenPasswordReset })
+        if (shouldOpenPasswordReset) {
           setAuthModalOpen(false)
           setProfilePanelOpen(false)
           setPasswordResetOpen(true)
           setPasswordResetMessage(undefined)
           return
         }
-        maybeAutoResume(nextAuthState)
       }
     })
     const subscription = subscribeToAuthChanges(supabaseClient, (nextAuthState, event) => {
       if (isMounted) {
+        const shouldOpenPasswordReset = event === 'PASSWORD_RECOVERY' || (isPasswordResetUrl() && nextAuthState.status === 'authenticated')
+        authStateRef.current = nextAuthState
         setAuthState(nextAuthState)
-        if (event === 'PASSWORD_RECOVERY' || (isPasswordResetUrl() && nextAuthState.status === 'authenticated')) {
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'PASSWORD_RECOVERY') {
+          hydrateProgressForAuthState(nextAuthState, { autoResume: !shouldOpenPasswordReset })
+        }
+        if (shouldOpenPasswordReset) {
           setAuthModalOpen(false)
           setProfilePanelOpen(false)
           setPasswordResetOpen(true)
           setPasswordResetMessage(undefined)
           return
         }
-        maybeAutoResume(nextAuthState)
       }
     })
 
@@ -2223,7 +2307,7 @@ function AppInner() {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [maybeAutoResume, supabaseClient])
+  }, [hydrateProgressForAuthState, supabaseClient])
 
   return (
     <>

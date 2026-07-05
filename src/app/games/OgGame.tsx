@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
 import type { CompletedGameInput, OgResumeSlot, ResumeCapture } from '../../account'
 import { createAccountPracticeSeed } from '../../account/practiceSeeds'
@@ -30,6 +30,7 @@ import { Button, Keyboard, Panel, ShareButton } from '../../ui'
 import { classNames } from '../../ui/classNames'
 import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../gameplayAutoCenter'
 import { CustomizeMenu } from './CustomizeMenu'
+import { scheduleSoloKeyboardAutoCenter } from './soloGameplayAutoCenter'
 import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
 
 interface OgGameProps {
@@ -197,6 +198,7 @@ function OgGameSession({
     return scope === 'daily' ? createInitialDailySession(setup, pastDailyDateKey, defaultHardMode) : createOgSession(setup, defaultHardMode)
   })
   const [continuationMessage, setContinuationMessage] = useState<string>()
+  const previousSubmittedGuessCountRef = useRef<number | undefined>(undefined)
   const completionPercentage = getCompletionPercentage(session)
   const continuationCost = calculatePayToContinueCost({
     completionPercentage,
@@ -237,6 +239,12 @@ function OgGameSession({
       wordLength: session.wordLength,
     })
   }, [difficulty, onResumeCapture, scope, session])
+
+  useEffect(() => {
+    const previousSubmittedGuessCount = previousSubmittedGuessCountRef.current
+    previousSubmittedGuessCountRef.current = session.guesses.length
+    scheduleSoloKeyboardAutoCenter(previousSubmittedGuessCount, session.guesses.length)
+  }, [session.guesses.length])
 
   useEffect(() => {
     if (session.status === 'playing') {
@@ -438,7 +446,12 @@ function OgGameSession({
           </div>
         ) : null}
 
-        <Keyboard disabled={session.status !== 'playing'} letterStates={letterStates} onInput={handleInput} />
+        <div
+          tabIndex={-1}
+          {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard }}
+        >
+          <Keyboard disabled={session.status !== 'playing'} letterStates={letterStates} onInput={handleInput} />
+        </div>
 
 
         {endStateRevealed ? (

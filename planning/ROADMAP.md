@@ -1,7 +1,7 @@
 # brrrdle Development Roadmap
 
 **Status**: Active long-term roadmap for `brrrdle-dev`
-**Last Updated**: 2026-07-03
+**Last Updated**: 2026-07-04
 **Purpose**: This document records the long-term product direction for `brrrdle-dev` while keeping implementation gated by the constitution, phase specs, progress records, and explicit user authorization.
 
 ---
@@ -20,7 +20,7 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 
 ---
 
-## Current State After Phase 42
+## Current State After Phase 43
 
 - Phase 23 stabilized the core Solo and Multiplayer gameplay model and added broad local plus real Supabase-backed E2E coverage.
 - Phase 24 made Solo, Multiplayer, History, Lobby, and Live v0 first-class app areas.
@@ -44,7 +44,8 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 - Phase 40 manual review completed with follow-up multiplayer reliability issues around ranked queue/search-again behavior, private request stale states, requester-side accepted-game routing, leaderboard freshness, mobile Practice Multiplayer freshness, and real E2E coverage gaps. Phase 41 was formally rerouted to multiplayer reliability and real E2E hardening before continuing into stats/dashboard/onboarding work.
 - Phase 41 expanded real Supabase-backed multiplayer reliability E2E coverage, added reusable three-client harness support, repaired ranked queue/search-again reliability, public ranked leaderboard freshness, private request lifecycle/routing, mobile Practice Multiplayer freshness, and added Codex-assisted manual-review preflight.
 - Phase 42 added public live-site stats, private developer/admin dashboard surfaces, onboarding/help/tutorial UX, ranked Practice queue button/status flashing repair, Supabase stats/dashboard RPCs, browser grant/RLS hardening, visual handoff review, and a manual review checklist.
-- Phase 42 manual review and the Phase 43 intake surfaced a cohesive current-surface UX cleanup payload spanning ranked queue follow-up, Home, Stats, Help/About/Settings, Practice Multiplayer density, Solo layout, global shell/header interactions, gameplay viewport comfort, spectator viewport comfort, and testing protocol updates. Phase 43 should use that recommendation/routing document before any official planning brief is created.
+- Phase 43 completed current-surface UX cleanup, ranked queue matching fairness repair, Stats/Help/About/Settings information architecture cleanup, app shell/Home simplification, Solo and Practice Multiplayer density cleanup, gameplay viewport/notification/back-to-top/spectator comfort work, visual handoff review, and a manual review checklist.
+- Phase 43 manual review surfaced one urgent account/guest state boundary issue plus smaller follow-up issues around private Practice request eligibility, ranked queue fairness verification, sign-in ordering, global header chips, Stats public-site placement, Help placeholder copy, and Solo gameplay keyboard centering. Phase 44 is formally rerouted to account-scoped local state isolation and bounded manual-review follow-up before profile/data-contract simplification or larger social/widget work.
 
 ---
 
@@ -73,11 +74,13 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 | Phase 40 | Public profiles and private matchmaking | Clickable public profiles, safe public profile route/cards, authenticated-only unranked Practice private match requests, private request lifecycle UI, and two-client E2E hardening | Complete |
 | Phase 41 | Multiplayer reliability and real E2E hardening | Ranked Practice search-again/queue cancellation/status reliability, leaderboard freshness, private request lifecycle cleanup, mobile multiplayer freshness, and expanded real E2E harnesses | Complete |
 | Phase 42 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private developer dashboard, beginner onboarding/help/tutorial UX, ranked queue flashing repair, and Supabase stats/dashboard hardening | Complete |
-| Phase 43 | Current-surface UX cleanup, ranked queue follow-up, and gameplay comfort | Home/shell simplification, Stats/Help/About/Settings cleanup, Solo and Practice Multiplayer density cleanup, ranked queue follow-up, gameplay viewport comfort, and testing-protocol updates | Next planning target |
-| Phase 44 | Profile and multiplayer contract simplification | Profile field/model simplification, custom-code/private Daily/ranked Daily routing, and migration/RLS or gameplay-rule gates if needed | Future |
-| Phase 45 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site EXP, coin, and collectible counters after earnable systems have clear gameplay functions; late Focus Mode, compact navigation, and broader mobile UX improvements | Future |
-| Phase 46 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
-| Phase 47 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
+| Phase 43 | Current-surface UX cleanup, ranked queue follow-up, and gameplay comfort | Home/shell simplification, Stats/Help/About/Settings cleanup, Solo and Practice Multiplayer density cleanup, ranked queue follow-up, gameplay viewport comfort, and testing-protocol updates | Complete |
+| Phase 44 | Account-scoped local state isolation and Phase 43 manual-review follow-up | Guest/account state boundary audit and repair, Daily/Practice Solo isolation, sign-out visibility cleanup, private Practice request eligibility follow-up, ranked queue review, and small UI follow-ups | Next planning target |
+| Phase 45 | Live/Home preview consistency, timestamp policy, and notification clarity | Participant-owned Live/Active/Home preview improvements, public participant names where safe, UTC/local timestamp display policy, and privacy-safe notification rival/ranked context | Future |
+| Phase 46 | Profile and multiplayer contract simplification | Profile field/model simplification, custom-code/private Daily/ranked Daily routing, and migration/RLS or gameplay-rule gates if needed | Future |
+| Phase 47 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site EXP, coin, and collectible counters after earnable systems have clear gameplay functions; late Focus Mode, compact navigation, and broader mobile UX improvements | Future |
+| Phase 48 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
+| Phase 49 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
 | Later phases | Expansion | Deeper social/community systems, marketplace, additional modes, and other expansion work | Future |
 
 ---

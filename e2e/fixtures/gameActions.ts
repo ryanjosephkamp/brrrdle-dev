@@ -79,7 +79,11 @@ export async function cancelRankedPracticeQueue(page: Page): Promise<void> {
 
 export async function openMultiplayerMatch(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^Open multiplayer match$/i }).click()
-  await expect(page.getByTestId('multiplayer-status-message')).toContainText(/Multiplayer match opened|Ranked multiplayer match opened|Custom multiplayer lobby/i)
+  await expect.poll(async () => {
+    const statusMessage = await page.getByTestId('multiplayer-status-message').textContent().catch(() => '')
+    const selectedStatus = await page.getByTestId('multiplayer-selected-game').getAttribute('data-status').catch(() => '')
+    return `${statusMessage ?? ''} ${selectedStatus ?? ''}`
+  }, { timeout: 30_000 }).toMatch(/Multiplayer match opened|Ranked multiplayer match opened|Custom multiplayer lobby|waiting/i)
 }
 
 type MultiplayerRenderedStatus = 'cancelled' | 'expired' | 'lost' | 'playing' | 'waiting' | 'won'

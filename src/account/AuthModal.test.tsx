@@ -20,7 +20,7 @@ describe('AuthModal (structural)', () => {
     expect(html).toBe('')
   })
 
-  it('renders the Magic Link tab with a single primary CTA by default', () => {
+  it('renders the Email + password tab first and active by default', () => {
     const html = renderToStaticMarkup(
       <AuthModal
         isOpen
@@ -32,15 +32,16 @@ describe('AuthModal (structural)', () => {
       />,
     )
     expect(html).toContain('Sign in to brrrdle')
-    expect(html).toContain('Magic link')
     expect(html).toContain('Email + password')
+    expect(html).toContain('Magic link')
+    expect(html.indexOf('Email + password')).toBeLessThan(html.indexOf('Magic link'))
     // Tabs:
     expect(html).toMatch(/role="tab"/)
-    // Exactly one button labelled "Send magic link" (the primary CTA).
-    const sendCount = (html.match(/Send magic link/g) ?? []).length
-    expect(sendCount).toBe(1)
-    // Forgot Password is not visible in magic-link tab.
-    expect(html).not.toContain('Forgot password')
+    expect(html).toContain('Password')
+    expect(html).toContain('Sign in')
+    expect(html).toContain('Create account')
+    expect(html).toContain('Forgot password?')
+    expect(html).not.toContain('Send magic link')
   })
 
   it('renders an aria-live status region for screen readers', () => {
@@ -74,9 +75,7 @@ describe('AuthModal (structural)', () => {
     expect(html).toMatch(/aria-modal="true"/)
   })
 
-  it('exposes a single primary CTA (no duplicate-buttons regression)', () => {
-    // Static render starts in magic-link mode, so this pins the visible default
-    // and a separate test below pins the password action order.
+  it('exposes the password CTA set without the magic-link send CTA by default', () => {
     const html = renderToStaticMarkup(
       <AuthModal
         isOpen
@@ -87,8 +86,9 @@ describe('AuthModal (structural)', () => {
         onRequestPasswordReset={noop}
       />,
     )
-    const primary = html.match(/Send magic link/g) ?? []
-    expect(primary.length).toBe(1)
+    expect((html.match(/Sign in/g) ?? []).length).toBeGreaterThanOrEqual(1)
+    expect(html).toContain('Create account')
+    expect(html).not.toContain('Send magic link')
   })
 
   it('orders Email + Password actions without a duplicate mode-toggle sign-in button', () => {

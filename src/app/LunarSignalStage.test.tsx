@@ -52,7 +52,7 @@ describe('LunarSignalStage', () => {
     expect(html).toContain('data-tone="urgent"')
   })
 
-  it('renders compact route metrics in the header instead of the ordinary-page side rail', () => {
+  it('does not render global header status chips on ordinary pages', () => {
     const html = renderToStaticMarkup(
       <LunarSignalStage
         accountControls={<button type="button">Guest</button>}
@@ -69,9 +69,10 @@ describe('LunarSignalStage', () => {
       </LunarSignalStage>,
     )
 
-    expect(html).toContain('Brrrdle route summary')
-    expect(html).toContain('5 letters')
-    expect(html).toContain('Banks')
+    expect(html).not.toContain('Brrrdle route summary')
+    expect(html).not.toContain('5 letters')
+    expect(html).not.toContain('Banks')
+    expect(html).not.toContain('Ready')
     expect(html).not.toContain('System readout')
   })
 })

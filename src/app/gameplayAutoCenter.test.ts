@@ -67,6 +67,10 @@ describe('scheduleGameplayAutoCenter', () => {
     expect(element.focus).toHaveBeenCalledWith({ preventScroll: true })
   })
 
+  it('exposes a dedicated solo keyboard target for post-guess viewport comfort', () => {
+    expect(getGameplayAutoCenterSelector(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard)).toBe('[data-gameplay-autocenter-target="solo-keyboard"]')
+  })
+
   it('uses auto scrolling when reduced motion is preferred', () => {
     const element = {
       focus: vi.fn(),
