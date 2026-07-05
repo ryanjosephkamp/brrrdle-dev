@@ -30,7 +30,7 @@ import { Button, Keyboard, Panel, ShareButton } from '../../ui'
 import { classNames } from '../../ui/classNames'
 import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../gameplayAutoCenter'
 import { CustomizeMenu } from './CustomizeMenu'
-import { scheduleSoloKeyboardAutoCenter } from './soloGameplayAutoCenter'
+import { scheduleFreshSoloKeyboardAutoCenter, scheduleSoloKeyboardAutoCenter } from './soloGameplayAutoCenter'
 import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
 
 interface OgGameProps {
@@ -254,6 +254,10 @@ function OgGameSession({
     previousSubmittedGuessCountRef.current = session.guesses.length
     scheduleSoloKeyboardAutoCenter(previousSubmittedGuessCount, session.guesses.length)
   }, [session.guesses.length])
+
+  useEffect(() => {
+    scheduleFreshSoloKeyboardAutoCenter(session.guesses.length, session.status === 'playing')
+  }, [session.guesses.length, session.status])
 
   useEffect(() => {
     if (session.status === 'playing') {

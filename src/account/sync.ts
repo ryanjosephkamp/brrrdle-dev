@@ -29,6 +29,10 @@ export interface SyncGuestProgressResult {
   readonly status: SyncStatusState
 }
 
+export type SyncAuthenticatedProgressInput = SyncGuestProgressInput
+
+export type SyncAuthenticatedProgressResult = SyncGuestProgressResult
+
 export function createSupabaseProgressRepository(client: BrrrdleSupabaseClient): CloudProgressRepository {
   return {
     async download(userId) {
@@ -80,4 +84,8 @@ export async function syncGuestProgress(input: SyncGuestProgressInput): Promise<
   } catch {
     return { progress: input.localProgress, status: createSyncStatus('error') }
   }
+}
+
+export async function syncAuthenticatedProgress(input: SyncAuthenticatedProgressInput): Promise<SyncAuthenticatedProgressResult> {
+  return syncGuestProgress(input)
 }

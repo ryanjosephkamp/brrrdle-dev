@@ -30,13 +30,11 @@ interface SoloWorkspaceProps {
   readonly onOpenHistory: (filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => void
   readonly onPracticeModeChange: (mode: SoloMode) => void
   readonly onResumeGame: (key: SoloActiveGameKey) => void
-  readonly onSelectActiveGame: (key: SoloActiveGameKey) => void
   readonly onSubtabChange: (subtab: SoloSubtabId) => void
   readonly practiceMode: SoloMode
   readonly renderDailyGame: (mode: SoloMode) => ReactNode
   readonly renderPracticeGame: (mode: SoloMode) => ReactNode
   readonly resumeSlots: ResumeSlotCollection
-  readonly selectedGameKey?: SoloActiveGameKey
 }
 
 function formatDateTime(value: string): string {
@@ -83,18 +81,14 @@ function EmptyState({ children }: { readonly children: ReactNode }) {
 function ActiveGameCard({
   game,
   onResume,
-  onSelect,
-  selected,
 }: {
   readonly game: SoloActiveGameViewModel
   readonly onResume: (key: SoloActiveGameKey) => void
-  readonly onSelect: (key: SoloActiveGameKey) => void
-  readonly selected: boolean
 }) {
   return (
     <article
       aria-label={game.title}
-      className={`rounded-lg border bg-black/30 p-4 shadow-xl shadow-black/20 ${selected ? 'border-[var(--color-ice-300)]/70' : 'border-white/10'}`}
+      className="rounded-lg border border-white/10 bg-black/30 p-4 shadow-xl shadow-black/20"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -119,7 +113,6 @@ function ActiveGameCard({
       </dl>
       <div className="mt-4 flex flex-wrap gap-2">
         <Button onClick={() => onResume(game.key)} size="sm" variant="primary">{game.actionLabel}</Button>
-        <Button aria-pressed={selected} onClick={() => onSelect(game.key)} size="sm" variant="ghost">{selected ? 'Selected' : 'Select'}</Button>
       </div>
     </article>
   )
@@ -128,13 +121,9 @@ function ActiveGameCard({
 function ActiveGameList({
   activeGames,
   onResumeGame,
-  onSelectActiveGame,
-  selectedGameKey,
 }: {
   readonly activeGames: readonly SoloActiveGameViewModel[]
   readonly onResumeGame: (key: SoloActiveGameKey) => void
-  readonly onSelectActiveGame: (key: SoloActiveGameKey) => void
-  readonly selectedGameKey?: SoloActiveGameKey
 }) {
   if (activeGames.length === 0) {
     return <EmptyState>No active solo games.</EmptyState>
@@ -147,8 +136,6 @@ function ActiveGameList({
           game={game}
           key={game.key}
           onResume={onResumeGame}
-          onSelect={onSelectActiveGame}
-          selected={game.key === selectedGameKey}
         />
       ))}
     </div>
@@ -191,20 +178,16 @@ function SoloOverview({
   onOpenHistory,
   onPracticeModeChange,
   onResumeGame,
-  onSelectActiveGame,
   onSubtabChange,
   recentResults,
-  selectedGameKey,
 }: {
   readonly activeGames: readonly SoloActiveGameViewModel[]
   readonly onDailyModeChange: (mode: SoloMode) => void
   readonly onOpenHistory: (filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => void
   readonly onPracticeModeChange: (mode: SoloMode) => void
   readonly onResumeGame: (key: SoloActiveGameKey) => void
-  readonly onSelectActiveGame: (key: SoloActiveGameKey) => void
   readonly onSubtabChange: (subtab: SoloSubtabId) => void
   readonly recentResults: readonly SoloRecentResultViewModel[]
-  readonly selectedGameKey?: SoloActiveGameKey
 }) {
   const startDaily = (mode: SoloMode) => {
     onDailyModeChange(mode)
@@ -232,7 +215,7 @@ function SoloOverview({
           </div>
           <Button onClick={() => onSubtabChange('active')} size="sm" variant="ghost">View Active</Button>
         </div>
-        <ActiveGameList activeGames={activeGames.slice(0, 4)} onResumeGame={onResumeGame} onSelectActiveGame={onSelectActiveGame} selectedGameKey={selectedGameKey} />
+        <ActiveGameList activeGames={activeGames.slice(0, 4)} onResumeGame={onResumeGame} />
       </Panel>
 
       <Panel className="space-y-4" tone="muted">
@@ -300,13 +283,11 @@ export function SoloWorkspace({
   onOpenHistory,
   onPracticeModeChange,
   onResumeGame,
-  onSelectActiveGame,
   onSubtabChange,
   practiceMode,
   renderDailyGame,
   renderPracticeGame,
   resumeSlots,
-  selectedGameKey,
 }: SoloWorkspaceProps) {
   const activeGames = selectActiveSoloGames(resumeSlots)
   const recentResults = selectRecentSoloResults(history, 5)
@@ -332,7 +313,7 @@ export function SoloWorkspace({
             <h3 className="text-lg font-bold text-white">Active Solo Games</h3>
             <p className="text-sm text-slate-400">{activeGames.length} active</p>
           </div>
-          <ActiveGameList activeGames={activeGames} onResumeGame={onResumeGame} onSelectActiveGame={onSelectActiveGame} selectedGameKey={selectedGameKey} />
+          <ActiveGameList activeGames={activeGames} onResumeGame={onResumeGame} />
         </Panel>
       ) : (
         <SoloOverview
@@ -341,10 +322,8 @@ export function SoloWorkspace({
           onOpenHistory={onOpenHistory}
           onPracticeModeChange={onPracticeModeChange}
           onResumeGame={onResumeGame}
-          onSelectActiveGame={onSelectActiveGame}
           onSubtabChange={onSubtabChange}
           recentResults={recentResults}
-          selectedGameKey={selectedGameKey}
         />
       )}
     </section>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, sendPasswordResetEmail, sendMagicLink, Settings, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, subscribeToAuthChanges, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, sendPasswordResetEmail, sendMagicLink, Settings, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -453,7 +453,6 @@ function RoutePanel({
   onResumeCapture,
   onDashboardAction,
   onSelectRoute,
-  onSelectSoloGame,
   onSelectMultiplayerGame,
   onSoloDailyModeChange,
   onOpenSoloHistory,
@@ -484,7 +483,6 @@ function RoutePanel({
   practiceMode,
   soloDailyMode,
   soloSubtab,
-  selectedSoloGameKey,
   selectedMultiplayerGameId,
   selectedPublicProfileId,
   focusedLiveSpectatorGameId,
@@ -533,7 +531,6 @@ function RoutePanel({
   readonly onResumeCapture: (capture: ResumeCapture) => void
   readonly onPracticeModeChange: (mode: PracticeMode) => void
   readonly onPracticeSeedAdvance: (mode: PracticeMode) => void
-  readonly onSelectSoloGame: (key: SoloActiveGameKey) => void
   readonly onSelectMultiplayerGame: (id: string) => void
   readonly onSoloDailyModeChange: (mode: SoloMode) => void
   readonly onOpenSoloHistory: (filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => void
@@ -558,7 +555,6 @@ function RoutePanel({
   readonly onSyncNow: () => void
   readonly practiceMode: PracticeMode
   readonly soloDailyMode: SoloMode
-  readonly selectedSoloGameKey?: SoloActiveGameKey
   readonly selectedMultiplayerGameId?: string
   readonly selectedPublicProfileId?: string
   readonly focusedLiveSpectatorGameId?: string
@@ -779,13 +775,11 @@ function RoutePanel({
         onOpenHistory={onOpenSoloHistory}
         onPracticeModeChange={onPracticeModeChange}
         onResumeGame={onResumeSoloGame}
-        onSelectActiveGame={onSelectSoloGame}
         onSubtabChange={onSoloSubtabChange}
         practiceMode={practiceMode}
         renderDailyGame={renderSoloDailyGame}
         renderPracticeGame={renderSoloPracticeGame}
         resumeSlots={resumeSlots}
-        selectedGameKey={selectedSoloGameKey}
       />
     )
   }
@@ -1044,16 +1038,12 @@ function AppInner() {
   const authStateRef = useRef(authState)
   const activeProgressScopeRef = useRef<ActiveProgressScope>(activeProgressScope)
   const authHydrationRequestRef = useRef(0)
-  const persistActiveProgress = useCallback((progress: GuestProgressState) => {
-    if (shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
-      saveGuestProgress(progress)
-    }
-  }, [])
-  const persistActiveMultiplayerState = useCallback((state: MultiplayerState) => {
-    if (shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
-      saveMultiplayerState(state)
-    }
-  }, [])
+  const authenticatedProgressSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const authenticatedProgressSyncInFlightRef = useRef(false)
+  const authenticatedProgressSyncDirtyRef = useRef(false)
+  const authenticatedProgressSyncVersionRef = useRef(0)
+  const latestAuthenticatedProgressSyncRef = useRef<ReturnType<typeof createAuthenticatedProgressSyncRequest> | undefined>(undefined)
+  const flushAuthenticatedProgressSyncRef = useRef<() => void>(() => {})
   const applyScopedProgress = useCallback((progress: GuestProgressState, scope: ActiveProgressScope) => {
     activeProgressScopeRef.current = scope
     setActiveProgressScope(scope)
@@ -1062,6 +1052,92 @@ function AppInner() {
     setMultiplayer(progress.multiplayer ?? createEmptyMultiplayerState())
     if (shouldPersistProgressToGuestStorage(scope)) {
       saveGuestProgress(progress)
+    }
+  }, [])
+  const flushAuthenticatedProgressSync = useCallback(() => {
+    if (!supabaseClient) {
+      return
+    }
+
+    const request = latestAuthenticatedProgressSyncRef.current
+    if (!request) {
+      return
+    }
+
+    if (authenticatedProgressSyncTimeoutRef.current) {
+      clearTimeout(authenticatedProgressSyncTimeoutRef.current)
+      authenticatedProgressSyncTimeoutRef.current = undefined
+    }
+
+    authenticatedProgressSyncInFlightRef.current = true
+    authenticatedProgressSyncDirtyRef.current = false
+    setSyncStatus(createSyncStatus('syncing'))
+
+    void syncAuthenticatedProgress({
+      isOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
+      localProgress: request.localProgress,
+      localUpdatedAt: request.localUpdatedAt,
+      repository: createSupabaseProgressRepository(supabaseClient),
+      userId: request.userId,
+    }).then((result) => {
+      if (!shouldApplyAuthenticatedProgressSyncResult({
+        currentVersion: authenticatedProgressSyncVersionRef.current,
+        requestVersion: request.version,
+      })) {
+        return
+      }
+      applyScopedProgress(result.progress, { kind: 'authenticated', userId: request.userId })
+      setSyncStatus(result.status)
+    }).finally(() => {
+      authenticatedProgressSyncInFlightRef.current = false
+      if (authenticatedProgressSyncDirtyRef.current && latestAuthenticatedProgressSyncRef.current) {
+        authenticatedProgressSyncTimeoutRef.current = setTimeout(
+          () => flushAuthenticatedProgressSyncRef.current(),
+          AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS,
+        )
+      }
+    })
+  }, [applyScopedProgress, supabaseClient])
+  useEffect(() => {
+    flushAuthenticatedProgressSyncRef.current = flushAuthenticatedProgressSync
+  }, [flushAuthenticatedProgressSync])
+  const scheduleAuthenticatedProgressSync = useCallback((progress: GuestProgressState) => {
+    if (!supabaseClient) {
+      return
+    }
+
+    const nextVersion = authenticatedProgressSyncVersionRef.current + 1
+    const request = createAuthenticatedProgressSyncRequest({
+      authState: authStateRef.current,
+      localProgress: progress,
+      scope: activeProgressScopeRef.current,
+      version: nextVersion,
+    })
+    if (!request) {
+      return
+    }
+
+    authenticatedProgressSyncVersionRef.current = nextVersion
+    latestAuthenticatedProgressSyncRef.current = request
+    authenticatedProgressSyncDirtyRef.current = true
+    if (authenticatedProgressSyncTimeoutRef.current) {
+      clearTimeout(authenticatedProgressSyncTimeoutRef.current)
+    }
+    authenticatedProgressSyncTimeoutRef.current = setTimeout(
+      flushAuthenticatedProgressSync,
+      AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS,
+    )
+  }, [flushAuthenticatedProgressSync, supabaseClient])
+  const persistActiveProgress = useCallback((progress: GuestProgressState) => {
+    if (shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
+      saveGuestProgress(progress)
+      return
+    }
+    scheduleAuthenticatedProgressSync(progress)
+  }, [scheduleAuthenticatedProgressSync])
+  const persistActiveMultiplayerState = useCallback((state: MultiplayerState) => {
+    if (shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
+      saveMultiplayerState(state)
     }
   }, [])
   const activeRoute = getRouteById(activeRouteId)
@@ -1757,7 +1833,7 @@ function AppInner() {
     autoResumedRef.current = true
     navigateToResumeSlot(slot)
   }, [navigateToResumeSlot])
-  const hydrateProgressForAuthState = useCallback((nextAuthState: AuthState, options: { readonly autoResume?: boolean } = {}) => {
+  const hydrateProgressForAuthState = useCallback((nextAuthState: AuthState, options: { readonly autoResume?: boolean; readonly clearSelections?: boolean } = {}) => {
     const requestId = ++authHydrationRequestRef.current
     if (nextAuthState.status === 'authenticated' && nextAuthState.user && supabaseClient) {
       const userId = nextAuthState.user.id
@@ -1775,7 +1851,9 @@ function AppInner() {
           return
         }
         applyScopedProgress(result.progress, { kind: 'authenticated', userId })
-        clearIdentityScopedSelections()
+        if (options.clearSelections !== false) {
+          clearIdentityScopedSelections()
+        }
         setSyncStatus(result.status)
         if (options.autoResume !== false) {
           maybeAutoResume(nextAuthState, result.progress)
@@ -1789,6 +1867,20 @@ function AppInner() {
     clearIdentityScopedSelections()
     setSyncStatus(createSyncStatus(supabaseClient ? 'idle' : 'error'))
   }, [applyScopedProgress, clearIdentityScopedSelections, maybeAutoResume, supabaseClient])
+  const refreshAuthenticatedProgressFromCloud = useCallback(() => {
+    const nextAuthState = authStateRef.current
+    if (!canRefreshAuthenticatedProgress({
+      authState: nextAuthState,
+      hasPendingUpload: authenticatedProgressSyncDirtyRef.current,
+      hasScheduledUpload: Boolean(authenticatedProgressSyncTimeoutRef.current),
+      isUploadInFlight: authenticatedProgressSyncInFlightRef.current,
+      scope: activeProgressScopeRef.current,
+    })) {
+      return
+    }
+
+    hydrateProgressForAuthState(nextAuthState, { autoResume: false, clearSelections: false })
+  }, [hydrateProgressForAuthState])
   const handleGameComplete = useCallback((input: CompletedGameInput) => {
     setGuestProgress((currentProgress) => {
       const nextProgress = recordCompletedGame(input, currentProgress)
@@ -2070,9 +2162,43 @@ function AppInner() {
     guestProgressRef.current = guestProgress
   }, [guestProgress])
 
+  useEffect(() => () => {
+    if (authenticatedProgressSyncTimeoutRef.current) {
+      clearTimeout(authenticatedProgressSyncTimeoutRef.current)
+      authenticatedProgressSyncTimeoutRef.current = undefined
+    }
+  }, [])
+
   useEffect(() => {
     authStateRef.current = authState
   }, [authState])
+
+  useEffect(() => {
+    if (authState.status !== 'authenticated') {
+      return
+    }
+
+    const handleWindowFocus = () => refreshAuthenticatedProgressFromCloud()
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshAuthenticatedProgressFromCloud()
+      }
+    }
+
+    window.addEventListener('focus', handleWindowFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [authState.status, refreshAuthenticatedProgressFromCloud])
+
+  useEffect(() => {
+    if (activeRouteId === 'solo') {
+      refreshAuthenticatedProgressFromCloud()
+    }
+  }, [activeRouteId, refreshAuthenticatedProgressFromCloud, soloSubtab])
 
   useEffect(() => {
     multiplayerRepositoryRef.current = multiplayerRepository
@@ -2419,7 +2545,6 @@ function AppInner() {
             onResumeMultiplayerGame={handleResumeMultiplayerGame}
             onResumeSoloGame={handleResumeSoloGame}
             onSelectMultiplayerGame={handleSelectMultiplayerGame}
-            onSelectSoloGame={handleSelectSoloGame}
             onSelectRoute={handleNavigate}
             onSendMagicLink={handleSendMagicLink}
             onSaveProfile={handleSaveProfile}
@@ -2454,7 +2579,6 @@ function AppInner() {
             focusedLiveSpectatorGameId={focusedLiveSpectatorGameId}
             selectedMultiplayerGameId={selectedMultiplayerGameId}
             selectedPublicProfileId={selectedPublicProfileId}
-            selectedSoloGameKey={selectedSoloGameKey}
             soundEnabled={sound.enabled}
             soloDailyMode={soloDailyMode}
             soloSubtab={soloSubtab}
