@@ -1,7 +1,7 @@
 # brrrdle Optimized Development Roadmap
 
 **Status**: Active optimized roadmap for staged execution
-**Last Updated**: 2026-07-04
+**Last Updated**: 2026-07-05
 **Repository Target**: `brrrdle-dev`
 **Source Roadmap**: `planning/ROADMAP.md`
 **Purpose**: Refine the long-term roadmap into lower-risk gated phases with clear deferrals, verification expectations, and protected-action boundaries.
@@ -51,15 +51,15 @@ Future planning should also use `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md
 | Phase 42 | Site stats, developer dashboard, onboarding, and help | Public live-site stats, private admin/developer observability, beginner-friendly help/tutorial UX, ranked queue flashing repair, and Supabase grant/RLS hardening | Complete |
 | Phase 43 | Current-surface UX cleanup, ranked queue follow-up, and gameplay comfort | Clean up Home/shell/Stats/Help/Settings/Solo/Practice Multiplayer density, ranked queue follow-up, gameplay viewport comfort, and testing protocol | Complete |
 | Phase 44 | Account-scoped local state isolation and Phase 43 manual-review follow-up | Repair guest/account state boundaries, protect Daily/Practice Solo isolation, audit sign-out visibility, private Practice request eligibility, ranked queue fairness, and small UI follow-ups | Complete |
-| Phase 45 | Solo cloud progress boundaries and mobile follow-up | Repair Daily Solo OG/GO guest/auth account boundaries, decide storage-contract needs, add real two-browser coverage, and handle small Profile/mobile Solo follow-ups | Next planning target |
-| Phase 46 | Live/Home preview consistency, timestamp policy, and notification clarity | Improve participant-owned previews, Home/Live/Active identification, UTC/local timestamps, and privacy-safe notification context | Future |
+| Phase 45 | Solo cloud progress boundaries and mobile follow-up | Repair Daily/Practice Solo guest/auth account boundaries, preserve authenticated cross-browser loading, and handle Profile/mobile Solo follow-ups | Complete |
+| Phase 46 | Solo sync integrity and manual-review follow-up | Improve signed-in Solo automatic sync/freshness, decide source-only versus storage-contract needs, clean up Solo `Select`, and fix mobile pre-guess keyboard visibility | Next planning target |
 | Phase 47 | Profile and multiplayer contract simplification | Profile model cleanup, custom-code/private Daily/ranked Daily routing, and reviewed contract gates | Future |
 | Phase 48 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
 | Phase 49 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
 | Phase 50 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-After Phase 44, most account-scoped local-state and manual-review follow-up work is complete, but manual review found that Daily Solo OG/GO account boundaries still fail across guest/auth and two-browser flows. Phase 45 is rerouted to urgent Solo Daily account/cloud persistence boundaries, storage-contract decisioning, real browser/E2E coverage, and only small Profile sign-in order plus mobile Solo scaling follow-ups. Larger preview consistency, notification context, profile/data-contract simplification, configurable Home widgets, social inbox work, progression HUD, Focus Mode, broad compact navigation, draw-by-repetition, and theme work remain separately gated.
+After Phase 45, Daily/Practice Solo guest/auth boundaries are repaired and manual review passed. The next risk is signed-in Solo Daily/Practice freshness across tabs and browsers when users do not manually sync. Phase 46 is rerouted to Solo sync integrity, source-only versus storage-contract decisioning, Solo Overview `Select` cleanup, and narrow mobile pre-guess keyboard visibility. Larger preview consistency, notification context, profile/data-contract simplification, configurable Home widgets, social inbox work, progression HUD, Focus Mode, broad compact navigation, draw-by-repetition, and theme work remain separately gated.
 
 ---
 
@@ -380,9 +380,9 @@ Durable outcomes:
 
 ## Phase 45 Solo Cloud Progress Boundary Strategy
 
-Phase 45 should resolve the Daily Solo OG/GO guest/auth boundary failure before preview/social/profile work resumes.
+Phase 45 is complete and manually reviewed. It resolved the Daily/Practice Solo guest/auth boundary failure before preview/social/profile work resumes.
 
-Core requirements:
+Completed requirements:
 
 - reproduce the two-browser guest/auth Daily Solo OG/GO failure;
 - decide whether source-only repair is enough or whether a storage-contract/Supabase addendum is required;
@@ -392,9 +392,23 @@ Core requirements:
 - add real browser/E2E coverage where feasible;
 - keep Profile embedded sign-in order and mobile Solo scaling follow-ups small and source/test-only unless evidence proves otherwise.
 
-## Phase 46 Live/Home Preview And Notification Context Strategy
+## Phase 46 Solo Sync Integrity Strategy
 
-Phase 46 or later should handle participant-owned Live/Active/Home preview consistency, timestamp policy, and notification context only after Solo account/cloud persistence is reliable.
+Phase 46 should address the remaining signed-in Solo freshness and anti-cheat concern before participant preview, timestamp, notification, or profile/social work resumes.
+
+Core requirements:
+
+- audit signed-in Solo Daily/Practice sync, manual sync, `progress_snapshots`, sign-in hydration, focus/visibility freshness, and same-account tab/browser behavior;
+- decide whether source-only automatic sync is enough or whether a storage-contract/Supabase/RLS addendum is required;
+- prefer automatic signed-in Solo sync/freshness improvements before any strict one-active-session enforcement;
+- treat one-active-session enforcement as optional later session-lease/security work unless evidence proves it is required now;
+- preserve Phase 45 guest/auth isolation and prevent implicit guest-to-account transfer regressions;
+- remove or repurpose the Solo Overview active-game `Select` control only if the behavior remains narrow and tested;
+- fix mobile Solo pre-guess keyboard clipping without broad mobile shell/navigation overhaul.
+
+## Later Live/Home Preview And Notification Context Strategy
+
+A later gated phase should handle participant-owned Live/Active/Home preview consistency, timestamp policy, and notification context only after Solo sync integrity is reliable.
 
 ## Phase 47 Profile And Multiplayer Contract Strategy
 

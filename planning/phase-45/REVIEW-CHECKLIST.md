@@ -43,105 +43,106 @@ Codex intentionally did not verify:
 
 ## Must Manually Verify
 
-- [ ] Daily Solo OG guest progress does not transfer into a signed-in account.
-  - Expected: if a signed-out guest submits a current Daily Solo OG guess and then signs in, the signed-in account shows account-owned Daily OG progress or an account-safe fresh state, not the guest guess.
-  - Suggested steps: use a safe test browser profile and safe test account; submit one guest Daily Solo OG guess, sign in, and inspect Daily Solo OG.
-  - Evidence: `progress/PROGRESS-STEP-407.md`; `progress/PROGRESS-STEP-411.md`.
-
-- [ ] Daily Solo GO guest progress does not transfer into a signed-in account.
-  - Expected: if a signed-out guest submits a current Daily Solo GO guess and then signs in, the signed-in account shows account-owned Daily GO progress or an account-safe fresh state, not the guest guess.
-  - Suggested steps: repeat the Daily OG sign-in boundary check for Daily Solo GO.
-  - Evidence: `progress/PROGRESS-STEP-407.md`; `progress/PROGRESS-STEP-411.md`.
-
-- [ ] Signed-in Daily Solo OG progress does not remain visible after sign-out.
-  - Expected: after signing out, the guest Daily Solo OG surface shows guest-safe state and does not show the prior account's signed-in Daily OG guesses.
-  - Suggested steps: submit a signed-in Daily Solo OG guess in a safe test account, sign out, and inspect Daily Solo OG as guest.
-  - Evidence: `progress/PROGRESS-STEP-407.md`; focused Daily account-boundary tests.
-
-- [ ] Signed-in Daily Solo GO progress does not remain visible after sign-out.
-  - Expected: after signing out, the guest Daily Solo GO surface shows guest-safe state and does not show the prior account's signed-in Daily GO guesses.
-  - Suggested steps: repeat the Daily OG sign-out boundary check for Daily Solo GO.
-  - Evidence: `progress/PROGRESS-STEP-407.md`; focused Daily account-boundary tests.
-
-- [ ] Cross-browser signed-in Daily Solo persistence follows the account.
-  - Expected: when authenticated cloud sync is available, a safe signed-in account's Daily Solo OG/GO progress can load on another browser without inheriting that browser's guest Daily guesses.
-  - Suggested steps: use two safe browser profiles and one safe test account; keep notes non-secret and do not record raw auth identifiers.
-  - Evidence: `progress/PROGRESS-STEP-405.md` through `progress/PROGRESS-STEP-407.md`.
-
-- [ ] Practice Solo OG guest progress does not transfer into a signed-in account.
-  - Expected: signing in after guest Practice Solo OG play does not silently treat the guest Practice progress as account-owned progress.
-  - Suggested steps: submit guest Practice Solo OG progress, sign in, and confirm account-scoped Practice state is used.
-  - Evidence: `progress/PROGRESS-STEP-408.md`.
-
-- [ ] Practice Solo GO guest progress does not transfer into a signed-in account.
-  - Expected: signing in after guest Practice Solo GO play does not silently treat the guest GO chain as account-owned progress.
-  - Suggested steps: repeat the Practice OG check for Practice GO.
-  - Evidence: `progress/PROGRESS-STEP-408.md`.
-
-- [ ] Signed-in Practice Solo OG/GO progress does not remain visible after sign-out.
-  - Expected: guest Practice Solo after sign-out shows guest-safe state and not the prior account's signed-in Practice progress.
-  - Suggested steps: use a safe test account with Practice Solo OG/GO progress, sign out, and inspect Practice Solo.
-  - Evidence: `progress/PROGRESS-STEP-408.md`.
-
-- [ ] Profile embedded sign-in defaults to Email + password first.
-  - Expected: on the Profile route while signed out, the embedded sign-in panel shows Email + password first and selected by default; Magic link remains second and available.
-  - Suggested steps: open Profile as guest on desktop and mobile.
-  - Evidence: `progress/PROGRESS-STEP-409.md`; visual capture `mobile-profile-embedded-sign-in-order.png`.
-
-- [ ] Sign-in modal order still matches the Profile embedded panel.
-  - Expected: the modal and embedded Profile panel both use Email + password first/default and Magic link second.
-  - Suggested steps: open the account/sign-in modal from the header and compare with Profile.
-  - Evidence: `progress/PROGRESS-STEP-409.md`; prior Phase 44 checklist.
-
-- [ ] Mobile Solo Practice OG remains playable after the first valid guess.
-  - Expected: after submitting a valid Solo Practice OG guess on mobile, the submitted row/status and keyboard remain usable without horizontal overflow.
-  - Suggested steps: use a real mobile device or a 390px-wide viewport and submit a valid non-winning Practice OG guess.
-  - Evidence: `progress/PROGRESS-STEP-410.md`; visual capture `mobile-solo-practice-og-after-guess.png`.
-
-- [ ] Mobile Solo Practice GO remains playable after the first valid guess.
+- [x] Mobile Solo Practice GO remains playable after the first valid guess.
   - Expected: after submitting a valid Solo Practice GO guess on mobile, the submitted row/status and keyboard remain usable without horizontal overflow.
   - Suggested steps: use a real mobile device or a 390px-wide viewport and submit a valid non-winning Practice GO guess.
   - Evidence: `progress/PROGRESS-STEP-410.md`; visual capture `mobile-solo-practice-go-after-guess.png`.
 
-- [ ] Desktop Solo layout remains stable.
-  - Expected: the mobile-specific Solo scaling repair does not make desktop Solo feel cramped or misaligned.
-  - Suggested steps: inspect Solo Practice OG/GO on a desktop viewport before and after a valid guess.
-  - Evidence: visual capture `desktop-solo-practice-og-after-guess.png`.
+- [x] Mobile Solo Practice OG remains playable after the first valid guess.
+  - Expected: after submitting a valid Solo Practice OG guess on mobile, the submitted row/status and keyboard remain usable without horizontal overflow.
+  - Suggested steps: use a real mobile device or a 390px-wide viewport and submit a valid non-winning Practice OG guess.
+  - Evidence: `progress/PROGRESS-STEP-410.md`; visual capture `mobile-solo-practice-og-after-guess.png`.
 
-- [ ] Phase 44 account-scoped local-state repairs remain intact.
+- [x] Phase 45 visual handoff artifacts remain local-only and ignored.
+  - Expected: `test-results/visual-review/phase-45-stage-45-7/` may exist locally, but screenshots/manifests are not tracked or staged.
+  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-45-stage-45-7/` if reviewing locally; confirm artifacts are ignored/local-only.
+  - Evidence: `test-results/visual-review/phase-45-stage-45-7/manifest.md`; `progress/PROGRESS-STEP-411.md`.
+- [x] Phase 44 account-scoped local-state repairs remain intact.
   - Expected: History, Settings, Stats, Leaderboard/rating summaries, Active Multiplayer projections, selected-game state, and sign-out rehydration remain scoped by guest/account ownership.
   - Suggested steps: spot-check the Phase 44 checklist items that previously passed.
   - Evidence: `planning/phase-44/REVIEW-CHECKLIST.md`; `progress/PROGRESS-STEP-411.md`.
 
-- [ ] Phase 45 visual handoff artifacts remain local-only and ignored.
-  - Expected: `test-results/visual-review/phase-45-stage-45-7/` may exist locally, but screenshots/manifests are not tracked or staged.
-  - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-45-stage-45-7/` if reviewing locally; confirm artifacts are ignored/local-only.
-  - Evidence: `test-results/visual-review/phase-45-stage-45-7/manifest.md`; `progress/PROGRESS-STEP-411.md`.
+- [x] Desktop Solo layout remains stable.
+  - Expected: the mobile-specific Solo scaling repair does not make desktop Solo feel cramped or misaligned.
+  - Suggested steps: inspect Solo Practice OG/GO on a desktop viewport before and after a valid guess.
+  - Evidence: visual capture `desktop-solo-practice-og-after-guess.png`.
+
+- [x] Sign-in modal order still matches the Profile embedded panel.
+  - Expected: the modal and embedded Profile panel both use Email + password first/default and Magic link second.
+  - Suggested steps: open the account/sign-in modal from the header and compare with Profile.
+  - Evidence: `progress/PROGRESS-STEP-409.md`; prior Phase 44 checklist.
+
+- [x] Profile embedded sign-in defaults to Email + password first.
+  - Expected: on the Profile route while signed out, the embedded sign-in panel shows Email + password first and selected by default; Magic link remains second and available.
+  - Suggested steps: open Profile as guest on desktop and mobile.
+  - Evidence: `progress/PROGRESS-STEP-409.md`; visual capture `mobile-profile-embedded-sign-in-order.png`.
+
+- [x] Signed-in Practice Solo OG/GO progress does not remain visible after sign-out.
+  - Expected: guest Practice Solo after sign-out shows guest-safe state and not the prior account's signed-in Practice progress.
+  - Suggested steps: use a safe test account with Practice Solo OG/GO progress, sign out, and inspect Practice Solo.
+  - Evidence: `progress/PROGRESS-STEP-408.md`.
+
+- [x] Practice Solo GO guest progress does not transfer into a signed-in account.
+  - Expected: signing in after guest Practice Solo GO play does not silently treat the guest GO chain as account-owned progress.
+  - Suggested steps: repeat the Practice OG check for Practice GO.
+  - Evidence: `progress/PROGRESS-STEP-408.md`.
+
+- [x] Practice Solo OG guest progress does not transfer into a signed-in account.
+  - Expected: signing in after guest Practice Solo OG play does not silently treat the guest Practice progress as account-owned progress.
+  - Suggested steps: submit guest Practice Solo OG progress, sign in, and confirm account-scoped Practice state is used.
+  - Evidence: `progress/PROGRESS-STEP-408.md`.
+
+- [x] Cross-browser signed-in Daily Solo persistence follows the account.
+  - Expected: when authenticated cloud sync is available, a safe signed-in account's Daily Solo OG/GO progress can load on another browser without inheriting that browser's guest Daily guesses.
+  - Suggested steps: use two safe browser profiles and one safe test account; keep notes non-secret and do not record raw auth identifiers.
+  - Evidence: `progress/PROGRESS-STEP-405.md` through `progress/PROGRESS-STEP-407.md`.
+  - **NOTE: This works works as intended only if the account has properly synced the progress. Perhaps we can find a way to perform an automatic sync more often? I don’t know what the best approach to this would be, but it does appear to be working as intended. It is just a bit inconvenient that the player must manually sync progress to have it properly persist across browsers.**
+
+- [x] Signed-in Daily Solo GO progress does not remain visible after sign-out.
+  - Expected: after signing out, the guest Daily Solo GO surface shows guest-safe state and does not show the prior account's signed-in Daily GO guesses.
+  - Suggested steps: repeat the Daily OG sign-out boundary check for Daily Solo GO.
+  - Evidence: `progress/PROGRESS-STEP-407.md`; focused Daily account-boundary tests.
+
+- [x] Signed-in Daily Solo OG progress does not remain visible after sign-out.
+  - Expected: after signing out, the guest Daily Solo OG surface shows guest-safe state and does not show the prior account's signed-in Daily OG guesses.
+  - Suggested steps: submit a signed-in Daily Solo OG guess in a safe test account, sign out, and inspect Daily Solo OG as guest.
+  - Evidence: `progress/PROGRESS-STEP-407.md`; focused Daily account-boundary tests.
+
+- [x] Daily Solo GO guest progress does not transfer into a signed-in account.
+  - Expected: if a signed-out guest submits a current Daily Solo GO guess and then signs in, the signed-in account shows account-owned Daily GO progress or an account-safe fresh state, not the guest guess.
+  - Suggested steps: repeat the Daily OG sign-in boundary check for Daily Solo GO.
+  - Evidence: `progress/PROGRESS-STEP-407.md`; `progress/PROGRESS-STEP-411.md`.
+
+- [x] Daily Solo OG guest progress does not transfer into a signed-in account.
+  - Expected: if a signed-out guest submits a current Daily Solo OG guess and then signs in, the signed-in account shows account-owned Daily OG progress or an account-safe fresh state, not the guest guess.
+  - Suggested steps: use a safe test browser profile and safe test account; submit one guest Daily Solo OG guess, sign in, and inspect Daily Solo OG.
+  - Evidence: `progress/PROGRESS-STEP-407.md`; `progress/PROGRESS-STEP-411.md`.
+
 
 ## Optional Nice-To-Check
 
-- [ ] Repeat sign-in/sign-out more than once in the same browser profile.
-  - Expected: Daily and Practice Solo do not drift back into prior-owner state.
-- [ ] Try two browser profiles with different guest Daily guesses before signing into the same safe account.
+- [x] Try two browser profiles with different guest Daily guesses before signing into the same safe account.
   - Expected: neither guest's Daily guesses become account-owned by signing in.
-- [ ] Try Daily Solo from both Calendar and Solo routes.
+- [x] Try Daily Solo from both Calendar and Solo routes.
   - Expected: both entry points use the same scoped Daily persistence behavior.
-- [ ] Review the local-only visual screenshots if available.
+- [x] Review the local-only visual screenshots if available.
   - Expected: each screenshot in `test-results/visual-review/phase-45-stage-45-7/manifest.md` visually matches its scenario description.
+- [x] Repeat sign-in/sign-out more than once in the same browser profile.
+  - Expected: Daily and Practice Solo do not drift back into prior-owner state.
 
 ## Preserved Invariants To Spot-Check
 
-- [ ] Phase 44 private Practice request eligibility, sign-in modal order, header chip removal, Stats placement, Help placeholder, and keyboard centering remain intact.
-- [ ] Phase 43 ranked queue fairness, shell/Home cleanup, Solo/Practice Multiplayer density cleanup, notification comfort, back-to-top behavior, and spectator comfort remain intact.
-- [ ] Phase 42 public stats, admin dashboard, Help/tutorial, browser grant/RLS repairs, and ranked queue flashing repair remain intact.
-- [ ] Phase 41 multiplayer reliability repairs and real E2E harness behavior remain intact.
-- [ ] Phase 40 public profile route/card, clickable safe identity, and private Practice matchmaking boundaries remain intact.
-- [ ] Phase 38 public/guest Practice Live discovery, read-only public spectation, Daily spectator exclusion, and false-only mutation boundaries remain intact.
-- [ ] Phase 31 postgame boundaries remain intact: direct rematches and private requests are Practice-only and do not bypass ranked queue or Daily claim rules.
-- [ ] Phase 30 public leaderboards remain display-only and non-authoritative.
-- [ ] Phase 29 public profile privacy remains default-private and moderated; raw auth IDs/emails/private metadata are not exposed.
-- [ ] Daily Multiplayer remains claim-safe, answer-separated, no-clock, UTC-day keyed, five-letter only, and excluded from public/guest spectator discovery.
-- [ ] Elo algorithm, scoring, timeout, forfeit, GO transition, solved-row hold, keyboard state, Solo Daily fixed-five behavior, and Practice 2-35 word-length rules remain unchanged.
+- [x] Phase 44 private Practice request eligibility, sign-in modal order, header chip removal, Stats placement, Help placeholder, and keyboard centering remain intact.
+- [x] Phase 43 ranked queue fairness, shell/Home cleanup, Solo/Practice Multiplayer density cleanup, notification comfort, back-to-top behavior, and spectator comfort remain intact.
+- [x] Phase 42 public stats, admin dashboard, Help/tutorial, browser grant/RLS repairs, and ranked queue flashing repair remain intact.
+- [x] Phase 41 multiplayer reliability repairs and real E2E harness behavior remain intact.
+- [x] Phase 40 public profile route/card, clickable safe identity, and private Practice matchmaking boundaries remain intact.
+- [x] Phase 38 public/guest Practice Live discovery, read-only public spectation, Daily spectator exclusion, and false-only mutation boundaries remain intact.
+- [x] Phase 31 postgame boundaries remain intact: direct rematches and private requests are Practice-only and do not bypass ranked queue or Daily claim rules.
+- [x] Phase 30 public leaderboards remain display-only and non-authoritative.
+- [x] Phase 29 public profile privacy remains default-private and moderated; raw auth IDs/emails/private metadata are not exposed.
+- [x] Daily Multiplayer remains claim-safe, answer-separated, no-clock, UTC-day keyed, five-letter only, and excluded from public/guest spectator discovery.
+- [x] Elo algorithm, scoring, timeout, forfeit, GO transition, solved-row hold, keyboard state, Solo Daily fixed-five behavior, and Practice 2-35 word-length rules remain unchanged.
 
 ## Known Deferred / Not In Scope
 
@@ -173,5 +174,5 @@ Codex intentionally did not verify:
 
 ## Review Result
 
-- [ ] Any failed item has a follow-up prompt prepared before Phase 46 planning or additional implementation.
-- [ ] Manual review complete.
+- [x] Any failed item has a follow-up prompt prepared before Phase 46 planning or additional implementation.
+- [x] Manual review complete.

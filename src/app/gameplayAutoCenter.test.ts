@@ -3,6 +3,7 @@ import {
   GAMEPLAY_AUTOCENTER_TARGETS,
   getGameplayAutoCenterBlock,
   getGameplayAutoCenterSelector,
+  isGameplayAutoCenterMobileViewport,
   scheduleGameplayAutoCenter,
 } from './gameplayAutoCenter'
 
@@ -84,6 +85,7 @@ describe('scheduleGameplayAutoCenter', () => {
       matchMedia: vi.fn((query: string) => ({ matches: query.includes('max-width') })),
     } as unknown as Window
 
+    expect(isGameplayAutoCenterMobileViewport(windowRef)).toBe(true)
     expect(getGameplayAutoCenterBlock(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard, windowRef)).toBe('end')
     expect(getGameplayAutoCenterBlock(GAMEPLAY_AUTOCENTER_TARGETS.solo, windowRef)).toBe('center')
   })
@@ -120,6 +122,37 @@ describe('scheduleGameplayAutoCenter', () => {
     const { callbacks } = installAutoCenterGlobals({ element, mobile: true })
 
     scheduleGameplayAutoCenter(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard)
+    callbacks[0]?.()
+
+    expect(element.scrollIntoView).toHaveBeenCalledWith({
+      block: 'end',
+      behavior: 'smooth',
+    })
+  })
+
+  it('skips mobile-only keyboard scrolling on larger screens', () => {
+    const element = {
+      focus: vi.fn(),
+      scrollIntoView: vi.fn(),
+    }
+    const { callbacks, querySelector, windowRef } = installAutoCenterGlobals({ element, mobile: false })
+
+    expect(scheduleGameplayAutoCenter(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard, { mobileOnly: true })).toBe(false)
+    expect(windowRef.setTimeout).not.toHaveBeenCalled()
+    expect(callbacks).toHaveLength(0)
+    expect(querySelector).not.toHaveBeenCalled()
+    expect(element.scrollIntoView).not.toHaveBeenCalled()
+  })
+
+  it('allows mobile-only keyboard scrolling on mobile screens', () => {
+    const element = {
+      focus: vi.fn(),
+      scrollIntoView: vi.fn(),
+    }
+    const { callbacks, windowRef } = installAutoCenterGlobals({ element, mobile: true })
+
+    expect(scheduleGameplayAutoCenter(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard, { mobileOnly: true })).toBe(true)
+    expect(windowRef.setTimeout).toHaveBeenCalledTimes(1)
     callbacks[0]?.()
 
     expect(element.scrollIntoView).toHaveBeenCalledWith({

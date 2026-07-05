@@ -1028,7 +1028,7 @@ body {
 
   .brrrdle-solo-gameplay [data-gameplay-autocenter-target='solo-keyboard'] {
     scroll-margin-block-start: 6rem;
-    scroll-margin-block-end: max(0.75rem, env(safe-area-inset-bottom));
+    scroll-margin-block-end: max(2.75rem, calc(env(safe-area-inset-bottom) + 1rem));
   }
 
   .brrrdle-solo-post-guess-controls {

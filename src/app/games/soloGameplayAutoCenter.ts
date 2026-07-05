@@ -1,7 +1,19 @@
 import { GAMEPLAY_AUTOCENTER_TARGETS, scheduleGameplayAutoCenter } from '../gameplayAutoCenter'
 
+export function shouldAutoCenterFreshSoloKeyboard(submittedGuessCount: number, isPlaying: boolean): boolean {
+  return isPlaying && submittedGuessCount === 0
+}
+
 export function shouldAutoCenterSoloKeyboard(previousSubmittedGuessCount: number | undefined, submittedGuessCount: number): boolean {
   return previousSubmittedGuessCount !== undefined && submittedGuessCount > previousSubmittedGuessCount
+}
+
+export function scheduleFreshSoloKeyboardAutoCenter(submittedGuessCount: number, isPlaying: boolean): boolean {
+  if (!shouldAutoCenterFreshSoloKeyboard(submittedGuessCount, isPlaying)) {
+    return false
+  }
+
+  return scheduleGameplayAutoCenter(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard, { mobileOnly: true })
 }
 
 export function scheduleSoloKeyboardAutoCenter(previousSubmittedGuessCount: number | undefined, submittedGuessCount: number): boolean {

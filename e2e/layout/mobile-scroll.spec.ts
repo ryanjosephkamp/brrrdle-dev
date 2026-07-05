@@ -93,4 +93,35 @@ test.describe('mobile scroll and layout regression harness @layout', () => {
     await expectNoHorizontalOverflow(page)
     await expectNoConsoleFailures(consoleFailures)
   })
+
+  test('Solo Practice OG keeps the keyboard visible before the first valid guess', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    await page.goto('/')
+    await navigateToSoloPractice(page)
+    await chooseSoloPracticeMode(page, 'og')
+
+    const soloRegion = page.getByRole('region', { name: /Practice og puzzle/i })
+    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
+    await expect(soloRegion.getByText(/6 attempts remaining/i)).toBeVisible()
+    await expect(keyboard).toBeInViewport({ ratio: 0.9 })
+    await expectNoHorizontalOverflow(page)
+    await expectNoConsoleFailures(consoleFailures)
+  })
+
+  test('Solo Daily GO keeps the keyboard visible before the first valid guess', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: /^Solo$/i }).click()
+    await expect(page.locator('#solo-workspace-title')).toBeVisible()
+    await page.getByRole('tab', { name: /^Daily Solo$/i }).click()
+    const modeGroup = page.getByRole('group', { name: /^Daily Solo mode$/i })
+    await modeGroup.getByRole('button', { name: /^GO$/i }).click()
+
+    const soloRegion = page.getByRole('region', { name: /Daily go chain/i })
+    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
+    await expect(soloRegion.getByText(/6 attempts remaining/i)).toBeVisible()
+    await expect(keyboard).toBeInViewport({ ratio: 0.9 })
+    await expectNoHorizontalOverflow(page)
+    await expectNoConsoleFailures(consoleFailures)
+  })
 })

@@ -1,7 +1,18 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import type { GameHistoryEntry } from '../account'
+import { createResumeSlot, type GameHistoryEntry, type ResumeSlotCollection } from '../account'
 import { SoloWorkspace } from './SoloWorkspace'
+
+function ogSession() {
+  return {
+    answer: 'crane',
+    continuationCount: 0,
+    currentGuess: '',
+    guesses: ['slate'],
+    hardMode: false,
+    maxAttempts: 6,
+  }
+}
 
 describe('SoloWorkspace', () => {
   it('renders workspace attention cues in Solo subtabs', () => {
@@ -27,7 +38,6 @@ describe('SoloWorkspace', () => {
         onOpenHistory={() => undefined}
         onPracticeModeChange={() => undefined}
         onResumeGame={() => undefined}
-        onSelectActiveGame={() => undefined}
         onSubtabChange={() => undefined}
         practiceMode="og"
         renderDailyGame={() => <div>Daily game</div>}
@@ -83,7 +93,6 @@ describe('SoloWorkspace', () => {
         onOpenHistory={() => undefined}
         onPracticeModeChange={() => undefined}
         onResumeGame={() => undefined}
-        onSelectActiveGame={() => undefined}
         onSubtabChange={() => undefined}
         practiceMode="go"
         renderDailyGame={() => <div>Daily game</div>}
@@ -101,7 +110,6 @@ describe('SoloWorkspace', () => {
         onOpenHistory={() => undefined}
         onPracticeModeChange={() => undefined}
         onResumeGame={() => undefined}
-        onSelectActiveGame={() => undefined}
         onSubtabChange={() => undefined}
         practiceMode="go"
         renderDailyGame={() => <div>Daily game</div>}
@@ -118,5 +126,40 @@ describe('SoloWorkspace', () => {
     expect(overviewHtml).not.toContain('<table')
     expect(overviewHtml).not.toContain('overflow-x-auto')
     expect(overviewHtml).not.toContain('min-w-[42rem]')
+  })
+
+  it('keeps active Solo cards focused on resuming instead of selecting', () => {
+    const resumeSlots: ResumeSlotCollection = {
+      'daily-og': createResumeSlot({
+        difficulty: 'expert',
+        mode: 'og',
+        scope: 'daily',
+        serializedSession: ogSession(),
+        wordLength: 5,
+      }, '2026-07-05T19:00:00.000Z'),
+    }
+
+    const html = renderToStaticMarkup(
+      <SoloWorkspace
+        activeSubtab="overview"
+        dailyMode="og"
+        history={[]}
+        onDailyModeChange={() => undefined}
+        onOpenCalendar={() => undefined}
+        onOpenHistory={() => undefined}
+        onPracticeModeChange={() => undefined}
+        onResumeGame={() => undefined}
+        onSubtabChange={() => undefined}
+        practiceMode="og"
+        renderDailyGame={() => <div>Daily game</div>}
+        renderPracticeGame={() => <div>Practice game</div>}
+        resumeSlots={resumeSlots}
+      />,
+    )
+
+    expect(html).toContain('Resume OG')
+    expect(html).not.toContain('Select')
+    expect(html).not.toContain('Selected')
+    expect(html).not.toContain('aria-pressed')
   })
 })

@@ -9,6 +9,10 @@ export const GAMEPLAY_AUTOCENTER_TARGETS = {
 export type GameplayAutoCenterTarget =
   (typeof GAMEPLAY_AUTOCENTER_TARGETS)[keyof typeof GAMEPLAY_AUTOCENTER_TARGETS]
 
+interface GameplayAutoCenterOptions {
+  readonly mobileOnly?: boolean
+}
+
 export function getGameplayAutoCenterSelector(target: GameplayAutoCenterTarget): string {
   return `[${GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE}="${target}"]`
 }
@@ -22,18 +26,26 @@ function getScrollBehavior(windowRef: Window): ScrollBehavior {
   return windowRef.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 }
 
+export function isGameplayAutoCenterMobileViewport(windowRef: Window): boolean {
+  return windowRef.matchMedia?.('(max-width: 640px)').matches ?? false
+}
+
 export function getGameplayAutoCenterBlock(target: GameplayAutoCenterTarget, windowRef: Window): ScrollLogicalPosition {
-  return target === GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard && windowRef.matchMedia?.('(max-width: 640px)').matches
+  return target === GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard && isGameplayAutoCenterMobileViewport(windowRef)
     ? 'end'
     : 'center'
 }
 
-export function scheduleGameplayAutoCenter(target: GameplayAutoCenterTarget): boolean {
+export function scheduleGameplayAutoCenter(target: GameplayAutoCenterTarget, options: GameplayAutoCenterOptions = {}): boolean {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return false
   }
 
   const windowRef = window
+  if (options.mobileOnly && !isGameplayAutoCenterMobileViewport(windowRef)) {
+    return false
+  }
+
   const documentRef = document
   windowRef.setTimeout(() => {
     const element = documentRef.querySelector<HTMLElement>(getGameplayAutoCenterSelector(target))

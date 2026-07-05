@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 44 is complete, backed up, merged, and manually reviewed with a failed Daily Solo account-boundary item plus smaller follow-up observations. Use the Phase 45 planning brief, unified specification, and implementation plan before beginning Phase 45 execution.
+7. The active or next phase plan. Phase 45 is complete, backed up, merged, and manually reviewed with follow-up observations around signed-in Solo sync freshness, the Solo Overview active-game `Select` button, and mobile Solo pre-guess keyboard visibility. Use the Phase 46 planning brief before creating the unified Phase 46 specification.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -44,6 +44,7 @@ For normal future work, read:
 - `planning/phase-43/`: Phase 43 planning brief, implementation plan, intake, recommendation/routing artifacts, changelog, and review checklist for current-surface UX cleanup, ranked queue follow-up, gameplay comfort, and later-phase routing.
 - `planning/phase-44/`: Phase 44 intake/routing document, planning brief, implementation plan, changelog, and review checklist for account-scoped local state isolation, guest/account boundary repair, private Practice request eligibility follow-up, ranked queue review, and small Phase 43 manual-review UI follow-ups.
 - `planning/phase-45/`: Phase 45 planning brief and implementation plan for urgent Daily Solo account/cloud persistence boundaries, cross-browser guest/auth repair planning, Profile embedded sign-in order follow-up, and narrow mobile Solo scaling follow-up.
+- `planning/phase-46/`: Phase 46 planning brief for signed-in Solo Daily/Practice automatic sync and anti-cheat audit, source-only versus Supabase/storage-contract decisioning, Solo Overview active-game `Select` button routing, and narrow mobile Solo pre-guess keyboard visibility follow-up.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.

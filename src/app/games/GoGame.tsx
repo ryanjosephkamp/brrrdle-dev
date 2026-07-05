@@ -35,7 +35,7 @@ import { classNames } from '../../ui/classNames'
 import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../gameplayAutoCenter'
 import { CustomizeMenu } from './CustomizeMenu'
 import { getSoloGoSolvedTransition, type SoloGoSolvedTransition } from './goTransitions'
-import { scheduleSoloKeyboardAutoCenter } from './soloGameplayAutoCenter'
+import { scheduleFreshSoloKeyboardAutoCenter, scheduleSoloKeyboardAutoCenter } from './soloGameplayAutoCenter'
 import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
 
 interface GoGameProps {
@@ -307,6 +307,10 @@ function GoGameSession({
     previousSubmittedGuessCountRef.current = submittedGuessCount
     scheduleSoloKeyboardAutoCenter(previousSubmittedGuessCount, submittedGuessCount)
   }, [submittedGuessCount])
+
+  useEffect(() => {
+    scheduleFreshSoloKeyboardAutoCenter(submittedGuessCount, session.status === 'playing' && !isSolvedTransitionActive)
+  }, [isSolvedTransitionActive, session.status, submittedGuessCount])
 
   useEffect(() => {
     if (session.status === 'playing') {
