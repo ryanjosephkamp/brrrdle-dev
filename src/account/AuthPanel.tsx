@@ -25,7 +25,7 @@ export function AuthPanel({
   onRequestPasswordReset,
   onSignOut,
 }: AuthPanelProps) {
-  const [method, setMethod] = useState<AuthMethod>('magic-link')
+  const [method, setMethod] = useState<AuthMethod>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -56,16 +56,6 @@ export function AuthPanel({
 
       <div role="tablist" aria-label="Sign-in method" className="flex flex-wrap gap-2">
         <Button
-          aria-selected={method === 'magic-link'}
-          isActive={method === 'magic-link'}
-          onClick={() => setMethod('magic-link')}
-          role="tab"
-          size="sm"
-          variant="secondary"
-        >
-          Magic link
-        </Button>
-        <Button
           aria-selected={method === 'password'}
           isActive={method === 'password'}
           onClick={() => setMethod('password')}
@@ -74,6 +64,16 @@ export function AuthPanel({
           variant="secondary"
         >
           Email + password
+        </Button>
+        <Button
+          aria-selected={method === 'magic-link'}
+          isActive={method === 'magic-link'}
+          onClick={() => setMethod('magic-link')}
+          role="tab"
+          size="sm"
+          variant="secondary"
+        >
+          Magic link
         </Button>
       </div>
 

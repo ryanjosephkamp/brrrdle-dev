@@ -53,6 +53,7 @@ interface GoGameProps {
   readonly onAdvancePracticeSeed?: () => void
   readonly practiceSeedCounter?: number
   readonly practiceSeedUserId?: string
+  readonly progressOwnerKey?: string
   readonly scope: 'daily' | 'practice'
   /**
    * Phase 22 Addendum (§27.10) — when set, this daily renders a specific *past*
@@ -75,7 +76,16 @@ const tileStateClasses: Record<GridTileState, string> = {
   present: 'border-amber-300/70 bg-amber-300/20 text-amber-50',
 }
 
+function canRestoreDailySession(serialized: ReturnType<typeof serializeGoSession>, setup: GoSessionSetup): boolean {
+  return serialized.puzzles.length === setup.puzzles.length
+    && serialized.puzzles.every((puzzle, index) => puzzle.answer === setup.puzzles[index]?.answer)
+}
+
 function createInitialDailySession(setup: ReturnType<typeof createDailyGoSetup>, pastDailyDateKey?: string, hardMode = false): GoSessionState {
+  if (!pastDailyDateKey) {
+    return createGoSession(setup, hardMode)
+  }
+
   const stored = loadDailyGoStoredSession(undefined, pastDailyDateKey)
   if (
     stored &&
@@ -215,7 +225,7 @@ function GoGameSession({
   readonly setup: GoSessionSetup
 }) {
   const [session, setSession] = useState(() => {
-    if (restoreFrom) {
+    if (restoreFrom && (scope !== 'daily' || canRestoreDailySession(restoreFrom, setup))) {
       return restoreGoSession(restoreFrom, setup.validGuesses)
     }
     return scope === 'daily' ? createInitialDailySession(setup, pastDailyDateKey, defaultHardMode) : createGoSession(setup, defaultHardMode)
@@ -253,7 +263,7 @@ function GoGameSession({
     : session.puzzles.some((puzzle) => puzzle.guesses.length > 0)
 
   useEffect(() => {
-    if (scope !== 'daily' || !setup.dateKey) {
+    if (scope !== 'daily' || !setup.dateKey || !pastDailyDateKey) {
       return
     }
 
@@ -409,9 +419,34 @@ function GoGameSession({
           ? `The chain ended on puzzle ${session.currentPuzzleIndex + 1}. The answer was ${currentPuzzle.answer.toLocaleUpperCase('en-US')}.`
           : `The chain ended on puzzle ${session.currentPuzzleIndex + 1}. Continue this puzzle or reveal the answer to finish it.`
         : `Puzzle ${session.currentPuzzleIndex + 1} of ${session.puzzles.length}; ${currentPuzzle.maxAttempts - currentPuzzle.guesses.length} attempts remaining.`
+  const terminalControl = canPayToContinue ? (
+    <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-50">
+      <p className="font-bold">Pay to Continue</p>
+      <p>Spend {continuationCost} coins for one more attempt on puzzle {session.currentPuzzleIndex + 1}. Current balance: {coins} coins.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button disabled={!canAffordContinuation} onClick={handlePayToContinue} variant="secondary">
+          {canAffordContinuation ? `Pay ${continuationCost} coins to continue` : `Need ${continuationCost} coins to continue`}
+        </Button>
+        <Button onClick={handleRevealAfterLoss} variant="ghost">Reveal answer instead</Button>
+      </div>
+      {continuationMessage ? <p className="mt-2 font-semibold">{continuationMessage}</p> : null}
+    </div>
+  ) : continuationMessage ? (
+    <div className="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm font-semibold text-cyan-50">{continuationMessage}</div>
+  ) : null
+  const revealControl = canReveal ? (
+    <div className="rounded-2xl border border-rose-300/30 bg-rose-300/10 p-4 text-sm leading-6 text-rose-50">
+      <p className="font-bold">Give Up / Reveal Answer</p>
+      <p>Reveal puzzle {session.currentPuzzleIndex + 1} for {revealCost} coins. This counts as a loss for this puzzle. Current balance: {coins} coins.</p>
+      <Button onClick={handleReveal} variant="secondary">
+        Reveal answer ({revealCost} coins)
+      </Button>
+    </div>
+  ) : null
+  const hasPostGuessControls = Boolean(terminalControl || revealControl)
 
   return (
-    <section className="space-y-5" aria-labelledby="go-game-title">
+    <section className="brrrdle-solo-gameplay space-y-5" aria-labelledby="go-game-title">
       <div className="space-y-2">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">go {scope}</p>
         <h2 id="go-game-title" className="text-3xl font-bold text-white">
@@ -490,37 +525,20 @@ function GoGameSession({
           {currentPuzzle.lastValidation ? <p className="mt-1 min-h-6 font-semibold text-amber-100">{currentPuzzle.lastValidation.message}</p> : <p aria-hidden="true" className="mt-1 min-h-6" />}
         </div>
 
-        {canPayToContinue ? (
-          <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-50">
-            <p className="font-bold">Pay to Continue</p>
-            <p>Spend {continuationCost} coins for one more attempt on puzzle {session.currentPuzzleIndex + 1}. Current balance: {coins} coins.</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button disabled={!canAffordContinuation} onClick={handlePayToContinue} variant="secondary">
-                {canAffordContinuation ? `Pay ${continuationCost} coins to continue` : `Need ${continuationCost} coins to continue`}
-              </Button>
-              <Button onClick={handleRevealAfterLoss} variant="ghost">Reveal answer instead</Button>
+        <div className="brrrdle-solo-post-guess-controls flex flex-col gap-4">
+          <div
+            className={classNames(hasPostGuessControls ? 'order-1 md:order-2' : undefined)}
+            tabIndex={-1}
+            {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard }}
+          >
+            <Keyboard disabled={session.status !== 'playing' || isSolvedTransitionActive} letterStates={letterStates} onInput={handleInput} />
+          </div>
+          {hasPostGuessControls ? (
+            <div className="order-2 flex flex-col gap-4 md:order-1">
+              {terminalControl}
+              {revealControl}
             </div>
-            {continuationMessage ? <p className="mt-2 font-semibold">{continuationMessage}</p> : null}
-          </div>
-        ) : continuationMessage ? (
-          <div className="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm font-semibold text-cyan-50">{continuationMessage}</div>
-        ) : null}
-
-        {canReveal ? (
-          <div className="rounded-2xl border border-rose-300/30 bg-rose-300/10 p-4 text-sm leading-6 text-rose-50">
-            <p className="font-bold">Give Up / Reveal Answer</p>
-            <p>Reveal puzzle {session.currentPuzzleIndex + 1} for {revealCost} coins. This counts as a loss for this puzzle. Current balance: {coins} coins.</p>
-            <Button onClick={handleReveal} variant="secondary">
-              Reveal answer ({revealCost} coins)
-            </Button>
-          </div>
-        ) : null}
-
-        <div
-          tabIndex={-1}
-          {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard }}
-        >
-          <Keyboard disabled={session.status !== 'playing' || isSolvedTransitionActive} letterStates={letterStates} onInput={handleInput} />
+          ) : null}
         </div>
 
 
@@ -575,8 +593,9 @@ function GoGameSession({
   )
 }
 
-export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultGoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSaveDifficultyDefault, onSaveGoPuzzleCountDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, scope, pastDailyDateKey, onMarkDailyUnlocked }: GoGameProps) {
+export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultGoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSaveDifficultyDefault, onSaveGoPuzzleCountDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: GoGameProps) {
   const [initialPracticeResume] = useState(() => initialResume?.scope === 'practice' ? initialResume : undefined)
+  const initialDailyResume = initialResume?.scope === 'daily' ? initialResume : undefined
   // Practice resume captures are written on every input. Treat the incoming
   // resume slot as a one-shot restore source so those live captures do not
   // remount the active chain and replay submitted-row animations.
@@ -587,7 +606,9 @@ export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
   const [difficulty, setDifficulty] = useState<DifficultyTier>(resumePractice?.difficulty ?? defaultDifficulty)
   const [goPuzzleCount, setGoPuzzleCount] = useState<GoPuzzleCount>(resumePractice?.goPuzzleCount ?? defaultGoPuzzleCount)
   const [resumeConsumed, setResumeConsumed] = useState(false)
-  const activeResume = resumePractice && !resumeConsumed ? resumePractice : undefined
+  const activeResume = scope === 'practice'
+    ? resumePractice && !resumeConsumed ? resumePractice : undefined
+    : initialDailyResume
   const practiceSeed = practiceSeedUserId
     ? createAccountPracticeSeed('go', practiceSeedUserId, practiceSeedCounter)
     : localPracticeSeed
@@ -600,8 +621,8 @@ export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
     [dailyDate, difficulty, goPuzzleCount, practiceLength, practiceSeed, scope],
   )
   const sessionKey = scope === 'daily'
-    ? `${scope}-${difficulty}-${goPuzzleCount}-${setup.dateKey}`
-    : `${scope}-${difficulty}-${goPuzzleCount}-${practiceLength}-${practiceSeed}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
+    ? `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${goPuzzleCount}-${setup.dateKey}`
+    : `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${goPuzzleCount}-${practiceLength}-${practiceSeed}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
 
   return (
     <GoGameSession

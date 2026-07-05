@@ -138,6 +138,10 @@ function isSameResumeSlot(left: ResumeSlot | undefined, right: ResumeSlot): bool
     && JSON.stringify(left.serializedSession) === JSON.stringify(right.serializedSession)
 }
 
+function getProgressOwnerKey(scope: ActiveProgressScope): string {
+  return scope.kind === 'authenticated' ? `account:${scope.userId}` : scope.kind
+}
+
 function PracticeGameSwitcher({
   multiplayer,
   coins,
@@ -158,6 +162,7 @@ function PracticeGameSwitcher({
   onOpenEloAbout,
   practiceMode,
   practiceSeeds,
+  progressOwnerKey,
   postgameActions,
   privateMatchActions,
   participantIdentityActions,
@@ -186,6 +191,7 @@ function PracticeGameSwitcher({
   readonly onSpendCoins: (amount: number) => boolean
   readonly practiceMode: PracticeMode
   readonly practiceSeeds: PracticeSeedState
+  readonly progressOwnerKey: string
   readonly postgameActions?: PracticeRematchActions
   readonly privateMatchActions?: PrivateMatchActions
   readonly participantIdentityActions?: ParticipantIdentityActions
@@ -205,8 +211,8 @@ function PracticeGameSwitcher({
         <Button onClick={() => onPracticeModeChange('go')} variant={practiceMode === 'go' ? 'primary' : 'secondary'}>go practice</Button>
       </div>
       {practiceMode === 'og'
-        ? <OgGame coins={coins} defaultDifficulty={defaultDifficulty} defaultHardMode={defaultHardMode} initialResume={practiceOgResume?.mode === 'og' ? practiceOgResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('og')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.og} practiceSeedUserId={viewerUserId} scope="practice" />
-        : <GoGame coins={coins} defaultDifficulty={defaultDifficulty} defaultGoPuzzleCount={defaultGoPuzzleCount} defaultHardMode={defaultHardMode} initialResume={practiceGoResume?.mode === 'go' ? practiceGoResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('go')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.go} practiceSeedUserId={viewerUserId} scope="practice" />}
+        ? <OgGame key={`practice-og-${progressOwnerKey}`} coins={coins} defaultDifficulty={defaultDifficulty} defaultHardMode={defaultHardMode} initialResume={practiceOgResume?.mode === 'og' ? practiceOgResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('og')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.og} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />
+        : <GoGame key={`practice-go-${progressOwnerKey}`} coins={coins} defaultDifficulty={defaultDifficulty} defaultGoPuzzleCount={defaultGoPuzzleCount} defaultHardMode={defaultHardMode} initialResume={practiceGoResume?.mode === 'go' ? practiceGoResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('go')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.go} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />}
       <MultiplayerPanel
         authStatus={authStatus}
         competitiveState={competitiveMultiplayer}
@@ -490,6 +496,7 @@ function RoutePanel({
   publicProfileBusy,
   publicProfileMessage,
   resumeSlots,
+  progressOwnerKey,
   soundEnabled,
   onToggleSound,
   onUpdateSettings,
@@ -556,6 +563,7 @@ function RoutePanel({
   readonly selectedPublicProfileId?: string
   readonly focusedLiveSpectatorGameId?: string
   readonly resumeSlots: ResumeSlotCollection
+  readonly progressOwnerKey: string
   readonly route: AppRoute
   readonly onSelectRoute: (routeId: AppRouteId) => void
   readonly soloSubtab: SoloSubtabId
@@ -590,6 +598,8 @@ function RoutePanel({
   readonly publicSiteStatsRepository?: PublicSiteStatsRepository
   readonly adminDashboardRepository?: AdminOperationalDashboardRepository
 }) {
+  const dailyOgResume = resumeSlots['daily-og']
+  const dailyGoResume = resumeSlots['daily-go']
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
     ? createMultiplayerProfileSummary(authState.user.profile, 'Player')
     : undefined
@@ -602,11 +612,13 @@ function RoutePanel({
         coins={guestProgress.progression.coins}
         defaultDifficulty={guestProgress.settings.difficultyDefault}
         defaultHardMode={guestProgress.settings.hardModeDefault}
+        initialResume={dailyOgResume?.mode === 'og' ? dailyOgResume : undefined}
         keyboardDisabled={keyboardDisabled}
         onGameComplete={onGameComplete}
         onResumeCapture={onResumeCapture}
         onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
         onSpendCoins={onSpendCoins}
+        progressOwnerKey={progressOwnerKey}
         scope="daily"
       />
     )
@@ -616,18 +628,21 @@ function RoutePanel({
         defaultDifficulty={guestProgress.settings.difficultyDefault}
         defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
         defaultHardMode={guestProgress.settings.hardModeDefault}
+        initialResume={dailyGoResume?.mode === 'go' ? dailyGoResume : undefined}
         keyboardDisabled={keyboardDisabled}
         onGameComplete={onGameComplete}
         onResumeCapture={onResumeCapture}
         onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
         onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })}
         onSpendCoins={onSpendCoins}
+        progressOwnerKey={progressOwnerKey}
         scope="daily"
       />
     )
   const renderSoloPracticeGame = (mode: SoloMode) => mode === 'og'
     ? (
       <OgGame
+        key={`solo-practice-og-${progressOwnerKey}`}
         coins={guestProgress.progression.coins}
         defaultDifficulty={guestProgress.settings.difficultyDefault}
         defaultHardMode={guestProgress.settings.hardModeDefault}
@@ -640,11 +655,13 @@ function RoutePanel({
         onSpendCoins={onSpendCoins}
         practiceSeedCounter={guestProgress.practiceSeeds.og}
         practiceSeedUserId={authState.user?.id}
+        progressOwnerKey={progressOwnerKey}
         scope="practice"
       />
     )
     : (
       <GoGame
+        key={`solo-practice-go-${progressOwnerKey}`}
         coins={guestProgress.progression.coins}
         defaultDifficulty={guestProgress.settings.difficultyDefault}
         defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
@@ -659,6 +676,7 @@ function RoutePanel({
         onSpendCoins={onSpendCoins}
         practiceSeedCounter={guestProgress.practiceSeeds.go}
         practiceSeedUserId={authState.user?.id}
+        progressOwnerKey={progressOwnerKey}
         scope="practice"
       />
     )
@@ -736,6 +754,8 @@ function RoutePanel({
         onResumeCapture={onResumeCapture}
         onSpendCoins={onSpendCoins}
         onUpdateSettings={onUpdateSettings}
+        progressOwnerKey={progressOwnerKey}
+        resumeSlots={resumeSlots}
         onMultiplayerChange={onMultiplayerChange}
         onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange}
         multiplayerDailyDateKey={multiplayerDailyDateKey}
@@ -771,15 +791,15 @@ function RoutePanel({
   }
 
   if (route.id === 'og-daily') {
-    return <OgGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSpendCoins={onSpendCoins} scope="daily" />
+    return <OgGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultHardMode={guestProgress.settings.hardModeDefault} initialResume={dailyOgResume?.mode === 'og' ? dailyOgResume : undefined} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSpendCoins={onSpendCoins} progressOwnerKey={progressOwnerKey} scope="daily" />
   }
 
   if (route.id === 'go-daily') {
-    return <GoGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} scope="daily" />
+    return <GoGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} initialResume={dailyGoResume?.mode === 'go' ? dailyGoResume : undefined} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} progressOwnerKey={progressOwnerKey} scope="daily" />
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} privateMatchActions={privateMatchActions} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
+    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} privateMatchActions={privateMatchActions} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} progressOwnerKey={progressOwnerKey} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
   }
 
   if (route.id === 'multiplayer') {
@@ -956,6 +976,7 @@ function AppInner() {
   const [initialMultiplayerSeed] = useState(() => guestProgress.multiplayer)
   const supabaseClient = useMemo(() => createBrrrdleSupabaseClient(), [])
   const [authState, setAuthState] = useState<AuthState>(() => supabaseClient ? { status: 'anonymous' } : { status: 'unconfigured' })
+  const [activeProgressScope, setActiveProgressScope] = useState<ActiveProgressScope>(() => getProgressScopeForAuthState(authState))
   const authenticatedMultiplayerUserId = authState.status === 'authenticated' && authState.user ? authState.user.id : undefined
   const multiplayerRepository = useMemo<MultiplayerRepository>(
     () => authenticatedMultiplayerUserId && supabaseClient
@@ -1021,7 +1042,7 @@ function AppInner() {
   const lastBrowserNavigationViewStateRef = useRef<BrowserNavigationViewState | undefined>(undefined)
   const guestProgressRef = useRef(guestProgress)
   const authStateRef = useRef(authState)
-  const activeProgressScopeRef = useRef<ActiveProgressScope>(getProgressScopeForAuthState(authState))
+  const activeProgressScopeRef = useRef<ActiveProgressScope>(activeProgressScope)
   const authHydrationRequestRef = useRef(0)
   const persistActiveProgress = useCallback((progress: GuestProgressState) => {
     if (shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
@@ -1035,6 +1056,7 @@ function AppInner() {
   }, [])
   const applyScopedProgress = useCallback((progress: GuestProgressState, scope: ActiveProgressScope) => {
     activeProgressScopeRef.current = scope
+    setActiveProgressScope(scope)
     guestProgressRef.current = progress
     setGuestProgress(progress)
     setMultiplayer(progress.multiplayer ?? createEmptyMultiplayerState())
@@ -1046,6 +1068,7 @@ function AppInner() {
   const liveSpectatorSurfaceActive = activeRouteId === 'multiplayer'
     && (multiplayerLiveSurfaceActive || Boolean(focusedLiveSpectatorGameId))
   const resumeSlots = useMemo(() => normalizeResumeSlots(guestProgress.resumeSlots), [guestProgress.resumeSlots])
+  const activeProgressOwnerKey = getProgressOwnerKey(activeProgressScope)
   const isAdmin = authState.user?.roles.includes('admin') ?? false
   const prismRoutes = useMemo(() => getPrimaryNavigationRoutes(isAdmin), [isAdmin])
   const [calendarLaunch, setCalendarLaunch] = useState<CalendarLaunchRequest | null>(null)
@@ -2424,6 +2447,7 @@ function AppInner() {
             publicProfileMessage={publicProfileMessage}
             participantIdentityActions={multiplayerRepository}
             rankedQueueActions={multiplayerRepository}
+            progressOwnerKey={activeProgressOwnerKey}
             multiplayerSubtab={multiplayerSubtab}
             resumeSlots={resumeSlots}
             route={activeRoute}

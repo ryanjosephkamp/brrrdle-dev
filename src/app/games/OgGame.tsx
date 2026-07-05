@@ -46,6 +46,7 @@ interface OgGameProps {
   readonly onAdvancePracticeSeed?: () => void
   readonly practiceSeedCounter?: number
   readonly practiceSeedUserId?: string
+  readonly progressOwnerKey?: string
   readonly scope: 'daily' | 'practice'
   /**
    * Phase 22 Addendum (§27.10) — when set, this daily renders a specific *past*
@@ -70,7 +71,15 @@ const tileStateClasses: Record<GridTileState, string> = {
   present: 'border-amber-300/70 bg-amber-300/20 text-amber-50',
 }
 
+function canRestoreDailySession(serialized: ReturnType<typeof serializeOgSession>, setup: OgPuzzleSetup): boolean {
+  return serialized.answer === setup.answer && serialized.answer.length === setup.wordLength
+}
+
 function createInitialDailySession(setup: ReturnType<typeof createDailyOgSetup>, pastDailyDateKey?: string, hardMode = false): PuzzleSessionState {
+  if (!pastDailyDateKey) {
+    return createOgSession(setup, hardMode)
+  }
+
   const stored = loadDailyOgStoredSession(undefined, pastDailyDateKey)
   if (stored && stored.dateKey === setup.dateKey && stored.session.answer === setup.answer) {
     return restoreOgSession(stored.session, setup.validGuesses)
@@ -192,7 +201,7 @@ function OgGameSession({
   readonly setup: OgPuzzleSetup
 }) {
   const [session, setSession] = useState(() => {
-    if (restoreFrom) {
+    if (restoreFrom && (scope !== 'daily' || canRestoreDailySession(restoreFrom, setup))) {
       return restoreOgSession(restoreFrom, setup.validGuesses)
     }
     return scope === 'daily' ? createInitialDailySession(setup, pastDailyDateKey, defaultHardMode) : createOgSession(setup, defaultHardMode)
@@ -212,7 +221,7 @@ function OgGameSession({
   const canReveal = scope === 'practice' && session.status === 'playing' && session.guesses.length > 0
 
   useEffect(() => {
-    if (scope !== 'daily' || !setup.dateKey) {
+    if (scope !== 'daily' || !setup.dateKey || !pastDailyDateKey) {
       return
     }
 
@@ -356,9 +365,38 @@ function OgGameSession({
         ? `Out of attempts. The answer was ${session.answer.toLocaleUpperCase('en-US')}.`
         : 'Out of attempts. Continue this puzzle or reveal the answer to finish it.'
       : `${session.maxAttempts - session.guesses.length} attempts remaining.`
+  const terminalControl = session.status === 'lost'
+    ? canPayToContinue ? (
+      <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-50">
+        <p className="font-bold">Pay to Continue</p>
+        <p>Spend {continuationCost} coins for one more attempt. Current balance: {coins} coins.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button disabled={!canAffordContinuation} onClick={handlePayToContinue} variant="secondary">
+            {canAffordContinuation ? `Pay ${continuationCost} coins to continue` : `Need ${continuationCost} coins to continue`}
+          </Button>
+          <Button onClick={handleRevealAfterLoss} variant="ghost">Reveal answer instead</Button>
+        </div>
+        {continuationMessage ? <p className="mt-2 font-semibold">{continuationMessage}</p> : null}
+      </div>
+    ) : continuationMessage ? (
+      <div className="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm font-semibold text-cyan-50">{continuationMessage}</div>
+    ) : null
+    : continuationMessage ? (
+      <div className="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm font-semibold text-cyan-50">{continuationMessage}</div>
+    ) : null
+  const revealControl = canReveal ? (
+    <div className="rounded-2xl border border-rose-300/30 bg-rose-300/10 p-4 text-sm leading-6 text-rose-50">
+      <p className="font-bold">Give Up / Reveal Answer</p>
+      <p>Reveal this answer for {continuationCost} coins. This counts as a loss. Current balance: {coins} coins.</p>
+      <Button onClick={handleReveal} variant="secondary">
+        Reveal answer ({continuationCost} coins)
+      </Button>
+    </div>
+  ) : null
+  const hasPostGuessControls = Boolean(terminalControl || revealControl)
 
   return (
-    <section className="space-y-5" aria-labelledby="og-game-title">
+    <section className="brrrdle-solo-gameplay space-y-5" aria-labelledby="og-game-title">
       <div className="space-y-2">
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">og {scope}</p>
         <h2 id="og-game-title" className="text-3xl font-bold text-white">
@@ -416,41 +454,20 @@ function OgGameSession({
           {session.lastValidation ? <p className="mt-1 min-h-6 font-semibold text-amber-100">{session.lastValidation.message}</p> : <p aria-hidden="true" className="mt-1 min-h-6" />}
         </div>
 
-        {session.status === 'lost' ? (
-          canPayToContinue ? (
-            <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-50">
-              <p className="font-bold">Pay to Continue</p>
-              <p>Spend {continuationCost} coins for one more attempt. Current balance: {coins} coins.</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button disabled={!canAffordContinuation} onClick={handlePayToContinue} variant="secondary">
-                  {canAffordContinuation ? `Pay ${continuationCost} coins to continue` : `Need ${continuationCost} coins to continue`}
-                </Button>
-                <Button onClick={handleRevealAfterLoss} variant="ghost">Reveal answer instead</Button>
-              </div>
-              {continuationMessage ? <p className="mt-2 font-semibold">{continuationMessage}</p> : null}
-            </div>
-          ) : continuationMessage ? (
-            <div className="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm font-semibold text-cyan-50">{continuationMessage}</div>
-          ) : null
-        ) : continuationMessage ? (
-          <div className="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm font-semibold text-cyan-50">{continuationMessage}</div>
-        ) : null}
-
-        {canReveal ? (
-          <div className="rounded-2xl border border-rose-300/30 bg-rose-300/10 p-4 text-sm leading-6 text-rose-50">
-            <p className="font-bold">Give Up / Reveal Answer</p>
-            <p>Reveal this answer for {continuationCost} coins. This counts as a loss. Current balance: {coins} coins.</p>
-            <Button onClick={handleReveal} variant="secondary">
-              Reveal answer ({continuationCost} coins)
-            </Button>
+        <div className="brrrdle-solo-post-guess-controls flex flex-col gap-4">
+          <div
+            className={classNames(hasPostGuessControls ? 'order-1 md:order-2' : undefined)}
+            tabIndex={-1}
+            {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard }}
+          >
+            <Keyboard disabled={session.status !== 'playing'} letterStates={letterStates} onInput={handleInput} />
           </div>
-        ) : null}
-
-        <div
-          tabIndex={-1}
-          {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard }}
-        >
-          <Keyboard disabled={session.status !== 'playing'} letterStates={letterStates} onInput={handleInput} />
+          {hasPostGuessControls ? (
+            <div className="order-2 flex flex-col gap-4 md:order-1">
+              {terminalControl}
+              {revealControl}
+            </div>
+          ) : null}
         </div>
 
 
@@ -480,8 +497,9 @@ function OgGameSession({
   )
 }
 
-export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSaveDifficultyDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, scope, pastDailyDateKey, onMarkDailyUnlocked }: OgGameProps) {
+export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSaveDifficultyDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: OgGameProps) {
   const [initialPracticeResume] = useState(() => initialResume?.scope === 'practice' ? initialResume : undefined)
+  const initialDailyResume = initialResume?.scope === 'daily' ? initialResume : undefined
   // Practice resume captures are written on every input. Treat the incoming
   // resume slot as a one-shot restore source so those live captures do not
   // remount the active puzzle and replay submitted-row animations.
@@ -491,7 +509,9 @@ export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
   const [localPracticeSeed, setLocalPracticeSeed] = useState(0)
   const [difficulty, setDifficulty] = useState<DifficultyTier>(resumePractice?.difficulty ?? defaultDifficulty)
   const [resumeConsumed, setResumeConsumed] = useState(false)
-  const activeResume = resumePractice && !resumeConsumed ? resumePractice : undefined
+  const activeResume = scope === 'practice'
+    ? resumePractice && !resumeConsumed ? resumePractice : undefined
+    : initialDailyResume
   const practiceSeed = practiceSeedUserId
     ? createAccountPracticeSeed('og', practiceSeedUserId, practiceSeedCounter)
     : localPracticeSeed
@@ -504,8 +524,8 @@ export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
     [dailyDate, difficulty, practiceLength, practiceSeed, scope],
   )
   const sessionKey = scope === 'daily'
-    ? `${scope}-${difficulty}-${setup.dateKey}`
-    : `${scope}-${difficulty}-${practiceLength}-${practiceSeed}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
+    ? `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${setup.dateKey}`
+    : `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${practiceLength}-${practiceSeed}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
 
   return (
     <OgGameSession

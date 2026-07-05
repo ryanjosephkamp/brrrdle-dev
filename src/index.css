@@ -1011,6 +1011,39 @@ body {
   }
 }
 
+/* Phase 45.6 — Solo gameplay keeps the active board/status and keyboard closer
+ * together on mobile without changing desktop gameplay density. */
+.brrrdle-solo-gameplay {
+  container-type: inline-size;
+}
+
+@media (width < 520px) {
+  .brrrdle-solo-gameplay {
+    --brrrdle-tile-max: 3.55rem;
+    --brrrdle-tile-font: clamp(0.8125rem, 6cqi, 1.4rem);
+    --brrrdle-key-max: 3.25rem;
+    --brrrdle-key-font: clamp(0.7rem, 4cqi, 0.95rem);
+    --brrrdle-key-action-font: clamp(0.6rem, 3.35cqi, 0.85rem);
+  }
+
+  .brrrdle-solo-gameplay [data-gameplay-autocenter-target='solo-keyboard'] {
+    scroll-margin-block-start: 6rem;
+    scroll-margin-block-end: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .brrrdle-solo-post-guess-controls {
+    gap: 0.8rem;
+  }
+}
+
+@media (width < 420px) and (height < 740px) {
+  .brrrdle-solo-gameplay {
+    --brrrdle-tile-max: 3.25rem;
+    --brrrdle-key-min: 2rem;
+    --brrrdle-key-max: 3rem;
+  }
+}
+
 @media (width < 420px) and (height < 740px) {
   .brrrdle-lunar-daily-status {
     min-height: 1.45rem;
