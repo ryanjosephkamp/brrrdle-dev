@@ -14,10 +14,11 @@ export interface KeyValueStorage {
 export const DAILY_OG_STORAGE_KEY = 'brrrdle:daily-og:v1'
 
 /**
- * Storage key for a daily og session. Today's daily uses the bare key (so
- * existing saved sessions keep working unchanged). Phase 22 Addendum (§27.10):
- * an explicit `dateKey` namespaces *past* dailies under their own key so each
- * unlocked past day persists its partial progress independently.
+ * Storage key for a daily og session. Current Daily play is restored through
+ * account-scoped resume slots; the bare key is a legacy key and should not be
+ * used by today's Daily game surface. Phase 22 Addendum (§27.10): an explicit
+ * `dateKey` namespaces *past* dailies under their own key so each unlocked past
+ * day persists its partial progress independently.
  */
 export function dailyOgStorageKey(dateKey?: string): string {
   return dateKey ? `${DAILY_OG_STORAGE_KEY}:${dateKey}` : DAILY_OG_STORAGE_KEY

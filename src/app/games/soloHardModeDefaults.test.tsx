@@ -5,10 +5,15 @@ import { DEFAULT_GO_PUZZLE_COUNT } from '../../game/constants'
 import {
   createDailyGoSetup,
   createGoSession,
+  createOgSession,
   createPracticeGoSetup,
+  createPracticeOgSetup,
   enterGoLetter,
+  enterLetter,
   serializeGoSession,
+  serializeOgSession,
   submitGoGuess,
+  submitGuess,
 } from '../../game'
 import { GoGame } from './GoGame'
 import { getSoloGoSolvedTransition } from './goTransitions'
@@ -21,6 +26,32 @@ function spendNothing() {
 function submitGoAnswer() {
   const setup = createPracticeGoSetup(5, 0)
   const filled = [...setup.puzzles[0].answer].reduce((session, letter) => enterGoLetter(session, letter), createGoSession(setup))
+  return serializeGoSession(submitGoGuess(filled))
+}
+
+function findWrongGuess(answer: string, validGuesses: ReadonlySet<string>): string {
+  const wrongGuess = [...validGuesses].find((guess) => guess !== answer)
+  if (!wrongGuess) {
+    throw new Error(`No wrong ${answer.length}-letter guess is available for this fixture.`)
+  }
+  return wrongGuess
+}
+
+function submitOgWrongGuess() {
+  const setup = createPracticeOgSetup(5, 0, DEFAULT_DIFFICULTY_TIER)
+  const guess = findWrongGuess(setup.answer, setup.validGuesses)
+  const filled = [...guess].reduce((session, letter) => enterLetter(session, letter), createOgSession(setup))
+  return serializeOgSession(submitGuess(filled))
+}
+
+function submitGoWrongGuess() {
+  const setup = createPracticeGoSetup(5, 0)
+  const activePuzzle = setup.puzzles[0]
+  if (!activePuzzle) {
+    throw new Error('Practice GO setup did not produce an active puzzle.')
+  }
+  const guess = findWrongGuess(activePuzzle.answer, setup.validGuesses)
+  const filled = [...guess].reduce((session, letter) => enterGoLetter(session, letter), createGoSession(setup))
   return serializeGoSession(submitGoGuess(filled))
 }
 
@@ -140,6 +171,34 @@ describe('solo game defaults', () => {
     expect(html).not.toContain('Seed lists')
   })
 
+  it('keeps practice og keyboard ahead of optional reveal controls in the post-guess mobile layout', () => {
+    const html = renderToStaticMarkup(
+      <OgGame
+        coins={10}
+        initialResume={{
+          difficulty: DEFAULT_DIFFICULTY_TIER,
+          mode: 'og',
+          scope: 'practice',
+          serializedSession: submitOgWrongGuess(),
+          updatedAt: '2026-07-04T22:00:00.000Z',
+          wordLength: 5,
+        }}
+        keyboardDisabled
+        onSaveDifficultyDefault={() => undefined}
+        onSpendCoins={spendNothing}
+        scope="practice"
+      />,
+    )
+
+    expect(html).toContain('brrrdle-solo-gameplay')
+    expect(html).toContain('brrrdle-solo-post-guess-controls')
+    expect(html).toContain('order-1 md:order-2')
+    expect(html).toContain('order-2 flex flex-col gap-4 md:order-1')
+    expect(html.indexOf('data-gameplay-autocenter-target="solo-keyboard"')).toBeLessThan(
+      html.indexOf('Give Up / Reveal Answer'),
+    )
+  })
+
   it('keeps Customize unlocked on fresh practice go chains until the first submitted guess', () => {
     const html = renderToStaticMarkup(
       <GoGame
@@ -177,6 +236,34 @@ describe('solo game defaults', () => {
     expect(html).not.toContain('Current puzzle')
     expect(html).not.toContain('Chain status')
     expect(html).not.toContain('Seed lists')
+  })
+
+  it('keeps practice go keyboard ahead of optional reveal controls in the post-guess mobile layout', () => {
+    const html = renderToStaticMarkup(
+      <GoGame
+        coins={10}
+        initialResume={{
+          difficulty: DEFAULT_DIFFICULTY_TIER,
+          goPuzzleCount: DEFAULT_GO_PUZZLE_COUNT,
+          mode: 'go',
+          scope: 'practice',
+          serializedSession: submitGoWrongGuess(),
+          updatedAt: '2026-07-04T22:00:00.000Z',
+          wordLength: 5,
+        }}
+        keyboardDisabled
+        onSaveDifficultyDefault={() => undefined}
+        onSaveGoPuzzleCountDefault={() => undefined}
+        onSpendCoins={spendNothing}
+        scope="practice"
+      />,
+    )
+
+    expect(html).toContain('brrrdle-solo-gameplay')
+    expect(html).toContain('brrrdle-solo-post-guess-controls')
+    expect(html.indexOf('data-gameplay-autocenter-target="solo-keyboard"')).toBeLessThan(
+      html.indexOf('Give Up / Reveal Answer'),
+    )
   })
 
   it('locks Customize on practice go chains after the first submitted guess', () => {

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   GAMEPLAY_AUTOCENTER_TARGETS,
+  getGameplayAutoCenterBlock,
   getGameplayAutoCenterSelector,
   scheduleGameplayAutoCenter,
 } from './gameplayAutoCenter'
@@ -12,6 +13,7 @@ afterEach(() => {
 function installAutoCenterGlobals(options: {
   readonly activeElement?: unknown
   readonly element?: unknown
+  readonly mobile?: boolean
   readonly reducedMotion?: boolean
 }) {
   const callbacks: Array<() => void> = []
@@ -25,7 +27,13 @@ function installAutoCenterGlobals(options: {
     querySelector,
   }
   const windowRef = {
-    matchMedia: vi.fn(() => ({ matches: Boolean(options.reducedMotion) })),
+    matchMedia: vi.fn((query: string) => ({
+      matches: query.includes('prefers-reduced-motion')
+        ? Boolean(options.reducedMotion)
+        : query.includes('max-width')
+          ? Boolean(options.mobile)
+          : false,
+    })),
     setTimeout: vi.fn((callback: () => void) => {
       callbacks.push(callback)
       return 1
@@ -71,6 +79,23 @@ describe('scheduleGameplayAutoCenter', () => {
     expect(getGameplayAutoCenterSelector(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard)).toBe('[data-gameplay-autocenter-target="solo-keyboard"]')
   })
 
+  it('aligns the solo keyboard to the viewport end on mobile', () => {
+    const windowRef = {
+      matchMedia: vi.fn((query: string) => ({ matches: query.includes('max-width') })),
+    } as unknown as Window
+
+    expect(getGameplayAutoCenterBlock(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard, windowRef)).toBe('end')
+    expect(getGameplayAutoCenterBlock(GAMEPLAY_AUTOCENTER_TARGETS.solo, windowRef)).toBe('center')
+  })
+
+  it('keeps the solo keyboard centered on larger screens', () => {
+    const windowRef = {
+      matchMedia: vi.fn(() => ({ matches: false })),
+    } as unknown as Window
+
+    expect(getGameplayAutoCenterBlock(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard, windowRef)).toBe('center')
+  })
+
   it('uses auto scrolling when reduced motion is preferred', () => {
     const element = {
       focus: vi.fn(),
@@ -84,6 +109,22 @@ describe('scheduleGameplayAutoCenter', () => {
     expect(element.scrollIntoView).toHaveBeenCalledWith({
       block: 'center',
       behavior: 'auto',
+    })
+  })
+
+  it('uses end alignment for scheduled mobile solo keyboard scrolling', () => {
+    const element = {
+      focus: vi.fn(),
+      scrollIntoView: vi.fn(),
+    }
+    const { callbacks } = installAutoCenterGlobals({ element, mobile: true })
+
+    scheduleGameplayAutoCenter(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard)
+    callbacks[0]?.()
+
+    expect(element.scrollIntoView).toHaveBeenCalledWith({
+      block: 'end',
+      behavior: 'smooth',
     })
   })
 

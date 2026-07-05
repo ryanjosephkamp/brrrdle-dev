@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { CompletedGameInput, loadGuestProgress, ResumeCapture } from '../account'
+import type { CompletedGameInput, loadGuestProgress, ResumeCapture, ResumeSlotCollection } from '../account'
 import type { DifficultyTier } from '../data'
 import type { GoPuzzleCount } from '../game/constants'
 import type { GameMode } from '../game/types'
@@ -68,6 +68,8 @@ export interface CalendarPanelProps {
   readonly onCompetitiveMultiplayerChange?: (state: MultiplayerCompetitiveState) => void
   readonly onMarkPastDailyUnlocked: (mode: GameMode, dateKey: string) => void
   readonly onUpdateSettings: (patch: Partial<GuestProgress['settings']>) => void
+  readonly progressOwnerKey?: string
+  readonly resumeSlots?: ResumeSlotCollection
   readonly multiplayer: MultiplayerState
   readonly multiplayerDailyDateKey: string
   readonly authStatus?: 'anonymous' | 'authenticated' | 'unconfigured'
@@ -166,6 +168,8 @@ export function CalendarPanel({
   onCompetitiveMultiplayerChange,
   onMarkPastDailyUnlocked,
   onUpdateSettings,
+  progressOwnerKey,
+  resumeSlots,
   multiplayer,
   multiplayerDailyDateKey,
   authStatus,
@@ -282,6 +286,8 @@ export function CalendarPanel({
   if (activeDaily) {
     const isPast = activeDaily.isPast
     const pastDateKey = isPast ? activeDaily.dateKey : undefined
+    const dailyOgResume = !isPast ? resumeSlots?.['daily-og'] : undefined
+    const dailyGoResume = !isPast ? resumeSlots?.['daily-go'] : undefined
     const markUnlocked = isPast
       ? () => onMarkPastDailyUnlocked(activeDaily.mode, activeDaily.dateKey)
       : undefined
@@ -302,6 +308,7 @@ export function CalendarPanel({
             coins={coins}
             defaultDifficulty={guestProgress.settings.difficultyDefault}
             defaultHardMode={guestProgress.settings.hardModeDefault}
+            initialResume={dailyOgResume?.mode === 'og' ? dailyOgResume : undefined}
             keyboardDisabled={keyboardDisabled}
             onGameComplete={onGameComplete}
             onMarkDailyUnlocked={markUnlocked}
@@ -309,6 +316,7 @@ export function CalendarPanel({
             onSaveDifficultyDefault={handleSaveDifficultyDefault}
             onSpendCoins={onSpendCoins}
             pastDailyDateKey={pastDateKey}
+            progressOwnerKey={progressOwnerKey}
             scope="daily"
           />
         ) : (
@@ -317,6 +325,7 @@ export function CalendarPanel({
             defaultDifficulty={guestProgress.settings.difficultyDefault}
             defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
             defaultHardMode={guestProgress.settings.hardModeDefault}
+            initialResume={dailyGoResume?.mode === 'go' ? dailyGoResume : undefined}
             keyboardDisabled={keyboardDisabled}
             onGameComplete={onGameComplete}
             onMarkDailyUnlocked={markUnlocked}
@@ -325,6 +334,7 @@ export function CalendarPanel({
             onSaveGoPuzzleCountDefault={handleSaveGoPuzzleCountDefault}
             onSpendCoins={onSpendCoins}
             pastDailyDateKey={pastDateKey}
+            progressOwnerKey={progressOwnerKey}
             scope="daily"
           />
         )}

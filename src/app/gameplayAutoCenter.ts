@@ -22,6 +22,12 @@ function getScrollBehavior(windowRef: Window): ScrollBehavior {
   return windowRef.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 }
 
+export function getGameplayAutoCenterBlock(target: GameplayAutoCenterTarget, windowRef: Window): ScrollLogicalPosition {
+  return target === GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard && windowRef.matchMedia?.('(max-width: 640px)').matches
+    ? 'end'
+    : 'center'
+}
+
 export function scheduleGameplayAutoCenter(target: GameplayAutoCenterTarget): boolean {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return false
@@ -36,7 +42,7 @@ export function scheduleGameplayAutoCenter(target: GameplayAutoCenterTarget): bo
     }
 
     element.scrollIntoView({
-      block: 'center',
+      block: getGameplayAutoCenterBlock(target, windowRef),
       behavior: getScrollBehavior(windowRef),
     })
 
