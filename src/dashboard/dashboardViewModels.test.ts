@@ -154,6 +154,53 @@ describe('dashboard view models', () => {
     })
   })
 
+  it('does not surface stale account-owned multiplayer attention for signed-out guests', () => {
+    const active = createMultiplayerGame({
+      createdAt: '2026-06-14T03:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'viewer-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const completedBase = createMultiplayerGame({
+      createdAt: '2026-06-14T04:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'viewer-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const completed = submitMultiplayerGuess({ games: [completedBase] }, {
+      gameId: completedBase.id,
+      guess: getMultiplayerAnswerWords(completedBase)[0],
+      now: '2026-06-14T04:01:00.000Z',
+      playerId: 'player-one',
+    })
+    const competitiveMultiplayerState = settleMultiplayerStateResults(
+      createEmptyCompetitiveMultiplayerState(),
+      completed.state,
+      authenticatedViewer,
+    )
+
+    const dashboard = createDashboardViewModel({
+      competitiveMultiplayerState,
+      generatedAt: '2026-06-14T05:00:00.000Z',
+      multiplayerState: { games: [active] },
+    })
+
+    expect(dashboard.summary).toMatchObject({
+      activeMultiplayerCount: 0,
+      recentMultiplayerResultCount: 0,
+      restrictedLiveGameCount: 0,
+      yourTurnMultiplayerCount: 0,
+    })
+    expect(dashboard.activeMultiplayer).toEqual([])
+    expect(dashboard.yourTurnMultiplayer).toEqual([])
+    expect(dashboard.livePreview).toEqual([])
+    expect(dashboard.recentMultiplayer).toEqual([])
+    expect(dashboard.quickActions.find((action) => action.id === 'active-multiplayer')?.attentionCount).toBe(0)
+    expect(dashboard.quickActions.find((action) => action.id === 'history')?.attentionCount).toBe(0)
+  })
+
   it('keeps preview limits separate from summary counts and projects Daily readiness', () => {
     const dashboard = createDashboardViewModel({
       dailyMultiplayer: {

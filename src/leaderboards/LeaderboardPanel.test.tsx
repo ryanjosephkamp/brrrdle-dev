@@ -65,6 +65,39 @@ describe('LeaderboardPanel', () => {
     expect(html).not.toContain('1450')
   })
 
+  it('does not render stale local rating summaries for anonymous viewers', () => {
+    const html = renderToStaticMarkup(
+      <LeaderboardPanel
+        authStatus="anonymous"
+        competitiveMultiplayer={{
+          customGames: [],
+          rating: {
+            profiles: [
+              {
+                bucket: 'multiplayer:og',
+                draws: 0,
+                gamesPlayed: 12,
+                losses: 4,
+                provisional: false,
+                rating: 1340,
+                updatedAt: '2026-06-28T19:00:00.000Z',
+                userId: 'viewer',
+                wins: 8,
+              },
+            ],
+            transactions: [],
+          },
+          results: [],
+        }}
+        viewerUserId="viewer"
+      />,
+    )
+
+    expect(html).toContain('No rated results yet')
+    expect(html).not.toContain('1340')
+    expect(html).not.toContain('Gold band')
+  })
+
   it('derives a public leaderboard freshness key from trusted settlement timing without raw user ids', () => {
     const before = getPublicRankedLeaderboardFreshnessKey({
       customGames: [],

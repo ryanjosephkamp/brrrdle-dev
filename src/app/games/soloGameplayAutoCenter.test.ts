@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { shouldAutoCenterFreshSoloKeyboard, shouldAutoCenterSoloKeyboard } from './soloGameplayAutoCenter'
+import { shouldAutoCenterFreshSoloKeyboard, shouldAutoCenterSoloKeyboard, shouldAutoCenterSoloKeyboardEntry } from './soloGameplayAutoCenter'
 
 describe('solo gameplay keyboard auto-centering', () => {
   it('does not fire on the initial render or unchanged submitted-guess counts', () => {
@@ -18,5 +18,10 @@ describe('solo gameplay keyboard auto-centering', () => {
     expect(shouldAutoCenterFreshSoloKeyboard(0, true)).toBe(true)
     expect(shouldAutoCenterFreshSoloKeyboard(1, true)).toBe(false)
     expect(shouldAutoCenterFreshSoloKeyboard(0, false)).toBe(false)
+  })
+
+  it('targets playing solo games on entry and re-entry for mobile keyboard alignment', () => {
+    expect(shouldAutoCenterSoloKeyboardEntry(true)).toBe(true)
+    expect(shouldAutoCenterSoloKeyboardEntry(false)).toBe(false)
   })
 })

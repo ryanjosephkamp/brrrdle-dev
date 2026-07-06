@@ -3,6 +3,7 @@ import {
   GAMEPLAY_AUTOCENTER_TARGETS,
   getGameplayAutoCenterBlock,
   getGameplayAutoCenterSelector,
+  getMobileSoloKeyboardBottomCorrection,
   isGameplayAutoCenterMobileViewport,
   scheduleGameplayAutoCenter,
 } from './gameplayAutoCenter'
@@ -16,6 +17,7 @@ function installAutoCenterGlobals(options: {
   readonly element?: unknown
   readonly mobile?: boolean
   readonly reducedMotion?: boolean
+  readonly viewportHeight?: number
 }) {
   const callbacks: Array<() => void> = []
   const body = {}
@@ -35,10 +37,13 @@ function installAutoCenterGlobals(options: {
           ? Boolean(options.mobile)
           : false,
     })),
+    innerHeight: options.viewportHeight ?? 844,
+    scrollBy: vi.fn(),
     setTimeout: vi.fn((callback: () => void) => {
       callbacks.push(callback)
       return 1
     }),
+    visualViewport: options.viewportHeight ? { height: options.viewportHeight } : undefined,
   }
 
   vi.stubGlobal('document', documentRef)
@@ -90,6 +95,11 @@ describe('scheduleGameplayAutoCenter', () => {
     expect(getGameplayAutoCenterBlock(GAMEPLAY_AUTOCENTER_TARGETS.solo, windowRef)).toBe('center')
   })
 
+  it('computes the extra mobile scroll needed for full keyboard bottom clearance', () => {
+    expect(getMobileSoloKeyboardBottomCorrection(853, 844)).toBe(25)
+    expect(getMobileSoloKeyboardBottomCorrection(828, 844)).toBe(0)
+  })
+
   it('keeps the solo keyboard centered on larger screens', () => {
     const windowRef = {
       matchMedia: vi.fn(() => ({ matches: false })),
@@ -128,6 +138,33 @@ describe('scheduleGameplayAutoCenter', () => {
       block: 'end',
       behavior: 'smooth',
     })
+  })
+
+  it('rechecks clipped mobile solo keyboard bottom after the initial scroll', () => {
+    const element = {
+      focus: vi.fn(),
+      getBoundingClientRect: vi.fn(() => ({ bottom: 853 })),
+      scrollIntoView: vi.fn(),
+    }
+    const { callbacks, windowRef } = installAutoCenterGlobals({
+      element,
+      mobile: true,
+      viewportHeight: 844,
+    })
+
+    scheduleGameplayAutoCenter(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard, { mobileOnly: true })
+    callbacks[0]?.()
+
+    expect(element.scrollIntoView).toHaveBeenCalledWith({
+      block: 'end',
+      behavior: 'smooth',
+    })
+    expect(callbacks).toHaveLength(4)
+
+    callbacks[1]?.()
+
+    expect(element.getBoundingClientRect).toHaveBeenCalled()
+    expect(windowRef.scrollBy).toHaveBeenCalledWith({ behavior: 'auto', top: 25 })
   })
 
   it('skips mobile-only keyboard scrolling on larger screens', () => {

@@ -161,9 +161,11 @@ export function selectHistoryRows({
   viewerUserId,
 }: SelectHistoryRowsInput): readonly HistoryResultViewModel[] {
   const soloRows = (history ?? []).map(toSoloHistoryRow)
-  const multiplayerRows = normalizeCompetitiveMultiplayerState(competitiveState).results.map((result) => (
-    toMultiplayerHistoryRow(result, viewerUserId)
-  ))
+  const multiplayerRows = viewerUserId
+    ? normalizeCompetitiveMultiplayerState(competitiveState).results.map((result) => (
+        toMultiplayerHistoryRow(result, viewerUserId)
+      ))
+    : []
 
   return [...soloRows, ...multiplayerRows]
     .filter((row) => passesFilters(row, filters))

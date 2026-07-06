@@ -1,5 +1,5 @@
 import type { AuthState } from './auth'
-import { canSyncProgressForAuthState, type ActiveProgressScope } from './accountScopedProgress'
+import { canSyncProgressForAuthState, getProgressScopeForAuthState, type ActiveProgressScope } from './accountScopedProgress'
 import type { GuestProgressState } from './storageSchema'
 
 export const AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS = 750
@@ -27,6 +27,19 @@ export interface AuthenticatedProgressRefreshGuardInput {
   readonly scope: ActiveProgressScope
 }
 
+export interface AuthenticatedProgressSyncResultGuardInput {
+  readonly authState: AuthState
+  readonly currentVersion: number
+  readonly requestVersion: number
+  readonly scope: ActiveProgressScope
+  readonly userId: string
+}
+
+export interface AuthenticatedProgressSyncInvalidationInput {
+  readonly currentScope: ActiveProgressScope
+  readonly nextAuthState: AuthState
+}
+
 export function createAuthenticatedProgressSyncRequest(
   input: CreateAuthenticatedProgressSyncRequestInput,
 ): AuthenticatedProgressSyncRequest | undefined {
@@ -49,9 +62,25 @@ export function canRefreshAuthenticatedProgress(input: AuthenticatedProgressRefr
     && !input.isUploadInFlight
 }
 
-export function shouldApplyAuthenticatedProgressSyncResult(input: {
-  readonly currentVersion: number
-  readonly requestVersion: number
-}): boolean {
+export function shouldApplyAuthenticatedProgressSyncResult(input: AuthenticatedProgressSyncResultGuardInput): boolean {
   return input.currentVersion === input.requestVersion
+    && input.scope.kind === 'authenticated'
+    && input.scope.userId === input.userId
+    && canSyncProgressForAuthState(input.authState, input.scope)
+}
+
+function areProgressScopesEqual(left: ActiveProgressScope, right: ActiveProgressScope): boolean {
+  if (left.kind !== right.kind) {
+    return false
+  }
+  if (left.kind === 'authenticated' && right.kind === 'authenticated') {
+    return left.userId === right.userId
+  }
+  return true
+}
+
+export function shouldInvalidateAuthenticatedProgressSyncForAuthState(
+  input: AuthenticatedProgressSyncInvalidationInput,
+): boolean {
+  return !areProgressScopesEqual(input.currentScope, getProgressScopeForAuthState(input.nextAuthState))
 }

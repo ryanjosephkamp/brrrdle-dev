@@ -296,6 +296,10 @@ export function selectActiveMultiplayerGameRows(
   viewerUserId?: string,
   participantProfilesByGameId: MultiplayerParticipantProfileMapByGameId = {},
 ): readonly MultiplayerActiveGameViewModel[] {
+  if (!viewerUserId) {
+    return []
+  }
+
   return [...getActiveMultiplayerGames(normalizeMultiplayerState(state), viewerUserId)]
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
     .map((game) => toActiveGameViewModel(game, viewerUserId, participantProfilesByGameId[game.id]))
@@ -567,6 +571,10 @@ export function selectRecentMultiplayerResults(
   viewerUserId?: string,
   limit = 5,
 ): readonly MultiplayerRecentResultViewModel[] {
+  if (!viewerUserId) {
+    return []
+  }
+
   return [...normalizeCompetitiveMultiplayerState(competitiveState).results]
     .sort((left, right) => (right.endedAt ?? '').localeCompare(left.endedAt ?? ''))
     .slice(0, Math.max(0, limit))
