@@ -190,34 +190,62 @@ Emphasize:
 Emphasize:
 
 - a committed human-review checklist at `planning/phase-<N>/REVIEW-CHECKLIST.md`;
-- generation after final automated verification and any visual handoff review, usually before Git handoff or before starting the next phase;
+- generation after final automated verification and any visual handoff review, as part of a Review Candidate before Review Candidate Backup or before starting the next phase;
 - user-testable checkboxes with expected behavior, suggested manual steps, and evidence references;
 - clear separation between required manual checks, optional nice-to-check items, preserved invariants, known deferred work, and out-of-scope work;
 - a reminder that manual checklists are not replacements for automated tests, real multiplayer E2E, migration probes, or visual handoff review;
 - no screenshots, videos, traces, auth state, tokens, secrets, private data, or local session artifacts in committed checklist content;
 - stop-and-report behavior when phase evidence is too incomplete or contradictory to produce a trustworthy checklist.
 
-### 4.10 GitHub Backup Skill Work
+### 4.10 Review Candidate Backup Loop, Manual Review Window, And Review Follow-Up Work
+
+Emphasize:
+
+- final hardening produces a Review Candidate, not automatic phase closure or final acceptance;
+- the Review Candidate closeout should include verification evidence, interactive local/Codex-browser preview instructions when applicable, ignored visual artifact paths, the manual checklist, known limitations, and a halt for user inspection;
+- when the user wants device/live-site review, the next prompt may authorize a Review Candidate Backup through the governed GitHub backup workflow while keeping the phase open;
+- Review Candidate Backup is a protected Git/GitHub action requiring explicit current-turn authorization, exact staging allowlist, preflight checks, PR/check verification, merge safety checks, and artifact/secret boundaries;
+- Review Candidate Backup may make the candidate visible through existing GitHub-backed hosting or automatic host behavior if already configured; it must not run separate deployment, release, migration, or production-configuration commands unless a later prompt explicitly authorizes them;
+- the Manual Review Window happens after the Review Candidate is available through the chosen review surface and before final phase acceptance, final closure backup, release, deployment configuration, or next-phase implementation;
+- screenshots, visual manifests, and generated artifacts are supporting evidence only; for user-visible gameplay, navigation, account, shell, layout, or interaction changes, they should not be treated as a replacement for interactive manual review when local preview is feasible;
+- the default same-machine interactive preview path is `npm run preview -- --host 127.0.0.1 --port 4173` after a clean build; use `npm run dev -- --host 127.0.0.1 --port 5173` only when development-server behavior is specifically needed;
+- local preview servers must bind to `127.0.0.1` unless the user explicitly authorizes another host, and the final report should include the exact URL plus how to stop the server;
+- mobile manual review from Android/iOS normally cannot use `http://127.0.0.1:4173/`, because that address points to the phone/tablet rather than the Mac running the preview server;
+- when the user explicitly authorizes Mobile Manual Preview, the prompt may ask Codex to bind the preview to the Mac's active private LAN IPv4 address, for example `npm run preview -- --host <mac-lan-ip> --port 4173`, and report the exact trusted same-LAN URL;
+- Mobile Manual Preview must bind to a specific private LAN IP, not `0.0.0.0`, unless a later prompt explicitly authorizes a broader host binding;
+- if same-LAN mobile preview fails or the ChatGPT/Codex mobile in-app browser blocks the page, Codex should stop and recommend a separately authorized external preview/tunnel prompt instead of creating a public tunnel automatically;
+- preview logs, PIDs, screenshots, videos, traces, auth state, tokens, and local session artifacts must remain ignored/local-only;
+- starting or reporting a local or same-LAN preview does not authorize public tunneling, Git/GitHub actions, GitHub backup, PR work, merge, release, deployment, production changes, next-phase implementation, or stable `brrrdle` repository work;
+- local, Codex-browser, and same-LAN previews are supporting options, not prerequisites for Review Candidate Backup; if they are not usable, Codex should clean up any server it started and route to the Review Candidate Backup Loop rather than creating a public tunnel automatically;
+- directly phase-related manual-review findings may be handled through a same-phase Review Follow-up prompt when the current user explicitly authorizes that follow-up;
+- Review Follow-up work must be narrow, use the phase's existing source/test/privacy boundaries, rerun focused verification plus affected final-hardening checks, update progress, and return to Review Candidate;
+- review feedback must be routed to a new phase, later-phase note, or explicit addendum when it is unrelated, broad, feature-like, risky, protected-action-dependent, or requires new migration/RLS, storage, deployment/configuration, release, scoring/rating/Elo, gameplay-rule, or stable-repository authority;
+- after a Review Follow-up, the phase returns to Review Candidate and may receive another explicitly authorized Review Candidate Backup for another Manual Review Window;
+- after the user accepts manual review, final phase closure and any Final Acceptance Backup still require separate explicit current-turn authorization.
+
+### 4.11 GitHub Backup Skill Work
 
 Emphasize:
 
 - all-in-one backup authorization must be explicit in the current prompt;
 - the target repository must be confirmed as `brrrdle-dev`, with the original stable `brrrdle` repository out of scope;
-- GitHub backup means GitHub `main` becomes tree-equivalent to the reviewed local branch after PR merge, not necessarily commit-hash identical after squash merge;
-- after a clean `brrrdle-dev` Git handoff preparation pass, the recommended next prompt should default to explicitly invoking the local `brrrdle-github-backup` skill for the full governed backup workflow when the user is ready for backup;
+- GitHub backup means GitHub `main` becomes tree-equivalent to the backed-up local branch after PR merge, not necessarily commit-hash identical after squash merge;
+- Review Candidate Backup prompts are allowed before final manual review acceptance when they explicitly state that the backup is for live/device review and does not close the phase;
+- after a clean `brrrdle-dev` Review Candidate or Git handoff preparation pass, the recommended next prompt should default to explicitly invoking the local `brrrdle-github-backup` skill for the full governed backup workflow when the user is ready for backup;
 - the all-in-one backup prompt should preserve the exact approved staging allowlist, branch name, commit and PR copy, verification evidence, scope boundaries, and forbidden artifact list from handoff preparation;
 - use the older stepwise Git prompt sequence only when the user explicitly requests separate gates, forbids merge or branch cleanup, leaves unresolved review prerequisites, or the handoff preparation reports a blocker;
 - preflight, staging, commit, push, draft PR, ready/merge, post-merge sanity, and branch cleanup are protected actions that must be named in the authorization;
 - local Codex skills under `/Users/noir/.codex/skills/` remain local-only and must not be committed;
 - secret/artifact scans, ignored-artifact checks, visible PR checks, PR metadata checks, and tree-equivalence checks are required stop gates;
-- never force-push `main`, bypass visible check failures, or delete a branch whose merge safety cannot be proven.
+- never force-push `main`, bypass visible check failures, present a Review Candidate Backup as phase closure, begin a final acceptance backup while manual review is pending, or delete a branch whose merge safety cannot be proven.
 
-### 4.11 Phase Scope Sizing Work
+### 4.12 Phase Scope Sizing Work
 
 Emphasize:
 
 - phase-level batching is allowed only for cohesive work with shared product area, data contracts, test harnesses, privacy/RLS boundaries, or UI ownership;
 - implementation stages should remain narrow, single-purpose, and independently reviewable;
+- phase closeout should route through Review Candidate, explicitly authorized Review Candidate Backup when hosted/live review is needed, Manual Review Window, Review Follow-up if needed, accepted manual review, and separately authorized Final Acceptance Backup or closure;
 - migration/RLS, deployment/configuration, Git/GitHub, release, gameplay-rule, and Elo changes remain separately authorized protected actions;
 - focused tests should run during implementation stages, while full final verification stays at the final hardening or pre-handoff gate for major phases;
 - documentation-only scope-sizing passes should use lightweight verification and should not create the next phase planning brief unless explicitly authorized.
@@ -229,10 +257,55 @@ At meaningful review gates, Codex should include one of the following in the fin
 - the recommended next prompt package for the next safe gated action;
 - a concise explanation that no prompt package should be generated yet.
 
+Every meaningful final report must also include a short **Recommended Next Step** explanation in plain language before any activation prompt or footer. This applies even when verification fails. The explanation should tell the user what Codex recommends doing next, why that is the safest move, and whether the next action is agent-owned or requires a human decision.
+
+For `brrrdle-dev`, the preferred default is artifact-first:
+
+- write the full prompt package as a Markdown artifact under the ignored local-only `prompt-packages/` directory;
+- include only a short activation prompt in chat, pointing to the exact artifact path;
+- put that activation prompt in a fenced `markdown` code block every time a prompt-package artifact is created or updated;
+- use inline full prompt-package code blocks only when the user explicitly asks for inline output or artifact creation is impossible;
+- keep prompt-package artifacts out of Git unless a later prompt explicitly authorizes committing them;
+- when a new Codex chat/session handoff is useful, create a separate handoff artifact under `prompt-packages/handoffs/` and make the activation prompt name both the handoff artifact and the next prompt-package artifact.
+
+The activation prompt should be minimal but sufficient:
+
+- target the exact repository path;
+- repeat the stable-repository boundary when relevant;
+- name the handoff artifact first when one is required;
+- name the prompt-package artifact to read and execute;
+- include a stop-and-report condition for missing files, conflicts, stable-repository touches, or scope expansion.
+
+Example activation prompt shape:
+
+````markdown
+```markdown
+Use `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`. Do not touch the original stable `brrrdle` repository.
+
+Read:
+`/Users/noir/visual_studio/Codex_Projects/brrrdle-dev/prompt-packages/handoffs/HANDOFF.md`
+
+Then read and execute:
+`/Users/noir/visual_studio/Codex_Projects/brrrdle-dev/prompt-packages/phase-XX/NEXT-PROMPT.md`
+
+Stop and report if anything is missing, conflicts with current instructions, would touch stable `brrrdle`, or would authorize work beyond the prompt artifact.
+```
+````
+
+If a final report has a required footer, such as a memory citation block, put the activation prompt code block immediately before that footer.
+
+- target `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`;
+- keep the original stable `brrrdle` repository untouched;
+- read the exact handoff and prompt artifact paths;
+- execute only the authorized prompt artifact;
+- stop if an artifact is missing, conflicts with current instructions, or would cross a protected boundary.
+
+When a verification gate fails, do not proceed into phase closure, manual review, Git handoff, backup, deployment, or the next phase. Still provide the user with a concrete recovery recommendation. If the failure can be addressed by a bounded, agent-owned rerun, triage, or same-stage repair without crossing protected boundaries, generate a recovery prompt package for that bounded next action. If the failure requires a human decision, credentials, production access, a migration/RLS/storage contract, Git/GitHub action, deployment/release action, broad redesign, gameplay-rule/scoring/Elo change, or stable-repository access, do not generate an execution prompt; instead state the exact prerequisite.
+
 Do not generate a next prompt package when:
 
 - the current user explicitly asks not to;
-- the next step is blocked by a failed verification gate;
+- the next step is blocked by a failed verification gate and no bounded recovery prompt can safely address it;
 - a human review or manual decision is required first;
 - the next step would require secrets, credentials, deployment, migration, PR, merge, release, or production access that has not been explicitly authorized;
 - the next step is unclear or would require choosing between materially different strategies without user input;

@@ -11,6 +11,8 @@ This guide explains how future `brrrdle-dev` phases may carry a larger cohesive 
 
 It is meant to reduce repeated full-suite cost without weakening quality. It does not authorize implementation, migration, deployment, Git/GitHub work, release work, or original stable `brrrdle` repository work.
 
+For Review Candidate backup cadence, also use `planning/governance/REVIEW-CANDIDATE-BACKUP-LOOP.md`.
+
 ## Core Recommendation
 
 Future phases may be larger macro-phases when the work is cohesive, but individual implementation stages should remain narrow, single-purpose, and independently reviewable.
@@ -20,7 +22,7 @@ In practice:
 - increase the phase payload when related work shares the same product area, data contract, privacy boundary, test harness, or UI ownership;
 - keep stages focused on one risk class at a time, such as audit, migration/RLS addendum, migration execution, source integration, UI cleanup, final hardening, or review documentation;
 - preserve explicit stop gates between stages that change authority, persistence, privacy, gameplay, or route ownership;
-- keep full final verification before Git handoff, but rely on focused tests and lightweight documentation checks during smaller planning or documentation-only stages.
+- keep full final verification before Review Candidate backup or final Git handoff, but rely on focused tests and lightweight documentation checks during smaller planning or documentation-only stages.
 
 This should make phases more economical without turning a single stage into an oversized, hard-to-debug bundle.
 
@@ -73,6 +75,13 @@ Recommended stage types:
 - **Source integration**: one product surface or data path at a time, with focused tests first.
 - **Optional gate**: explicit decision point for tempting extras such as presence, counts, profile links, or broader social behavior.
 - **Final hardening**: focused regressions, feasible E2E, visual handoff review when authorized, changelog, manual review checklist, and final verification.
+- **Review Candidate**: a pre-closure state after final hardening where the phase is ready for user inspection but not yet accepted or closed.
+- **Review Candidate Backup**: a separately authorized Git/GitHub backup of a Review Candidate so the user can review the candidate through the normal GitHub-backed hosted/live surface; this does not close the phase.
+- **Manual Review Window**: a user-owned inspection gate after a Review Candidate Backup, local/Codex-browser preview, visual artifacts, or checklist handoff where the user can test the candidate before final acceptance.
+- **Interactive Manual Preview**: a local preview of the Review Candidate app for hands-on user review. Prefer `npm run preview -- --host 127.0.0.1 --port 4173` after a clean build for same-machine desktop review; use `npm run dev -- --host 127.0.0.1 --port 5173` only when development-server behavior is specifically needed.
+- **Mobile Manual Preview**: an explicitly authorized same-LAN Interactive Manual Preview option for trusted phone/tablet review. `127.0.0.1` works only on the machine running the preview server, so Android/iOS review usually needs a specific private Mac LAN URL such as `http://<mac-lan-ip>:4173/`.
+- **Review Follow-up**: same-phase targeted fixes for directly phase-related manual-review findings, followed by focused verification and a return to Review Candidate.
+- **Final Acceptance Backup**: a separately authorized final Git/GitHub backup after manual review acceptance and phase closure documentation, when repository state changed or the user wants the accepted close state recorded on GitHub.
 
 Avoid using a source implementation stage to also create new governance, change deployment settings, run GitHub backup, or start the next phase.
 
@@ -125,7 +134,7 @@ Keep migration/RLS stages evidence-heavy and narrow:
 
 ### Final Hardening
 
-The final hardening stage should be the broad gate:
+The final hardening stage should be the broad gate that prepares a Review Candidate, not the phase closure itself:
 
 - focused regression set;
 - feasible targeted E2E;
@@ -138,11 +147,52 @@ The final hardening stage should be the broad gate:
 - diff, CSV, secret/artifact, ignored-artifact, watched-port, and status checks;
 - visual handoff review and manual checklist when authorized.
 
-Git handoff preparation may rely on fresh final-hardening evidence when no source/runtime files changed afterward, but it should still run lightweight pre-handoff checks.
+Review Candidate backup preparation may rely on fresh final-hardening evidence when no source/runtime files changed afterward, but it should still run lightweight pre-backup checks. Final Acceptance Backup may rely on the latest Review Candidate backup plus focused follow-up evidence when no source/runtime files changed afterward.
 
 ## Manual Review And Visual Review
 
 Manual review checklists and visual handoff artifacts help the user inspect changed behavior. They do not replace automated tests, migration/RLS probes, or final verification.
+
+For phases with user-visible gameplay, navigation, account, shell, layout, or interaction changes, screenshots and manifests are supporting evidence only. They are not a replacement for interactive manual review. The Review Candidate should provide a local preview path when feasible so the user can click through the checklist before accepting the phase.
+
+Use this close model for completed user-visible phases:
+
+1. Final hardening produces a **Review Candidate** with verification evidence, interactive local/Codex-browser preview instructions when applicable, ignored visual artifacts, and a committed manual review checklist.
+2. The user may explicitly authorize a **Review Candidate Backup** so the candidate can be reviewed through the normal GitHub-backed hosted/live surface on desktop and mobile devices. This protected backup does not close the phase.
+3. The **Manual Review Window** happens after the Review Candidate is available through the chosen review surface. During this window the user may inspect the hosted/live candidate, running local app, Codex-browser preview, screenshots, manifests, and checklist, then report acceptance or findings.
+4. **Review Follow-up** stays inside the same phase only for directly phase-related findings. After each accepted follow-up, rerun focused verification plus any affected final-hardening checks, update progress, and return to Review Candidate.
+5. Repeat Review Candidate Backup and Manual Review Window as needed until the user accepts the phase.
+6. Phase closure, Final Acceptance Backup, release, deployment configuration, and next-phase implementation remain separate protected actions requiring explicit current-turn authorization.
+
+Interactive local preview rules:
+
+- Prefer the production-style preview server after a clean build: `npm run preview -- --host 127.0.0.1 --port 4173`.
+- Use the dev server only when the review specifically needs development-server behavior: `npm run dev -- --host 127.0.0.1 --port 5173`.
+- `127.0.0.1` is loopback for the device opening the URL. It works for desktop review on the same machine running the preview server, but an Android/iOS device will treat `127.0.0.1` as the phone/tablet itself.
+- Bind preview servers to `127.0.0.1` unless the user explicitly authorizes another host.
+- When the user explicitly authorizes Mobile Manual Preview, bind only to the Mac's active private LAN IPv4 address, such as `npm run preview -- --host <mac-lan-ip> --port 4173`, and report the exact same-LAN URL for trusted local-network review.
+- If the preferred port is unavailable, choose a nearby free local port and report the exact URL.
+- Keep preview logs, PIDs, screenshots, videos, traces, and local session artifacts ignored/local-only.
+- Same-LAN mobile preview is not public deployment and does not authorize public tunneling, Git/GitHub actions, GitHub backup, PR work, merge, release, deployment, production changes, next-phase implementation, or stable `brrrdle` repository work.
+- If same-LAN preview fails, binding to the specific private LAN IP fails, or the mobile in-app browser blocks the page, stop and recommend a separately authorized external preview/tunnel prompt rather than creating a tunnel automatically.
+- Stop the preview server after review or when the user asks; record the stop command or PID in the closeout.
+- If local, Codex-browser, or same-LAN preview is not usable for manual review, clean up any preview server Codex started and route to the Review Candidate Backup Loop instead of creating a public tunnel automatically.
+
+Manual-review feedback belongs in the same phase when all of these are true:
+
+- the finding is directly about behavior, copy, layout, evidence, or documentation changed or explicitly routed by the current phase;
+- the finding came from the phase's manual checklist, local/Codex-browser preview, visual artifacts, or closely related review path;
+- the fix can use the same source, test, migration, privacy, and verification boundaries already authorized for the phase;
+- the fix is narrow enough to verify with the phase's existing harness and does not require unrelated ownership areas;
+- the fix does not require a new protected action such as migration/RLS execution, deployment/configuration changes, release work, gameplay-rule changes, Elo/rating changes, broad redesign, or stable `brrrdle` repository access.
+
+Manual-review feedback should become a new phase, later-phase route, or explicit addendum when any of these are true:
+
+- it is a new feature request, broader redesign, roadmap preference, or unrelated bug;
+- it changes storage schemas, Supabase/RLS contracts, privacy exposure, deployment/configuration, release posture, scoring/rating/Elo rules, or canonical gameplay rules;
+- it needs a materially different test harness, data contract, migration plan, or ownership area from the phase being reviewed;
+- it would make the manual checklist too broad to inspect clearly;
+- it depends on credentials, external access, production action, or protected repo work that the current phase did not authorize.
 
 Manual checklist content should remain phase-specific and should include:
 
@@ -177,9 +227,10 @@ Stop and ask for review instead of enlarging a phase if:
 - the phase would require multiple unrelated migrations or privacy contracts;
 - the phase would mix gameplay-rule changes with unrelated UI/social/deployment work;
 - the final manual review checklist would become too vague to test by hand;
+- the manual review finding is not directly phase-related or requires a new protected action;
 - focused tests cannot isolate stage failures;
-- the phase would require unapproved deployment, production, GitHub, secret, or stable-repo actions.
+- the phase would require unapproved deployment, production configuration, GitHub, secret, or stable-repo actions.
 
 ## Summary Rule
 
-Make phases bigger only when that makes the work more coherent. Keep stages small enough that a failed test or review finding has an obvious owner and rollback path.
+Make phases bigger only when that makes the work more coherent. Keep stages small enough that a failed test or review finding has an obvious owner and rollback path, then close through Review Candidate, explicitly authorized Review Candidate Backup, Manual Review Window, same-phase Review Follow-up if needed, accepted review, and separately authorized Final Acceptance Backup or closure.

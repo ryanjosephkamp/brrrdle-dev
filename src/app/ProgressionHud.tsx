@@ -3,10 +3,11 @@ import type { GuestProgressionState } from '../account/storageSchema'
 import { createProgressionHudViewModel } from './progressionHudViewModel'
 
 interface ProgressionHudProps {
+  readonly onOpenStats?: () => void
   readonly progression: GuestProgressionState
 }
 
-export function ProgressionHud({ progression }: ProgressionHudProps) {
+export function ProgressionHud({ onOpenStats, progression }: ProgressionHudProps) {
   const viewModel = useMemo(() => createProgressionHudViewModel(progression), [progression])
 
   return (
@@ -36,6 +37,16 @@ export function ProgressionHud({ progression }: ProgressionHudProps) {
         <span style={{ width: `${viewModel.progressPercent}%` }} />
       </div>
       <p>{viewModel.xpSummary} - {viewModel.xpToNextLevelLabel}</p>
+      {onOpenStats ? (
+        <button
+          aria-label="Open Stats for progression details"
+          className="brrrdle-progression-hud-action"
+          onClick={onOpenStats}
+          type="button"
+        >
+          Open Stats
+        </button>
+      ) : null}
       <span className="sr-only">{viewModel.levelLabel}; {viewModel.coinLabel}</span>
     </aside>
   )

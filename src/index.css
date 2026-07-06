@@ -347,6 +347,29 @@ body {
   white-space: nowrap;
 }
 
+.brrrdle-progression-hud-action {
+  justify-self: start;
+  border: 1px solid rgb(85 244 255 / 0.34);
+  border-radius: 999px;
+  background: rgb(85 244 255 / 0.1);
+  color: white;
+  cursor: pointer;
+  font-size: 0.64rem;
+  font-weight: 900;
+  line-height: 1.1;
+  padding: 0.28rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.brrrdle-progression-hud-action:hover {
+  background: rgb(85 244 255 / 0.18);
+}
+
+.brrrdle-progression-hud-action:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-interface {
   padding-block-start: max(0.65rem, env(safe-area-inset-top));
 }

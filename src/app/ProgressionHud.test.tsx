@@ -48,9 +48,23 @@ describe('ProgressionHud', () => {
     expect(html).toContain('role="progressbar"')
     expect(html).toContain('aria-valuenow="50"')
     expect(html).toContain('50 / 200 XP - 150 XP to level 3')
+    expect(html).not.toContain('Open Stats')
     expect(html).not.toContain('reveal')
     expect(html).not.toContain('continue')
     expect(html).not.toContain('removeIncorrectLetters')
+  })
+
+  it('renders a focused Stats navigation action only when the handler is supplied', () => {
+    const html = renderToStaticMarkup(
+      <ProgressionHud onOpenStats={() => undefined} progression={progression({ coins: 42, level: 99, xp: 150 })} />,
+    )
+
+    expect(html).toContain('aria-label="Current progression"')
+    expect(html).toContain('role="progressbar"')
+    expect(html).toContain('aria-label="Open Stats for progression details"')
+    expect(html).toContain('type="button"')
+    expect(html).toContain('Open Stats')
+    expect(html).toContain('50 / 200 XP - 150 XP to level 3')
   })
 
   it('renders whatever active-scope progression is passed without retaining stale account values', () => {

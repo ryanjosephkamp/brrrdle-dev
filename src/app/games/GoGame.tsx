@@ -230,6 +230,7 @@ function GoGameSession({
     }
     return scope === 'daily' ? createInitialDailySession(setup, pastDailyDateKey, defaultHardMode) : createGoSession(setup, defaultHardMode)
   })
+  const suppressInitialCompletionReportRef = useRef(Boolean(restoreFrom) && session.status !== 'playing')
   const [continuationMessage, setContinuationMessage] = useState<string>()
   const [solvedTransition, setSolvedTransition] = useState<SoloGoSolvedTransition | undefined>()
   const [showDefinitions, setShowDefinitions] = useState(true)
@@ -318,6 +319,11 @@ function GoGameSession({
     }
 
     if (session.status === 'lost' && canPayToContinue) {
+      return
+    }
+
+    if (suppressInitialCompletionReportRef.current) {
+      suppressInitialCompletionReportRef.current = false
       return
     }
 

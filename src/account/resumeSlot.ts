@@ -77,6 +77,39 @@ export function isCaptureInProgress(capture: ResumeCapture): boolean {
   return capture.mode === 'og' ? isOgSessionInProgress(capture.serializedSession) : isGoSessionInProgress(capture.serializedSession)
 }
 
+export function isOgSessionWon(session: SerializedOgSession): boolean {
+  return session.guesses.some((guess) => guess === session.answer)
+}
+
+export function isGoSessionWon(session: SerializedGoSession): boolean {
+  if (session.puzzles.length === 0) {
+    return false
+  }
+
+  const currentPuzzleIndex = Math.min(session.currentPuzzleIndex, session.puzzles.length - 1)
+  const current = session.puzzles[currentPuzzleIndex]
+  return currentPuzzleIndex >= session.puzzles.length - 1
+    && current.guesses.some((guess) => guess === current.answer)
+}
+
+/** True when the captured session represents a completed winning terminal state. */
+export function isCaptureWon(capture: ResumeCapture): boolean {
+  return capture.mode === 'og' ? isOgSessionWon(capture.serializedSession) : isGoSessionWon(capture.serializedSession)
+}
+
+export function isOgSessionComplete(session: SerializedOgSession): boolean {
+  return isOgSessionWon(session) || Boolean(session.revealedAnswer)
+}
+
+export function isGoSessionComplete(session: SerializedGoSession): boolean {
+  return isGoSessionWon(session) || Boolean(session.revealedAnswer)
+}
+
+/** True when the captured session is a recordable Solo terminal state. */
+export function isCaptureComplete(capture: ResumeCapture): boolean {
+  return capture.mode === 'og' ? isOgSessionComplete(capture.serializedSession) : isGoSessionComplete(capture.serializedSession)
+}
+
 /** Stamp a capture with a timestamp to produce a persisted resume slot. */
 export function createResumeSlot(capture: ResumeCapture, updatedAt: string = new Date().toISOString()): ResumeSlot {
   return { ...capture, updatedAt }

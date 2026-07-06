@@ -206,6 +206,7 @@ function OgGameSession({
     }
     return scope === 'daily' ? createInitialDailySession(setup, pastDailyDateKey, defaultHardMode) : createOgSession(setup, defaultHardMode)
   })
+  const suppressInitialCompletionReportRef = useRef(Boolean(restoreFrom) && session.status !== 'playing')
   const [continuationMessage, setContinuationMessage] = useState<string>()
   const previousSubmittedGuessCountRef = useRef<number | undefined>(undefined)
   const completionPercentage = getCompletionPercentage(session)
@@ -265,6 +266,11 @@ function OgGameSession({
     }
 
     if (session.status === 'lost' && canPayToContinue) {
+      return
+    }
+
+    if (suppressInitialCompletionReportRef.current) {
+      suppressInitialCompletionReportRef.current = false
       return
     }
 

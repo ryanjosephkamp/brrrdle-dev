@@ -55,12 +55,19 @@ Future planning should also use `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md
 | Phase 46 | Solo sync integrity and manual-review follow-up | Improve signed-in Solo automatic sync/freshness, decide source-only versus storage-contract needs, clean up Solo `Select`, and fix mobile pre-guess keyboard visibility | Complete |
 | Phase 47 | Mobile Solo GO visibility and account display boundaries | Repair/reroute failed mobile GO keyboard and re-entry scroll checks, audit signed-out guest display boundaries, and classify same-account session freshness | Complete |
 | Phase 48 | Profile and multiplayer contract simplification | Profile model cleanup, custom-code/private Daily/ranked Daily routing, and reviewed contract gates | Complete |
-| Phase 49 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after existing resources have clear function, plus late Focus Mode, compact navigation, and broader mobile UX decisioning | Next planning target |
-| Phase 50 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
-| Phase 51 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
+| Phase 49 | Progression HUD, Focus Mode, and mobile UX shell polish | Display-only active-scope Level/Coins/XP HUD, reversible session-local Focus Mode, and explicit deferred mobile-shell gates | Complete |
+| Phase 50 | Solo completion persistence and current-surface convenience macro-phase | Big phase with narrow stages for Solo Daily/Practice OG/GO completion persistence, reward idempotence, Profile account conveniences, HUD-to-Stats navigation, and future-work routing | Next planning target |
+| Phase 51 | Account/Profile/player-menu follow-up | Profile simplification, player-chip popover, durable Focus controls, and account convenience follow-up after Phase 50 evidence | Future gated planning |
+| Phase 52 | Private Practice expansion and request center | Broaden private Practice initiation and request-management surfaces while preserving unranked Practice boundaries | Future gated planning |
+| Phase 53 | Stats/progression clarity and cloud/multiplayer stats | Clarify local/cloud/multiplayer/progression stat boundaries without changing gameplay, reward formulas, or Elo | Future gated planning |
+| Phase 54 | Live/profile/Elo metadata polish | Add safe clickable identity and safe rating context to Live/Lobby/current multiplayer surfaces | Future gated planning |
+| Phase 55 | Shell/Focus/navigation direction intake | Decide broader shell, Focus, player controls, Daily button consolidation, and side-dock direction before implementation | Future gated planning |
+| Phase 56 | UI/theme direction intake | Gather user UI/UX/theme direction after core product reliability is stronger | Deferred |
+| Phase 57 or later | Theme proposal/template modernization | Update theme templates and planning artifacts only after dedicated UI/theme intake | Deferred |
+| Phase 58 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-After Phase 48, profile and multiplayer contract simplification is complete and manual review passed. Phase 48 also repaired the narrow mobile Solo auto-scroll lag candidate, hid new custom-code creation while preserving legacy custom-code readability, and deferred private Daily/ranked Daily behind a protected addendum. Phase 49 now plans progression/resource visibility, Focus Mode feasibility, and mobile UX shell polish while keeping actual implementation, storage changes, broad mobile shell work, strict session leases, server-authoritative Daily, gameplay-rule changes, Elo changes, and theme work separately gated.
+After Phase 49, progression/resource visibility and the Focus Mode first slice are complete and manual review passed. Phase 49 also surfaced a post-review Solo completion-state persistence bug: after winning Daily/Practice Solo OG/GO, route re-entry or browser Back/Forward can lose the final winning guess and completed end screen while XP, coins, and level remain idempotent. The user approved Phase 50 as an expanded macro-phase with small stages: it should plan and then gate the Solo completion repair, reward idempotence hardening, Profile Sign out convenience, Profile-to-Settings Account Management navigation, Progression HUD click-through to Stats, and documentation routing for future Focus/profile/private Practice/Stats/Live/shell/theme phases. Broad shell redesign, compact side-dock, Daily button consolidation, private Daily, ranked Daily, strict session leases, server-authoritative Daily, gameplay-rule changes, Elo changes, and all theme work remain separately gated.
 
 ---
 
@@ -447,23 +454,36 @@ Core requirements:
 
 ## Phase 49 Progression HUD, Focus Mode, And Mobile UX Strategy
 
-Phase 49 should plan late-stage shell polish after current-surface cleanup, Solo account/cloud persistence, mobile/account-boundary follow-up, and profile/multiplayer contract decisions are clearer.
+Phase 49 is complete. It delivered display-only active-scope Level, Coins, and compact XP progress in the shell plus a reversible session-local Focus Mode first slice.
 
 Core requirements:
 
-- show existing level, XP, coins, consumables, and any other real resources near the top/header area only after those resources have clear gameplay function;
-- support both guest players and signed-in players, preserving any explicit guest-to-account transfer expectations through reviewed paths;
-- add a player-toggleable Focus Mode only after the main shell is stable enough to avoid repeated compatibility churn;
-- consider broader mobile UX improvements such as compact navigation and reduced top-of-page chrome after current account/cloud and responsive scaling issues are stable;
-- keep the compact navigation fully functional and accessible;
-- persist any Focus Mode default only through approved guest/account settings paths;
+- keep the HUD display-only, active-scope, and derived from existing progression state and selector math;
+- preserve guest/authenticated ownership boundaries and sign-out/account-switch display boundaries;
+- keep Focus Mode reversible, session-local, shell-only, and clearly recoverable;
+- defer deeper Focus Mode reduction, persistent Focus settings, player-chip popover controls, compact side-dock, broad shell redesign, and top-right Daily button consolidation to later planning;
 - preserve gameplay legibility, route discoverability, responsive behavior, and all tile-state/gameplay semantics.
 
 ---
 
-## Phase 50 Theme Strategy
+## Phase 50 Solo Completion-State Persistence Strategy
 
-Phase 50 or a later gated phase should modernize theme proposal artifacts before broad theme implementation.
+Phase 50 should plan a bounded repair for the post-Phase-49 manual-review Solo completion-state bug before theme modernization.
+
+Core requirements:
+
+- audit Daily Solo OG/GO and Practice Solo OG/GO completion persistence after final winning guesses;
+- cover route changes, tab/subtab changes, browser Back/Forward, route cache state, active progress, resume slots, and storage writes;
+- preserve reward idempotence so XP, coins, level, stats, Daily claims, and progression rewards cannot double-award;
+- decide source-only versus storage-contract needs before implementation;
+- preserve Phase 49 HUD/Focus Mode, Phase 48 Profile/Settings clarity, Phase 47 mobile/display-boundary repairs, Phase 46 Solo sync/freshness, Phase 45 Solo account boundaries, and prior gameplay/Elo invariants;
+- route but do not implement broader Focus Mode, player-chip popover, Profile sign-out, profile-model simplification, private Practice expansion, Stats clarity/cloud stats, Live/profile/Elo metadata, side-panel navigation, top-right Daily button consolidation, HUD click-through, theme modernization, private Daily, and ranked Daily.
+
+---
+
+## Phase 51 Theme Strategy
+
+Phase 51 or a later gated phase should modernize theme proposal artifacts before broad theme implementation.
 
 Required review surfaces:
 
@@ -481,9 +501,9 @@ Goal:
 
 ---
 
-## Phase 50+ Full Theme Implementation Strategy
+## Phase 52+ Full Theme Implementation Strategy
 
-Phase 50 or later should implement concrete themes only after the templates are modernized.
+Phase 52 or later should implement concrete themes only after the templates are modernized.
 
 Candidate work:
 
