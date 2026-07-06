@@ -30,24 +30,27 @@ describe('ProfilePanel', () => {
     expect(html).toBe('')
   })
 
-  it('renders the form fields, email, and Save/Cancel/Sign out controls', () => {
+  it('renders private profile fields, email, and Save/Cancel controls without a Sign out action', () => {
     const html = renderToStaticMarkup(
       <ProfilePanel authState={authState} isOpen onClose={noop} onSave={noop} onSignOut={noop} />,
     )
     expect(html).toContain('Your profile')
+    expect(html).toContain('Private account profile')
+    expect(html).toContain('current-player fields stay with your signed-in account')
     expect(html).toContain('Display name')
     expect(html).toContain('Accent color')
     expect(html).toContain('ada@example.com')
     expect(html).toContain('Save')
     expect(html).toContain('Cancel')
-    expect(html).toContain('Sign out')
+    expect(html).toContain('Settings account management')
+    expect(html).not.toContain('>Sign out</button>')
   })
 
   it('renders the no-storage hint when the Supabase client is missing', () => {
     const html = renderToStaticMarkup(
       <ProfilePanel authState={authState} isOpen onClose={noop} onSave={noop} onSignOut={noop} />,
     )
-    expect(html).toContain('Image upload is unavailable')
+    expect(html).toContain('Private image upload is unavailable')
     expect(html).not.toContain('type="file"')
   })
 
@@ -113,8 +116,10 @@ describe('ProfilePanel', () => {
         }}
       />,
     )
-    expect(html).toContain('Public profile')
+    expect(html).toContain('Opt-in public profile')
     expect(html).toContain('Public display name')
+    expect(html).toContain('Public views use only the public display name, accent, avatar URL, bio, and opaque profile ID saved here')
+    expect(html).not.toContain('accent, flair, avatar URL')
     expect(html).toContain('Bio')
     expect(html).toContain('Public Ada')
     expect(html).toContain('from-sky-400 to-cyan-700')
@@ -122,7 +127,7 @@ describe('ProfilePanel', () => {
     expect(html).toContain('Save public profile')
   })
 
-  it('renders the reusable route editor without modal-only cancel chrome', () => {
+  it('renders the reusable route editor without modal-only cancel or Sign out chrome', () => {
     const html = renderToStaticMarkup(
       <ProfileEditor
         authState={authState}
@@ -143,9 +148,11 @@ describe('ProfilePanel', () => {
     )
 
     expect(html).toContain('Signed in as')
+    expect(html).toContain('Private account profile')
     expect(html).toContain('Route Ada')
     expect(html).toContain('Save public profile')
-    expect(html).toContain('Sign out')
+    expect(html).toContain('Sign out, password changes, sync, progress export, and account-reset controls live in Settings account management')
+    expect(html).not.toContain('>Sign out</button>')
     expect(html).not.toContain('Cancel')
   })
 })

@@ -25,7 +25,11 @@ function canFocusAutoCenterTarget(documentRef: Document): boolean {
   return !activeElement || activeElement === documentRef.body || activeElement === documentRef.documentElement
 }
 
-function getScrollBehavior(windowRef: Window): ScrollBehavior {
+function getGameplayAutoCenterBehavior(target: GameplayAutoCenterTarget, windowRef: Window): ScrollBehavior {
+  if (target === GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard && isGameplayAutoCenterMobileViewport(windowRef)) {
+    return 'auto'
+  }
+
   return windowRef.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 }
 
@@ -101,7 +105,7 @@ export function scheduleGameplayAutoCenter(target: GameplayAutoCenterTarget, opt
 
     element.scrollIntoView({
       block: getGameplayAutoCenterBlock(target, windowRef),
-      behavior: getScrollBehavior(windowRef),
+      behavior: getGameplayAutoCenterBehavior(target, windowRef),
     })
 
     if (canFocusAutoCenterTarget(documentRef)) {

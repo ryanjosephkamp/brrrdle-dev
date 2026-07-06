@@ -53,14 +53,14 @@ Future planning should also use `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md
 | Phase 44 | Account-scoped local state isolation and Phase 43 manual-review follow-up | Repair guest/account state boundaries, protect Daily/Practice Solo isolation, audit sign-out visibility, private Practice request eligibility, ranked queue fairness, and small UI follow-ups | Complete |
 | Phase 45 | Solo cloud progress boundaries and mobile follow-up | Repair Daily/Practice Solo guest/auth account boundaries, preserve authenticated cross-browser loading, and handle Profile/mobile Solo follow-ups | Complete |
 | Phase 46 | Solo sync integrity and manual-review follow-up | Improve signed-in Solo automatic sync/freshness, decide source-only versus storage-contract needs, clean up Solo `Select`, and fix mobile pre-guess keyboard visibility | Complete |
-| Phase 47 | Mobile Solo GO visibility and account display boundaries | Repair/reroute failed mobile GO keyboard and re-entry scroll checks, audit signed-out guest display boundaries, and classify same-account session freshness | Next planning target |
-| Phase 48 | Profile and multiplayer contract simplification | Profile model cleanup, custom-code/private Daily/ranked Daily routing, and reviewed contract gates | Future |
+| Phase 47 | Mobile Solo GO visibility and account display boundaries | Repair/reroute failed mobile GO keyboard and re-entry scroll checks, audit signed-out guest display boundaries, and classify same-account session freshness | Complete |
+| Phase 48 | Profile and multiplayer contract simplification | Profile model cleanup, custom-code/private Daily/ranked Daily routing, and reviewed contract gates | Next planning target |
 | Phase 49 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
 | Phase 50 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
 | Phase 51 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-After Phase 46, signed-in Solo automatic sync/freshness and Solo Resume-only cards are repaired and manual review passed overall, but two mobile GO keyboard/scroll checks failed on real mobile review. Phase 47 is rerouted to mobile Solo GO visibility, re-entry scroll behavior, signed-out guest display-boundary auditing, and same-account session-freshness classification. Larger preview consistency, notification context, profile/data-contract simplification, configurable Home widgets, social inbox work, progression HUD, Focus Mode, broad compact navigation, draw-by-repetition, and theme work remain separately gated.
+After Phase 47, mobile Solo GO keyboard/re-entry visibility and signed-out guest display-boundary repairs are complete and manual review passed. A late non-blocking real-mobile observation noted slightly laggy page scrolling, possibly related to automatic gameplay scrolling. Phase 48 resumes profile and multiplayer contract simplification planning, including public/private/current-player profile simplification, custom-code/private game routing, private Daily feasibility, and ranked Daily contract decisioning, while classifying that scroll-lag note early and deferring broad mobile performance/shell work. Larger preview consistency, notification context, configurable Home widgets, social inbox work, progression HUD, Focus Mode, broad compact navigation, draw-by-repetition, strict session leases, server-authoritative Daily, and theme work remain separately gated.
 
 ---
 
@@ -415,7 +415,7 @@ Manual review follow-up:
 
 ## Phase 47 Mobile Solo GO Visibility And Account Display Boundary Strategy
 
-Phase 47 should handle the Phase 46 manual-review failures before profile/multiplayer contract work resumes.
+Phase 47 handled the Phase 46 manual-review failures before profile/multiplayer contract work resumed.
 
 Core requirements:
 
@@ -432,14 +432,17 @@ Core requirements:
 
 A later gated phase should handle participant-owned Live/Active/Home preview consistency, timestamp policy, and notification context only after Solo sync integrity and current mobile/account-boundary follow-ups are reliable.
 
-## Later Profile And Multiplayer Contract Strategy
+## Phase 48 Profile And Multiplayer Contract Strategy
 
-Phase 48 or later should handle profile simplification, custom-code removal/rerouting, private Daily requests, ranked Daily separation, and draw-by-repetition only through dedicated contract or gameplay-rule gates.
+Phase 48 should handle profile simplification, custom-code removal/rerouting, private Daily request feasibility, and ranked Daily separation only through dedicated contract gates. It should also classify the late Phase 47 mobile scroll-lag observation before implementation, only allowing a tiny source-only auto-scroll regression repair if proven. Draw-by-repetition remains a later gameplay-rule gate.
 
 Core requirements:
 
 - require migration/RLS review before profile or request-contract expansion;
 - preserve Daily claim safety before private Daily or ranked Daily work;
+- preserve public/private profile privacy and raw-auth/private-data boundaries;
+- route the late mobile scroll-lag observation without turning Phase 48 into a broad mobile performance or shell phase;
+- keep strict one-active-session/session leases and server-authoritative Daily submissions deferred unless a later spec proves they are required;
 - keep draw-by-repetition out of UI cleanup and route it to a gameplay-rule spec.
 
 ## Later Progression HUD, Focus Mode, And Mobile UX Strategy

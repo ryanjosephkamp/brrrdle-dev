@@ -337,7 +337,7 @@ export function Settings({
                 <Button onClick={onSignOut} variant="secondary">Sign out</Button>
               ) : null}
             </div>
-            <p>Profile editing now lives in the Profile tab. Keep Settings for password access and configuration-gated account actions.</p>
+            <p>Profile editing now lives in the Profile tab. Settings is the account-management home for Sign out, password changes, cloud sync, progress export, reset, and gated account actions.</p>
             <div className="flex flex-wrap gap-2">
               {onOpenProfilePanel ? (
                 <Button onClick={onOpenProfilePanel} variant="primary">Open Profile tab</Button>
