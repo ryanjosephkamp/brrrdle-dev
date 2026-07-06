@@ -20,7 +20,7 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 
 ---
 
-## Current State After Phase 45
+## Current State After Phase 47
 
 - Phase 23 stabilized the core Solo and Multiplayer gameplay model and added broad local plus real Supabase-backed E2E coverage.
 - Phase 24 made Solo, Multiplayer, History, Lobby, and Live v0 first-class app areas.
@@ -48,7 +48,8 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 - Phase 43 manual review surfaced one urgent account/guest state boundary issue plus smaller follow-up issues around private Practice request eligibility, ranked queue fairness verification, sign-in ordering, global header chips, Stats public-site placement, Help placeholder copy, and Solo gameplay keyboard centering. Phase 44 was formally rerouted to account-scoped local state isolation and bounded manual-review follow-up before profile/data-contract simplification or larger social/widget work.
 - Phase 44 repaired several account-scoped local-state and manual-review follow-up items, but manual review found that Daily Solo OG/GO account boundaries still fail across guest/auth transitions and separate browser profiles. Phase 45 is formally rerouted to urgent Solo Daily account/cloud persistence boundaries, storage-contract decisioning, real browser/E2E coverage, and only small follow-ups for Profile embedded sign-in order and mobile Solo scaling.
 - Phase 45 repaired Daily Solo and Practice Solo guest/auth boundaries, preserved cross-browser authenticated loading through existing `progress_snapshots`, aligned the Profile embedded sign-in order, and improved mobile Solo post-guess playability. Phase 45 manual review passed with follow-up observations around automatic signed-in Solo sync freshness, same-account multi-tab/browser anti-cheat risk, the low-value Solo Overview active-game `Select` control, and pre-guess mobile keyboard clipping. Phase 46 is rerouted to Solo sync integrity and these small current-surface follow-ups before preview/social/profile expansion resumes.
-- Phase 46 improved signed-in Solo automatic sync/freshness, removed the low-value Solo Overview `Select` control, and preserved guest/account Solo transfer boundaries. Phase 46 manual review passed overall but failed two mobile GO keyboard/scroll checks and surfaced a signed-out guest display-boundary concern. Phase 47 is rerouted to mobile Solo GO visibility and account display-boundary follow-up before profile/multiplayer contract simplification resumes.
+- Phase 46 improved signed-in Solo automatic sync/freshness, removed the low-value Solo Overview `Select` control, and preserved guest/account Solo transfer boundaries. Phase 46 manual review passed overall but failed two mobile GO keyboard/scroll checks and surfaced a signed-out guest display-boundary concern, so Phase 47 was rerouted to mobile Solo GO visibility and account display-boundary follow-up.
+- Phase 47 repaired mobile Solo GO keyboard visibility and re-entry scroll behavior, added stricter mobile keyboard bottom-clearance checks, guarded signed-out guest/account display boundaries after auth-scope changes, and completed manual review. A late non-blocking real-mobile observation noted slightly laggy page scrolling, possibly related to automatic gameplay scrolling; Phase 48 should classify that early while keeping broad mobile performance/shell work deferred. Phase 48 now resumes profile and multiplayer contract simplification planning.
 
 ---
 
@@ -81,8 +82,8 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 | Phase 44 | Account-scoped local state isolation and Phase 43 manual-review follow-up | Guest/account state boundary audit and repair, Daily/Practice Solo isolation, sign-out visibility cleanup, private Practice request eligibility follow-up, ranked queue review, and small UI follow-ups | Complete |
 | Phase 45 | Solo cloud progress boundaries and mobile follow-up | Daily/Practice Solo guest/auth boundary repair, cross-browser authenticated cloud persistence through existing snapshots, Profile embedded sign-in order, and narrow mobile Solo scaling | Complete |
 | Phase 46 | Solo sync integrity and manual-review follow-up | Signed-in Solo Daily/Practice automatic sync and anti-cheat audit, source-only versus storage-contract decisioning, Solo Overview `Select` cleanup, and mobile pre-guess keyboard visibility | Complete |
-| Phase 47 | Mobile Solo GO visibility and account display boundaries | Repair/reroute mobile GO keyboard visibility and re-entry scroll failures, audit signed-out guest display boundaries, and classify same-account session freshness without defaulting to session leases | Next planning target |
-| Phase 48 | Profile and multiplayer contract simplification | Profile field/model simplification, custom-code/private Daily/ranked Daily routing, and migration/RLS or gameplay-rule gates if needed | Future |
+| Phase 47 | Mobile Solo GO visibility and account display boundaries | Repair/reroute mobile GO keyboard visibility and re-entry scroll failures, audit signed-out guest display boundaries, and classify same-account session freshness without defaulting to session leases | Complete |
+| Phase 48 | Profile and multiplayer contract simplification | Profile field/model simplification, custom-code/private Daily/ranked Daily routing, and migration/RLS or gameplay-rule gates if needed | Next planning target |
 | Phase 49 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site EXP, coin, and collectible counters after earnable systems have clear gameplay functions; late Focus Mode, compact navigation, and broader mobile UX improvements | Future |
 | Phase 50 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
 | Phase 51 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
@@ -438,7 +439,7 @@ Manual review follow-up:
 
 ## Phase 47 - Mobile Solo GO Visibility And Account Display Boundaries
 
-Phase 47 should handle the Phase 46 manual-review follow-up before profile/multiplayer contract simplification resumes.
+Phase 47 handled the Phase 46 manual-review follow-up before profile/multiplayer contract simplification resumed.
 
 Candidate work:
 
@@ -450,19 +451,19 @@ Candidate work:
 - audit signed-out guest display boundaries for History, leaderboard/rating summaries, Stats, Active/Multiplayer projections, Settings/Profile, and related account-specific surfaces;
 - classify same-account multi-tab/browser session freshness while keeping strict one-active-session enforcement deferred unless evidence proves it is required now.
 
-Phase 47 must not become a broad mobile shell, compact side-dock implementation, configurable Home widget, spectator preview, notification redesign, social inbox, spectator presence, service worker, push, deployment, gameplay-rule, or Elo phase.
+Phase 47 did not become a broad mobile shell, compact side-dock implementation, configurable Home widget, spectator preview, notification redesign, social inbox, spectator presence, service worker, push, deployment, gameplay-rule, or Elo phase.
 
 ## Later Phase - Live/Home Preview Consistency, Timestamp Policy, And Notification Clarity
 
 A later gated phase should handle participant-owned Live/Active/Home preview improvements, public participant names where safe, UTC/local timestamp display policy, and privacy-safe notification rival/ranked context after Solo sync integrity and current mobile/account-boundary follow-ups are reliable.
 
-## Later Phase - Profile And Multiplayer Contract Simplification
+## Phase 48 - Profile And Multiplayer Contract Simplification
 
-Phase 48 or another later gated phase should handle profile simplification, custom-code removal/rerouting, private Daily requests, ranked Daily separation, and related contract work only after a dedicated planning/spec/addendum path.
+Phase 48 should handle profile simplification, custom-code removal/rerouting, private Daily request feasibility, ranked Daily separation, and related contract work only through a dedicated planning/spec/addendum path. It should also classify the late Phase 47 real-mobile scroll-lag observation early, routing only a tiny source-only auto-scroll regression if proven and deferring broader mobile performance/shell work.
 
 Candidate later work:
 
-- simplify public/private profile fields and Save/Sign out placement after privacy/RLS review;
+- simplify public/private/current-player profile fields and Save/Sign out placement after privacy/RLS review;
 - decide whether custom-code match type should be removed, hidden, or redesigned;
 - decide whether private Daily requests are allowed and how they interact with Daily claim safety;
 - separate ranked and unranked Daily paths before any ranked Daily implementation;

@@ -31,7 +31,7 @@ interface ProfileEditorProps {
   readonly onSave: (input: { readonly displayName?: string; readonly accentColor?: ProfileAccentColor; readonly avatarUrl?: string }) => Promise<void> | void
   readonly onSavePublicProfile?: (input: PublicProfileUpdateInput) => Promise<void> | void
   readonly onCancel?: () => void
-  readonly onSignOut: () => void
+  readonly onSignOut?: () => void
   readonly publicProfile?: OwnerPublicProfile
   readonly publicProfileBusy?: boolean
   readonly publicProfileStatusMessage?: string
@@ -71,7 +71,6 @@ export function ProfileEditor({
   onCancel,
   onSave,
   onSavePublicProfile,
-  onSignOut,
   publicProfile,
   publicProfileBusy,
   publicProfileStatusMessage,
@@ -229,6 +228,13 @@ export function ProfileEditor({
           </div>
         </div>
 
+        <div className="space-y-1 border-t border-slate-800 pt-4">
+          <p className="font-semibold text-cyan-100">Private account profile</p>
+          <p className="text-xs leading-5 text-slate-400">
+            These current-player fields stay with your signed-in account and are not published on your public profile.
+          </p>
+        </div>
+
         <label className="grid gap-1 font-semibold text-cyan-100">
           Display name
           <input
@@ -266,7 +272,7 @@ export function ProfileEditor({
 
         {storageAvailable ? (
           <label className="grid gap-1 font-semibold text-cyan-100">
-            Avatar image
+            Private avatar image
             <input
               accept="image/png,image/jpeg,image/webp"
               className="text-xs text-slate-300 file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-ice-200)] file:px-3 file:py-1 file:text-slate-950"
@@ -283,7 +289,7 @@ export function ProfileEditor({
           </label>
         ) : (
           <p className="text-xs text-slate-400">
-            Image upload is unavailable. Your avatar uses your initials on a colored gradient.
+            Private image upload is unavailable. Your current-player avatar uses your initials on a colored gradient.
             An admin can enable image uploads by creating an <code>{AVATAR_STORAGE_BUCKET}</code> Supabase Storage bucket.
           </p>
         )}
@@ -293,8 +299,10 @@ export function ProfileEditor({
           {onCancel ? (
             <Button onClick={onCancel} variant="ghost">{cancelLabel}</Button>
           ) : null}
-          <Button onClick={onSignOut} variant="secondary">Sign out</Button>
         </div>
+        <p className="text-xs text-slate-400">
+          Sign out, password changes, sync, progress export, and account-reset controls live in Settings account management.
+        </p>
 
         {message ? (
           <p aria-live="polite" className="text-sm text-rose-200">{message}</p>
@@ -303,9 +311,9 @@ export function ProfileEditor({
         {onSavePublicProfile ? (
           <div className="space-y-4 border-t border-slate-800 pt-4">
             <div className="space-y-1">
-              <p className="font-semibold text-cyan-100">Public profile</p>
+              <p className="font-semibold text-cyan-100">Opt-in public profile</p>
               <p className="text-xs leading-5 text-slate-400">
-                Public profiles are private until you choose Public. Public views use only your display name, accent, flair, avatar URL, bio, and opaque profile ID.
+                Public profiles are private until you choose Public. Public views use only the public display name, accent, avatar URL, bio, and opaque profile ID saved here.
               </p>
             </div>
 
@@ -374,7 +382,7 @@ export function ProfileEditor({
                 type="url"
                 value={publicAvatarUrl}
               />
-              <span className="text-xs text-slate-400">Optional. Use an https URL that does not contain your account ID.</span>
+              <span className="text-xs text-slate-400">Optional. Use an https image URL for public surfaces; keep it separate from private avatar uploads because public URLs must not include your account ID.</span>
             </label>
 
             <label className="grid gap-1 font-semibold text-cyan-100">

@@ -274,6 +274,9 @@ const PRIVATE_MATCH_REQUEST_LIMIT = 20
 const PRIVATE_MATCH_REFRESH_INTERVAL_MS = 5000
 const PARTICIPANT_IDENTITY_FETCH_DELAY_MS = 750
 const RANKED_QUEUE_REFRESH_INTERVAL_MS = 5000
+const CUSTOM_CODE_CREATION_ENABLED: boolean = false
+const CUSTOM_CODE_HIDDEN_MESSAGE = 'Custom-code lobbies are hidden while private Practice requests remain the supported private-match path.'
+const LEGACY_CUSTOM_CODE_SETUP_MESSAGE = 'Custom-code lobbies are hidden for now. Same settings loaded as an unranked Practice setup.'
 const RANKED_PRACTICE_TIME_LIMIT_OPTIONS = [
   { label: 'No clock', value: null },
   { label: '5 minutes', value: TIMED_RANKED_PRACTICE_TIME_LIMIT_MS },
@@ -490,7 +493,7 @@ export function PracticePostgameActionsPanel({
       ? 'Practice rematch requests require authenticated Supabase multiplayer.'
       : undefined
   const playAgainLabel = actions.continuationKind === 'custom-play-again'
-    ? 'Set up custom play again'
+    ? CUSTOM_CODE_CREATION_ENABLED ? 'Set up custom play again' : 'Load as unranked setup'
     : 'Open new unranked match'
 
   return (
@@ -1376,8 +1379,17 @@ export function MultiplayerPanel({
       void enterRankedQueue()
       return
     }
+    if (matchKind === 'custom' && !CUSTOM_CODE_CREATION_ENABLED) {
+      setMatchKind('unranked')
+      setLocalMessage({
+        gameId: selectedGame?.id,
+        text: CUSTOM_CODE_HIDDEN_MESSAGE,
+        updatedAt: selectedGame?.updatedAt,
+      })
+      return
+    }
     let customGameCode: string | undefined
-    if (matchKind === 'custom') {
+    if (matchKind === 'custom' && CUSTOM_CODE_CREATION_ENABLED) {
       const lobby = createCustomGameLobby({
         createdByUserId: viewerUserId,
         mode,
@@ -1744,10 +1756,12 @@ export function MultiplayerPanel({
     }
     const settings = selectedPostgameActions.settings
     if (selectedPostgameActions.continuationKind === 'custom-play-again') {
-      applyPostgameSettingsToControls(settings, 'custom')
+      applyPostgameSettingsToControls(settings, CUSTOM_CODE_CREATION_ENABLED ? 'custom' : 'unranked')
       setPostgameMessage({
         gameId: selectedGame.id,
-        text: 'Same custom settings loaded. Open a new custom-code lobby when ready.',
+        text: CUSTOM_CODE_CREATION_ENABLED
+          ? 'Same custom settings loaded. Open a new custom-code lobby when ready.'
+          : LEGACY_CUSTOM_CODE_SETUP_MESSAGE,
       })
       return
     }
@@ -1838,7 +1852,7 @@ export function MultiplayerPanel({
               >
                 <option value="unranked">Unranked</option>
                 <option disabled={authStatus !== 'authenticated'} value="ranked">Ranked</option>
-                <option value="custom">Custom code</option>
+                {CUSTOM_CODE_CREATION_ENABLED ? <option value="custom">Custom code</option> : null}
               </select>
             </label>
             {scope === 'practice' ? (

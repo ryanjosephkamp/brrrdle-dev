@@ -112,6 +112,7 @@ describe('Settings', () => {
 
     expect(html).toContain('Account management')
     expect(html).toContain('Profile editing now lives in the Profile tab')
+    expect(html).toContain('Settings is the account-management home for Sign out, password changes, cloud sync, progress export, reset, and gated account actions')
     expect(html).toContain('Open Profile tab')
     expect(html).toContain('Change password')
     expect(html).toContain('Email changes remain gated until Supabase email confirmation and redirect settings are verified')

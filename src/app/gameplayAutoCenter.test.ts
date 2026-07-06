@@ -124,7 +124,7 @@ describe('scheduleGameplayAutoCenter', () => {
     })
   })
 
-  it('uses end alignment for scheduled mobile solo keyboard scrolling', () => {
+  it('uses immediate end alignment for scheduled mobile solo keyboard scrolling', () => {
     const element = {
       focus: vi.fn(),
       scrollIntoView: vi.fn(),
@@ -136,6 +136,22 @@ describe('scheduleGameplayAutoCenter', () => {
 
     expect(element.scrollIntoView).toHaveBeenCalledWith({
       block: 'end',
+      behavior: 'auto',
+    })
+  })
+
+  it('keeps larger-screen solo keyboard scrolling smooth', () => {
+    const element = {
+      focus: vi.fn(),
+      scrollIntoView: vi.fn(),
+    }
+    const { callbacks } = installAutoCenterGlobals({ element, mobile: false })
+
+    scheduleGameplayAutoCenter(GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard)
+    callbacks[0]?.()
+
+    expect(element.scrollIntoView).toHaveBeenCalledWith({
+      block: 'center',
       behavior: 'smooth',
     })
   })
@@ -157,7 +173,7 @@ describe('scheduleGameplayAutoCenter', () => {
 
     expect(element.scrollIntoView).toHaveBeenCalledWith({
       block: 'end',
-      behavior: 'smooth',
+      behavior: 'auto',
     })
     expect(callbacks).toHaveLength(4)
 
@@ -194,7 +210,7 @@ describe('scheduleGameplayAutoCenter', () => {
 
     expect(element.scrollIntoView).toHaveBeenCalledWith({
       block: 'end',
-      behavior: 'smooth',
+      behavior: 'auto',
     })
   })
 

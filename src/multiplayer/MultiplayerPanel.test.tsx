@@ -869,6 +869,7 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('Choose no clock for the current ranked track or 5 minutes for the separate timed ranked track.')
     expect(html).toContain('Daily ranked and ranked custom-code games remain deferred.')
     expect(html).toContain('Points decide the match result first. Elo changes afterward only after trusted settlement')
+    expect(html).not.toContain('<option value="custom">Custom code</option>')
     expect(html).not.toContain('Each ranked bucket starts at 1200')
     expect(html).not.toContain('Your first 10 ranked Practice games are provisional with K=40')
     expect(html).not.toContain('standard 400-point Elo curve')
@@ -1225,7 +1226,8 @@ describe('MultiplayerPanel', () => {
     )
 
     expect(html).toContain('Postgame actions')
-    expect(html).toContain('Set up custom play again')
+    expect(html).toContain('Load as unranked setup')
+    expect(html).not.toContain('Set up custom play again')
     expect(html).toContain('Custom Practice games use setup-prefill instead of direct rematch.')
     expect(html).not.toContain('Request rematch')
   })
