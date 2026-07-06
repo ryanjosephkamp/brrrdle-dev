@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 47 is complete, backed up, merged, and manually reviewed, with a late non-blocking real-mobile scroll-lag observation routed into Phase 48 as an early classification gate. Use the Phase 48 planning brief, unified specification, and implementation plan before any Stage 48 execution.
+7. The active or next phase plan. Phase 48 is complete, backed up, merged, branch-cleaned, and manually reviewed. Use the Phase 49 planning brief before any Phase 49 specification or implementation planning.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -47,6 +47,7 @@ For normal future work, read:
 - `planning/phase-46/`: Phase 46 planning brief for signed-in Solo Daily/Practice automatic sync and anti-cheat audit, source-only versus Supabase/storage-contract decisioning, Solo Overview active-game `Select` button routing, and narrow mobile Solo pre-guess keyboard visibility follow-up.
 - `planning/phase-47/`: Phase 47 planning brief, implementation plan, changelog, and review checklist for mobile Solo GO keyboard visibility, re-entry scroll behavior, signed-out guest display-boundary follow-up, and same-account session freshness routing.
 - `planning/phase-48/`: Phase 48 planning brief and implementation plan for profile/public-profile/private-profile simplification, Profile/Settings account-management clarity, custom-code/private game routing, private Daily feasibility, ranked Daily contract decisioning, and early routing of the late Phase 47 mobile scroll-lag observation.
+- `planning/phase-49/`: Phase 49 planning brief and implementation plan for progression HUD/resource visibility, Focus Mode feasibility, compact/mobile shell polish decisioning, and explicit storage/mobile-shell/gameplay gates.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
@@ -73,6 +74,7 @@ For normal future work, read:
 - `planning/specs/phase-46/`: Phase 46 Solo sync integrity, Select cleanup, and mobile Solo keyboard visibility specs.
 - `planning/specs/phase-47/`: Phase 47 mobile Solo GO visibility and account display-boundary follow-up specs.
 - `planning/specs/phase-48/`: Phase 48 profile and multiplayer contract simplification specs.
+- `planning/specs/phase-49/`: Phase 49 progression HUD, Focus Mode, and mobile UX shell polish specs.
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.

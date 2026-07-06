@@ -87,6 +87,7 @@ import {
 import { BackToTopButton } from './BackToTopButton'
 import { GAMEPLAY_AUTOCENTER_TARGETS, scheduleGameplayAutoCenter } from './gameplayAutoCenter'
 import { LunarSignalStage } from './LunarSignalStage'
+import { ProgressionHud } from './ProgressionHud'
 import { getPrimaryNavigationRoutes, getRouteById, type AppRoute, type AppRouteId } from './routes'
 import { loadNavigationState, saveNavigationState, type HistoryFilters, type LegacyPracticeMode, type MultiplayerSubtabId, type SoloSubtabId } from './navigationState'
 
@@ -964,6 +965,7 @@ function AppInner() {
   const [initialBrowserNavigation] = useState(() => readCurrentBrowserNavigationViewState())
   const [initialNavigation] = useState(() => initialBrowserNavigation?.navigation ?? loadNavigationState())
   const [activeRouteId, setActiveRouteId] = useState<AppRouteId>(() => initialNavigation.activeRouteId)
+  const [focusModeEnabled, setFocusModeEnabled] = useState(false)
   const [guestProgress, setGuestProgress] = useState(() => loadGuestProgress())
   const [multiplayer, setMultiplayer] = useState(() => guestProgress.multiplayer ?? loadMultiplayerState())
   const [liveSpectatorRows, setLiveSpectatorRows] = useState<readonly AuthenticatedLiveSpectatorGame[]>([])
@@ -2517,6 +2519,8 @@ function AppInner() {
             ) : null}
           </>
         )}
+        focusModeEnabled={focusModeEnabled}
+        onFocusModeChange={setFocusModeEnabled}
         surfaceTheme={DEFAULT_SURFACE_THEME}
         metrics={[
           { label: 'daily', value: `${DAILY_WORD_LENGTH} letters` },
@@ -2525,6 +2529,7 @@ function AppInner() {
           { label: 'banks', value: BUNDLED_WORD_LIST_LENGTHS.length },
         ]}
         onNavigate={handleNavigate}
+        progressionHud={<ProgressionHud progression={guestProgress.progression} />}
         routeAttention={routeAttention}
         routes={prismRoutes}
       >

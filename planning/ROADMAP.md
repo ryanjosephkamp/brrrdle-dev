@@ -20,7 +20,7 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 
 ---
 
-## Current State After Phase 47
+## Current State After Phase 48
 
 - Phase 23 stabilized the core Solo and Multiplayer gameplay model and added broad local plus real Supabase-backed E2E coverage.
 - Phase 24 made Solo, Multiplayer, History, Lobby, and Live v0 first-class app areas.
@@ -49,7 +49,8 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 - Phase 44 repaired several account-scoped local-state and manual-review follow-up items, but manual review found that Daily Solo OG/GO account boundaries still fail across guest/auth transitions and separate browser profiles. Phase 45 is formally rerouted to urgent Solo Daily account/cloud persistence boundaries, storage-contract decisioning, real browser/E2E coverage, and only small follow-ups for Profile embedded sign-in order and mobile Solo scaling.
 - Phase 45 repaired Daily Solo and Practice Solo guest/auth boundaries, preserved cross-browser authenticated loading through existing `progress_snapshots`, aligned the Profile embedded sign-in order, and improved mobile Solo post-guess playability. Phase 45 manual review passed with follow-up observations around automatic signed-in Solo sync freshness, same-account multi-tab/browser anti-cheat risk, the low-value Solo Overview active-game `Select` control, and pre-guess mobile keyboard clipping. Phase 46 is rerouted to Solo sync integrity and these small current-surface follow-ups before preview/social/profile expansion resumes.
 - Phase 46 improved signed-in Solo automatic sync/freshness, removed the low-value Solo Overview `Select` control, and preserved guest/account Solo transfer boundaries. Phase 46 manual review passed overall but failed two mobile GO keyboard/scroll checks and surfaced a signed-out guest display-boundary concern, so Phase 47 was rerouted to mobile Solo GO visibility and account display-boundary follow-up.
-- Phase 47 repaired mobile Solo GO keyboard visibility and re-entry scroll behavior, added stricter mobile keyboard bottom-clearance checks, guarded signed-out guest/account display boundaries after auth-scope changes, and completed manual review. A late non-blocking real-mobile observation noted slightly laggy page scrolling, possibly related to automatic gameplay scrolling; Phase 48 should classify that early while keeping broad mobile performance/shell work deferred. Phase 48 now resumes profile and multiplayer contract simplification planning.
+- Phase 47 repaired mobile Solo GO keyboard visibility and re-entry scroll behavior, added stricter mobile keyboard bottom-clearance checks, guarded signed-out guest/account display boundaries after auth-scope changes, and completed manual review.
+- Phase 48 repaired the narrow mobile Solo auto-scroll lag candidate, clarified Profile/Settings account-management responsibilities, separated private current-player and opt-in public profile copy, hid new custom-code creation while preserving legacy custom-code readability, and deferred private Daily/ranked Daily behind a protected contract addendum. Phase 48 was backed up, merged, branch-cleaned, and manually reviewed with all checklist items passing.
 
 ---
 
@@ -83,8 +84,8 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 | Phase 45 | Solo cloud progress boundaries and mobile follow-up | Daily/Practice Solo guest/auth boundary repair, cross-browser authenticated cloud persistence through existing snapshots, Profile embedded sign-in order, and narrow mobile Solo scaling | Complete |
 | Phase 46 | Solo sync integrity and manual-review follow-up | Signed-in Solo Daily/Practice automatic sync and anti-cheat audit, source-only versus storage-contract decisioning, Solo Overview `Select` cleanup, and mobile pre-guess keyboard visibility | Complete |
 | Phase 47 | Mobile Solo GO visibility and account display boundaries | Repair/reroute mobile GO keyboard visibility and re-entry scroll failures, audit signed-out guest display boundaries, and classify same-account session freshness without defaulting to session leases | Complete |
-| Phase 48 | Profile and multiplayer contract simplification | Profile field/model simplification, custom-code/private Daily/ranked Daily routing, and migration/RLS or gameplay-rule gates if needed | Next planning target |
-| Phase 49 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site EXP, coin, and collectible counters after earnable systems have clear gameplay functions; late Focus Mode, compact navigation, and broader mobile UX improvements | Future |
+| Phase 48 | Profile and multiplayer contract simplification | Profile field/model simplification, custom-code/private Daily/ranked Daily routing, and migration/RLS or gameplay-rule gates if needed | Complete |
+| Phase 49 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site EXP, coin, and resource counters after existing resources have clear gameplay functions; late Focus Mode, compact navigation, and broader mobile UX decisioning | Next planning target |
 | Phase 50 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
 | Phase 51 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
 | Later phases | Expansion | Deeper social/community systems, marketplace, additional modes, and other expansion work | Future |
@@ -459,26 +460,27 @@ A later gated phase should handle participant-owned Live/Active/Home preview imp
 
 ## Phase 48 - Profile And Multiplayer Contract Simplification
 
-Phase 48 should handle profile simplification, custom-code removal/rerouting, private Daily request feasibility, ranked Daily separation, and related contract work only through a dedicated planning/spec/addendum path. It should also classify the late Phase 47 real-mobile scroll-lag observation early, routing only a tiny source-only auto-scroll regression if proven and deferring broader mobile performance/shell work.
+Phase 48 is complete. It handled profile simplification, custom-code removal/rerouting, private Daily request feasibility, ranked Daily separation, and related contract work through dedicated planning/spec/addendum gates. It also routed the late Phase 47 real-mobile scroll-lag observation into a tiny source-only mobile Solo auto-scroll repair while deferring broader mobile performance/shell work.
 
-Candidate later work:
+Delivered and preserved:
 
-- simplify public/private/current-player profile fields and Save/Sign out placement after privacy/RLS review;
-- decide whether custom-code match type should be removed, hidden, or redesigned;
-- decide whether private Daily requests are allowed and how they interact with Daily claim safety;
-- separate ranked and unranked Daily paths before any ranked Daily implementation;
-- route draw-by-repetition to a gameplay-rule gate rather than UI cleanup.
+- private/current-player and opt-in public profile responsibilities are clearer without stored profile/RPC/RLS changes;
+- Settings remains the account-management home for Sign out, password, sync, progress export/reset, and gated account actions;
+- new custom-code creation is hidden while legacy custom-code rows remain readable and unrated;
+- private Practice requests remain the supported private-match path;
+- private Daily and ranked Daily remain deferred behind `planning/specs/phase-48/PHASE-48-PRIVATE-DAILY-AND-RANKED-DAILY-CONTRACT-ADDENDUM-2026-07-06.md`;
+- draw-by-repetition remains a later gameplay-rule gate rather than UI cleanup.
 
-## Later Phase - Progression HUD, Focus Mode, And Mobile UX Shell Polish
+## Phase 49 - Progression HUD, Focus Mode, And Mobile UX Shell Polish
 
-Phase 49 or a later gated phase should add late-stage shell polish only after current-surface UX cleanup, Solo account/cloud persistence, mobile/account-boundary follow-up, and profile/multiplayer contract decisions are stable.
+Phase 49 should plan late-stage shell polish now that current-surface UX cleanup, Solo account/cloud persistence, mobile/account-boundary follow-up, and profile/multiplayer contract decisions are stable.
 
 Candidate work:
 
-- show EXP, coins, and any other real earnable/collectible counters near the top/header area for both guest and signed-in players;
+- show existing level, XP, coins, consumables, and any other real resources near the top/header area only if they have clear player-facing function;
 - keep any explicit guest-to-account transfer compatibility reviewed before displayed progression resources depend on it;
 - add a player-toggleable Focus Mode that can collapse the side navigation into a compact but functional form and reduce nonessential page chrome during play;
-- consider a broader mobile UX overhaul for compact navigation, reduced top-of-page chrome, and easier mobile gameplay access;
+- consider broader mobile UX improvements for compact navigation, reduced top-of-page chrome, and easier mobile gameplay access;
 - persist Focus Mode preferences safely per player/device/account as approved by the future spec;
 - preserve accessibility, route discoverability, responsive navigation, gameplay readability, and tile-state semantics.
 
@@ -486,9 +488,9 @@ This phase should not invent new economy functions by itself. Header counters sh
 
 ---
 
-## Phase 49 - Theme Proposal And Template Modernization
+## Phase 50 - Theme Proposal And Template Modernization
 
-Phase 49 should review and modernize the theme proposal system under:
+Phase 50 or a later gated phase should review and modernize the theme proposal system under:
 
 - `themes/proposals/template_proposals/`
 - `themes/proposals/theme_proposals.csv`
@@ -496,13 +498,13 @@ Phase 49 should review and modernize the theme proposal system under:
 
 The goal is to preserve the original template ideas while updating them for the post-current-surface-cleanup app surface. This late routing avoids repeated compatibility churn while profile, leaderboard, ranked expansion, public spectator, private matchmaking, site stats, onboarding, Focus Mode, progression HUD, mobile shell, and multiplayer surfaces are still changing.
 
-Phase 49 should decide which templates become full concrete theme proposals and which specific themes should be implemented first. It should not be treated as full theme implementation unless a later approved spec explicitly includes that work.
+Phase 50 should decide which templates become full concrete theme proposals and which specific themes should be implemented first. It should not be treated as full theme implementation unless a later approved spec explicitly includes that work.
 
 ---
 
-## Phase 50 Or Later - Full Concrete Themes
+## Phase 51 Or Later - Full Concrete Themes
 
-Phase 50 or a later dedicated phase should create and implement concrete themes after the template system has been modernized.
+Phase 51 or a later dedicated phase should create and implement concrete themes after the template system has been modernized.
 
 Candidate work:
 

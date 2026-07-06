@@ -21,7 +21,10 @@ interface LunarSignalStageProps {
    */
   readonly dailyCountdown?: ReactNode
   readonly metrics: readonly SignalMetric[]
+  readonly focusModeEnabled?: boolean
   readonly onNavigate: (routeId: AppRouteId) => void
+  readonly onFocusModeChange?: (enabled: boolean) => void
+  readonly progressionHud?: ReactNode
   readonly routeAttention?: RouteAttentionMap
   readonly routes: readonly AppRoute[]
   /**
@@ -274,7 +277,10 @@ export function LunarSignalStage({
   children,
   commandTitle = 'Command Center',
   dailyCountdown,
+  focusModeEnabled = false,
   onNavigate,
+  onFocusModeChange,
+  progressionHud,
   routeAttention,
   routes,
   surfaceTheme = DEFAULT_SURFACE_THEME,
@@ -343,7 +349,7 @@ export function LunarSignalStage({
   const shellIsAwake = activeRoute.id === 'home' ? isAwake : true
 
   return (
-    <div className={`brrrdle-lunar-shell min-h-svh min-h-dvh text-white ${shellIsAwake ? 'is-awake' : 'is-dormant'}`} data-surface={isLunarSurface ? 'lunar-signal' : undefined} onPointerMove={handleShellPointerMove} ref={shellRef} style={shellStyle}>
+    <div className={`brrrdle-lunar-shell min-h-svh min-h-dvh text-white ${shellIsAwake ? 'is-awake' : 'is-dormant'} ${focusModeEnabled ? 'is-focus-mode' : ''}`} data-surface={isLunarSurface ? 'lunar-signal' : undefined} onPointerMove={handleShellPointerMove} ref={shellRef} style={shellStyle}>
       {isLunarSurface ? (
         <>
           <SignalCanvas activeRouteId={activeRoute.id} focusedRouteId={focusedRoute.id} isAwake={shellIsAwake} onActivateRoute={activateRoute} onFocusRoute={focusRoute} routes={routes} />
@@ -365,10 +371,22 @@ export function LunarSignalStage({
             <span>brrrdle</span>
             <small>{commandTitle}</small>
           </button>
+          {onFocusModeChange ? (
+            <button
+              aria-label={focusModeEnabled ? 'Exit focus mode and restore the full shell' : 'Enter focus mode'}
+              aria-pressed={focusModeEnabled}
+              className="brrrdle-lunar-focus-toggle"
+              onClick={() => onFocusModeChange(!focusModeEnabled)}
+              type="button"
+            >
+              {focusModeEnabled ? 'Exit focus' : 'Focus'}
+            </button>
+          ) : null}
           <div className="brrrdle-lunar-account-stack">
             <div className="brrrdle-lunar-account">
               {accountControls}
             </div>
+            {progressionHud}
             {dailyCountdown}
             {!shellIsAwake ? (
               <span className="brrrdle-lunar-daily-status">
