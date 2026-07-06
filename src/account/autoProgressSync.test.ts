@@ -3,6 +3,7 @@ import {
   canRefreshAuthenticatedProgress,
   createAuthenticatedProgressSyncRequest,
   shouldApplyAuthenticatedProgressSyncResult,
+  shouldInvalidateAuthenticatedProgressSyncForAuthState,
 } from './autoProgressSync'
 import { createDefaultGuestProgress } from './storageSchema'
 import type { AuthState } from './auth'
@@ -81,7 +82,54 @@ describe('authenticated automatic progress sync guards', () => {
   })
 
   it('drops stale automatic sync results after newer local signed-in work is scheduled', () => {
-    expect(shouldApplyAuthenticatedProgressSyncResult({ currentVersion: 2, requestVersion: 2 })).toBe(true)
-    expect(shouldApplyAuthenticatedProgressSyncResult({ currentVersion: 3, requestVersion: 2 })).toBe(false)
+    expect(shouldApplyAuthenticatedProgressSyncResult({
+      authState,
+      currentVersion: 2,
+      requestVersion: 2,
+      scope: { kind: 'authenticated', userId: 'account-a' },
+      userId: 'account-a',
+    })).toBe(true)
+    expect(shouldApplyAuthenticatedProgressSyncResult({
+      authState,
+      currentVersion: 3,
+      requestVersion: 2,
+      scope: { kind: 'authenticated', userId: 'account-a' },
+      userId: 'account-a',
+    })).toBe(false)
+  })
+
+  it('drops authenticated sync results after sign-out or account switching', () => {
+    expect(shouldApplyAuthenticatedProgressSyncResult({
+      authState: { status: 'anonymous' },
+      currentVersion: 2,
+      requestVersion: 2,
+      scope: { kind: 'guest' },
+      userId: 'account-a',
+    })).toBe(false)
+
+    expect(shouldApplyAuthenticatedProgressSyncResult({
+      authState: { status: 'authenticated', user: { id: 'account-b', roles: [] } },
+      currentVersion: 2,
+      requestVersion: 2,
+      scope: { kind: 'authenticated', userId: 'account-b' },
+      userId: 'account-a',
+    })).toBe(false)
+  })
+
+  it('invalidates pending authenticated sync work when the active auth scope changes', () => {
+    expect(shouldInvalidateAuthenticatedProgressSyncForAuthState({
+      currentScope: { kind: 'authenticated', userId: 'account-a' },
+      nextAuthState: { status: 'anonymous' },
+    })).toBe(true)
+
+    expect(shouldInvalidateAuthenticatedProgressSyncForAuthState({
+      currentScope: { kind: 'authenticated', userId: 'account-a' },
+      nextAuthState: { status: 'authenticated', user: { id: 'account-b', roles: [] } },
+    })).toBe(true)
+
+    expect(shouldInvalidateAuthenticatedProgressSyncForAuthState({
+      currentScope: { kind: 'authenticated', userId: 'account-a' },
+      nextAuthState: authState,
+    })).toBe(false)
   })
 })

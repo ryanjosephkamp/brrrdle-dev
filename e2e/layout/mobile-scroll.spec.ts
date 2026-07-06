@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { createPracticeOgSetup } from '../../src/game'
+import { createDailyGoSetup, createPracticeGoSetup, createPracticeOgSetup } from '../../src/game'
 import {
   collectScrollDiagnostics,
   expectLocatorCenterNotCovered,
@@ -40,6 +40,40 @@ function getWrongPracticeOgGuess(): string {
     throw new Error('Practice OG fixture did not include a wrong valid guess.')
   }
   return guess
+}
+
+function getWrongPracticeGoGuess(): string {
+  const setup = createPracticeGoSetup(5, 0)
+  const answer = setup.puzzles[0]?.answer
+  const guess = [...setup.validGuesses].find((candidate) => candidate !== answer)
+  if (!guess) {
+    throw new Error('Practice GO fixture did not include a wrong valid guess.')
+  }
+  return guess
+}
+
+function getWrongDailyGoGuess(): string {
+  const setup = createDailyGoSetup()
+  const answer = setup.puzzles[0]?.answer
+  const guess = [...setup.validGuesses].find((candidate) => candidate !== answer)
+  if (!guess) {
+    throw new Error('Daily GO fixture did not include a wrong valid guess.')
+  }
+  return guess
+}
+
+async function expectKeyboardBottomClearance(keyboard: Locator, minimumGapPx = 8): Promise<void> {
+  await expect(keyboard).toBeVisible()
+  await expect.poll(async () => {
+    return keyboard.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
+      return Math.floor(viewportHeight - rect.bottom)
+    })
+  }, {
+    message: 'mobile solo keyboard bottom should not be clipped',
+    timeout: 3_000,
+  }).toBeGreaterThanOrEqual(minimumGapPx)
 }
 
 test.describe('mobile scroll and layout regression harness @layout', () => {
@@ -89,7 +123,7 @@ test.describe('mobile scroll and layout regression harness @layout', () => {
     const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
     await expect(soloRegion.getByText(/5 attempts remaining/i)).toBeVisible()
     await expect(submittedTile).toBeInViewport({ ratio: 0.4 })
-    await expect(keyboard).toBeInViewport({ ratio: 0.75 })
+    await expectKeyboardBottomClearance(keyboard)
     await expectNoHorizontalOverflow(page)
     await expectNoConsoleFailures(consoleFailures)
   })
@@ -103,7 +137,7 @@ test.describe('mobile scroll and layout regression harness @layout', () => {
     const soloRegion = page.getByRole('region', { name: /Practice og puzzle/i })
     const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
     await expect(soloRegion.getByText(/6 attempts remaining/i)).toBeVisible()
-    await expect(keyboard).toBeInViewport({ ratio: 0.9 })
+    await expectKeyboardBottomClearance(keyboard)
     await expectNoHorizontalOverflow(page)
     await expectNoConsoleFailures(consoleFailures)
   })
@@ -120,7 +154,64 @@ test.describe('mobile scroll and layout regression harness @layout', () => {
     const soloRegion = page.getByRole('region', { name: /Daily go chain/i })
     const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
     await expect(soloRegion.getByText(/6 attempts remaining/i)).toBeVisible()
-    await expect(keyboard).toBeInViewport({ ratio: 0.9 })
+    await expectKeyboardBottomClearance(keyboard)
+    await expectNoHorizontalOverflow(page)
+    await expectNoConsoleFailures(consoleFailures)
+  })
+
+  test('Solo Practice GO keeps the keyboard visible after starting a new chain', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    await page.goto('/')
+    await navigateToSoloPractice(page)
+    await chooseSoloPracticeMode(page, 'go')
+
+    await page.getByRole('button', { name: /^New go chain$/i }).click()
+
+    const soloRegion = page.getByRole('region', { name: /Practice go chain/i })
+    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
+    await expect(soloRegion.getByText(/6 attempts remaining/i)).toBeVisible()
+    await expectKeyboardBottomClearance(keyboard)
+    await expectNoHorizontalOverflow(page)
+    await expectNoConsoleFailures(consoleFailures)
+  })
+
+  test('Solo Daily GO keeps the keyboard visible when re-entering after a submitted guess', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: /^Solo$/i }).click()
+    await expect(page.locator('#solo-workspace-title')).toBeVisible()
+    await page.getByRole('tab', { name: /^Daily Solo$/i }).click()
+    const modeGroup = page.getByRole('group', { name: /^Daily Solo mode$/i })
+    await modeGroup.getByRole('button', { name: /^GO$/i }).click()
+
+    await submitSoloGuessWithKeyboard(page, /Daily go chain/i, getWrongDailyGoGuess())
+    await page.getByRole('tab', { name: /^Overview$/i }).click()
+    await page.getByRole('tab', { name: /^Daily Solo$/i }).click()
+    await modeGroup.getByRole('button', { name: /^GO$/i }).click()
+
+    const soloRegion = page.getByRole('region', { name: /Daily go chain/i })
+    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
+    await expect(soloRegion.getByText(/5 attempts remaining/i)).toBeVisible()
+    await expectKeyboardBottomClearance(keyboard)
+    await expectNoHorizontalOverflow(page)
+    await expectNoConsoleFailures(consoleFailures)
+  })
+
+  test('Solo Practice GO keeps the keyboard visible when re-entering after a submitted guess', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    await page.goto('/')
+    await navigateToSoloPractice(page)
+    await chooseSoloPracticeMode(page, 'go')
+
+    await submitSoloGuessWithKeyboard(page, /Practice go chain/i, getWrongPracticeGoGuess())
+    await page.getByRole('tab', { name: /^Overview$/i }).click()
+    await page.getByRole('tab', { name: /^Practice Solo$/i }).click()
+    await chooseSoloPracticeMode(page, 'go')
+
+    const soloRegion = page.getByRole('region', { name: /Practice go chain/i })
+    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
+    await expect(soloRegion.getByText(/5 attempts remaining/i)).toBeVisible()
+    await expectKeyboardBottomClearance(keyboard)
     await expectNoHorizontalOverflow(page)
     await expectNoConsoleFailures(consoleFailures)
   })

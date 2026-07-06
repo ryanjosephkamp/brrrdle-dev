@@ -916,7 +916,7 @@ body {
   }
 
   .brrrdle-back-to-top[data-lifted="true"] {
-    inset-block-end: max(4.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+    inset-block-end: max(12rem, calc(env(safe-area-inset-bottom) + 12rem));
   }
 
   .brrrdle-lunar-daily-status {

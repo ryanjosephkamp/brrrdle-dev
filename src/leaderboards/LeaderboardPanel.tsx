@@ -20,6 +20,9 @@ export function LeaderboardPanel({
   publicRankedLeaderboardRepository,
   viewerUserId,
 }: LeaderboardPanelProps) {
+  const localCompetitiveMultiplayer = authStatus === 'authenticated' ? competitiveMultiplayer : undefined
+  const localViewerUserId = authStatus === 'authenticated' ? viewerUserId : undefined
+
   return (
     <section className="space-y-6" aria-labelledby="leaderboard-title">
       <div>
@@ -32,15 +35,15 @@ export function LeaderboardPanel({
 
       <PublicRankedLeaderboardPanel
         authStatus={authStatus}
-        freshnessKey={getPublicRankedLeaderboardFreshnessKey(competitiveMultiplayer)}
+        freshnessKey={getPublicRankedLeaderboardFreshnessKey(localCompetitiveMultiplayer)}
         onOpenPublicProfile={onOpenPublicProfile}
         repository={publicRankedLeaderboardRepository}
       />
 
       <MultiplayerStatsPanel
         onOpenEloAbout={onOpenEloAbout}
-        state={competitiveMultiplayer}
-        viewerUserId={viewerUserId}
+        state={localCompetitiveMultiplayer}
+        viewerUserId={localViewerUserId}
       />
     </section>
   )

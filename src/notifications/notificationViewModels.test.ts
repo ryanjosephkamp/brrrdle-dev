@@ -216,6 +216,47 @@ describe('notification view models', () => {
     ])
   })
 
+  it('does not create multiplayer notifications from stale account rows for signed-out guests', () => {
+    const active = createMultiplayerGame({
+      createdAt: '2026-06-14T03:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'viewer-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const completedBase = createMultiplayerGame({
+      createdAt: '2026-06-14T04:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'viewer-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const completed = submitMultiplayerGuess({ games: [completedBase] }, {
+      gameId: completedBase.id,
+      guess: getMultiplayerAnswerWords(completedBase)[0],
+      now: '2026-06-14T04:01:00.000Z',
+      playerId: 'player-one',
+    })
+    const competitiveMultiplayerState = settleMultiplayerStateResults(
+      createEmptyCompetitiveMultiplayerState(),
+      completed.state,
+      authenticatedViewer,
+    )
+
+    const notifications = createNotificationViewModel({
+      competitiveMultiplayerState,
+      generatedAt: '2026-06-14T05:00:00.000Z',
+      multiplayerState: { games: [active] },
+      now: '2026-06-14T05:00:00.000Z',
+    })
+
+    expect(notifications).toMatchObject({
+      items: [],
+      totalCandidateCount: 0,
+      unreadCount: 0,
+    })
+  })
+
   it('suppresses in-app notifications without clearing metadata', () => {
     const dashboard = createDashboardFixture()
     const baseline = createNotificationViewModel({

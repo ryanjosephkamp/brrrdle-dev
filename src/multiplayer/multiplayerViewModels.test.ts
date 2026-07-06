@@ -122,6 +122,18 @@ describe('multiplayer view models', () => {
     expect(rows[1].ruleLabel).toBe('6 letters · 1 minute per side')
   })
 
+  it('hides active participant multiplayer rows when no signed-in viewer owns them', () => {
+    const hostPractice = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+
+    expect(selectActiveMultiplayerGameRows({ games: [hostPractice] })).toEqual([])
+  })
+
   it('projects waiting Practice lobbies with join and manage controls from existing guards', () => {
     const ownLobby = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
@@ -229,6 +241,31 @@ describe('multiplayer view models', () => {
       scopeLabel: 'Practice Multiplayer',
     })
     expect(rows[0].detailLabel).toContain('Won in 1 guess')
+  })
+
+  it('hides recent competitive multiplayer results when no signed-in viewer owns them', () => {
+    const game = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      ranked: true,
+      scope: 'practice',
+      seed: 1,
+      wordLength: 5,
+    })
+    const submitted = submitMultiplayerGuess({ games: [game] }, {
+      gameId: game.id,
+      guess: getMultiplayerAnswerWords(game)[0],
+      now: '2026-06-04T12:01:00.000Z',
+      playerId: 'player-one',
+    })
+    const competitive = settleMultiplayerStateResults(
+      createEmptyCompetitiveMultiplayerState(),
+      submitted.state,
+      authenticatedHost,
+    )
+
+    expect(selectRecentMultiplayerResults(competitive)).toEqual([])
   })
 
   it('projects Live v1 rows for authenticated participant playing games only', () => {

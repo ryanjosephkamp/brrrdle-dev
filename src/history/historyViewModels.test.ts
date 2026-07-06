@@ -190,6 +190,28 @@ describe('history view models', () => {
     })
   })
 
+  it('keeps account-owned multiplayer results hidden from signed-out history rows', () => {
+    const rows = selectHistoryRows({
+      competitiveState,
+      history: soloHistory,
+    })
+
+    expect(rows.map((row) => row.id)).toEqual([
+      'solo:solo-daily-og',
+      'solo:solo-practice-go',
+    ])
+    expect(rows.every((row) => row.kindLabel === 'Solo')).toBe(true)
+    expect(selectHistoryRows({
+      competitiveState,
+      filters: {
+        mode: 'all',
+        player: 'multiplayer',
+        scope: 'all',
+      },
+      history: soloHistory,
+    })).toEqual([])
+  })
+
   it('handles missing result collections without surfacing phantom rows', () => {
     expect(selectHistoryRows({})).toEqual([])
     expect(selectHistorySummary([])).toEqual({

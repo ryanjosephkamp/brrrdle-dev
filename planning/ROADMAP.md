@@ -48,6 +48,7 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 - Phase 43 manual review surfaced one urgent account/guest state boundary issue plus smaller follow-up issues around private Practice request eligibility, ranked queue fairness verification, sign-in ordering, global header chips, Stats public-site placement, Help placeholder copy, and Solo gameplay keyboard centering. Phase 44 was formally rerouted to account-scoped local state isolation and bounded manual-review follow-up before profile/data-contract simplification or larger social/widget work.
 - Phase 44 repaired several account-scoped local-state and manual-review follow-up items, but manual review found that Daily Solo OG/GO account boundaries still fail across guest/auth transitions and separate browser profiles. Phase 45 is formally rerouted to urgent Solo Daily account/cloud persistence boundaries, storage-contract decisioning, real browser/E2E coverage, and only small follow-ups for Profile embedded sign-in order and mobile Solo scaling.
 - Phase 45 repaired Daily Solo and Practice Solo guest/auth boundaries, preserved cross-browser authenticated loading through existing `progress_snapshots`, aligned the Profile embedded sign-in order, and improved mobile Solo post-guess playability. Phase 45 manual review passed with follow-up observations around automatic signed-in Solo sync freshness, same-account multi-tab/browser anti-cheat risk, the low-value Solo Overview active-game `Select` control, and pre-guess mobile keyboard clipping. Phase 46 is rerouted to Solo sync integrity and these small current-surface follow-ups before preview/social/profile expansion resumes.
+- Phase 46 improved signed-in Solo automatic sync/freshness, removed the low-value Solo Overview `Select` control, and preserved guest/account Solo transfer boundaries. Phase 46 manual review passed overall but failed two mobile GO keyboard/scroll checks and surfaced a signed-out guest display-boundary concern. Phase 47 is rerouted to mobile Solo GO visibility and account display-boundary follow-up before profile/multiplayer contract simplification resumes.
 
 ---
 
@@ -79,11 +80,12 @@ This roadmap is planning guidance only. It does not authorize implementation, mi
 | Phase 43 | Current-surface UX cleanup, ranked queue follow-up, and gameplay comfort | Home/shell simplification, Stats/Help/About/Settings cleanup, Solo and Practice Multiplayer density cleanup, ranked queue follow-up, gameplay viewport comfort, and testing-protocol updates | Complete |
 | Phase 44 | Account-scoped local state isolation and Phase 43 manual-review follow-up | Guest/account state boundary audit and repair, Daily/Practice Solo isolation, sign-out visibility cleanup, private Practice request eligibility follow-up, ranked queue review, and small UI follow-ups | Complete |
 | Phase 45 | Solo cloud progress boundaries and mobile follow-up | Daily/Practice Solo guest/auth boundary repair, cross-browser authenticated cloud persistence through existing snapshots, Profile embedded sign-in order, and narrow mobile Solo scaling | Complete |
-| Phase 46 | Solo sync integrity and manual-review follow-up | Signed-in Solo Daily/Practice automatic sync and anti-cheat audit, source-only versus storage-contract decisioning, Solo Overview `Select` cleanup, and mobile pre-guess keyboard visibility | Next planning target |
-| Phase 47 | Profile and multiplayer contract simplification | Profile field/model simplification, custom-code/private Daily/ranked Daily routing, and migration/RLS or gameplay-rule gates if needed | Future |
-| Phase 48 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site EXP, coin, and collectible counters after earnable systems have clear gameplay functions; late Focus Mode, compact navigation, and broader mobile UX improvements | Future |
-| Phase 49 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
-| Phase 50 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
+| Phase 46 | Solo sync integrity and manual-review follow-up | Signed-in Solo Daily/Practice automatic sync and anti-cheat audit, source-only versus storage-contract decisioning, Solo Overview `Select` cleanup, and mobile pre-guess keyboard visibility | Complete |
+| Phase 47 | Mobile Solo GO visibility and account display boundaries | Repair/reroute mobile GO keyboard visibility and re-entry scroll failures, audit signed-out guest display boundaries, and classify same-account session freshness without defaulting to session leases | Next planning target |
+| Phase 48 | Profile and multiplayer contract simplification | Profile field/model simplification, custom-code/private Daily/ranked Daily routing, and migration/RLS or gameplay-rule gates if needed | Future |
+| Phase 49 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site EXP, coin, and collectible counters after earnable systems have clear gameplay functions; late Focus Mode, compact navigation, and broader mobile UX improvements | Future |
+| Phase 50 | Theme proposal/template modernization | Revise template proposals and `theme_proposals.csv` after major feature surfaces stabilize | Deferred |
+| Phase 51 or later | Full concrete themes | Concrete theme creation, implementation, asset/sound work, and theme QA | Deferred |
 | Later phases | Expansion | Deeper social/community systems, marketplace, additional modes, and other expansion work | Future |
 
 ---
@@ -415,26 +417,48 @@ Phase 45 did not become a broad mobile shell, profile simplification, Home widge
 
 ## Phase 46 - Solo Sync Integrity And Manual Review Follow-Up
 
-Phase 46 should handle the Phase 45 manual-review follow-up around signed-in Solo automatic sync and related current Solo cleanup before preview/social/profile expansion resumes.
+Phase 46 is complete and manually reviewed. It handled the Phase 45 manual-review follow-up around signed-in Solo automatic sync and related current Solo cleanup before preview/social/profile expansion resumes.
 
-Candidate work:
+Completed work:
 
 - audit current signed-in Solo Daily/Practice sync, `progress_snapshots`, sign-in hydration, sign-out rehydration, same-account multi-tab/browser freshness, and manual `Sync now` behavior;
 - decide whether automatic Solo sync can remain source-only or requires a storage-contract/Supabase/RLS addendum;
 - improve signed-in Solo Daily/Practice progress freshness without reintroducing implicit guest-to-account transfer or account-to-guest leakage;
 - explicitly evaluate one-active-session enforcement but treat it as later optional session-lease/security work unless evidence proves it is necessary now;
 - remove the Solo Overview active-game `Select` button if it has no meaningful function, or define a tested function if it must remain;
-- fix narrow mobile Solo pre-guess keyboard visibility/scroll behavior without broad mobile navigation overhaul.
+- attempt narrow mobile Solo pre-guess keyboard visibility/scroll behavior without broad mobile navigation overhaul.
 
-Phase 46 must not become a broad mobile shell, configurable Home widget, spectator preview, notification redesign, social inbox, spectator presence, service worker, push, deployment, gameplay-rule, or Elo phase.
+Phase 46 did not become a broad mobile shell, configurable Home widget, spectator preview, notification redesign, social inbox, spectator presence, service worker, push, deployment, gameplay-rule, or Elo phase.
+
+Manual review follow-up:
+
+- mobile Daily Solo GO keyboard visibility before the first valid guess still failed on real mobile review;
+- mobile Practice Solo GO post-guess/re-entry keyboard visibility still failed or remained partial on real mobile review;
+- signed-out guest History, leaderboard/rating summaries, Stats, and other account-specific surfaces may still show data from the just-signed-out account and should be audited.
+
+## Phase 47 - Mobile Solo GO Visibility And Account Display Boundaries
+
+Phase 47 should handle the Phase 46 manual-review follow-up before profile/multiplayer contract simplification resumes.
+
+Candidate work:
+
+- reproduce or characterize mobile Daily Solo GO pre-guess keyboard clipping on real mobile or faithful mobile browser checks;
+- reproduce or characterize Practice Solo GO new-chain and post-guess/re-entry keyboard clipping;
+- audit Daily/Practice Solo OG/GO mobile re-entry scroll behavior for a common target issue;
+- decide whether the repair can remain source-only scroll/viewport/scaling work or needs broader mobile layout planning;
+- repair mobile Solo GO keyboard visibility if source-only and bounded;
+- audit signed-out guest display boundaries for History, leaderboard/rating summaries, Stats, Active/Multiplayer projections, Settings/Profile, and related account-specific surfaces;
+- classify same-account multi-tab/browser session freshness while keeping strict one-active-session enforcement deferred unless evidence proves it is required now.
+
+Phase 47 must not become a broad mobile shell, compact side-dock implementation, configurable Home widget, spectator preview, notification redesign, social inbox, spectator presence, service worker, push, deployment, gameplay-rule, or Elo phase.
 
 ## Later Phase - Live/Home Preview Consistency, Timestamp Policy, And Notification Clarity
 
-A later gated phase should handle participant-owned Live/Active/Home preview improvements, public participant names where safe, UTC/local timestamp display policy, and privacy-safe notification rival/ranked context after Solo sync integrity is reliable.
+A later gated phase should handle participant-owned Live/Active/Home preview improvements, public participant names where safe, UTC/local timestamp display policy, and privacy-safe notification rival/ranked context after Solo sync integrity and current mobile/account-boundary follow-ups are reliable.
 
-## Phase 47 - Profile And Multiplayer Contract Simplification
+## Later Phase - Profile And Multiplayer Contract Simplification
 
-Phase 47 or another later gated phase should handle profile simplification, custom-code removal/rerouting, private Daily requests, ranked Daily separation, and related contract work only after a dedicated planning/spec/addendum path.
+Phase 48 or another later gated phase should handle profile simplification, custom-code removal/rerouting, private Daily requests, ranked Daily separation, and related contract work only after a dedicated planning/spec/addendum path.
 
 Candidate later work:
 
@@ -444,9 +468,9 @@ Candidate later work:
 - separate ranked and unranked Daily paths before any ranked Daily implementation;
 - route draw-by-repetition to a gameplay-rule gate rather than UI cleanup.
 
-## Phase 48 - Progression HUD, Focus Mode, And Mobile UX Shell Polish
+## Later Phase - Progression HUD, Focus Mode, And Mobile UX Shell Polish
 
-Phase 48 or a later gated phase should add late-stage shell polish only after current-surface UX cleanup, Solo account/cloud persistence, and profile/multiplayer contract decisions are stable.
+Phase 49 or a later gated phase should add late-stage shell polish only after current-surface UX cleanup, Solo account/cloud persistence, mobile/account-boundary follow-up, and profile/multiplayer contract decisions are stable.
 
 Candidate work:
 

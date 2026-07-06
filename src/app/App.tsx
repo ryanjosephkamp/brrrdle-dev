@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, sendPasswordResetEmail, sendMagicLink, Settings, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -1044,6 +1044,15 @@ function AppInner() {
   const authenticatedProgressSyncVersionRef = useRef(0)
   const latestAuthenticatedProgressSyncRef = useRef<ReturnType<typeof createAuthenticatedProgressSyncRequest> | undefined>(undefined)
   const flushAuthenticatedProgressSyncRef = useRef<() => void>(() => {})
+  const invalidateAuthenticatedProgressSync = useCallback(() => {
+    authenticatedProgressSyncVersionRef.current += 1
+    authenticatedProgressSyncDirtyRef.current = false
+    latestAuthenticatedProgressSyncRef.current = undefined
+    if (authenticatedProgressSyncTimeoutRef.current) {
+      clearTimeout(authenticatedProgressSyncTimeoutRef.current)
+      authenticatedProgressSyncTimeoutRef.current = undefined
+    }
+  }, [])
   const applyScopedProgress = useCallback((progress: GuestProgressState, scope: ActiveProgressScope) => {
     activeProgressScopeRef.current = scope
     setActiveProgressScope(scope)
@@ -1081,8 +1090,11 @@ function AppInner() {
       userId: request.userId,
     }).then((result) => {
       if (!shouldApplyAuthenticatedProgressSyncResult({
+        authState: authStateRef.current,
         currentVersion: authenticatedProgressSyncVersionRef.current,
         requestVersion: request.version,
+        scope: activeProgressScopeRef.current,
+        userId: request.userId,
       })) {
         return
       }
@@ -1835,6 +1847,12 @@ function AppInner() {
   }, [navigateToResumeSlot])
   const hydrateProgressForAuthState = useCallback((nextAuthState: AuthState, options: { readonly autoResume?: boolean; readonly clearSelections?: boolean } = {}) => {
     const requestId = ++authHydrationRequestRef.current
+    if (shouldInvalidateAuthenticatedProgressSyncForAuthState({
+      currentScope: activeProgressScopeRef.current,
+      nextAuthState,
+    })) {
+      invalidateAuthenticatedProgressSync()
+    }
     if (nextAuthState.status === 'authenticated' && nextAuthState.user && supabaseClient) {
       const userId = nextAuthState.user.id
       setSyncStatus(createSyncStatus('syncing'))
@@ -1866,7 +1884,7 @@ function AppInner() {
     applyScopedProgress(loadGuestProgress(), scope)
     clearIdentityScopedSelections()
     setSyncStatus(createSyncStatus(supabaseClient ? 'idle' : 'error'))
-  }, [applyScopedProgress, clearIdentityScopedSelections, maybeAutoResume, supabaseClient])
+  }, [applyScopedProgress, clearIdentityScopedSelections, invalidateAuthenticatedProgressSync, maybeAutoResume, supabaseClient])
   const refreshAuthenticatedProgressFromCloud = useCallback(() => {
     const nextAuthState = authStateRef.current
     if (!canRefreshAuthenticatedProgress({
