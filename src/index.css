@@ -186,6 +186,42 @@ body {
   line-height: 1;
 }
 
+.brrrdle-lunar-focus-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 6.25rem;
+  min-height: 2.75rem;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 0.5rem;
+  background: rgb(4 8 16 / 0.68);
+  color: white;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  box-shadow:
+    0 0.85rem 2.4rem rgb(0 0 0 / 0.25),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  backdrop-filter: blur(16px);
+}
+
+.brrrdle-lunar-focus-toggle[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--signal-color, #55f4ff), white 28%);
+  background: color-mix(in srgb, var(--signal-color, #55f4ff), black 78%);
+  box-shadow:
+    0 0.85rem 2.4rem rgb(0 0 0 / 0.22),
+    0 0 2.2rem color-mix(in srgb, var(--signal-color, #55f4ff), transparent 60%),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+.brrrdle-lunar-focus-toggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
 .brrrdle-lunar-brand small,
 .brrrdle-lunar-command span,
 .brrrdle-lunar-route-head p,
@@ -234,6 +270,129 @@ body {
   border-radius: 999px;
   background: #48ff9a;
   box-shadow: 0 0 1rem #48ff9a;
+}
+
+.brrrdle-progression-hud {
+  display: grid;
+  gap: 0.42rem;
+  width: min(100%, 26rem);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 0.5rem;
+  background: rgb(4 8 16 / 0.68);
+  color: white;
+  padding: 0.55rem 0.65rem;
+  box-shadow:
+    0 0.85rem 2.4rem rgb(0 0 0 / 0.28),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  backdrop-filter: blur(16px);
+}
+
+.brrrdle-progression-hud-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.48rem;
+  margin: 0;
+}
+
+.brrrdle-progression-hud-summary div {
+  min-width: 0;
+}
+
+.brrrdle-progression-hud-summary dt {
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.58);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.brrrdle-progression-hud-summary dd {
+  margin: 0.1rem 0 0;
+  overflow: hidden;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brrrdle-progression-hud-meter {
+  height: 0.32rem;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 999px;
+  background: rgb(15 23 42 / 0.72);
+}
+
+.brrrdle-progression-hud-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #55f4ff, #48ff9a);
+}
+
+.brrrdle-progression-hud p {
+  margin: 0;
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.64);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-interface {
+  padding-block-start: max(0.65rem, env(safe-area-inset-top));
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-topbar {
+  gap: 0.65rem;
+  margin-bottom: 0.55rem;
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-brand {
+  padding: 0.55rem 0.7rem;
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-brand small,
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-route-head span,
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-progression-hud p {
+  display: none;
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-progression-hud {
+  gap: 0.3rem;
+  padding: 0.45rem 0.55rem;
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-rail {
+  gap: 0.38rem;
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-rail-button {
+  padding: 0.5rem 0.62rem;
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-route-head {
+  padding: 0.72rem 0.85rem;
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-route-head h1 {
+  margin-top: 0.1rem;
+  font-size: 2.65rem;
+}
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-playfield {
+  box-shadow:
+    0 1rem 3rem rgb(0 0 0 / 0.38),
+    0 0 3rem color-mix(in srgb, var(--signal-color), transparent 82%),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
 .brrrdle-lunar-intro {
@@ -879,6 +1038,12 @@ body {
     padding: 0.55rem 0.65rem;
   }
 
+  .brrrdle-lunar-focus-toggle {
+    width: 100%;
+    min-height: 2.4rem;
+    padding: 0.45rem 0.65rem;
+  }
+
   .brrrdle-lunar-brand span {
     font-size: clamp(1.38rem, 7vw, 1.72rem);
   }
@@ -983,6 +1148,7 @@ body {
   }
 
   .brrrdle-lunar-brand,
+  .brrrdle-lunar-focus-toggle,
   .brrrdle-lunar-daily-status,
   .brrrdle-lunar-command,
   .brrrdle-lunar-dock-chip,

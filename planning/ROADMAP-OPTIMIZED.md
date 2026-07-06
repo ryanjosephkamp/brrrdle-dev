@@ -54,13 +54,13 @@ Future planning should also use `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md
 | Phase 45 | Solo cloud progress boundaries and mobile follow-up | Repair Daily/Practice Solo guest/auth account boundaries, preserve authenticated cross-browser loading, and handle Profile/mobile Solo follow-ups | Complete |
 | Phase 46 | Solo sync integrity and manual-review follow-up | Improve signed-in Solo automatic sync/freshness, decide source-only versus storage-contract needs, clean up Solo `Select`, and fix mobile pre-guess keyboard visibility | Complete |
 | Phase 47 | Mobile Solo GO visibility and account display boundaries | Repair/reroute failed mobile GO keyboard and re-entry scroll checks, audit signed-out guest display boundaries, and classify same-account session freshness | Complete |
-| Phase 48 | Profile and multiplayer contract simplification | Profile model cleanup, custom-code/private Daily/ranked Daily routing, and reviewed contract gates | Next planning target |
-| Phase 49 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after earnables have clear function, plus late Focus Mode, compact navigation, and broader mobile UX improvements | Keep late and separately gated |
+| Phase 48 | Profile and multiplayer contract simplification | Profile model cleanup, custom-code/private Daily/ranked Daily routing, and reviewed contract gates | Complete |
+| Phase 49 | Progression HUD, Focus Mode, and mobile UX shell polish | Header/top-site resource counters after existing resources have clear function, plus late Focus Mode, compact navigation, and broader mobile UX decisioning | Next planning target |
 | Phase 50 | Theme proposal/template modernization | Update theme templates and planning artifacts after major feature surfaces stabilize | Defer theme-specific work until later |
 | Phase 51 or later | Full concrete theme implementation | Implement concrete themes, assets, sounds, and QA after template modernization | Dedicated cosmetic phase |
 | Later phases | Expansion | Social/community systems, marketplace, additional modes, and other growth work | Keep separately gated |
 
-After Phase 47, mobile Solo GO keyboard/re-entry visibility and signed-out guest display-boundary repairs are complete and manual review passed. A late non-blocking real-mobile observation noted slightly laggy page scrolling, possibly related to automatic gameplay scrolling. Phase 48 resumes profile and multiplayer contract simplification planning, including public/private/current-player profile simplification, custom-code/private game routing, private Daily feasibility, and ranked Daily contract decisioning, while classifying that scroll-lag note early and deferring broad mobile performance/shell work. Larger preview consistency, notification context, configurable Home widgets, social inbox work, progression HUD, Focus Mode, broad compact navigation, draw-by-repetition, strict session leases, server-authoritative Daily, and theme work remain separately gated.
+After Phase 48, profile and multiplayer contract simplification is complete and manual review passed. Phase 48 also repaired the narrow mobile Solo auto-scroll lag candidate, hid new custom-code creation while preserving legacy custom-code readability, and deferred private Daily/ranked Daily behind a protected addendum. Phase 49 now plans progression/resource visibility, Focus Mode feasibility, and mobile UX shell polish while keeping actual implementation, storage changes, broad mobile shell work, strict session leases, server-authoritative Daily, gameplay-rule changes, Elo changes, and theme work separately gated.
 
 ---
 
@@ -434,7 +434,7 @@ A later gated phase should handle participant-owned Live/Active/Home preview con
 
 ## Phase 48 Profile And Multiplayer Contract Strategy
 
-Phase 48 should handle profile simplification, custom-code removal/rerouting, private Daily request feasibility, and ranked Daily separation only through dedicated contract gates. It should also classify the late Phase 47 mobile scroll-lag observation before implementation, only allowing a tiny source-only auto-scroll regression repair if proven. Draw-by-repetition remains a later gameplay-rule gate.
+Phase 48 is complete. It handled profile simplification, custom-code removal/rerouting, private Daily request feasibility, and ranked Daily separation through dedicated contract gates. It also resolved the late Phase 47 mobile scroll-lag observation with a tiny source-only mobile Solo auto-scroll repair. Draw-by-repetition remains a later gameplay-rule gate.
 
 Core requirements:
 
@@ -445,13 +445,13 @@ Core requirements:
 - keep strict one-active-session/session leases and server-authoritative Daily submissions deferred unless a later spec proves they are required;
 - keep draw-by-repetition out of UI cleanup and route it to a gameplay-rule spec.
 
-## Later Progression HUD, Focus Mode, And Mobile UX Strategy
+## Phase 49 Progression HUD, Focus Mode, And Mobile UX Strategy
 
-Phase 49 or later should handle late-stage shell polish after current-surface cleanup, Solo account/cloud persistence, mobile/account-boundary follow-up, and profile/multiplayer contract decisions are clearer.
+Phase 49 should plan late-stage shell polish after current-surface cleanup, Solo account/cloud persistence, mobile/account-boundary follow-up, and profile/multiplayer contract decisions are clearer.
 
 Core requirements:
 
-- show EXP, coins, and any other real earnable/collectible counters near the top/header area only after those resources have clear gameplay function;
+- show existing level, XP, coins, consumables, and any other real resources near the top/header area only after those resources have clear gameplay function;
 - support both guest players and signed-in players, preserving any explicit guest-to-account transfer expectations through reviewed paths;
 - add a player-toggleable Focus Mode only after the main shell is stable enough to avoid repeated compatibility churn;
 - consider broader mobile UX improvements such as compact navigation and reduced top-of-page chrome after current account/cloud and responsive scaling issues are stable;
@@ -461,9 +461,9 @@ Core requirements:
 
 ---
 
-## Phase 49 Theme Strategy
+## Phase 50 Theme Strategy
 
-Phase 49 should modernize theme proposal artifacts before broad theme implementation.
+Phase 50 or a later gated phase should modernize theme proposal artifacts before broad theme implementation.
 
 Required review surfaces:
 
