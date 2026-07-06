@@ -27,6 +27,7 @@ export interface BrowserNavigationViewState {
 }
 
 export interface BrowserNavigationResolutionContext {
+  readonly completedSoloSlots?: ResumeSlotCollection
   readonly liveSpectatorRows?: readonly Pick<AuthenticatedLiveSpectatorGame, 'id'>[]
   readonly multiplayerGames?: readonly MultiplayerGame[]
   readonly resumeSlots?: ResumeSlotCollection
@@ -178,16 +179,19 @@ export function resolveBrowserNavigationViewState(
   viewState: BrowserNavigationViewState,
   context: BrowserNavigationResolutionContext,
 ): BrowserNavigationViewState {
+  const completedSoloSlots = context.completedSoloSlots ?? {}
   const resumeSlots = context.resumeSlots ?? {}
   const multiplayerGames = context.multiplayerGames ?? []
   const liveSpectatorRows = context.liveSpectatorRows ?? []
   const navigation = viewState.navigation
-  const selectedSoloGameKey = isSoloActiveGameKey(navigation.selectedSoloGameKey)
-    && resumeSlots[navigation.selectedSoloGameKey]
+  const requestedSoloGameKey = isSoloActiveGameKey(navigation.selectedSoloGameKey)
     ? navigation.selectedSoloGameKey
     : undefined
+  const selectedSoloSlot = requestedSoloGameKey
+    ? resumeSlots[requestedSoloGameKey] ?? completedSoloSlots[requestedSoloGameKey]
+    : undefined
+  const selectedSoloGameKey = selectedSoloSlot ? requestedSoloGameKey : undefined
   const requestedSoloSelectionWasStale = Boolean(navigation.selectedSoloGameKey && !selectedSoloGameKey)
-  const selectedSoloSlot = selectedSoloGameKey ? resumeSlots[selectedSoloGameKey] : undefined
 
   const focusedLiveSpectatorGameId = isFocusedSpectatorVisible(
     viewState.focusedLiveSpectatorGameId,

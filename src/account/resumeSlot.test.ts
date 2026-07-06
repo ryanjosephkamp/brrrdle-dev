@@ -4,9 +4,15 @@ import {
   describeResumeSlot,
   getLatestResumeSlot,
   getResumeSlotKey,
+  isCaptureComplete,
   isCaptureInProgress,
+  isCaptureWon,
+  isGoSessionComplete,
   isGoSessionInProgress,
+  isGoSessionWon,
+  isOgSessionComplete,
   isOgSessionInProgress,
+  isOgSessionWon,
   mergeResumeSlots,
   normalizeResumeSlot,
   normalizeResumeSlots,
@@ -51,6 +57,9 @@ describe('resume slot model', () => {
   it('treats a solved or lost og board as finished', () => {
     expect(isOgSessionInProgress(ogSession({ guesses: ['crane'] }))).toBe(false)
     expect(isOgSessionInProgress(ogSession({ guesses: ['plumb', 'plumb', 'plumb', 'plumb', 'plumb', 'plumb'] }))).toBe(false)
+    expect(isOgSessionWon(ogSession({ guesses: ['crane'] }))).toBe(true)
+    expect(isOgSessionWon(ogSession({ guesses: ['plumb', 'plumb', 'plumb', 'plumb', 'plumb', 'plumb'] }))).toBe(false)
+    expect(isOgSessionComplete(ogSession({ revealedAnswer: true }))).toBe(true)
   })
 
   it('detects an in-progress go chain and a won/lost chain', () => {
@@ -65,6 +74,7 @@ describe('resume slot model', () => {
       ],
     })
     expect(isGoSessionInProgress(won)).toBe(false)
+    expect(isGoSessionWon(won)).toBe(true)
     const lost = goSession({
       puzzles: [
         { answer: 'crane', continuationCount: 0, currentGuess: '', guesses: ['aaaaa', 'aaaaa', 'aaaaa', 'aaaaa', 'aaaaa', 'aaaaa'], maxAttempts: 6, prefilledGuesses: [] },
@@ -72,13 +82,27 @@ describe('resume slot model', () => {
       ],
     })
     expect(isGoSessionInProgress(lost)).toBe(false)
+    expect(isGoSessionWon(lost)).toBe(false)
+    expect(isGoSessionComplete(goSession({ revealedAnswer: true }))).toBe(true)
   })
 
   it('stamps a capture with a timestamp and reports progress', () => {
     const capture: ResumeCapture = { difficulty: 'expert', mode: 'og', scope: 'practice', serializedSession: ogSession({ currentGuess: 'cr' }), wordLength: 5 }
     expect(isCaptureInProgress(capture)).toBe(true)
+    expect(isCaptureWon(capture)).toBe(false)
+    expect(isCaptureComplete(capture)).toBe(false)
     const slot = createResumeSlot(capture, '2026-05-30T06:00:00.000Z')
     expect(slot.updatedAt).toBe('2026-05-30T06:00:00.000Z')
+  })
+
+  it('detects completed winning captures without making them resumable', () => {
+    const capture: ResumeCapture = { difficulty: 'expert', mode: 'og', scope: 'practice', serializedSession: ogSession({ guesses: ['crane'] }), wordLength: 5 }
+    const slot = createResumeSlot(capture, '2026-07-06T00:00:00.000Z')
+
+    expect(isCaptureWon(capture)).toBe(true)
+    expect(isCaptureComplete(capture)).toBe(true)
+    expect(isCaptureInProgress(capture)).toBe(false)
+    expect(normalizeResumeSlot(slot)).toBeUndefined()
   })
 
   it('round-trips a valid og slot through normalization', () => {

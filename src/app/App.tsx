@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -139,6 +139,22 @@ function isSameResumeSlot(left: ResumeSlot | undefined, right: ResumeSlot): bool
     && JSON.stringify(left.serializedSession) === JSON.stringify(right.serializedSession)
 }
 
+function setSoloDisplaySlot(slots: ResumeSlotCollection, slotKey: SoloActiveGameKey, slot: ResumeSlot): ResumeSlotCollection {
+  if (isSameResumeSlot(slots[slotKey], slot)) {
+    return slots
+  }
+  return { ...slots, [slotKey]: slot }
+}
+
+function clearSoloDisplaySlot(slots: ResumeSlotCollection, slotKey: SoloActiveGameKey): ResumeSlotCollection {
+  if (!slots[slotKey]) {
+    return slots
+  }
+  const nextSlots = { ...slots }
+  delete nextSlots[slotKey]
+  return nextSlots
+}
+
 function getProgressOwnerKey(scope: ActiveProgressScope): string {
   return scope.kind === 'authenticated' ? `account:${scope.userId}` : scope.kind
 }
@@ -169,6 +185,7 @@ function PracticeGameSwitcher({
   participantIdentityActions,
   rankedQueueActions,
   resumeSlots,
+  completedSoloSlots,
   authStatus,
   viewerUserId,
   viewerProfile,
@@ -198,12 +215,13 @@ function PracticeGameSwitcher({
   readonly participantIdentityActions?: ParticipantIdentityActions
   readonly rankedQueueActions?: RankedQueueActions
   readonly resumeSlots: ResumeSlotCollection
+  readonly completedSoloSlots: ResumeSlotCollection
   readonly viewerUserId?: string
   readonly viewerProfile?: MultiplayerProfileSummary
   readonly onOpenEloAbout?: () => void
 }) {
-  const practiceOgResume = resumeSlots['practice-og']
-  const practiceGoResume = resumeSlots['practice-go']
+  const practiceOgResume = resumeSlots['practice-og'] ?? completedSoloSlots['practice-og']
+  const practiceGoResume = resumeSlots['practice-go'] ?? completedSoloSlots['practice-go']
 
   return (
     <section className="space-y-5" aria-label="Practice mode selector">
@@ -359,6 +377,7 @@ function CurrentPlayerProfileRoute({
   authState,
   busy,
   onRequestPasswordReset,
+  onOpenSettings,
   onSave,
   onSavePublicProfile,
   onSendMagicLink,
@@ -375,6 +394,7 @@ function CurrentPlayerProfileRoute({
   readonly authState: AuthState
   readonly busy?: boolean
   readonly onRequestPasswordReset: (email: string) => void
+  readonly onOpenSettings: () => void
   readonly onSave: (input: { readonly displayName?: string; readonly accentColor?: ProfileAccentColor; readonly avatarUrl?: string }) => Promise<void> | void
   readonly onSavePublicProfile?: (input: PublicProfileUpdateInput) => Promise<void> | void
   readonly onSendMagicLink: (email: string) => void
@@ -402,6 +422,7 @@ function CurrentPlayerProfileRoute({
           <ProfileEditor
             authState={authState}
             busy={busy}
+            onOpenSettings={onOpenSettings}
             onSave={onSave}
             onSavePublicProfile={onSavePublicProfile}
             onSignOut={onSignOut}
@@ -475,6 +496,7 @@ function RoutePanel({
   onSaveProfile,
   onSavePublicProfile,
   onOpenAuthModal,
+  onOpenSettings,
   onOpenProfilePanel,
   onOpenPublicProfile,
   onOpenPasswordChange,
@@ -495,6 +517,7 @@ function RoutePanel({
   publicProfileBusy,
   publicProfileMessage,
   resumeSlots,
+  completedSoloSlots,
   progressOwnerKey,
   soundEnabled,
   onToggleSound,
@@ -550,6 +573,7 @@ function RoutePanel({
   readonly onSaveProfile: (input: { readonly displayName?: string; readonly accentColor?: ProfileAccentColor; readonly avatarUrl?: string }) => Promise<void> | void
   readonly onSavePublicProfile: (input: PublicProfileUpdateInput) => Promise<void> | void
   readonly onOpenAuthModal: () => void
+  readonly onOpenSettings: () => void
   readonly onOpenProfilePanel: () => void
   readonly onOpenPublicProfile: (publicProfileId: string) => void
   readonly onOpenPasswordChange: () => void
@@ -574,6 +598,7 @@ function RoutePanel({
   readonly onSoloSubtabChange: (subtab: SoloSubtabId) => void
   readonly onMultiplayerSubtabChange: (subtab: MultiplayerSubtabId) => void
   readonly soundEnabled: boolean
+  readonly completedSoloSlots: ResumeSlotCollection
   readonly onToggleSound: (enabled: boolean) => void
   readonly onUpdateSettings: (patch: Partial<ReturnType<typeof loadGuestProgress>['settings']>) => void
   readonly supabaseClient: ReturnType<typeof createBrrrdleSupabaseClient>
@@ -595,8 +620,10 @@ function RoutePanel({
   readonly publicSiteStatsRepository?: PublicSiteStatsRepository
   readonly adminDashboardRepository?: AdminOperationalDashboardRepository
 }) {
-  const dailyOgResume = resumeSlots['daily-og']
-  const dailyGoResume = resumeSlots['daily-go']
+  const dailyOgResume = resumeSlots['daily-og'] ?? completedSoloSlots['daily-og']
+  const dailyGoResume = resumeSlots['daily-go'] ?? completedSoloSlots['daily-go']
+  const practiceOgResume = resumeSlots['practice-og'] ?? completedSoloSlots['practice-og']
+  const practiceGoResume = resumeSlots['practice-go'] ?? completedSoloSlots['practice-go']
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
     ? createMultiplayerProfileSummary(authState.user.profile, 'Player')
     : undefined
@@ -643,7 +670,7 @@ function RoutePanel({
         coins={guestProgress.progression.coins}
         defaultDifficulty={guestProgress.settings.difficultyDefault}
         defaultHardMode={guestProgress.settings.hardModeDefault}
-        initialResume={resumeSlots['practice-og']?.mode === 'og' ? resumeSlots['practice-og'] : undefined}
+        initialResume={practiceOgResume?.mode === 'og' ? practiceOgResume : undefined}
         keyboardDisabled={keyboardDisabled}
         onAdvancePracticeSeed={() => onPracticeSeedAdvance('og')}
         onGameComplete={onGameComplete}
@@ -663,7 +690,7 @@ function RoutePanel({
         defaultDifficulty={guestProgress.settings.difficultyDefault}
         defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
         defaultHardMode={guestProgress.settings.hardModeDefault}
-        initialResume={resumeSlots['practice-go']?.mode === 'go' ? resumeSlots['practice-go'] : undefined}
+        initialResume={practiceGoResume?.mode === 'go' ? practiceGoResume : undefined}
         keyboardDisabled={keyboardDisabled}
         onAdvancePracticeSeed={() => onPracticeSeedAdvance('go')}
         onGameComplete={onGameComplete}
@@ -794,7 +821,7 @@ function RoutePanel({
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} privateMatchActions={privateMatchActions} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} progressOwnerKey={progressOwnerKey} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
+    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} completedSoloSlots={completedSoloSlots} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} privateMatchActions={privateMatchActions} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} progressOwnerKey={progressOwnerKey} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
   }
 
   if (route.id === 'multiplayer') {
@@ -891,6 +918,7 @@ function RoutePanel({
         authState={authState}
         busy={profileBusy}
         onRequestPasswordReset={onRequestPasswordReset}
+        onOpenSettings={onOpenSettings}
         onSave={onSaveProfile}
         onSavePublicProfile={onSavePublicProfile}
         onSendMagicLink={onSendMagicLink}
@@ -967,6 +995,7 @@ function AppInner() {
   const [activeRouteId, setActiveRouteId] = useState<AppRouteId>(() => initialNavigation.activeRouteId)
   const [focusModeEnabled, setFocusModeEnabled] = useState(false)
   const [guestProgress, setGuestProgress] = useState(() => loadGuestProgress())
+  const [completedSoloSlots, setCompletedSoloSlots] = useState<ResumeSlotCollection>({})
   const [multiplayer, setMultiplayer] = useState(() => guestProgress.multiplayer ?? loadMultiplayerState())
   const [liveSpectatorRows, setLiveSpectatorRows] = useState<readonly AuthenticatedLiveSpectatorGame[]>([])
   const [initialMultiplayerSeed] = useState(() => guestProgress.multiplayer)
@@ -1058,6 +1087,7 @@ function AppInner() {
   const applyScopedProgress = useCallback((progress: GuestProgressState, scope: ActiveProgressScope) => {
     activeProgressScopeRef.current = scope
     setActiveProgressScope(scope)
+    setCompletedSoloSlots({})
     guestProgressRef.current = progress
     setGuestProgress(progress)
     setMultiplayer(progress.multiplayer ?? createEmptyMultiplayerState())
@@ -1277,12 +1307,14 @@ function AppInner() {
     soloSubtab,
   ])
   const resolveCurrentBrowserNavigationViewState = useCallback((viewState: BrowserNavigationViewState) => resolveBrowserNavigationViewState(viewState, {
+    completedSoloSlots,
     liveSpectatorRows,
     multiplayerGames: multiplayer.games,
     resumeSlots,
     viewerUserId: authState.user?.id,
   }), [
     authState.user?.id,
+    completedSoloSlots,
     liveSpectatorRows,
     multiplayer.games,
     resumeSlots,
@@ -1291,7 +1323,7 @@ function AppInner() {
     const resolved = resolveCurrentBrowserNavigationViewState(viewState)
     const navigation = resolved.navigation
     const selectedSoloSlot = navigation.selectedSoloGameKey && isSoloActiveGameKey(navigation.selectedSoloGameKey)
-      ? resumeSlots[navigation.selectedSoloGameKey]
+      ? resumeSlots[navigation.selectedSoloGameKey] ?? completedSoloSlots[navigation.selectedSoloGameKey]
       : undefined
 
     setActiveRouteId(navigation.activeRouteId)
@@ -1311,7 +1343,7 @@ function AppInner() {
     setFocusedLiveSpectatorGameId(resolved.focusedLiveSpectatorGameId)
     setHistoryFilters(navigation.historyFilters)
     saveNavigationState(navigation)
-  }, [resolveCurrentBrowserNavigationViewState, resumeSlots])
+  }, [completedSoloSlots, resolveCurrentBrowserNavigationViewState, resumeSlots])
   useEffect(() => subscribeBrowserNavigationViewState((viewState) => {
     browserNavigationPopstateRef.current = true
     applyBrowserNavigationViewState(viewState)
@@ -1595,8 +1627,11 @@ function AppInner() {
     })
   }, [persistActiveProgress])
   const handleResumeCapture = useCallback((capture: ResumeCapture) => {
+    const slotKey = getResumeSlotKey(capture)
+    setCompletedSoloSlots((currentSlots) => isCaptureComplete(capture)
+      ? setSoloDisplaySlot(currentSlots, slotKey, createResumeSlot(capture))
+      : clearSoloDisplaySlot(currentSlots, slotKey))
     setGuestProgress((currentProgress) => {
-      const slotKey = getResumeSlotKey(capture)
       const currentSlots = normalizeResumeSlots(currentProgress.resumeSlots)
       const currentSlot = currentSlots[slotKey]
       if (isCaptureInProgress(capture)) {
@@ -2065,6 +2100,13 @@ function AppInner() {
     setProfilePanelOpen(false)
     handleNavigate('profile')
   }, [handleNavigate])
+  const handleOpenSettings = useCallback(() => {
+    setProfilePanelOpen(false)
+    handleNavigate('settings')
+  }, [handleNavigate])
+  const handleOpenStats = useCallback(() => {
+    handleNavigate('stats')
+  }, [handleNavigate])
   const handleCloseProfilePanel = useCallback(() => {
     setProfilePanelOpen(false)
   }, [])
@@ -2529,13 +2571,14 @@ function AppInner() {
           { label: 'banks', value: BUNDLED_WORD_LIST_LENGTHS.length },
         ]}
         onNavigate={handleNavigate}
-        progressionHud={<ProgressionHud progression={guestProgress.progression} />}
+        progressionHud={<ProgressionHud progression={guestProgress.progression} onOpenStats={handleOpenStats} />}
         routeAttention={routeAttention}
         routes={prismRoutes}
       >
           <RoutePanel
             authMessage={authMessage}
             authState={authState}
+            completedSoloSlots={completedSoloSlots}
             dashboard={dashboard}
             multiplayer={multiplayer}
             liveSpectatorRows={liveSpectatorRows}
@@ -2554,6 +2597,7 @@ function AppInner() {
             onOpenAuthModal={handleOpenAuthModal}
             onOpenPasswordChange={handleOpenPasswordChange}
             onOpenPublicProfile={handleOpenPublicProfile}
+            onOpenSettings={handleOpenSettings}
             onCloseFocusedLiveSpectatorGame={handleCloseFocusedLiveSpectatorGame}
             onLiveSurfaceActiveChange={handleLiveSurfaceActiveChange}
             onOpenMultiplayerHistory={handleOpenMultiplayerHistory}
@@ -2641,6 +2685,7 @@ function AppInner() {
         busy={profileBusy}
         isOpen={profilePanelOpen}
         onClose={handleCloseProfilePanel}
+        onOpenSettings={handleOpenSettings}
         onSave={handleSaveProfile}
         onSavePublicProfile={handleSavePublicProfile}
         onSignOut={handleSignOut}

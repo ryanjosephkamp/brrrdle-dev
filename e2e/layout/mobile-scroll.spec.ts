@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 import { createDailyGoSetup, createPracticeGoSetup, createPracticeOgSetup } from '../../src/game'
 import {
   collectScrollDiagnostics,
@@ -75,6 +75,18 @@ async function expectKeyboardBottomClearance(keyboard: Locator, minimumGapPx = 8
     timeout: 3_000,
   }).toBeGreaterThanOrEqual(minimumGapPx)
 }
+
+test('progression HUD opens the existing Stats route @layout', async ({ page }) => {
+  const consoleFailures = installConsoleGuards(page)
+  await page.goto('/')
+
+  await page.getByRole('button', { name: /^Open Stats for progression details$/i }).click()
+
+  await expect(page.getByRole('heading', { level: 1, name: /^Stats$/i })).toBeVisible()
+  await expect(page.getByText(/Local stats stay private on this device/i)).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  await expectNoConsoleFailures(consoleFailures)
+})
 
 test.describe('mobile scroll and layout regression harness @layout', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: MOBILE_VIEWPORT })

@@ -30,9 +30,9 @@ describe('ProfilePanel', () => {
     expect(html).toBe('')
   })
 
-  it('renders private profile fields, email, and Save/Cancel controls without a Sign out action', () => {
+  it('renders private profile fields, email, Save/Cancel controls, and separated account actions', () => {
     const html = renderToStaticMarkup(
-      <ProfilePanel authState={authState} isOpen onClose={noop} onSave={noop} onSignOut={noop} />,
+      <ProfilePanel authState={authState} isOpen onClose={noop} onOpenSettings={noop} onSave={noop} onSignOut={noop} />,
     )
     expect(html).toContain('Your profile')
     expect(html).toContain('Private account profile')
@@ -42,8 +42,11 @@ describe('ProfilePanel', () => {
     expect(html).toContain('ada@example.com')
     expect(html).toContain('Save')
     expect(html).toContain('Cancel')
+    expect(html).toContain('Account management')
+    expect(html).toContain('Open Settings account management')
     expect(html).toContain('Settings account management')
-    expect(html).not.toContain('>Sign out</button>')
+    expect(html).toContain('>Sign out</button>')
+    expect(html.indexOf('>Sign out</button>')).toBeGreaterThan(html.indexOf('Account management'))
   })
 
   it('renders the no-storage hint when the Supabase client is missing', () => {
@@ -127,10 +130,11 @@ describe('ProfilePanel', () => {
     expect(html).toContain('Save public profile')
   })
 
-  it('renders the reusable route editor without modal-only cancel or Sign out chrome', () => {
+  it('renders the reusable route editor with account actions but without modal-only cancel chrome', () => {
     const html = renderToStaticMarkup(
       <ProfileEditor
         authState={authState}
+        onOpenSettings={noop}
         onSave={noop}
         onSavePublicProfile={noop}
         onSignOut={noop}
@@ -151,8 +155,22 @@ describe('ProfilePanel', () => {
     expect(html).toContain('Private account profile')
     expect(html).toContain('Route Ada')
     expect(html).toContain('Save public profile')
-    expect(html).toContain('Sign out, password changes, sync, progress export, and account-reset controls live in Settings account management')
-    expect(html).not.toContain('>Sign out</button>')
+    expect(html).toContain('Account management')
+    expect(html).toContain('Open Settings account management')
+    expect(html).toContain('>Sign out</button>')
     expect(html).not.toContain('Cancel')
+  })
+
+  it('omits account actions from the reusable editor when handlers are absent', () => {
+    const html = renderToStaticMarkup(
+      <ProfileEditor
+        authState={authState}
+        onSave={noop}
+      />,
+    )
+
+    expect(html).toContain('Private account profile')
+    expect(html).not.toContain('Open Settings account management')
+    expect(html).not.toContain('>Sign out</button>')
   })
 })

@@ -31,6 +31,7 @@ interface ProfileEditorProps {
   readonly onSave: (input: { readonly displayName?: string; readonly accentColor?: ProfileAccentColor; readonly avatarUrl?: string }) => Promise<void> | void
   readonly onSavePublicProfile?: (input: PublicProfileUpdateInput) => Promise<void> | void
   readonly onCancel?: () => void
+  readonly onOpenSettings?: () => void
   readonly onSignOut?: () => void
   readonly publicProfile?: OwnerPublicProfile
   readonly publicProfileBusy?: boolean
@@ -69,8 +70,10 @@ export function ProfileEditor({
   authState,
   cancelLabel = 'Cancel',
   onCancel,
+  onOpenSettings,
   onSave,
   onSavePublicProfile,
+  onSignOut,
   publicProfile,
   publicProfileBusy,
   publicProfileStatusMessage,
@@ -300,8 +303,28 @@ export function ProfileEditor({
             <Button onClick={onCancel} variant="ghost">{cancelLabel}</Button>
           ) : null}
         </div>
+
+        {onOpenSettings || onSignOut ? (
+          <div className="space-y-2 border-t border-slate-800 pt-4">
+            <div className="space-y-1">
+              <p className="font-semibold text-cyan-100">Account management</p>
+              <p className="text-xs leading-5 text-slate-400">
+                Password changes, sync, progress export, and account-reset controls stay in Settings.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {onOpenSettings ? (
+                <Button onClick={onOpenSettings} variant="secondary">Open Settings account management</Button>
+              ) : null}
+              {onSignOut ? (
+                <Button onClick={onSignOut} variant="secondary">Sign out</Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <p className="text-xs text-slate-400">
-          Sign out, password changes, sync, progress export, and account-reset controls live in Settings account management.
+          Settings account management remains the home for account, sync, export, and reset controls.
         </p>
 
         {message ? (
@@ -436,6 +459,7 @@ export function ProfilePanel({
   authState,
   isOpen,
   onClose,
+  onOpenSettings,
   onSave,
   onSavePublicProfile,
   onSignOut,
@@ -458,6 +482,7 @@ export function ProfilePanel({
         authState={authState}
         busy={busy}
         onCancel={onClose}
+        onOpenSettings={onOpenSettings}
         onSave={onSave}
         onSavePublicProfile={onSavePublicProfile}
         onSignOut={onSignOut}

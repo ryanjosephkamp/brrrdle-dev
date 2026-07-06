@@ -169,6 +169,38 @@ describe('browser navigation history', () => {
     expect(resolved.navigation.soloSubtab).toBe('practice')
   })
 
+  it('keeps completed Solo selected games from display-only evidence without requiring a resume slot', () => {
+    const viewState = createBrowserNavigationViewState({
+      activeRouteId: 'solo',
+      selectedSoloGameKey: 'daily-og',
+      soloSubtab: 'daily',
+    })
+
+    const resolved = resolveBrowserNavigationViewState(viewState, {
+      completedSoloSlots: {
+        'daily-og': {
+          difficulty: 'expert',
+          mode: 'og',
+          scope: 'daily',
+          serializedSession: {
+            answer: 'crane',
+            continuationCount: 0,
+            currentGuess: '',
+            guesses: ['crane'],
+            hardMode: false,
+            maxAttempts: 6,
+          },
+          updatedAt: '2026-07-06T00:00:00Z',
+          wordLength: 5,
+        },
+      },
+      resumeSlots: {},
+    })
+
+    expect(resolved.navigation.selectedSoloGameKey).toBe('daily-og')
+    expect(resolved.navigation.soloSubtab).toBe('daily')
+  })
+
   it('falls stale Multiplayer selected games back to Active Games', () => {
     const viewState = createBrowserNavigationViewState({
       activeRouteId: 'multiplayer',
