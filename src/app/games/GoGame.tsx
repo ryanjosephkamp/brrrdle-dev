@@ -618,7 +618,7 @@ export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
     [dailyDate, difficulty, goPuzzleCount, practiceLength, practiceSeed, scope],
   )
   const sessionKey = scope === 'daily'
-    ? `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${goPuzzleCount}-${setup.dateKey}`
+    ? `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${goPuzzleCount}-${setup.dateKey}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
     : `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${goPuzzleCount}-${practiceLength}-${practiceSeed}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
 
   return (

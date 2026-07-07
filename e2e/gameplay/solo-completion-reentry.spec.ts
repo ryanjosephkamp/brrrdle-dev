@@ -3,8 +3,11 @@ import { dateKeyToLocalDate } from '../../src/daily'
 import { createDailyGoSetup, createPracticeGoSetup } from '../../src/game/go/session'
 import { createDailyOgSetup, createPracticeOgSetup } from '../../src/game/og/session'
 import { expectNoConsoleFailures, installConsoleGuards } from '../fixtures/assertions'
+import { cleanupE2eRun } from '../fixtures/cleanup'
 import { installFixedBrowserTime } from '../fixtures/dailyClock'
+import { getE2eEnv } from '../fixtures/env'
 import { chooseSoloPracticeMode, navigateToSoloPractice, submitSoloGuessWithKeyboard } from '../fixtures/gameActions'
+import { createE2eUser, createRunId, signInThroughUi, type E2eUser } from '../fixtures/testUsers'
 
 const GUEST_PROGRESS_STORAGE_KEY = 'brrrdle:guest-progress:v1'
 const FIXED_DAILY_DATE_KEY = '2026-06-11'
@@ -50,11 +53,19 @@ async function goHome(page: Page): Promise<void> {
   await expect(page.locator('#dashboard-home-title')).toBeVisible()
 }
 
+async function waitForSignedInProgressHydration(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^Settings$/i }).click()
+  await expect(page.locator('#settings-title')).toBeVisible()
+  await expect(page.getByText(/^Syncing signed-in progress with Supabase\.$/i)).toBeHidden({ timeout: 20_000 })
+}
+
 async function expectSubmittedWord(page: Page, gridLabel: RegExp, word: string, rowNumber: number): Promise<void> {
   const grid = page.getByRole('grid', { name: gridLabel }).first()
   await expect(grid).toBeVisible()
   for (const [index, letter] of [...word.toLocaleUpperCase('en-US')].entries()) {
-    await expect(grid.getByLabel(new RegExp(`^Row ${rowNumber}, tile ${index + 1}, ${letter}$`, 'i'))).toBeVisible()
+    const tile = grid.getByLabel(new RegExp(`^Row ${rowNumber}, tile ${index + 1}, ${letter}$`, 'i'))
+    await expect(tile).toBeVisible()
+    await expect(tile).toHaveClass(/bg-emerald-300\/25/)
   }
 }
 
@@ -78,6 +89,11 @@ async function expectCompletionSurvivesReentry(
   const completedProgress = await waitForCompletedGame(page, options.gameId, options.slotKey)
   expect(completedProgress.history.filter((entry) => entry.gameId === options.gameId)).toHaveLength(1)
   expect(completedProgress.resumeSlots?.[options.slotKey]).toBeUndefined()
+
+  await page.goBack()
+  await page.goForward()
+  await expectTerminalState(page, options.statusText, options.gridLabel, options.finalAnswer, options.finalAnswerRow)
+  await expect(readGuestProgress(page)).resolves.toEqual(completedProgress)
 
   await goHome(page)
   await page.goBack()
@@ -207,6 +223,53 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
       await expectNoConsoleFailures(consoleFailures)
     } finally {
       await context.close()
+    }
+  })
+
+  test('keeps completed authenticated Daily OG and GO visible after reload and account hydration', async ({ browser }) => {
+    getE2eEnv()
+
+    const runId = createRunId()
+    const users: E2eUser[] = []
+    const context = await browser.newContext()
+    await installFixedBrowserTime(context, FIXED_DAILY_ISO)
+    const page = await context.newPage()
+    const consoleFailures = installConsoleGuards(page)
+    try {
+      const user = await createE2eUser('solo-daily-go', runId)
+      users.push(user)
+
+      await signInThroughUi(page, user)
+      await waitForSignedInProgressHydration(page)
+
+      await navigateToSoloDaily(page, 'og')
+      const ogAnswer = createDailyOgSetup(dateKeyToLocalDate(FIXED_DAILY_DATE_KEY)).answer
+      await submitSoloGuessWithKeyboard(page, /Daily og puzzle/i, ogAnswer)
+      await expectTerminalState(page, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, ogAnswer, 1)
+
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await expectTerminalState(page, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, ogAnswer, 1)
+
+      await goHome(page)
+      await page.goBack()
+      await expectTerminalState(page, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, ogAnswer, 1)
+
+      await navigateToSoloDaily(page, 'go')
+
+      const answers = createDailyGoSetup(dateKeyToLocalDate(FIXED_DAILY_DATE_KEY)).puzzles.map((puzzle) => puzzle.answer)
+      await solveGoChain(page, /Daily go chain/i, answers)
+      await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
+
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
+
+      await goHome(page)
+      await page.goBack()
+      await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
+      await expectNoConsoleFailures(consoleFailures)
+    } finally {
+      await context.close()
+      await cleanupE2eRun(users)
     }
   })
 })

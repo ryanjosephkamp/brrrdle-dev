@@ -522,7 +522,7 @@ export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
     [dailyDate, difficulty, practiceLength, practiceSeed, scope],
   )
   const sessionKey = scope === 'daily'
-    ? `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${setup.dateKey}`
+    ? `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${setup.dateKey}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
     : `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${practiceLength}-${practiceSeed}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
 
   return (

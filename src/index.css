@@ -1042,6 +1042,15 @@ body {
 }
 
 @media (width < 720px) {
+  .brrrdle-lunar-shell[data-surface='lunar-signal'] {
+    background: linear-gradient(160deg, #020207 0%, #060714 48%, #061318 100%);
+  }
+
+  .brrrdle-lunar-canvas,
+  .brrrdle-lunar-noise {
+    display: none;
+  }
+
   .brrrdle-lunar-cursor {
     display: none;
   }

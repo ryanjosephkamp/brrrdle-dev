@@ -20,25 +20,36 @@ export interface ScrollDiagnostics {
 
 export function installConsoleGuards(page: Page): string[] {
   const failures: string[] = []
+  const isBenignExternalBrowserWarning = (text: string): boolean => /Cookie .*__cf_bm.*rejected.*invalid domain/u.test(text)
+    && /supabase\.co\/realtime\/v1\/websocket/u.test(text)
+  const isBenignDefinitionLookupFailure = (text: string): boolean => (
+    /\/api\/definition/u.test(text)
+      || /api\.dictionaryapi\.dev\/api\/v2\/entries/u.test(text)
+      || /en\.wiktionary\.org\/api\/rest_v1\/page\/definition/u.test(text)
+  ) && (
+    /Failed to load resource: the server responded with a status of 404/u.test(text)
+      || /access control checks/u.test(text)
+  )
   page.on('console', (message) => {
     if (message.type() === 'error') {
       const location = message.location()
       const detail = `${message.text()}${location.url ? ` (${location.url})` : ''}`
-      const isMissingDefinition = /Failed to load resource: the server responded with a status of 404/u.test(message.text())
-        && (
-          /\/api\/definition/u.test(location.url)
-          || /api\.dictionaryapi\.dev\/api\/v2\/entries/u.test(location.url)
-          || /api\.dictionaryapi\.dev\/api\/v2\/entries/u.test(message.text())
-          || /en\.wiktionary\.org\/api\/rest_v1\/page\/definition/u.test(location.url)
-          || /en\.wiktionary\.org\/api\/rest_v1\/page\/definition/u.test(message.text())
-        )
-      if (isMissingDefinition) {
+      if (isBenignExternalBrowserWarning(detail)) {
+        return
+      }
+      if (isBenignDefinitionLookupFailure(`${message.text()} ${location.url}`)) {
         return
       }
       failures.push(detail)
     }
   })
   page.on('pageerror', (error) => {
+    if (isBenignExternalBrowserWarning(error.message)) {
+      return
+    }
+    if (isBenignDefinitionLookupFailure(error.message)) {
+      return
+    }
     failures.push(error.message)
   })
   return failures
