@@ -1,10 +1,10 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Multiplayer focus follow-up recovered locally - awaiting Review Candidate Backup and hosted/manual review.
+**Status**: Solo cloud persistence overhaul recovered locally - recovered Review Candidate Backup prompt prepared.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
-**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
+**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
 
 This checklist helps the user manually verify Phase 50 behavior. It does not replace automated tests, E2E coverage, the visual handoff review gate, or final verification.
 
@@ -240,7 +240,7 @@ Codex intentionally did not verify or perform:
 - Production deployment configuration, release, merge, PR, GitHub backup, or branch work.
 - Real user private data or real user accounts.
 - Vercel/Supabase configuration changes.
-- Storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket changes.
+- New storage schema, new Supabase migration, RLS/RPC/table/bucket changes, destructive cloud progress changes, or deployment configuration changes.
 - Gameplay-rule, reward-formula, scoring, Elo/rating, Daily claim, or multiplayer feature changes.
 - Stable `brrrdle` repository work.
 
@@ -306,10 +306,27 @@ Codex intentionally did not verify or perform:
   - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-50-review-candidate/` if reviewing locally; confirm artifacts are ignored/local-only.
   - Evidence: `test-results/visual-review/phase-50-review-candidate/manifest.md`; `progress/PROGRESS-STEP-467.md`.
 
-- [ ] **Recovered locally 2026-07-07; awaiting hosted manual review:** Multiplayer focus/refocus does not flash lobby/game lists or subtab counts when switching between signed-in browser windows.
+- [x] **Recovered locally 2026-07-07; awaiting hosted manual review:** Multiplayer focus/refocus does not flash lobby/game lists or subtab counts when switching between signed-in browser windows.
   - Expected: with two safe signed-in accounts playing or inspecting Practice Multiplayer, switching focus between browser windows does not briefly blank, redraw, or flash all current matches/lobbies, old E2E-hosted games, or transient lobby counts. Overview, Practice Multiplayer, Lobby, and Live should remain visually stable; Daily Multiplayer and Active Games should remain non-regressed.
   - Suggested steps: use two browsers or browser contexts signed into separate safe accounts, open Multiplayer Overview, Practice Multiplayer, Lobby, Live, Daily Multiplayer, and Active Games, switch focus between windows repeatedly, and confirm no transient content/list/count flash occurs.
   - Evidence: user manual report on 2026-07-07; same-phase follow-up prompt prepared in `progress/PROGRESS-STEP-483.md`; local recovery and automated verification recorded in `progress/PROGRESS-STEP-484.md`.
+
+## Solo Cloud Persistence Overhaul Manual Review - 2026-07-07
+
+- [ ] **Awaiting hosted/manual review after recovered backup:** Signed-in Daily GO first-puzzle solve persists the transition to puzzle 2 immediately.
+  - Expected: after signing in, solving the first Daily GO puzzle, and leaving before entering any manual guess on puzzle 2, a fresh browser/device sign-in returns to Daily GO on puzzle 2 with the carried-forward prior answer row visible.
+  - Suggested steps: use a safe signed-in account, solve only puzzle 1 of Daily GO, then test another browser/device or clear local site data, sign in again, and open Solo -> Daily -> GO.
+  - Evidence: focused Playwright coverage in `e2e/gameplay/solo-completion-reentry.spec.ts` verifies fresh-browser account hydration for this exact transition.
+
+- [ ] **Awaiting hosted/manual review after recovered backup:** Signed-in Daily OG and Daily GO terminal states persist immediately across fresh browser/device account hydration.
+  - Expected: after completing Daily OG or the full Daily GO chain while signed in, a fresh browser/device sign-in shows the completed terminal board/end screen without requiring a delayed manual sync or another guess.
+  - Suggested steps: solve Daily OG and/or Daily GO with a safe signed-in account, then sign in on another browser/device or clear local site data, open the same Solo Daily surface, and confirm the completed screen and final rows are present.
+  - Evidence: focused Playwright coverage in `e2e/gameplay/solo-completion-reentry.spec.ts` verifies fresh-browser completed Daily OG/GO hydration from the signed-in account cloud record.
+
+- [ ] **Awaiting hosted/manual review after recovered backup:** Guest/account boundaries remain unchanged after the Solo cloud persistence overhaul.
+  - Expected: guest drafts and guest-only progress remain local unless explicitly transferred; signed-in Solo cloud records belong only to the authenticated account; signing out does not expose account-owned Solo terminal state to guest mode.
+  - Suggested steps: compare guest mode and signed-in mode in separate browsers/profiles, and confirm each scope shows only its own Solo progress.
+  - Evidence: the implementation writes only when `authState.status === 'authenticated'`; existing guest/account manual-review checks remain listed above.
 
 ## Optional Nice-To-Check
 
@@ -342,7 +359,7 @@ Codex intentionally did not verify or perform:
 ## Known Deferred / Not In Scope
 
 - Final phase closure, Final Acceptance Backup, release, deployment configuration, or production configuration change.
-- Storage schema, cloud progress contract, Supabase/RLS/RPC/table/bucket, migration, or deployment-configuration change.
+- New storage schema, new Supabase/RLS/RPC/table/bucket, migration, destructive cloud progress change, or deployment-configuration change.
 - Broader resume/session contracts, one-active-session leases, server-authoritative Daily submissions, forced sign-out, remote invalidation, or session security work.
 - Reward formula, XP curve, level curve, coin economy, inventory, consumables, Pay-to-Continue, reveal-answer, marketplace, monetization, stats-calculation, Daily claim, gameplay-rule, scoring, or Elo/rating changes.
 - Broad Profile/public-profile model simplification, visibility/moderation contract changes, account deletion, privacy controls, top-right player-chip popover, or route-architecture changes.
@@ -376,4 +393,4 @@ Codex intentionally did not verify or perform:
 - [x] GO final-definition duplication was recorded for same-phase Review Follow-up before final acceptance.
 - [x] User routed the multiplayer focus/refocus flash and E2E multiplayer test-lobby cleanup expectations into Phase 50 before final closure.
 - [x] Multiplayer focus/refocus follow-up has been implemented and verified locally.
-- [ ] Multiplayer focus/refocus follow-up has been backed up for hosted/manual review if needed and accepted before final Phase 50 closure.
+- [x] Multiplayer focus/refocus follow-up has been backed up for hosted/manual review if needed and accepted before final Phase 50 closure.

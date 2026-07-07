@@ -44,6 +44,8 @@ Apply `supabase/migrations/20260526012500_phase8_accounts.sql` to create:
 
 All user-owned tables have row-level security enabled. Users can read and write only rows where `auth.uid()` matches the row owner. Admin access is represented with an `admin` role in user metadata or profile data managed outside the browser client.
 
+Phase 50 uses the existing `game_history` table for private signed-in Solo cloud persistence. Browser clients write `solo-cloud-session-v1` entries only for the authenticated owner after accepted Solo OG/GO guesses and significant Solo mutations such as Pay-to-Continue or reveal/loss actions. These entries may include serialized answer-bearing Solo session state and per-event history, so they must remain user-owned/private behind the existing `auth.uid() = user_id` RLS policies. Public profile, leaderboard, spectator, guest, and anonymous surfaces must not read or project raw `solo-cloud-session-v1` entries. The existing `progress_snapshots` table remains the aggregate progress/settings/stats/coins/XP/completed-ID compatibility path.
+
 For Phase 23 live multiplayer, also apply `supabase/migrations/20260604024500_phase23_live_multiplayer.sql`. It creates:
 
 - `live_lobbies`

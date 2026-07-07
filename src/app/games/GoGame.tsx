@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
 import { DEFAULT_GO_PUZZLE_COUNT, type GoPuzzleCount } from '../../game/constants'
-import type { CompletedGameInput, GoResumeSlot, ResumeCapture } from '../../account'
+import { createSoloCloudSessionKey, type CompletedGameInput, type GoResumeSlot, type ResumeCapture, type SoloCloudMutation, type SoloCloudMutationEventInput } from '../../account'
 import { createAccountPracticeSeed } from '../../account/practiceSeeds'
 import { DefinitionPanel } from '../../definitions'
 import {
@@ -47,6 +47,7 @@ interface GoGameProps {
   readonly keyboardDisabled?: boolean
   readonly onGameComplete?: (input: CompletedGameInput) => void
   readonly onResumeCapture?: (capture: ResumeCapture) => void
+  readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
   readonly onSaveGoPuzzleCountDefault?: (count: GoPuzzleCount) => void
   readonly onSpendCoins: (amount: number) => boolean
@@ -189,6 +190,7 @@ function GoGameSession({
   onPracticeLengthChange,
   onPracticeSeedChange,
   onResumeCapture,
+  onSoloCloudMutation,
   onMarkDailyUnlocked,
   pastDailyDateKey,
   onSaveDifficultyDefault,
@@ -196,6 +198,7 @@ function GoGameSession({
   onSpendCoins,
   practiceLength,
   practiceLengths,
+  practiceSeed,
   restoreFrom,
   scope,
   setup,
@@ -213,6 +216,7 @@ function GoGameSession({
   readonly onPracticeLengthChange: (length: number) => void
   readonly onPracticeSeedChange: () => void
   readonly onResumeCapture?: (capture: ResumeCapture) => void
+  readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onMarkDailyUnlocked?: () => void
   readonly pastDailyDateKey?: string
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
@@ -220,6 +224,7 @@ function GoGameSession({
   readonly onSpendCoins: (amount: number) => boolean
   readonly practiceLength: number
   readonly practiceLengths: readonly number[]
+  readonly practiceSeed: number
   readonly restoreFrom?: ReturnType<typeof serializeGoSession>
   readonly scope: GoGameProps['scope']
   readonly setup: GoSessionSetup
@@ -262,6 +267,35 @@ function GoGameSession({
   const hardModeLocked = scope === 'practice'
     ? customizeLocked
     : session.puzzles.some((puzzle) => puzzle.guesses.length > 0)
+  const emitSoloCloudMutation = useCallback((nextSession: GoSessionState, event: SoloCloudMutationEventInput) => {
+    onSoloCloudMutation?.({
+      ...(scope === 'daily' && setup.dateKey ? { dailyDateKey: setup.dateKey } : {}),
+      difficulty,
+      event,
+      goPuzzleCount,
+      hardMode: nextSession.hardMode,
+      mode: 'go',
+      ...(scope === 'practice' ? { practiceSeed } : {}),
+      scope,
+      serializedSession: serializeGoSession(nextSession),
+      sessionKey: createSoloCloudSessionKey({
+        ...(scope === 'daily' && setup.dateKey ? { dailyDateKey: setup.dateKey } : {}),
+        difficulty,
+        goPuzzleCount,
+        mode: 'go',
+        ...(scope === 'practice' ? { practiceSeed } : {}),
+        scope,
+        wordLength: nextSession.wordLength,
+      }),
+      wordLength: nextSession.wordLength,
+    })
+  }, [difficulty, goPuzzleCount, onSoloCloudMutation, practiceSeed, scope, setup.dateKey])
+  const scheduleSoloCloudMutation = useCallback((nextSession: GoSessionState, event: SoloCloudMutationEventInput) => {
+    if (!onSoloCloudMutation) {
+      return
+    }
+    window.setTimeout(() => emitSoloCloudMutation(nextSession, event), 0)
+  }, [emitSoloCloudMutation, onSoloCloudMutation])
 
   useEffect(() => {
     if (scope !== 'daily' || !setup.dateKey || !pastDailyDateKey) {
@@ -349,7 +383,24 @@ function GoGameSession({
         return deleteGoLetter(currentSession)
       }
 
+      const previousPuzzleIndex = currentSession.currentPuzzleIndex
+      const previousPuzzle = currentSession.puzzles[previousPuzzleIndex]
       const nextSession = submitGoGuess(currentSession)
+      const nextPreviousPuzzle = nextSession.puzzles[previousPuzzleIndex]
+      const submittedGuess = nextPreviousPuzzle?.guesses[nextPreviousPuzzle.guesses.length - 1]?.guess
+      if (
+        submittedGuess
+        && nextPreviousPuzzle
+        && previousPuzzle
+        && !nextPreviousPuzzle.lastValidation
+        && nextPreviousPuzzle.guesses.length > previousPuzzle.guesses.length
+      ) {
+        scheduleSoloCloudMutation(nextSession, {
+          eventType: 'valid_guess',
+          guess: submittedGuess,
+          puzzleIndex: previousPuzzleIndex,
+        })
+      }
       const transition = getSoloGoSolvedTransition(currentSession, nextSession)
       const activePuzzle = nextSession.puzzles[nextSession.currentPuzzleIndex]
       for (const event of getSoloSubmitSoundEvents({
@@ -363,7 +414,7 @@ function GoGameSession({
       }
       return nextSession
     })
-  }, [sound])
+  }, [scheduleSoloCloudMutation, sound])
 
   useKeyboardInput({ disabled: keyboardDisabled || isSolvedTransitionActive, onInput: handleInput })
 
@@ -377,9 +428,19 @@ function GoGameSession({
       return
     }
 
-    setSession((currentSession) => continueGoAfterLoss(currentSession))
+    setSession((currentSession) => {
+      const nextSession = continueGoAfterLoss(currentSession)
+      if (nextSession !== currentSession) {
+        scheduleSoloCloudMutation(nextSession, {
+          cost: continuationCost,
+          eventType: 'pay_to_continue',
+          puzzleIndex: currentSession.currentPuzzleIndex,
+        })
+      }
+      return nextSession
+    })
     setContinuationMessage(`Spent ${continuationCost} coins for one more attempt.`)
-  }, [continuationCost, onSpendCoins, session.status])
+  }, [continuationCost, onSpendCoins, scheduleSoloCloudMutation, session.status])
 
   const handleReveal = useCallback(() => {
     if (!canReveal) {
@@ -392,9 +453,19 @@ function GoGameSession({
     }
 
     const revealedAnswer = currentPuzzle.answer.toLocaleUpperCase('en-US')
-    setSession((currentSession) => revealGoPuzzle(currentSession))
+    setSession((currentSession) => {
+      const nextSession = revealGoPuzzle(currentSession)
+      if (nextSession !== currentSession) {
+        scheduleSoloCloudMutation(nextSession, {
+          cost: revealCost,
+          eventType: 'reveal',
+          puzzleIndex: currentSession.currentPuzzleIndex,
+        })
+      }
+      return nextSession
+    })
     setContinuationMessage(`Revealed the answer: ${revealedAnswer}. This puzzle counts as a loss.`)
-  }, [canReveal, currentPuzzle.answer, onSpendCoins, revealCost])
+  }, [canReveal, currentPuzzle.answer, onSpendCoins, revealCost, scheduleSoloCloudMutation])
 
   const handleRevealAfterLoss = useCallback(() => {
     if (!canPayToContinue) {
@@ -402,9 +473,18 @@ function GoGameSession({
     }
 
     const revealedAnswer = currentPuzzle.answer.toLocaleUpperCase('en-US')
-    setSession((currentSession) => revealGoPuzzle(currentSession))
+    setSession((currentSession) => {
+      const nextSession = revealGoPuzzle(currentSession)
+      if (nextSession !== currentSession) {
+        scheduleSoloCloudMutation(nextSession, {
+          eventType: 'reveal',
+          puzzleIndex: currentSession.currentPuzzleIndex,
+        })
+      }
+      return nextSession
+    })
     setContinuationMessage(`Revealed the answer: ${revealedAnswer}. This puzzle counts as a loss.`)
-  }, [canPayToContinue, currentPuzzle.answer])
+  }, [canPayToContinue, currentPuzzle.answer, scheduleSoloCloudMutation])
 
   const letterStates = deriveKeyboardLetterStates(displayPuzzle.guesses)
   const statusMessage = isSolvedTransitionActive
@@ -592,7 +672,7 @@ function GoGameSession({
   )
 }
 
-export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultGoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSaveDifficultyDefault, onSaveGoPuzzleCountDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: GoGameProps) {
+export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultGoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSoloCloudMutation, onSaveDifficultyDefault, onSaveGoPuzzleCountDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: GoGameProps) {
   const [initialPracticeResume] = useState(() => initialResume?.scope === 'practice' ? initialResume : undefined)
   const initialDailyResume = initialResume?.scope === 'daily' ? initialResume : undefined
   // Practice resume captures are written on every input. Treat the incoming
@@ -656,10 +736,12 @@ export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
       onResumeCapture={pastDailyDateKey ? undefined : onResumeCapture}
       onSaveDifficultyDefault={onSaveDifficultyDefault}
       onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault}
+      onSoloCloudMutation={onSoloCloudMutation}
       onSpendCoins={onSpendCoins}
       pastDailyDateKey={pastDailyDateKey}
       practiceLength={practiceLength}
       practiceLengths={practiceLengths}
+      practiceSeed={practiceSeed}
       restoreFrom={activeResume?.serializedSession}
       scope={scope}
       setup={setup}

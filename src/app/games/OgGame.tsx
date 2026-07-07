@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
-import type { CompletedGameInput, OgResumeSlot, ResumeCapture } from '../../account'
+import { createSoloCloudSessionKey, type CompletedGameInput, type OgResumeSlot, type ResumeCapture, type SoloCloudMutation, type SoloCloudMutationEventInput } from '../../account'
 import { createAccountPracticeSeed } from '../../account/practiceSeeds'
 import { DefinitionPanel } from '../../definitions'
 import {
@@ -41,6 +41,7 @@ interface OgGameProps {
   readonly keyboardDisabled?: boolean
   readonly onGameComplete?: (input: CompletedGameInput) => void
   readonly onResumeCapture?: (capture: ResumeCapture) => void
+  readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
   readonly onSpendCoins: (amount: number) => boolean
   readonly onAdvancePracticeSeed?: () => void
@@ -168,6 +169,7 @@ function OgGameSession({
   onPracticeLengthChange,
   onPracticeSeedChange,
   onResumeCapture,
+  onSoloCloudMutation,
   onMarkDailyUnlocked,
   pastDailyDateKey,
   onSaveDifficultyDefault,
@@ -189,6 +191,7 @@ function OgGameSession({
   readonly onPracticeLengthChange: (length: number) => void
   readonly onPracticeSeedChange: () => void
   readonly onResumeCapture?: (capture: ResumeCapture) => void
+  readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onMarkDailyUnlocked?: () => void
   readonly pastDailyDateKey?: string
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
@@ -219,6 +222,33 @@ function OgGameSession({
   const lossAnswerRevealed = session.status === 'lost' && (!canPayToContinue || Boolean(session.revealedAnswer))
   const endStateRevealed = session.status === 'won' || lossAnswerRevealed
   const canReveal = scope === 'practice' && session.status === 'playing' && session.guesses.length > 0
+  const emitSoloCloudMutation = useCallback((nextSession: PuzzleSessionState, event: SoloCloudMutationEventInput) => {
+    onSoloCloudMutation?.({
+      ...(scope === 'daily' && setup.dateKey ? { dailyDateKey: setup.dateKey } : {}),
+      difficulty,
+      event,
+      hardMode: nextSession.hardMode,
+      mode: 'og',
+      ...(scope === 'practice' ? { practiceSeed } : {}),
+      scope,
+      serializedSession: serializeOgSession(nextSession),
+      sessionKey: createSoloCloudSessionKey({
+        ...(scope === 'daily' && setup.dateKey ? { dailyDateKey: setup.dateKey } : {}),
+        difficulty,
+        mode: 'og',
+        ...(scope === 'practice' ? { practiceSeed } : {}),
+        scope,
+        wordLength: nextSession.wordLength,
+      }),
+      wordLength: nextSession.wordLength,
+    })
+  }, [difficulty, onSoloCloudMutation, practiceSeed, scope, setup.dateKey])
+  const scheduleSoloCloudMutation = useCallback((nextSession: PuzzleSessionState, event: SoloCloudMutationEventInput) => {
+    if (!onSoloCloudMutation) {
+      return
+    }
+    window.setTimeout(() => emitSoloCloudMutation(nextSession, event), 0)
+  }, [emitSoloCloudMutation, onSoloCloudMutation])
 
   useEffect(() => {
     if (scope !== 'daily' || !setup.dateKey || !pastDailyDateKey) {
@@ -293,6 +323,14 @@ function OgGameSession({
       }
 
       const nextSession = submitGuess(currentSession)
+      const submittedGuess = nextSession.guesses[nextSession.guesses.length - 1]?.guess
+      if (!nextSession.lastValidation && submittedGuess && nextSession.guesses.length > currentSession.guesses.length) {
+        scheduleSoloCloudMutation(nextSession, {
+          eventType: 'valid_guess',
+          guess: submittedGuess,
+          puzzleIndex: 0,
+        })
+      }
       for (const event of getSoloSubmitSoundEvents({
         solved: nextSession.status === 'won',
         validationFailed: Boolean(nextSession.lastValidation),
@@ -301,7 +339,7 @@ function OgGameSession({
       }
       return nextSession
     })
-  }, [sound])
+  }, [scheduleSoloCloudMutation, sound])
 
   const handlePayToContinue = useCallback(() => {
     if (session.status !== 'lost') {
@@ -313,9 +351,19 @@ function OgGameSession({
       return
     }
 
-    setSession((currentSession) => continueAfterLoss(currentSession))
+    setSession((currentSession) => {
+      const nextSession = continueAfterLoss(currentSession)
+      if (nextSession !== currentSession) {
+        scheduleSoloCloudMutation(nextSession, {
+          cost: continuationCost,
+          eventType: 'pay_to_continue',
+          puzzleIndex: 0,
+        })
+      }
+      return nextSession
+    })
     setContinuationMessage(`Spent ${continuationCost} coins for one more attempt.`)
-  }, [continuationCost, onSpendCoins, session.status])
+  }, [continuationCost, onSpendCoins, scheduleSoloCloudMutation, session.status])
 
   const handleRevealAfterLoss = useCallback(() => {
     if (!canPayToContinue) {
@@ -323,15 +371,22 @@ function OgGameSession({
     }
 
     const answer = session.answer.toLocaleUpperCase('en-US')
-    setSession((currentSession) => ({
-      ...currentSession,
-      currentGuess: '',
-      lastValidation: undefined,
-      revealedAnswer: true,
-      status: 'lost',
-    }))
+    setSession((currentSession) => {
+      const nextSession: PuzzleSessionState = {
+        ...currentSession,
+        currentGuess: '',
+        lastValidation: undefined,
+        revealedAnswer: true,
+        status: 'lost',
+      }
+      scheduleSoloCloudMutation(nextSession, {
+        eventType: 'reveal',
+        puzzleIndex: 0,
+      })
+      return nextSession
+    })
     setContinuationMessage(`Revealed the answer: ${answer}. This puzzle counts as a loss.`)
-  }, [canPayToContinue, session.answer])
+  }, [canPayToContinue, scheduleSoloCloudMutation, session.answer])
 
   const handleReveal = useCallback(() => {
     if (!canReveal) {
@@ -344,15 +399,23 @@ function OgGameSession({
     }
 
     const answer = session.answer.toLocaleUpperCase('en-US')
-    setSession((currentSession) => ({
-      ...currentSession,
-      currentGuess: '',
-      lastValidation: undefined,
-      revealedAnswer: true,
-      status: 'lost',
-    }))
+    setSession((currentSession) => {
+      const nextSession: PuzzleSessionState = {
+        ...currentSession,
+        currentGuess: '',
+        lastValidation: undefined,
+        revealedAnswer: true,
+        status: 'lost',
+      }
+      scheduleSoloCloudMutation(nextSession, {
+        cost: continuationCost,
+        eventType: 'reveal',
+        puzzleIndex: 0,
+      })
+      return nextSession
+    })
     setContinuationMessage(`Revealed the answer: ${answer}. This puzzle counts as a loss.`)
-  }, [canReveal, continuationCost, onSpendCoins, session.answer])
+  }, [canReveal, continuationCost, onSpendCoins, scheduleSoloCloudMutation, session.answer])
 
   useKeyboardInput({ disabled: keyboardDisabled, onInput: handleInput })
 
@@ -496,7 +559,7 @@ function OgGameSession({
   )
 }
 
-export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSaveDifficultyDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: OgGameProps) {
+export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSoloCloudMutation, onSaveDifficultyDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: OgGameProps) {
   const [initialPracticeResume] = useState(() => initialResume?.scope === 'practice' ? initialResume : undefined)
   const initialDailyResume = initialResume?.scope === 'daily' ? initialResume : undefined
   // Practice resume captures are written on every input. Treat the incoming
@@ -554,6 +617,7 @@ export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
       }}
       onResumeCapture={pastDailyDateKey ? undefined : onResumeCapture}
       onSaveDifficultyDefault={onSaveDifficultyDefault}
+      onSoloCloudMutation={onSoloCloudMutation}
       onSpendCoins={onSpendCoins}
       pastDailyDateKey={pastDailyDateKey}
       practiceLength={practiceLength}
