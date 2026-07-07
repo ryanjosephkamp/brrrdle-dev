@@ -35,6 +35,7 @@ import { classNames } from '../../ui/classNames'
 import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../gameplayAutoCenter'
 import { CustomizeMenu } from './CustomizeMenu'
 import { getSoloGoSolvedTransition, type SoloGoSolvedTransition } from './goTransitions'
+import { createGoGameSessionKey } from './soloSessionKeys'
 import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
 
 interface GoGameProps {
@@ -617,9 +618,16 @@ export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
     () => scope === 'daily' ? createDailyGoSetup(dailyDate, difficulty, goPuzzleCount) : createPracticeGoSetup(practiceLength, practiceSeed, difficulty, goPuzzleCount),
     [dailyDate, difficulty, goPuzzleCount, practiceLength, practiceSeed, scope],
   )
-  const sessionKey = scope === 'daily'
-    ? `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${goPuzzleCount}-${setup.dateKey}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
-    : `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${goPuzzleCount}-${practiceLength}-${practiceSeed}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
+  const sessionKey = createGoGameSessionKey({
+    activeResume,
+    difficulty,
+    goPuzzleCount,
+    practiceLength,
+    practiceSeed,
+    progressOwnerKey,
+    scope,
+    setupDateKey: setup.dateKey,
+  })
 
   return (
     <GoGameSession

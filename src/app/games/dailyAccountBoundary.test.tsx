@@ -20,6 +20,7 @@ import { DAILY_GO_STORAGE_KEY, dailyGoStorageKey } from '../../game/storage/dail
 import { DAILY_OG_STORAGE_KEY, dailyOgStorageKey } from '../../game/storage/dailyOgStorage'
 import { GoGame } from './GoGame'
 import { OgGame } from './OgGame'
+import { createGoGameSessionKey, createOgGameSessionKey } from './soloSessionKeys'
 
 function spendNothing() {
   return false
@@ -81,11 +82,206 @@ function createStartedDailyGoSession(date = getActiveDailyDate()): {
   }
 }
 
+function createCompletedDailyOgSession(date = getActiveDailyDate()): {
+  readonly dateKey: string
+  readonly serializedSession: SerializedOgSession
+} {
+  const setup = createDailyOgSetup(date, DEFAULT_DIFFICULTY_TIER)
+  const session = submitOgWord(createOgSession(setup), setup.answer)
+  expect(session.status).toBe('won')
+  return {
+    dateKey: setup.dateKey ?? '',
+    serializedSession: serializeOgSession(session),
+  }
+}
+
+function createCompletedDailyGoSession(date = getActiveDailyDate()): {
+  readonly dateKey: string
+  readonly serializedSession: SerializedGoSession
+} {
+  const setup = createDailyGoSetup(date, DEFAULT_DIFFICULTY_TIER)
+  const session = setup.puzzles.reduce((currentSession, puzzle) => submitGoWord(currentSession, puzzle.answer), createGoSession(setup))
+  expect(session.status).toBe('won')
+  return {
+    dateKey: setup.dateKey ?? '',
+    serializedSession: serializeGoSession(session),
+  }
+}
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe('Daily Solo account boundaries', () => {
+  it('keeps Daily OG in-progress live resume updates from remounting the active puzzle', () => {
+    const started = createStartedDailyOgSession()
+    const firstKey = createOgGameSessionKey({
+      activeResume: {
+        difficulty: DEFAULT_DIFFICULTY_TIER,
+        mode: 'og',
+        scope: 'daily',
+        serializedSession: started.serializedSession,
+        updatedAt: '2026-07-05T12:00:00.000Z',
+        wordLength: 5,
+      },
+      difficulty: DEFAULT_DIFFICULTY_TIER,
+      practiceLength: 5,
+      practiceSeed: 0,
+      progressOwnerKey: 'account:one',
+      scope: 'daily',
+      setupDateKey: started.dateKey,
+    })
+    const nextKey = createOgGameSessionKey({
+      activeResume: {
+        difficulty: DEFAULT_DIFFICULTY_TIER,
+        mode: 'og',
+        scope: 'daily',
+        serializedSession: { ...started.serializedSession, currentGuess: `${started.serializedSession.currentGuess}a`.slice(0, 5) },
+        updatedAt: '2026-07-05T12:00:01.000Z',
+        wordLength: 5,
+      },
+      difficulty: DEFAULT_DIFFICULTY_TIER,
+      practiceLength: 5,
+      practiceSeed: 0,
+      progressOwnerKey: 'account:one',
+      scope: 'daily',
+      setupDateKey: started.dateKey,
+    })
+
+    expect(nextKey).toBe(firstKey)
+  })
+
+  it('keeps Daily GO in-progress live resume updates from remounting settled rows', () => {
+    const started = createStartedDailyGoSession()
+    const firstKey = createGoGameSessionKey({
+      activeResume: {
+        difficulty: DEFAULT_DIFFICULTY_TIER,
+        goPuzzleCount: 5,
+        mode: 'go',
+        scope: 'daily',
+        serializedSession: started.serializedSession,
+        updatedAt: '2026-07-05T12:00:00.000Z',
+        wordLength: 5,
+      },
+      difficulty: DEFAULT_DIFFICULTY_TIER,
+      goPuzzleCount: 5,
+      practiceLength: 5,
+      practiceSeed: 0,
+      progressOwnerKey: 'account:one',
+      scope: 'daily',
+      setupDateKey: started.dateKey,
+    })
+    const [firstPuzzle, ...remainingPuzzles] = started.serializedSession.puzzles
+    const nextKey = createGoGameSessionKey({
+      activeResume: {
+        difficulty: DEFAULT_DIFFICULTY_TIER,
+        goPuzzleCount: 5,
+        mode: 'go',
+        scope: 'daily',
+        serializedSession: {
+          ...started.serializedSession,
+          puzzles: [
+            { ...firstPuzzle, currentGuess: `${firstPuzzle.currentGuess}a`.slice(0, 5) },
+            ...remainingPuzzles,
+          ],
+        },
+        updatedAt: '2026-07-05T12:00:01.000Z',
+        wordLength: 5,
+      },
+      difficulty: DEFAULT_DIFFICULTY_TIER,
+      goPuzzleCount: 5,
+      practiceLength: 5,
+      practiceSeed: 0,
+      progressOwnerKey: 'account:one',
+      scope: 'daily',
+      setupDateKey: started.dateKey,
+    })
+
+    expect(nextKey).toBe(firstKey)
+  })
+
+  it('still remounts Daily OG when completed display evidence arrives after hydration', () => {
+    const started = createStartedDailyOgSession()
+    const completed = createCompletedDailyOgSession(dateKeyToLocalDate(started.dateKey))
+    const firstKey = createOgGameSessionKey({
+      activeResume: {
+        difficulty: DEFAULT_DIFFICULTY_TIER,
+        mode: 'og',
+        scope: 'daily',
+        serializedSession: started.serializedSession,
+        updatedAt: '2026-07-05T12:00:00.000Z',
+        wordLength: 5,
+      },
+      difficulty: DEFAULT_DIFFICULTY_TIER,
+      practiceLength: 5,
+      practiceSeed: 0,
+      progressOwnerKey: 'account:one',
+      scope: 'daily',
+      setupDateKey: started.dateKey,
+    })
+    const completedKey = createOgGameSessionKey({
+      activeResume: {
+        difficulty: DEFAULT_DIFFICULTY_TIER,
+        mode: 'og',
+        scope: 'daily',
+        serializedSession: completed.serializedSession,
+        updatedAt: '2026-07-05T12:00:02.000Z',
+        wordLength: 5,
+      },
+      difficulty: DEFAULT_DIFFICULTY_TIER,
+      practiceLength: 5,
+      practiceSeed: 0,
+      progressOwnerKey: 'account:one',
+      scope: 'daily',
+      setupDateKey: started.dateKey,
+    })
+
+    expect(completedKey).not.toBe(firstKey)
+  })
+
+  it('still remounts Daily GO when completed display evidence arrives after hydration', () => {
+    const started = createStartedDailyGoSession()
+    const completed = createCompletedDailyGoSession(dateKeyToLocalDate(started.dateKey))
+    const firstKey = createGoGameSessionKey({
+      activeResume: {
+        difficulty: DEFAULT_DIFFICULTY_TIER,
+        goPuzzleCount: 5,
+        mode: 'go',
+        scope: 'daily',
+        serializedSession: started.serializedSession,
+        updatedAt: '2026-07-05T12:00:00.000Z',
+        wordLength: 5,
+      },
+      difficulty: DEFAULT_DIFFICULTY_TIER,
+      goPuzzleCount: 5,
+      practiceLength: 5,
+      practiceSeed: 0,
+      progressOwnerKey: 'account:one',
+      scope: 'daily',
+      setupDateKey: started.dateKey,
+    })
+    const completedKey = createGoGameSessionKey({
+      activeResume: {
+        difficulty: DEFAULT_DIFFICULTY_TIER,
+        goPuzzleCount: 5,
+        mode: 'go',
+        scope: 'daily',
+        serializedSession: completed.serializedSession,
+        updatedAt: '2026-07-05T12:00:02.000Z',
+        wordLength: 5,
+      },
+      difficulty: DEFAULT_DIFFICULTY_TIER,
+      goPuzzleCount: 5,
+      practiceLength: 5,
+      practiceSeed: 0,
+      progressOwnerKey: 'account:one',
+      scope: 'daily',
+      setupDateKey: started.dateKey,
+    })
+
+    expect(completedKey).not.toBe(firstKey)
+  })
+
   it('does not restore current Daily OG from the legacy bare browser-local key', () => {
     const started = createStartedDailyOgSession()
     const storage = createMemoryStorage({

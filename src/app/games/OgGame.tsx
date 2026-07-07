@@ -30,6 +30,7 @@ import { Button, Keyboard, Panel, ShareButton } from '../../ui'
 import { classNames } from '../../ui/classNames'
 import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../gameplayAutoCenter'
 import { CustomizeMenu } from './CustomizeMenu'
+import { createOgGameSessionKey } from './soloSessionKeys'
 import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
 
 interface OgGameProps {
@@ -521,9 +522,15 @@ export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
     () => scope === 'daily' ? createDailyOgSetup(dailyDate, difficulty) : createPracticeOgSetup(practiceLength, practiceSeed, difficulty),
     [dailyDate, difficulty, practiceLength, practiceSeed, scope],
   )
-  const sessionKey = scope === 'daily'
-    ? `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${setup.dateKey}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
-    : `${scope}-${progressOwnerKey ?? 'local'}-${difficulty}-${practiceLength}-${practiceSeed}${activeResume ? `-resume-${activeResume.updatedAt}` : ''}`
+  const sessionKey = createOgGameSessionKey({
+    activeResume,
+    difficulty,
+    practiceLength,
+    practiceSeed,
+    progressOwnerKey,
+    scope,
+    setupDateKey: setup.dateKey,
+  })
 
   return (
     <OgGameSession

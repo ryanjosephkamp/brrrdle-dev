@@ -48,6 +48,20 @@ async function navigateToSoloDaily(page: Page, mode: 'go' | 'og'): Promise<void>
   await modeGroup.getByRole('button', { name: new RegExp(`^${mode.toLocaleUpperCase('en-US')}$`, 'i') }).click()
 }
 
+async function typeSoloLettersWithKeyboard(page: Page, regionName: RegExp, letters: string): Promise<void> {
+  const game = page.getByRole('region', { name: regionName })
+  for (const letter of letters.toLocaleUpperCase('en-US')) {
+    await game.getByRole('button', { name: new RegExp(`^Enter ${letter}$`, 'i') }).click()
+  }
+}
+
+async function deleteSoloLettersWithKeyboard(page: Page, regionName: RegExp, count: number): Promise<void> {
+  const game = page.getByRole('region', { name: regionName })
+  for (let index = 0; index < count; index += 1) {
+    await game.getByRole('button', { name: /^Delete letter$/i }).click()
+  }
+}
+
 async function goHome(page: Page): Promise<void> {
   await page.getByRole('button', { name: /brrrdle Command Center/i }).click()
   await expect(page.locator('#dashboard-home-title')).toBeVisible()
@@ -66,6 +80,14 @@ async function expectSubmittedWord(page: Page, gridLabel: RegExp, word: string, 
     const tile = grid.getByLabel(new RegExp(`^Row ${rowNumber}, tile ${index + 1}, ${letter}$`, 'i'))
     await expect(tile).toBeVisible()
     await expect(tile).toHaveClass(/bg-emerald-300\/25/)
+  }
+}
+
+async function expectDraftRowEmpty(page: Page, gridLabel: RegExp, rowNumber: number): Promise<void> {
+  const grid = page.getByRole('grid', { name: gridLabel }).first()
+  await expect(grid).toBeVisible()
+  for (let index = 0; index < 5; index += 1) {
+    await expect(grid.getByLabel(new RegExp(`^Row ${rowNumber}, tile ${index + 1}$`, 'i'))).toBeVisible()
   }
 }
 
@@ -119,7 +141,81 @@ async function solveGoChain(page: Page, regionName: RegExp, answers: readonly st
   }
 }
 
+async function installRevealAnimationRecorder(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const eventKey = '__brrrdleRevealAnimationEvents'
+    const listenerKey = '__brrrdleRevealAnimationListenerInstalled'
+    const targetWindow = window as typeof window & {
+      [eventKey]?: string[]
+      [listenerKey]?: boolean
+    }
+    targetWindow[eventKey] = []
+    if (targetWindow[listenerKey]) {
+      return
+    }
+    document.addEventListener('animationstart', (event) => {
+      if (event.animationName.includes('brrrdle-tile-reveal')) {
+        targetWindow[eventKey]?.push((event.target as HTMLElement | null)?.getAttribute('aria-label') ?? event.animationName)
+      }
+    }, true)
+    targetWindow[listenerKey] = true
+  })
+}
+
+async function expectNoRevealAnimationsRecorded(page: Page): Promise<void> {
+  await page.waitForTimeout(500)
+  const events = await page.evaluate(() => (window as typeof window & { __brrrdleRevealAnimationEvents?: string[] }).__brrrdleRevealAnimationEvents ?? [])
+  expect(events).toEqual([])
+}
+
 test.describe('Solo completion re-entry @solo @practice @daily', () => {
+  test('keeps Daily OG deleted draft letters cleared after scroll and route re-entry', async ({ browser }) => {
+    const context = await browser.newContext()
+    await installFixedBrowserTime(context, FIXED_DAILY_ISO)
+    const page = await context.newPage()
+    const consoleFailures = installConsoleGuards(page)
+    try {
+      await page.goto('/')
+      await navigateToSoloDaily(page, 'og')
+
+      await typeSoloLettersWithKeyboard(page, /Daily og puzzle/i, 'crane')
+      await deleteSoloLettersWithKeyboard(page, /Daily og puzzle/i, 5)
+      await expectDraftRowEmpty(page, /^Guess grid$/i, 1)
+
+      await page.evaluate(() => window.scrollTo({ behavior: 'auto', top: document.body.scrollHeight }))
+      await expectDraftRowEmpty(page, /^Guess grid$/i, 1)
+
+      await goHome(page)
+      await navigateToSoloDaily(page, 'og')
+      await expectDraftRowEmpty(page, /^Guess grid$/i, 1)
+      await expectNoConsoleFailures(consoleFailures)
+    } finally {
+      await context.close()
+    }
+  })
+
+  test('keeps Daily GO settled rows stable during ordinary keyboard input', async ({ browser }) => {
+    const context = await browser.newContext()
+    await installFixedBrowserTime(context, FIXED_DAILY_ISO)
+    const page = await context.newPage()
+    const consoleFailures = installConsoleGuards(page)
+    try {
+      await page.goto('/')
+      await navigateToSoloDaily(page, 'go')
+
+      const answers = createDailyGoSetup(dateKeyToLocalDate(FIXED_DAILY_DATE_KEY)).puzzles.map((puzzle) => puzzle.answer)
+      await submitSoloGuessWithKeyboard(page, /Daily go chain/i, answers[0])
+      await expect(page.getByText(/Puzzle 2 of 5/i).first()).toBeVisible({ timeout: 20_000 })
+      await installRevealAnimationRecorder(page)
+
+      await typeSoloLettersWithKeyboard(page, /Daily go chain/i, answers[1][0])
+      await expectNoRevealAnimationsRecorded(page)
+      await expectNoConsoleFailures(consoleFailures)
+    } finally {
+      await context.close()
+    }
+  })
+
   test('keeps completed Practice OG visible across route re-entry and browser Back without duplicate rewards', async ({ page }) => {
     const consoleFailures = installConsoleGuards(page)
     await page.goto('/')
