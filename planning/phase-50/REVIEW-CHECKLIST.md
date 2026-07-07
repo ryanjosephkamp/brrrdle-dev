@@ -1,6 +1,6 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Cross-browser same-phase recovery implemented - awaiting recovered hosted manual review.
+**Status**: Daily Solo polish recovered locally - Review Candidate Backup prompt prepared.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
@@ -90,7 +90,41 @@ Recovery verification:
 - Full local Playwright E2E passed 42 tests.
 - `npm run lint`, `npm run test`, `npm run build`, and API typecheck passed.
 
-The failed hosted manual-review boxes below intentionally remain unchecked until the user verifies the next hosted/live candidate.
+The original completion-persistence boxes below are now marked as passed based on the next hosted/live manual review. New directly Phase 50-related Daily-only regressions remain unchecked for same-phase Review Follow-up.
+
+## Cross-Browser Recovered Hosted Manual Review Result - 2026-07-07
+
+Manual review on the cross-browser recovered hosted/live Review Candidate found that the major completed Solo restore problem appears fixed:
+
+- Completed Solo final solved rows and game-end screens persisted after refresh or navigation away/back in the user's review.
+- Practice Solo OG and Practice Solo GO appeared correct and should be preserved by any follow-up.
+- The rest of the existing manual checklist appeared to pass as far as the user could tell.
+
+New Daily-only same-phase follow-up items:
+
+- Daily Solo OG can restore deleted draft letters after the user types letters, deletes them, then scrolls or navigates away/back.
+- Daily Solo GO can replay/flash already-settled board letters when the user types a new guess after earlier GO-chain puzzles already have solved rows.
+
+These findings remain inside Phase 50 because they are directly related to the hosted Review Candidate and the Solo persistence/rendering work. They are not final Phase 50 acceptance.
+
+## Daily Solo Polish Follow-Up Result - 2026-07-07
+
+Recovered by source/test changes, pending hosted/live manual review:
+
+- Daily Solo OG no longer remounts from every in-progress resume timestamp update, so deleted draft letters stay deleted during scroll and normal route re-entry.
+- Daily Solo GO no longer remounts settled in-progress boards on ordinary keyboard input, so already-settled rows stay visually stable while the active draft row changes.
+- Completed Daily OG/GO evidence still forces a remount when terminal display evidence arrives after account hydration, preserving the earlier cross-browser terminal-persistence recovery.
+- Practice Solo OG/GO keeps its existing resume-key behavior and remains covered by the same Solo completion re-entry suite.
+
+Recovery verification:
+
+- Focused Daily session-key unit coverage passed for in-progress Daily OG/GO key stability and completed Daily OG/GO remount behavior.
+- Focused Playwright coverage passed for Daily OG deleted draft letters staying cleared after scroll and route re-entry.
+- Focused Playwright coverage passed for Daily GO settled rows not replaying reveal animations during ordinary keyboard input.
+- Full local Playwright E2E passed 44 tests, including the signed-in Daily OG/GO terminal-restore regression.
+- `npm run lint`, `npm run test`, `npm run build`, app/API typechecks, and lightweight hygiene checks passed in the follow-up run.
+
+The Daily-only boxes below remain unchecked until the next hosted/live Review Candidate is backed up and manually reviewed.
 
 ## How To Use
 
@@ -149,22 +183,32 @@ Codex intentionally did not verify or perform:
 
 ## Must Manually Verify
 
-- [ ] **Failed in hosted manual review 2026-07-06; recovered by Codex verification and awaiting next hosted check:** Completed Practice OG keeps the final winning row and completed state after re-entry.
+- [x] **Passed in hosted manual review 2026-07-07 after cross-browser recovery:** Completed Practice OG keeps the final winning row and completed state after re-entry.
   - Expected: after solving a Practice OG puzzle, navigating away and returning through browser Back or the Solo/Practice route still shows the final winning row, completed status, share result, and definitions.
   - Suggested steps: open Solo -> Practice Solo -> OG, solve a safe Practice puzzle, navigate Home, use browser Back, then route away and back through Solo -> Practice Solo -> OG.
   - Evidence: `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`; focused Playwright reload/back coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`.
 
-- [ ] **Failed in hosted manual review 2026-07-06; recovered by Codex verification and awaiting next hosted check:** Completed Practice GO keeps the final solved chain after re-entry.
+- [x] **Passed in hosted manual review 2026-07-07 after cross-browser recovery:** Completed Practice GO keeps the final solved chain after re-entry.
   - Expected: after solving all Practice GO puzzles, route re-entry still shows the completed chain, the fifth solved row, share result, and definitions.
   - Suggested steps: open Solo -> Practice Solo -> GO, solve a safe Practice GO chain, navigate Home, return through Solo -> Practice Solo -> GO, and inspect the terminal state.
   - Evidence: `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`; focused Playwright reload/back coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`.
 
-- [ ] **Failed in hosted manual review 2026-07-06 and 2026-07-07; recovered by cross-browser Codex verification and awaiting next hosted check:** Completed Daily OG and Daily GO keep terminal Solo state without duplicate rewards.
+- [x] **Passed for terminal restore in hosted manual review 2026-07-07 after cross-browser recovery; Daily-only polish regressions tracked separately below:** Completed Daily OG and Daily GO keep terminal Solo state without duplicate rewards.
   - Expected: Daily Solo OG/GO completed state remains visible for the current Daily cycle, and re-entry does not duplicate XP, coins, history, stats, streak entries, Daily claims, or completed IDs.
   - Suggested steps: in a safe browser/profile, complete Daily Solo OG and/or Daily Solo GO if available, record visible Level/Coins/XP, navigate away/back, and confirm the completed screen remains without another reward bump.
   - Evidence: focused signed-in Playwright reload/account-hydration coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`; `progress/PROGRESS-STEP-473.md`; `progress/PROGRESS-STEP-475.md`.
 
-- [ ] Ordinary Solo navigation no longer auto-scrolls the page during normal route/subtab/mode changes or physical-keyboard play.
+- [ ] **Recovered locally 2026-07-07; awaiting next hosted manual review:** Daily Solo OG deleted draft letters stay deleted after scroll and route re-entry.
+  - Expected: if the user types draft letters in Daily Solo OG, deletes them, scrolls the page, navigates away/back, or returns through normal Solo routing before submitting a guess, the deleted draft letters do not reappear.
+  - Suggested steps: open Solo -> Daily -> OG, type a few letters without submitting, delete them, scroll up/down, then navigate away and return to Daily OG. Confirm the active draft row remains empty.
+  - Evidence: user hosted/mobile manual review report on 2026-07-07; Codex local recovery and verification recorded in `progress/PROGRESS-STEP-479.md`.
+
+- [ ] **Recovered locally 2026-07-07; awaiting next hosted manual review:** Daily Solo GO settled rows do not replay flip/flash animations on ordinary keyboard input.
+  - Expected: after earlier Daily Solo GO puzzles have solved rows or accumulated carry-forward words above the play area, typing a new guess changes only the active draft row. Previously solved/settled letters should not flip, flash, or replay submission animations on every keyboard touch.
+  - Suggested steps: open Solo -> Daily -> GO after one or more GO-chain puzzles have solved rows, type letters into the current puzzle, and confirm already-settled words stay visually stable.
+  - Evidence: user hosted/mobile manual review report on 2026-07-07; Codex local recovery and verification recorded in `progress/PROGRESS-STEP-479.md`.
+
+- [x] **Passed in hosted manual review 2026-07-07 after cross-browser recovery:** Ordinary Solo navigation no longer auto-scrolls the page during normal route/subtab/mode changes or physical-keyboard play.
   - Expected: opening Solo -> Daily/Practice -> OG/GO leaves page positioning under the user's control; the app does not auto-center the board or keyboard. Auto-scroll remains acceptable when a notification/direct-game handoff explicitly routes the user to a game.
   - Suggested steps: on mobile and desktop, open Solo Practice OG/GO and Daily OG/GO normally. Confirm the page does not jump unexpectedly and remains manually scrollable.
   - Evidence: focused mobile scroll/layout Playwright coverage in `e2e/layout/mobile-scroll.spec.ts`; `progress/PROGRESS-STEP-473.md`.
@@ -250,5 +294,7 @@ Codex intentionally did not verify or perform:
 - [x] Same-phase recovery implementation and automated verification were completed before requesting recovered hosted/live manual review.
 - [x] Follow-up hosted/manual Daily Solo completion failures from 2026-07-07 were recorded for same-phase Review Follow-up before final acceptance.
 - [x] Cross-browser same-phase recovery implementation and automated verification were completed before requesting another recovered hosted/live manual review.
+- [x] Cross-browser recovered hosted/live manual review found the major Solo completion terminal-restore issue resolved.
+- [x] New Daily-only manual-review regressions were recorded for same-phase Review Follow-up before final acceptance.
 - [x] If a Review Candidate Backup was used, it was treated as live/device review access only and not as final Phase 50 closure.
 - [ ] Final acceptance/closure or Final Acceptance Backup has separate explicit authorization after manual review acceptance.

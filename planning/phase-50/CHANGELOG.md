@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Cross-Browser Same-Phase Recovery Implemented - Awaiting Recovered Review Candidate Backup And Manual Review.
+**Status**: Daily Solo Polish Recovered Locally - Review Candidate Backup Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -10,9 +10,47 @@ Phase 50 attempted to repair the completed Solo re-entry bug reported after Phas
 
 Hosted/live manual review on 2026-07-06 found that the completed Solo Daily/Practice OG/GO repair did not work reliably enough to accept Phase 50. Profile now exposes separated account-management actions for Settings and Sign out while keeping Settings canonical. The Progression HUD now offers an explicit Open Stats action while remaining display-only and active-scope-owned.
 
-Same-phase recovery later on 2026-07-06 repaired the first hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. A later hosted/manual review on 2026-07-07 still found signed-in Daily Solo completion restore failures on mobile browsers, so Phase 50 returned to same-phase Review Follow-up again. The cross-browser recovery added authenticated Daily OG/GO coverage and mobile shell scroll mitigation. Phase 50 still remains open until the recovered candidate is backed up and manually reviewed.
+Same-phase recovery later on 2026-07-06 repaired the first hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. A later hosted/manual review on 2026-07-07 still found signed-in Daily Solo completion restore failures on mobile browsers, so Phase 50 returned to same-phase Review Follow-up again. The cross-browser recovery added authenticated Daily OG/GO coverage and mobile shell scroll mitigation. The next hosted/manual review found that the major terminal-restore problem appears fixed, but identified two Daily-only regressions: deleted Daily OG draft letters could reappear, and settled Daily GO rows could replay visual animations on keyboard input. The Daily Solo polish follow-up recovered those regressions locally and passed the full local verification gate. Phase 50 remains open for hosted/live manual review before final acceptance.
 
-No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, multiplayer feature change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed in this cross-browser recovery pass.
+No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, multiplayer feature change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed in this Daily Solo polish follow-up pass.
+
+## Daily Solo Polish Follow-Up Update - 2026-07-07
+
+Recovered:
+
+- Daily OG and Daily GO now keep stable in-progress Daily session keys instead of remounting on every resume-slot timestamp change.
+- Completed Daily OG and Daily GO still include completed display evidence in their session keys so terminal evidence arriving after account hydration remounts into the solved end screen.
+- The session-key helper now lives outside the React component files to preserve the app's fast-refresh lint contract.
+- E2E coverage now asserts Daily OG deleted draft letters stay cleared after scroll and route re-entry.
+- E2E coverage now asserts Daily GO settled rows do not replay reveal animations during ordinary keyboard input.
+
+Preserved:
+
+- Practice Solo OG/GO behavior remains protected by the existing Practice completion re-entry checks.
+- The cross-browser signed-in Daily OG/GO terminal-restore regression remains protected.
+- Ordinary Solo auto-scroll reduction remains intact.
+- Completion IDs and reward guards remain unchanged.
+
+Still pending:
+
+- A Daily-polish recovered Review Candidate Backup is required before hosted/live manual review on desktop/mobile.
+- Manual review must verify the two Daily-only polish items on the new hosted/live candidate.
+- Final acceptance/closure and any Final Acceptance Backup remain separately authorized future actions.
+
+## Cross-Browser Recovered Hosted Manual Review Update - 2026-07-07
+
+Passed or improved:
+
+- Completed Solo final solved rows and end-game screens now appear to persist after refresh or navigation away/back in the hosted/live review candidate.
+- Practice Solo OG and Practice Solo GO appear correct after the cross-browser recovery and should be preserved by any follow-up.
+- Ordinary Solo auto-scroll behavior and the remaining Profile, Settings, Progression HUD, and artifact-boundary checklist items appeared to pass in manual review.
+
+Failed Daily-only follow-up items:
+
+- Daily Solo OG can restore deleted draft letters after typing, deleting, then scrolling or navigating away/back.
+- Daily Solo GO can replay or flash already-settled solved/carry-forward rows when the user types a new guess after earlier GO-chain puzzles have solved rows.
+
+Next same-phase follow-up should compare Daily behavior against the now-good Practice behavior, preserve the terminal-persistence fix, and add focused regression coverage before returning to Review Candidate.
 
 ## Hosted Manual Review Update - 2026-07-07
 
