@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -995,13 +995,13 @@ function AppInner() {
   const [activeRouteId, setActiveRouteId] = useState<AppRouteId>(() => initialNavigation.activeRouteId)
   const [focusModeEnabled, setFocusModeEnabled] = useState(false)
   const [guestProgress, setGuestProgress] = useState(() => loadGuestProgress())
-  const [completedSoloSlots, setCompletedSoloSlots] = useState<ResumeSlotCollection>({})
   const [multiplayer, setMultiplayer] = useState(() => guestProgress.multiplayer ?? loadMultiplayerState())
   const [liveSpectatorRows, setLiveSpectatorRows] = useState<readonly AuthenticatedLiveSpectatorGame[]>([])
   const [initialMultiplayerSeed] = useState(() => guestProgress.multiplayer)
   const supabaseClient = useMemo(() => createBrrrdleSupabaseClient(), [])
   const [authState, setAuthState] = useState<AuthState>(() => supabaseClient ? { status: 'anonymous' } : { status: 'unconfigured' })
   const [activeProgressScope, setActiveProgressScope] = useState<ActiveProgressScope>(() => getProgressScopeForAuthState(authState))
+  const [completedSoloSlots, setCompletedSoloSlots] = useState<ResumeSlotCollection>(() => loadSoloCompletionDisplaySlots(getProgressOwnerKey(getProgressScopeForAuthState(authState))))
   const authenticatedMultiplayerUserId = authState.status === 'authenticated' && authState.user ? authState.user.id : undefined
   const multiplayerRepository = useMemo<MultiplayerRepository>(
     () => authenticatedMultiplayerUserId && supabaseClient
@@ -1087,7 +1087,7 @@ function AppInner() {
   const applyScopedProgress = useCallback((progress: GuestProgressState, scope: ActiveProgressScope) => {
     activeProgressScopeRef.current = scope
     setActiveProgressScope(scope)
-    setCompletedSoloSlots({})
+    setCompletedSoloSlots(loadSoloCompletionDisplaySlots(getProgressOwnerKey(scope)))
     guestProgressRef.current = progress
     setGuestProgress(progress)
     setMultiplayer(progress.multiplayer ?? createEmptyMultiplayerState())
@@ -1218,6 +1218,22 @@ function AppInner() {
     dailyAlertTimeoutRef.current = setTimeout(() => setDailyAlerting(false), 12_000)
   }, [sound])
   const daily = useDailyCycle({ alertsEnabled: countdownEnabled, onReset: handleDailyReset })
+  const visibleCompletedSoloSlots = useMemo(() => {
+    const dailyOgCurrent = !completedSoloSlots['daily-og'] || guestProgress.completedGameIds.includes(`og:daily:${daily.dateKey}`)
+    const dailyGoCurrent = !completedSoloSlots['daily-go'] || guestProgress.completedGameIds.includes(`go:daily:${daily.dateKey}`)
+    if (dailyOgCurrent && dailyGoCurrent) {
+      return completedSoloSlots
+    }
+
+    const nextSlots = { ...completedSoloSlots }
+    if (!dailyOgCurrent) {
+      delete nextSlots['daily-og']
+    }
+    if (!dailyGoCurrent) {
+      delete nextSlots['daily-go']
+    }
+    return nextSlots
+  }, [completedSoloSlots, daily.dateKey, guestProgress.completedGameIds])
   const handleDailyMultiplayerReset = useCallback(() => {
     sound.play('daily-multiplayer-reset')
     setDailyMultiplayerAlerting(true)
@@ -1307,23 +1323,23 @@ function AppInner() {
     soloSubtab,
   ])
   const resolveCurrentBrowserNavigationViewState = useCallback((viewState: BrowserNavigationViewState) => resolveBrowserNavigationViewState(viewState, {
-    completedSoloSlots,
+    completedSoloSlots: visibleCompletedSoloSlots,
     liveSpectatorRows,
     multiplayerGames: multiplayer.games,
     resumeSlots,
     viewerUserId: authState.user?.id,
   }), [
     authState.user?.id,
-    completedSoloSlots,
     liveSpectatorRows,
     multiplayer.games,
     resumeSlots,
+    visibleCompletedSoloSlots,
   ])
   const applyBrowserNavigationViewState = useCallback((viewState: BrowserNavigationViewState) => {
     const resolved = resolveCurrentBrowserNavigationViewState(viewState)
     const navigation = resolved.navigation
     const selectedSoloSlot = navigation.selectedSoloGameKey && isSoloActiveGameKey(navigation.selectedSoloGameKey)
-      ? resumeSlots[navigation.selectedSoloGameKey] ?? completedSoloSlots[navigation.selectedSoloGameKey]
+      ? resumeSlots[navigation.selectedSoloGameKey] ?? visibleCompletedSoloSlots[navigation.selectedSoloGameKey]
       : undefined
 
     setActiveRouteId(navigation.activeRouteId)
@@ -1343,7 +1359,7 @@ function AppInner() {
     setFocusedLiveSpectatorGameId(resolved.focusedLiveSpectatorGameId)
     setHistoryFilters(navigation.historyFilters)
     saveNavigationState(navigation)
-  }, [completedSoloSlots, resolveCurrentBrowserNavigationViewState, resumeSlots])
+  }, [resolveCurrentBrowserNavigationViewState, resumeSlots, visibleCompletedSoloSlots])
   useEffect(() => subscribeBrowserNavigationViewState((viewState) => {
     browserNavigationPopstateRef.current = true
     applyBrowserNavigationViewState(viewState)
@@ -1397,28 +1413,29 @@ function AppInner() {
     scheduleGameplayAutoCenter(GAMEPLAY_AUTOCENTER_TARGETS.multiplayer)
   }, [])
   const handlePracticeModeChange = useCallback((mode: PracticeMode) => {
+    const selectedSoloGameKey: SoloActiveGameKey = mode === 'go' ? 'practice-go' : 'practice-og'
     setPracticeModeState(mode)
     setSoloSubtab('practice')
-    saveNavigationState({ legacyPracticeMode: mode, soloSubtab: 'practice' })
-    requestSoloGameplayAutoCenter()
-  }, [requestSoloGameplayAutoCenter])
+    setSelectedSoloGameKey(selectedSoloGameKey)
+    saveNavigationState({ legacyPracticeMode: mode, selectedSoloGameKey, soloSubtab: 'practice' })
+  }, [])
   const handleSoloDailyModeChange = useCallback((mode: SoloMode) => {
+    const selectedSoloGameKey: SoloActiveGameKey = mode === 'go' ? 'daily-go' : 'daily-og'
     setSoloDailyMode(mode)
     setSoloSubtab('daily')
-    saveNavigationState({ soloSubtab: 'daily' })
-    requestSoloGameplayAutoCenter()
-  }, [requestSoloGameplayAutoCenter])
+    setSelectedSoloGameKey(selectedSoloGameKey)
+    saveNavigationState({ selectedSoloGameKey, soloSubtab: 'daily' })
+  }, [])
   const handleSoloSubtabChange = useCallback((subtab: SoloSubtabId) => {
     setSoloSubtab(subtab)
     saveNavigationState({ soloSubtab: subtab })
-    if (subtab === 'daily' || subtab === 'practice') {
-      requestSoloGameplayAutoCenter()
-    }
-  }, [requestSoloGameplayAutoCenter])
-  const handleSelectSoloGame = useCallback((key: SoloActiveGameKey) => {
+  }, [])
+  const handleSelectSoloGame = useCallback((key: SoloActiveGameKey, options?: { readonly autoCenter?: boolean }) => {
     setSelectedSoloGameKey(key)
     saveNavigationState({ selectedSoloGameKey: key })
-    requestSoloGameplayAutoCenter()
+    if (options?.autoCenter) {
+      requestSoloGameplayAutoCenter()
+    }
   }, [requestSoloGameplayAutoCenter])
   const handleMultiplayerSubtabChange = useCallback((subtab: MultiplayerSubtabId) => {
     if (subtab !== 'live') {
@@ -1628,9 +1645,15 @@ function AppInner() {
   }, [persistActiveProgress])
   const handleResumeCapture = useCallback((capture: ResumeCapture) => {
     const slotKey = getResumeSlotKey(capture)
-    setCompletedSoloSlots((currentSlots) => isCaptureComplete(capture)
-      ? setSoloDisplaySlot(currentSlots, slotKey, createResumeSlot(capture))
-      : clearSoloDisplaySlot(currentSlots, slotKey))
+    setCompletedSoloSlots((currentSlots) => {
+      const nextSlots = isCaptureComplete(capture)
+        ? setSoloDisplaySlot(currentSlots, slotKey, createResumeSlot(capture))
+        : clearSoloDisplaySlot(currentSlots, slotKey)
+      if (nextSlots !== currentSlots) {
+        saveSoloCompletionDisplaySlots(activeProgressOwnerKey, nextSlots)
+      }
+      return nextSlots
+    })
     setGuestProgress((currentProgress) => {
       const currentSlots = normalizeResumeSlots(currentProgress.resumeSlots)
       const currentSlot = currentSlots[slotKey]
@@ -1654,7 +1677,7 @@ function AppInner() {
       persistActiveProgress(nextProgress)
       return nextProgress
     })
-  }, [persistActiveProgress])
+  }, [activeProgressOwnerKey, persistActiveProgress])
   const handleOpenSoloHistory = useCallback((filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => {
     const nextFilters: HistoryFilters = {
       mode: filters?.mode ?? 'all',
@@ -1951,7 +1974,9 @@ function AppInner() {
     }
   }, [persistActiveProgress, sound])
   const handleResetProgress = useCallback(() => {
-    applyScopedProgress(createDefaultGuestProgress(), activeProgressScopeRef.current)
+    const scope = activeProgressScopeRef.current
+    clearSoloCompletionDisplaySlots(getProgressOwnerKey(scope))
+    applyScopedProgress(createDefaultGuestProgress(), scope)
     clearIdentityScopedSelections()
   }, [applyScopedProgress, clearIdentityScopedSelections])
   const handleUpdateSettings = useCallback((patch: Partial<ReturnType<typeof loadGuestProgress>['settings']>) => {
@@ -2578,7 +2603,7 @@ function AppInner() {
           <RoutePanel
             authMessage={authMessage}
             authState={authState}
-            completedSoloSlots={completedSoloSlots}
+            completedSoloSlots={visibleCompletedSoloSlots}
             dashboard={dashboard}
             multiplayer={multiplayer}
             liveSpectatorRows={liveSpectatorRows}

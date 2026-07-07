@@ -19,6 +19,24 @@ This planning brief authorizes no implementation by itself. Phase 50 source/runt
   - `progress/PROGRESS-STEP-454.md`
   - current Phase 50 routing updates in `planning/README.md`, `planning/ROADMAP.md`, `planning/ROADMAP-OPTIMIZED.md`, and `progress/PROGRESS.csv`
 
+## Same-Phase Recovery Addendum - 2026-07-06
+
+Hosted/live manual review of the Phase 50 Review Candidate backed up at `267d3b478b11bd2eaca4f6ba9d6397429c3f092e` failed the required completed Solo persistence checks. Phase 50 therefore remains open in same-phase Review Follow-up / Recovery.
+
+The recovery is inside Phase 50 because the findings directly relate to the Phase 50 completion-persistence and current-surface quality goals:
+
+- completed Practice OG/GO and Daily Solo terminal states were not durable across hosted re-entry/reload paths;
+- the prior E2E suite covered route Back/re-entry but not full app reload after completion;
+- ordinary Solo/Practice/Daily navigation still performed broad automatic page scrolling that made mobile review feel laggy.
+
+Additional recovery stages are authorized only by the later same-phase recovery prompt, not by this planning brief alone:
+
+- **Stage 50.10 - Same-Phase Recovery Reproduction And Contract Repair**: reproduce the failed hosted/manual reload path, add browser coverage that fails against the broken candidate, and repair terminal Solo display without changing reward formulas or cloud progress contracts.
+- **Stage 50.11 - Auto-Scroll Policy Simplification And Scroll Quality**: remove ordinary Solo/Practice/Daily page auto-scroll, preserve auto-scroll only for explicit routed-game targets such as notification/direct-game handoffs, and keep mobile scroll/layout coverage aligned with that policy.
+- **Stage 50.12 - Recovery Verification And Review-Candidate Prep**: rerun focused and full gates, update checklist/changelog/progress, and prepare a new Review Candidate Backup prompt if verification is clean.
+
+These recovery stages remain bounded by the same protected-action gates: no Git/GitHub actions, backup workflow, final closure, deployment configuration, migrations, storage schema/cloud progress contract changes, release, merge, Phase 51 work, or stable `brrrdle` repository work without separate explicit authorization.
+
 ## Phase 49 Manual Review Result
 
 Phase 49 passed manual review. All required, optional, preserved-invariant, and review-result checklist boxes were checked.

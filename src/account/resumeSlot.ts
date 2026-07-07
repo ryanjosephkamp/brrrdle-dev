@@ -39,6 +39,10 @@ export type ResumeSlotKey = 'daily-og' | 'daily-go' | 'practice-og' | 'practice-
 export type ResumeSlotCollection = Partial<Record<ResumeSlotKey, ResumeSlot>>
 
 const RESUME_SLOT_KEYS = ['daily-og', 'daily-go', 'practice-og', 'practice-go'] as const
+type SlotStatePredicate = {
+  readonly go: (session: SerializedGoSession) => boolean
+  readonly og: (session: SerializedOgSession) => boolean
+}
 
 function isScope(value: unknown): value is PlayScope {
   return value === 'daily' || value === 'practice'
@@ -171,12 +175,7 @@ function isSerializedGoSession(value: unknown): value is SerializedGoSession {
   })
 }
 
-/**
- * Validate and normalize an untrusted persisted resume slot. Returns `undefined`
- * for any malformed, finished, or missing slot so a corrupt payload can never
- * break load or surface a dead "Resume" button.
- */
-export function normalizeResumeSlot(value: unknown): ResumeSlot | undefined {
+function normalizeSlotForState(value: unknown, predicate: SlotStatePredicate): ResumeSlot | undefined {
   if (typeof value !== 'object' || value === null) {
     return undefined
   }
@@ -194,7 +193,7 @@ export function normalizeResumeSlot(value: unknown): ResumeSlot | undefined {
 
   if (record.mode === 'og' && isSerializedOgSession(record.serializedSession)) {
     const slot: OgResumeSlot = { ...base, mode: 'og', serializedSession: record.serializedSession }
-    return isOgSessionInProgress(slot.serializedSession) ? slot : undefined
+    return predicate.og(slot.serializedSession) ? slot : undefined
   }
 
   if (record.mode === 'go' && isSerializedGoSession(record.serializedSession)) {
@@ -204,25 +203,60 @@ export function normalizeResumeSlot(value: unknown): ResumeSlot | undefined {
       mode: 'go',
       serializedSession: record.serializedSession,
     }
-    return isGoSessionInProgress(slot.serializedSession) ? slot : undefined
+    return predicate.go(slot.serializedSession) ? slot : undefined
   }
 
   return undefined
 }
 
-export function normalizeResumeSlots(value: unknown): ResumeSlotCollection {
+/**
+ * Validate and normalize an untrusted persisted resume slot. Returns `undefined`
+ * for any malformed, finished, or missing slot so a corrupt payload can never
+ * break load or surface a dead "Resume" button.
+ */
+export function normalizeResumeSlot(value: unknown): ResumeSlot | undefined {
+  return normalizeSlotForState(value, {
+    go: isGoSessionInProgress,
+    og: isOgSessionInProgress,
+  })
+}
+
+/**
+ * Validate and normalize a display-only terminal slot. These slots are not
+ * resumable; they exist only so a solved/lost Solo board can be re-rendered
+ * after route changes or reloads without replaying completion rewards.
+ */
+export function normalizeCompletedSoloDisplaySlot(value: unknown): ResumeSlot | undefined {
+  return normalizeSlotForState(value, {
+    go: isGoSessionComplete,
+    og: isOgSessionComplete,
+  })
+}
+
+function normalizeSlotCollection(
+  value: unknown,
+  normalizeSlot: (value: unknown) => ResumeSlot | undefined,
+): ResumeSlotCollection {
   if (typeof value !== 'object' || value === null) {
     return {}
   }
 
   const record = value as Record<string, unknown>
   return Object.fromEntries(RESUME_SLOT_KEYS.flatMap((key) => {
-    const slot = normalizeResumeSlot(record[key])
+    const slot = normalizeSlot(record[key])
     if (!slot || getResumeSlotKey(slot) !== key) {
       return []
     }
     return [[key, slot]]
   })) as ResumeSlotCollection
+}
+
+export function normalizeResumeSlots(value: unknown): ResumeSlotCollection {
+  return normalizeSlotCollection(value, normalizeResumeSlot)
+}
+
+export function normalizeCompletedSoloDisplaySlots(value: unknown): ResumeSlotCollection {
+  return normalizeSlotCollection(value, normalizeCompletedSoloDisplaySlot)
 }
 
 export function getLatestResumeSlot(slots: ResumeSlotCollection): ResumeSlot | undefined {

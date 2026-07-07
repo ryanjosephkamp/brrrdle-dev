@@ -73,8 +73,8 @@ function createDashboardActionHarness(
       calls.push(`route:${routeId}`)
       routes.push(routeId)
     },
-    onSelectSoloGame: (key) => {
-      calls.push(`soloGame:${key}`)
+    onSelectSoloGame: (key, options) => {
+      calls.push(`soloGame:${key}:${options?.autoCenter ? 'auto' : 'manual'}`)
     },
     onSoloSubtabChange: (subtab) => {
       calls.push(`solo:${subtab}`)
@@ -149,6 +149,29 @@ describe('notification actions', () => {
       readAt: '2026-06-14T06:33:00.000Z',
     })
     expect(calls).toEqual(['resume:match-1'])
+  })
+
+  it('activates Solo notifications as explicit auto-center targets', () => {
+    const item = createNotificationFixture({
+      routeId: 'solo',
+      selectedSoloGameKey: 'practice-go',
+      soloSubtab: 'practice',
+    })
+    const metadata = createMetadataHarness()
+    const { calls, handlers } = createDashboardActionHarness()
+
+    activateNotificationItem(item, {
+      dashboardHandlers: handlers,
+      now: () => '2026-06-14T06:34:00.000Z',
+      updateMetadata: metadata.updateMetadata,
+    })
+
+    expect(metadata.current.records[0]).toMatchObject({
+      fingerprint: item.fingerprint,
+      id: item.id,
+      readAt: '2026-06-14T06:34:00.000Z',
+    })
+    expect(calls).toEqual(['route:solo', 'solo:practice', 'soloGame:practice-go:auto'])
   })
 
   it('marks all visible unread notification items read with one local timestamp', () => {

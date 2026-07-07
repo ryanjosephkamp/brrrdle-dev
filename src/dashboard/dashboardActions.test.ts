@@ -13,7 +13,7 @@ function createHandlers() {
     }),
     onSelectMultiplayerGame: vi.fn((id) => calls.push(`multiplayer-game:${id}`)),
     onSelectRoute: vi.fn((routeId) => calls.push(`route:${routeId}`)),
-    onSelectSoloGame: vi.fn((key) => calls.push(`solo-game:${key}`)),
+    onSelectSoloGame: vi.fn((key, options) => calls.push(`solo-game:${key}:${options?.autoCenter ? 'auto' : 'manual'}`)),
     onSoloSubtabChange: vi.fn((subtab) => calls.push(`solo-subtab:${subtab}`)),
   }
 
@@ -33,7 +33,23 @@ describe('dispatchDashboardAction', () => {
     expect(calls).toEqual([
       'route:solo',
       'solo-subtab:active',
-      'solo-game:practice-og',
+      'solo-game:practice-og:manual',
+    ])
+  })
+
+  it('can mark Solo dashboard actions as explicit auto-center targets', () => {
+    const { calls, handlers } = createHandlers()
+
+    dispatchDashboardAction({
+      routeId: 'solo',
+      selectedSoloGameKey: 'daily-go',
+      soloSubtab: 'daily',
+    }, handlers, { autoCenterSoloGame: true })
+
+    expect(calls).toEqual([
+      'route:solo',
+      'solo-subtab:daily',
+      'solo-game:daily-go:auto',
     ])
   })
 

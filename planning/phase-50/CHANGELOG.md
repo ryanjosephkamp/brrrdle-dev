@@ -1,16 +1,59 @@
 # Phase 50 Changelog
 
-**Status**: Review Candidate - Ready for Review Candidate Backup and manual review.
+**Status**: Same-Phase Recovery Implemented - Awaiting Recovered Review Candidate Backup And Manual Review.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
 ## Summary
 
-Phase 50 repairs the completed Solo re-entry bug reported after Phase 49 manual review and adds two small current-surface conveniences that were audited as source-only and low risk.
+Phase 50 attempted to repair the completed Solo re-entry bug reported after Phase 49 manual review and added two small current-surface conveniences that were audited as source-only and low risk.
 
-Completed Solo Daily/Practice OG/GO games now retain the final winning row and terminal completed state across route re-entry and browser Back/Forward without double-awarding rewards. Profile now exposes separated account-management actions for Settings and Sign out while keeping Settings canonical. The Progression HUD now offers an explicit Open Stats action while remaining display-only and active-scope-owned.
+Hosted/live manual review on 2026-07-06 found that the completed Solo Daily/Practice OG/GO repair did not work reliably enough to accept Phase 50. Profile now exposes separated account-management actions for Settings and Sign out while keeping Settings canonical. The Progression HUD now offers an explicit Open Stats action while remaining display-only and active-scope-owned.
+
+Same-phase recovery later on 2026-07-06 repaired the hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. Phase 50 still remains open until the recovered candidate is backed up and manually reviewed.
 
 No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, multiplayer feature change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed.
+
+## Hosted Manual Review Update - 2026-07-06
+
+Phase 50 is not accepted.
+
+Failed manual-review items:
+
+- Completed Practice OG did not restore the winning row or game-end screen after returning to the solved puzzle surface.
+- Completed Practice GO did not restore the final solved chain or game-end screen after returning to the solved puzzle surface.
+- Completed Daily Solo state did not persist after navigating away and back; the Daily surface restarted fresh and lost submitted guesses.
+
+Passed manual-review items:
+
+- Practice new puzzle/new chain remains explicit.
+- Profile account-management actions remain separated from profile editing.
+- Profile-to-Settings navigation uses the existing Settings route.
+- Progression HUD opens Stats and remains display-only.
+- Phase 50 visual handoff artifacts remain local-only and ignored.
+
+Additional same-phase follow-up:
+
+- Investigate and repair mobile/general scroll lag regression.
+- Remove broad automatic page scrolling for ordinary Solo/Practice/Daily navigation. Keep auto-scroll only for explicit routed-game targets such as notifications or direct game-specific handoffs.
+- Improve the automated E2E coverage so the exact hosted/manual re-entry paths fail before repair and pass before the next Review Candidate.
+
+## Same-Phase Recovery Update - 2026-07-06
+
+Recovered:
+
+- Added a local terminal-display cache for completed Solo sessions using existing serialized OG/GO session evidence. `resumeSlots` remain in-progress-only, while completed boards can re-render after route changes and reloads.
+- Persisted selected Solo game keys for Daily/Practice OG/GO mode choices so reload returns to the selected surface instead of defaulting Daily back to OG.
+- Added reload coverage to `e2e/gameplay/solo-completion-reentry.spec.ts`; the new assertion failed against the broken candidate for Practice OG before the source repair and now passes across Practice OG, Practice GO, Daily OG, and Daily GO.
+- Removed ordinary Solo page auto-scroll from route/subtab/mode selection and normal keyboard gameplay. Notification/direct-game routing can still request explicit auto-centering.
+- Updated mobile scroll E2E so ordinary Solo navigation and physical-keyboard submission must not call app-level `scrollIntoView`, while route pages remain manually scrollable and overflow-safe.
+- Reordered definition lookup fallback to prefer bundled definitions, then Wiktionary, then Dictionary API, reducing browser console noise from Dictionary API CORS failures on terminal GO definition panels.
+
+Still pending:
+
+- A recovered Review Candidate Backup is required before hosted/live manual review on desktop/mobile.
+- Manual review must still verify the first three checklist items on the recovered hosted/live candidate.
+- Final acceptance/closure and any Final Acceptance Backup remain separately authorized future actions.
 
 ## Completed
 
@@ -28,6 +71,10 @@ No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bu
   - completed display evidence resets across active progress-owner hydration to preserve guest/account boundaries.
 - Repaired Solo Daily/Practice OG/GO route re-entry and browser Back/Forward behavior so the final winning row and completed state remain visible until the user explicitly starts the next Practice puzzle/chain or the existing Daily lifecycle changes.
 - Hardened reward idempotence with browser coverage proving repeated re-entry does not duplicate completed IDs, history rows, XP, coins, stats, streak-affecting entries, or resume slots.
+- Added same-phase recovery coverage proving completed Solo terminal UI survives full app reload after completion across Practice/Daily OG/GO.
+- Repaired the hosted/manual Daily GO reload fallback by persisting the selected Solo game key when choosing Daily/Practice OG/GO.
+- Removed normal Solo gameplay keyboard auto-centering and ordinary Solo route/mode auto-scroll while preserving explicit routed-game auto-center hooks.
+- Added local-only completed Solo display storage scoped by progress owner without writing raw account identifiers to the display-cache payload.
 - Audited optional Profile and HUD conveniences and kept them bounded to existing source-only routes and handlers.
 - Added separated Profile account-management actions:
   - `Open Settings account management`;
@@ -78,7 +125,20 @@ These workflow updates did not authorize runtime feature expansion, Git/GitHub h
 
 ## Verification
 
-Final verification is recorded in `progress/PROGRESS-STEP-467.md`.
+Original Review Candidate verification is recorded in `progress/PROGRESS-STEP-467.md`; hosted manual-review failure and recovery prompt preparation are recorded in `progress/PROGRESS-STEP-472.md`; same-phase recovery verification is recorded in `progress/PROGRESS-STEP-473.md`.
+
+Same-phase recovery evidence:
+
+- Pre-fix reproduction: the new reload assertion in `e2e/gameplay/solo-completion-reentry.spec.ts` failed for completed Practice OG before the terminal-display cache repair.
+- Focused unit tests: resume-slot/display-cache, dashboard/notification auto-scroll policy, and definition provider order passed.
+- Focused Solo completion Playwright: 4 tests passed across Practice/Daily OG/GO with route, browser Back, and reload re-entry.
+- Focused mobile scroll/layout Playwright: 15 tests passed, including no app-level `scrollIntoView` for ordinary Solo navigation and physical-keyboard submission.
+- `npm run lint` passed.
+- `npm run test`: 127 files, 881 tests passed.
+- First `npm run test:e2e` recovery run: 40 passed, 1 ranked search-again test failed once; targeted rerun of that test passed.
+- Clean `npm run test:e2e` rerun: 41 tests passed.
+- `npm run build` passed with the existing Vite large-chunk advisory.
+- `npx tsc -p tsconfig.api.json --noEmit` passed.
 
 Key Review Candidate evidence:
 
@@ -94,4 +154,4 @@ Key Review Candidate evidence:
 - Local-only visual capture: 4 Playwright capture tests passed, generating 5 screenshots and `test-results/visual-review/phase-50-review-candidate/manifest.md`.
 - Final repository hygiene checks passed.
 
-Phase 50 is now a Review Candidate for the Review Candidate Backup Loop and Manual Review Window. A separately authorized Review Candidate Backup may be used for hosted/live device review without closing the phase. Manual review acceptance, Review Follow-up if needed, Final Acceptance Backup, deployment configuration, release, merge, and stable-repository work remain unexecuted.
+Phase 50 returned from Review Candidate to same-phase Review Follow-up after hosted manual review failed required Solo completion persistence checks. A later separately authorized Review Candidate Backup may be used again for hosted/live device review without closing the phase. Manual review acceptance, Final Acceptance Backup, deployment configuration, release, merge, and stable-repository work remain unexecuted.
