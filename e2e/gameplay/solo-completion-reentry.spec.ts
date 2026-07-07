@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { createSoloCloudSessionKey } from '../../src/account'
 import { dateKeyToLocalDate } from '../../src/daily'
 import { createDailyGoSetup, createPracticeGoSetup } from '../../src/game/go/session'
 import { createDailyOgSetup, createPracticeOgSetup } from '../../src/game/og/session'
@@ -7,6 +8,7 @@ import { cleanupE2eRun } from '../fixtures/cleanup'
 import { installFixedBrowserTime } from '../fixtures/dailyClock'
 import { getE2eEnv } from '../fixtures/env'
 import { chooseSoloPracticeMode, navigateToSoloPractice, submitSoloGuessWithKeyboard } from '../fixtures/gameActions'
+import { createAuthenticatedSupabaseClient } from '../fixtures/supabaseAdmin'
 import { createE2eUser, createRunId, signInThroughUi, type E2eUser } from '../fixtures/testUsers'
 
 const GUEST_PROGRESS_STORAGE_KEY = 'brrrdle:guest-progress:v1'
@@ -73,6 +75,23 @@ async function waitForSignedInProgressHydration(page: Page): Promise<void> {
   await expect(page.getByText(/^Syncing signed-in progress with Supabase\.$/i)).toBeHidden({ timeout: 20_000 })
 }
 
+async function waitForSoloCloudSessionStatus(user: E2eUser, sessionKey: string, status: 'playing' | 'won' | 'lost'): Promise<void> {
+  const client = await createAuthenticatedSupabaseClient(user)
+  await expect.poll(async () => {
+    const { data, error } = await client
+      .from('game_history')
+      .select('entry')
+      .eq('user_id', user.id)
+      .eq('id', sessionKey)
+      .maybeSingle()
+    if (error || !data) {
+      return undefined
+    }
+    const entry = data.entry as { readonly kind?: string; readonly session?: { readonly status?: string } } | undefined
+    return entry?.kind === 'solo-cloud-session-v1' ? entry.session?.status : undefined
+  }, { timeout: 20_000 }).toBe(status)
+}
+
 async function expectSubmittedWord(page: Page, gridLabel: RegExp, word: string, rowNumber: number): Promise<void> {
   const grid = page.getByRole('grid', { name: gridLabel }).first()
   await expect(grid).toBeVisible()
@@ -80,6 +99,14 @@ async function expectSubmittedWord(page: Page, gridLabel: RegExp, word: string, 
     const tile = grid.getByLabel(new RegExp(`^Row ${rowNumber}, tile ${index + 1}, ${letter}$`, 'i'))
     await expect(tile).toBeVisible()
     await expect(tile).toHaveClass(/bg-emerald-300\/25/)
+  }
+}
+
+async function expectWordVisible(page: Page, gridLabel: RegExp, word: string, rowNumber: number): Promise<void> {
+  const grid = page.getByRole('grid', { name: gridLabel }).first()
+  await expect(grid).toBeVisible()
+  for (const [index, letter] of [...word.toLocaleUpperCase('en-US')].entries()) {
+    await expect(grid.getByLabel(new RegExp(`^Row ${rowNumber}, tile ${index + 1}, ${letter}$`, 'i'))).toBeVisible()
   }
 }
 
@@ -322,6 +349,53 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
     }
   })
 
+  test('restores authenticated Daily GO puzzle-two progress in a fresh browser after first puzzle solve', async ({ browser }) => {
+    getE2eEnv()
+
+    const runId = createRunId()
+    const users: E2eUser[] = []
+    const context = await browser.newContext()
+    await installFixedBrowserTime(context, FIXED_DAILY_ISO)
+    const page = await context.newPage()
+    const consoleFailures = installConsoleGuards(page)
+    let restoreContext: Awaited<ReturnType<typeof browser.newContext>> | undefined
+    try {
+      const user = await createE2eUser('solo-daily-go-transition', runId)
+      users.push(user)
+
+      await signInThroughUi(page, user)
+      await waitForSignedInProgressHydration(page)
+      await navigateToSoloDaily(page, 'go')
+
+      const answers = createDailyGoSetup(dateKeyToLocalDate(FIXED_DAILY_DATE_KEY)).puzzles.map((puzzle) => puzzle.answer)
+      await submitSoloGuessWithKeyboard(page, /Daily go chain/i, answers[0])
+      await expect(page.getByText(/Puzzle 2 of 5/i).first()).toBeVisible({ timeout: 20_000 })
+      await waitForSoloCloudSessionStatus(user, createSoloCloudSessionKey({
+        dailyDateKey: FIXED_DAILY_DATE_KEY,
+        difficulty: 'expert',
+        mode: 'go',
+        scope: 'daily',
+        wordLength: 5,
+      }), 'playing')
+
+      restoreContext = await browser.newContext()
+      await installFixedBrowserTime(restoreContext, FIXED_DAILY_ISO)
+      const restorePage = await restoreContext.newPage()
+      const restoreConsoleFailures = installConsoleGuards(restorePage)
+      await signInThroughUi(restorePage, user)
+      await waitForSignedInProgressHydration(restorePage)
+      await navigateToSoloDaily(restorePage, 'go')
+      await expect(restorePage.getByText(/Puzzle 2 of 5/i).first()).toBeVisible({ timeout: 20_000 })
+      await expectWordVisible(restorePage, /^Go guess grid$/i, answers[0], 1)
+      await expectNoConsoleFailures(restoreConsoleFailures)
+      await expectNoConsoleFailures(consoleFailures)
+    } finally {
+      await restoreContext?.close()
+      await context.close()
+      await cleanupE2eRun(users)
+    }
+  })
+
   test('keeps completed authenticated Daily OG and GO visible after reload and account hydration', async ({ browser }) => {
     getE2eEnv()
 
@@ -331,6 +405,7 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
     await installFixedBrowserTime(context, FIXED_DAILY_ISO)
     const page = await context.newPage()
     const consoleFailures = installConsoleGuards(page)
+    let restoreContext: Awaited<ReturnType<typeof browser.newContext>> | undefined
     try {
       const user = await createE2eUser('solo-daily-go', runId)
       users.push(user)
@@ -342,6 +417,13 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
       const ogAnswer = createDailyOgSetup(dateKeyToLocalDate(FIXED_DAILY_DATE_KEY)).answer
       await submitSoloGuessWithKeyboard(page, /Daily og puzzle/i, ogAnswer)
       await expectTerminalState(page, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, ogAnswer, 1)
+      await waitForSoloCloudSessionStatus(user, createSoloCloudSessionKey({
+        dailyDateKey: FIXED_DAILY_DATE_KEY,
+        difficulty: 'expert',
+        mode: 'og',
+        scope: 'daily',
+        wordLength: 5,
+      }), 'won')
 
       await page.reload({ waitUntil: 'domcontentloaded' })
       await expectTerminalState(page, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, ogAnswer, 1)
@@ -355,6 +437,13 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
       const answers = createDailyGoSetup(dateKeyToLocalDate(FIXED_DAILY_DATE_KEY)).puzzles.map((puzzle) => puzzle.answer)
       await solveGoChain(page, /Daily go chain/i, answers)
       await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
+      await waitForSoloCloudSessionStatus(user, createSoloCloudSessionKey({
+        dailyDateKey: FIXED_DAILY_DATE_KEY,
+        difficulty: 'expert',
+        mode: 'go',
+        scope: 'daily',
+        wordLength: 5,
+      }), 'won')
 
       await page.reload({ waitUntil: 'domcontentloaded' })
       await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
@@ -362,8 +451,21 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
       await goHome(page)
       await page.goBack()
       await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
+
+      restoreContext = await browser.newContext()
+      await installFixedBrowserTime(restoreContext, FIXED_DAILY_ISO)
+      const restorePage = await restoreContext.newPage()
+      const restoreConsoleFailures = installConsoleGuards(restorePage)
+      await signInThroughUi(restorePage, user)
+      await waitForSignedInProgressHydration(restorePage)
+      await navigateToSoloDaily(restorePage, 'og')
+      await expectTerminalState(restorePage, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, ogAnswer, 1)
+      await navigateToSoloDaily(restorePage, 'go')
+      await expectTerminalState(restorePage, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
+      await expectNoConsoleFailures(restoreConsoleFailures)
       await expectNoConsoleFailures(consoleFailures)
     } finally {
+      await restoreContext?.close()
       await context.close()
       await cleanupE2eRun(users)
     }

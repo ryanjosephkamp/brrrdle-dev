@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Multiplayer Focus Follow-Up Recovered Locally - Review Candidate Backup Prompt Prepared.
+**Status**: Solo Cloud Persistence Overhaul Recovered Locally And Backup Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -12,7 +12,63 @@ Hosted/live manual review on 2026-07-06 found that the completed Solo Daily/Prac
 
 Same-phase recovery later on 2026-07-06 repaired the first hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. A later hosted/manual review on 2026-07-07 still found signed-in Daily Solo completion restore failures on mobile browsers, so Phase 50 returned to same-phase Review Follow-up again. The cross-browser recovery added authenticated Daily OG/GO coverage and mobile shell scroll mitigation. The next hosted/manual review found that the major terminal-restore problem appears fixed, but identified two Daily-only regressions: deleted Daily OG draft letters could reappear, and settled Daily GO rows could replay visual animations on keyboard input. The Daily Solo polish follow-up recovered those regressions locally and passed the full local verification gate. A later hosted/manual review found one remaining GO terminal UI polish issue: Solo GO could duplicate the final solved definition panel after chain completion. The GO definition deduplication follow-up recovered that locally, verified Multiplayer GO was not affected, and was backed up for hosted/live review. The user then reported that the current manual checklist items pass, including the guest versus signed-in Solo persistence behavior and past Solo Daily coin-unlock behavior. The multiplayer-only focus/refocus flash follow-up preserved the accepted Solo behavior, fixed same-account progress-hydration multiplayer state flicker, added two-client E2E coverage, hardened E2E multiplayer row cleanup, and passed the full local verification gate. Phase 50 remains open for a recovered Review Candidate Backup and hosted/live manual review before final acceptance.
 
-No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed in this multiplayer focus follow-up implementation pass.
+After the multiplayer focus backup and the user's manual checklist update, the user requested a deeper same-phase Phase 50 response to signed-in Solo cloud persistence timing inconsistencies. A planning-only audit found that signed-in Solo still relied primarily on debounced whole-progress `progress_snapshots` uploads and compact completion summaries. The follow-up implementation keeps `progress_snapshots` for aggregate progress while adding immediate signed-in Solo session/event persistence through the existing user-owned `game_history` table.
+
+No new Supabase migration, new table, RLS/RPC/table/bucket change, Supabase remote operation, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, Git/GitHub action, backup workflow, release, merge, final Phase 50 closure, next-phase work, or stable `brrrdle` repository work was performed in the implementation step.
+
+## Solo Cloud Persistence Overhaul Implementation - 2026-07-07
+
+Implemented:
+
+- Added a signed-in Solo cloud repository over the existing RLS-protected `game_history` table using `solo-cloud-session-v1` entries keyed by Solo lane, date/seed, difficulty, word length, and GO chain count.
+- Signed-in Solo OG/GO now writes immediately after accepted valid guesses, successful Pay-to-Continue mutations, and reveal/loss mutations. Draft typing and deletions remain local and do not create cloud history events.
+- Authenticated progress hydration now loads recent Solo cloud session records and merges them into the existing in-progress resume slots or completed display-only Solo slots before auto-resume/re-entry decisions.
+- Sign-out waits for any pending Solo cloud write before dropping the authenticated session.
+- Guest play remains local-first; explicit guest-to-account transfer boundaries remain unchanged.
+- `progress_snapshots` remains the aggregate progress/settings/stats/coins/XP/completed-ID compatibility path.
+
+Storage decision:
+
+- No new migration was required because `game_history` already exists from Phase 8 with RLS policies allowing each authenticated user to read, insert, and update only their own rows.
+- The `game_history` entries intentionally store answer-bearing serialized Solo sessions only behind user-owned RLS; public profile, leaderboard, spectator, and guest surfaces do not read these entries.
+
+Verification:
+
+- `npm run build` passed with the existing Vite large-chunk advisory.
+- Focused unit coverage for Solo cloud keying and hydration passed: `src/account/soloCloudProgress.test.ts`.
+- Focused Solo completion E2E passed: 8 tests, including fresh-browser signed-in Daily GO puzzle-two hydration and fresh-browser signed-in completed Daily OG/GO hydration.
+- `npm run lint` passed.
+- `npm run test`: 129 files, 895 tests passed.
+- `npm run test:e2e`: 46 tests passed.
+- `npx tsc -p tsconfig.api.json --noEmit` passed.
+
+Next action:
+
+- Use `prompt-packages/phase-50/PHASE-50-SOLO-CLOUD-PERSISTENCE-RECOVERED-REVIEW-CANDIDATE-GITHUB-BACKUP-PROMPT-2026-07-07.md` to authorize a Solo-cloud-persistence recovered Review Candidate Backup for hosted/live manual review while keeping Phase 50 open.
+
+## Solo Cloud Persistence Overhaul Planning - 2026-07-07
+
+Finding:
+
+- Signed-in Solo state currently relies primarily on whole-progress `progress_snapshots` uploads.
+- Authenticated progress uploads are debounced and asynchronous, so fast sign-out/sign-in flows can outrun the newest cloud write.
+- Solo OG/GO components capture serialized sessions through `onResumeCapture`, but authenticated persistence still routes through the debounced snapshot path for nonterminal changes.
+- Terminal completion creates a compact completion summary and requests a quick flush, but the flush is still async and not a durable per-turn event record.
+- Existing visible history is capped completion-summary history, not full per-guess Solo account history.
+- The `game_history` table exists in the account schema, but source inspection found no active Solo gameplay write path to it.
+
+Recommendation:
+
+- Keep `progress_snapshots` for aggregate progress, settings, stats, coins, XP, completed IDs, and compatibility.
+- Add a durable signed-in Solo cloud contract for per-session/per-event state.
+- Write every valid submitted signed-in Solo guess and every significant Solo mutation immediately to cloud when online.
+- Hydrate authenticated Solo lanes from the new cloud contract before falling back to stale snapshot/local display state.
+- Keep guest play local-first and preserve explicit transfer boundaries.
+
+Next action prepared:
+
+- Created `planning/phase-50/SOLO-CLOUD-PERSISTENCE-AUDIT-AND-STRATEGY-2026-07-07.md`.
+- Created an ignored local prompt package for a bounded same-phase implementation/testing follow-up: `prompt-packages/phase-50/PHASE-50-SOLO-CLOUD-PERSISTENCE-OVERHAUL-PROMPT-2026-07-07.md`.
 
 ## Multiplayer Focus Follow-Up Implementation - 2026-07-07
 
@@ -291,7 +347,7 @@ These workflow updates did not authorize runtime feature expansion, Git/GitHub h
 ## Deferred
 
 - Review Candidate Backup, Final Acceptance Backup, PR, merge, release, deployment configuration, and production configuration changes unless separately authorized.
-- Storage schema, cloud progress contract, Supabase/RLS/RPC/table/bucket, migration, and deployment-configuration changes.
+- New storage schema, new Supabase/RLS/RPC/table/bucket, migration, destructive cloud progress changes, and deployment-configuration changes.
 - Broader resume/session contracts, one-active-session leases, server-authoritative Daily submissions, forced sign-out, remote invalidation, and session security work.
 - Reward formula, XP curve, level curve, coin economy, inventory, consumable, Pay-to-Continue, reveal-answer, marketplace, monetization, stats-calculation, Daily claim, gameplay-rule, scoring, and Elo/rating changes.
 - Broad Profile/public-profile model simplification, visibility/moderation contract changes, account deletion, privacy controls, top-right player-chip popover, and route-architecture changes.

@@ -1,0 +1,130 @@
+import { describe, expect, it } from 'vitest'
+import { createDefaultGuestProgress } from './storageSchema'
+import {
+  createSoloCloudSessionKey,
+  mergeSoloCloudSessionsIntoProgress,
+  type SoloCloudSessionRecord,
+} from './soloCloudProgress'
+
+const updatedAt = '2026-07-07T12:00:00.000Z'
+
+function createOgRecord(overrides: Partial<SoloCloudSessionRecord> = {}): SoloCloudSessionRecord {
+  return {
+    currentPuzzleIndex: 0,
+    difficulty: 'expert',
+    events: [],
+    hardMode: false,
+    mode: 'og',
+    scope: 'daily',
+    serializedSession: {
+      answer: 'SLATE',
+      continuationCount: 0,
+      currentGuess: '',
+      guesses: ['CRANE'],
+      hardMode: false,
+      maxAttempts: 6,
+    },
+    sessionKey: 'solo:daily:og:expert:2026-07-07',
+    status: 'playing',
+    updatedAt,
+    wordLength: 5,
+    ...overrides,
+  }
+}
+
+function createGoTransitionRecord(): SoloCloudSessionRecord {
+  return {
+    currentPuzzleIndex: 1,
+    difficulty: 'expert',
+    events: [],
+    goPuzzleCount: 5,
+    hardMode: false,
+    mode: 'go',
+    scope: 'daily',
+    serializedSession: {
+      currentPuzzleIndex: 1,
+      hardMode: false,
+      priorAnswers: ['CRANE'],
+      puzzles: [
+        {
+          answer: 'CRANE',
+          continuationCount: 0,
+          currentGuess: '',
+          guesses: ['CRANE'],
+          maxAttempts: 6,
+          prefilledGuesses: [],
+        },
+        {
+          answer: 'SLATE',
+          continuationCount: 0,
+          currentGuess: '',
+          guesses: ['CRANE'],
+          maxAttempts: 6,
+          prefilledGuesses: ['CRANE'],
+        },
+      ],
+    },
+    sessionKey: 'solo:daily:go:expert:5:2026-07-07',
+    status: 'playing',
+    updatedAt,
+    wordLength: 5,
+  }
+}
+
+describe('solo cloud progress', () => {
+  it('creates stable scoped session keys without raw account ids', () => {
+    expect(createSoloCloudSessionKey({
+      dailyDateKey: '2026-07-07',
+      difficulty: 'expert',
+      mode: 'go',
+      scope: 'daily',
+      wordLength: 5,
+    })).toBe('solo:daily:go:expert:5:2026-07-07')
+
+    expect(createSoloCloudSessionKey({
+      difficulty: 'casual',
+      mode: 'og',
+      practiceSeed: 42,
+      scope: 'practice',
+      wordLength: 7,
+    })).toBe('solo:practice:og:casual:7:42')
+  })
+
+  it('hydrates in-progress cloud sessions into account resume slots', () => {
+    const hydrated = mergeSoloCloudSessionsIntoProgress(createDefaultGuestProgress(), [createOgRecord()])
+
+    expect(hydrated.completedSlots['daily-og']).toBeUndefined()
+    expect(hydrated.progress.resumeSlots?.['daily-og']?.mode).toBe('og')
+    expect(hydrated.progress.resumeSlots?.['daily-og']?.updatedAt).toBe(updatedAt)
+  })
+
+  it('hydrates completed cloud sessions into display-only slots', () => {
+    const hydrated = mergeSoloCloudSessionsIntoProgress(createDefaultGuestProgress(), [
+      createOgRecord({
+        completedAt: updatedAt,
+        serializedSession: {
+          answer: 'SLATE',
+          continuationCount: 0,
+          currentGuess: '',
+          guesses: ['SLATE'],
+          hardMode: false,
+          maxAttempts: 6,
+        },
+        status: 'won',
+      }),
+    ])
+
+    expect(hydrated.progress.resumeSlots?.['daily-og']).toBeUndefined()
+    expect(hydrated.completedSlots['daily-og']?.mode).toBe('og')
+    expect(hydrated.completedSlots['daily-og']?.updatedAt).toBe(updatedAt)
+  })
+
+  it('hydrates Daily GO first-puzzle solves as puzzle two resume state', () => {
+    const hydrated = mergeSoloCloudSessionsIntoProgress(createDefaultGuestProgress(), [createGoTransitionRecord()])
+    const slot = hydrated.progress.resumeSlots?.['daily-go']
+
+    expect(slot?.mode).toBe('go')
+    expect(slot?.mode === 'go' ? slot.serializedSession.currentPuzzleIndex : undefined).toBe(1)
+    expect(slot?.mode === 'go' ? slot.serializedSession.priorAnswers : []).toEqual(['CRANE'])
+  })
+})

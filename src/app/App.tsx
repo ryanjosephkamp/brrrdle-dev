@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSupabaseSoloCloudProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, mergeSoloCloudSessionsIntoProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection, type SoloCloudMutation, type SoloCloudProgressRepository } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -155,6 +155,26 @@ function clearSoloDisplaySlot(slots: ResumeSlotCollection, slotKey: SoloActiveGa
   return nextSlots
 }
 
+function mergeSoloDisplaySlots(slots: ResumeSlotCollection, additions: ResumeSlotCollection): ResumeSlotCollection {
+  let nextSlots = slots
+  for (const key of Object.keys(additions) as SoloActiveGameKey[]) {
+    const slot = additions[key]
+    if (!slot) {
+      continue
+    }
+    const currentSlot = nextSlots[key]
+    if (currentSlot && currentSlot.updatedAt.localeCompare(slot.updatedAt) >= 0) {
+      continue
+    }
+    nextSlots = setSoloDisplaySlot(nextSlots, key, slot)
+  }
+  return nextSlots
+}
+
+function hasSoloDisplaySlots(slots: ResumeSlotCollection): boolean {
+  return Object.keys(slots).length > 0
+}
+
 function getProgressOwnerKey(scope: ActiveProgressScope): string {
   return scope.kind === 'authenticated' ? `account:${scope.userId}` : scope.kind
 }
@@ -173,6 +193,7 @@ function PracticeGameSwitcher({
   onPracticeModeChange,
   onPracticeSeedAdvance,
   onResumeCapture,
+  onSoloCloudMutation,
   onSaveDifficultyDefault,
   onSaveGoPuzzleCountDefault,
   onSpendCoins,
@@ -204,6 +225,7 @@ function PracticeGameSwitcher({
   readonly onPracticeModeChange: (mode: PracticeMode) => void
   readonly onPracticeSeedAdvance: (mode: PracticeMode) => void
   readonly onResumeCapture: (capture: ResumeCapture) => void
+  readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onSaveDifficultyDefault: (tier: DifficultyTier) => void
   readonly onSaveGoPuzzleCountDefault: (count: GoPuzzleCount) => void
   readonly onSpendCoins: (amount: number) => boolean
@@ -230,8 +252,8 @@ function PracticeGameSwitcher({
         <Button onClick={() => onPracticeModeChange('go')} variant={practiceMode === 'go' ? 'primary' : 'secondary'}>go practice</Button>
       </div>
       {practiceMode === 'og'
-        ? <OgGame key={`practice-og-${progressOwnerKey}`} coins={coins} defaultDifficulty={defaultDifficulty} defaultHardMode={defaultHardMode} initialResume={practiceOgResume?.mode === 'og' ? practiceOgResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('og')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.og} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />
-        : <GoGame key={`practice-go-${progressOwnerKey}`} coins={coins} defaultDifficulty={defaultDifficulty} defaultGoPuzzleCount={defaultGoPuzzleCount} defaultHardMode={defaultHardMode} initialResume={practiceGoResume?.mode === 'go' ? practiceGoResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('go')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.go} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />}
+        ? <OgGame key={`practice-og-${progressOwnerKey}`} coins={coins} defaultDifficulty={defaultDifficulty} defaultHardMode={defaultHardMode} initialResume={practiceOgResume?.mode === 'og' ? practiceOgResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('og')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.og} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />
+        : <GoGame key={`practice-go-${progressOwnerKey}`} coins={coins} defaultDifficulty={defaultDifficulty} defaultGoPuzzleCount={defaultGoPuzzleCount} defaultHardMode={defaultHardMode} initialResume={practiceGoResume?.mode === 'go' ? practiceGoResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('go')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.go} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />}
       <MultiplayerPanel
         authStatus={authStatus}
         competitiveState={competitiveMultiplayer}
@@ -473,6 +495,7 @@ function RoutePanel({
   authMessage,
   onResetProgress,
   onResumeCapture,
+  onSoloCloudMutation,
   onDashboardAction,
   onSelectRoute,
   onSelectMultiplayerGame,
@@ -553,6 +576,7 @@ function RoutePanel({
   readonly onDashboardAction: (target: DashboardActionTarget) => void
   readonly onResetProgress: () => void
   readonly onResumeCapture: (capture: ResumeCapture) => void
+  readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onPracticeModeChange: (mode: PracticeMode) => void
   readonly onPracticeSeedAdvance: (mode: PracticeMode) => void
   readonly onSelectMultiplayerGame: (id: string) => void
@@ -641,6 +665,7 @@ function RoutePanel({
         onGameComplete={onGameComplete}
         onResumeCapture={onResumeCapture}
         onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
+        onSoloCloudMutation={onSoloCloudMutation}
         onSpendCoins={onSpendCoins}
         progressOwnerKey={progressOwnerKey}
         scope="daily"
@@ -658,6 +683,7 @@ function RoutePanel({
         onResumeCapture={onResumeCapture}
         onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
         onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })}
+        onSoloCloudMutation={onSoloCloudMutation}
         onSpendCoins={onSpendCoins}
         progressOwnerKey={progressOwnerKey}
         scope="daily"
@@ -676,6 +702,7 @@ function RoutePanel({
         onGameComplete={onGameComplete}
         onResumeCapture={onResumeCapture}
         onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
+        onSoloCloudMutation={onSoloCloudMutation}
         onSpendCoins={onSpendCoins}
         practiceSeedCounter={guestProgress.practiceSeeds.og}
         practiceSeedUserId={authState.user?.id}
@@ -697,6 +724,7 @@ function RoutePanel({
         onResumeCapture={onResumeCapture}
         onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
         onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })}
+        onSoloCloudMutation={onSoloCloudMutation}
         onSpendCoins={onSpendCoins}
         practiceSeedCounter={guestProgress.practiceSeeds.go}
         practiceSeedUserId={authState.user?.id}
@@ -776,6 +804,7 @@ function RoutePanel({
         onLaunchConsumed={onCalendarLaunchConsumed}
         onMarkPastDailyUnlocked={onMarkPastDailyUnlocked}
         onResumeCapture={onResumeCapture}
+        onSoloCloudMutation={onSoloCloudMutation}
         onSpendCoins={onSpendCoins}
         onUpdateSettings={onUpdateSettings}
         progressOwnerKey={progressOwnerKey}
@@ -813,15 +842,15 @@ function RoutePanel({
   }
 
   if (route.id === 'og-daily') {
-    return <OgGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultHardMode={guestProgress.settings.hardModeDefault} initialResume={dailyOgResume?.mode === 'og' ? dailyOgResume : undefined} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSpendCoins={onSpendCoins} progressOwnerKey={progressOwnerKey} scope="daily" />
+    return <OgGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultHardMode={guestProgress.settings.hardModeDefault} initialResume={dailyOgResume?.mode === 'og' ? dailyOgResume : undefined} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} progressOwnerKey={progressOwnerKey} scope="daily" />
   }
 
   if (route.id === 'go-daily') {
-    return <GoGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} initialResume={dailyGoResume?.mode === 'go' ? dailyGoResume : undefined} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} progressOwnerKey={progressOwnerKey} scope="daily" />
+    return <GoGame coins={guestProgress.progression.coins} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} initialResume={dailyGoResume?.mode === 'go' ? dailyGoResume : undefined} keyboardDisabled={keyboardDisabled} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} progressOwnerKey={progressOwnerKey} scope="daily" />
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} completedSoloSlots={completedSoloSlots} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} privateMatchActions={privateMatchActions} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} progressOwnerKey={progressOwnerKey} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
+    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} completedSoloSlots={completedSoloSlots} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} privateMatchActions={privateMatchActions} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} progressOwnerKey={progressOwnerKey} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
   }
 
   if (route.id === 'multiplayer') {
@@ -1027,6 +1056,10 @@ function AppInner() {
     () => supabaseClient ? createSupabasePublicProfileRepository(supabaseClient) : undefined,
     [supabaseClient],
   )
+  const soloCloudProgressRepository = useMemo<SoloCloudProgressRepository | undefined>(
+    () => supabaseClient ? createSupabaseSoloCloudProgressRepository(supabaseClient) : undefined,
+    [supabaseClient],
+  )
   const multiplayerRepositoryRef = useRef(multiplayerRepository)
   const trustedRankedSettlementInFlightRef = useRef(new Set<string>())
   const trustedRankedSettlementCompletedRef = useRef(new Set<string>())
@@ -1076,6 +1109,7 @@ function AppInner() {
   const authenticatedProgressSyncVersionRef = useRef(0)
   const latestAuthenticatedProgressSyncRef = useRef<ReturnType<typeof createAuthenticatedProgressSyncRequest> | undefined>(undefined)
   const flushAuthenticatedProgressSyncRef = useRef<() => void>(() => {})
+  const pendingSoloCloudWriteRef = useRef<Promise<void>>(Promise.resolve())
   const invalidateAuthenticatedProgressSync = useCallback(() => {
     authenticatedProgressSyncVersionRef.current += 1
     authenticatedProgressSyncDirtyRef.current = false
@@ -1671,6 +1705,51 @@ function AppInner() {
       return nextProgress
     })
   }, [activeProgressOwnerKey, persistActiveProgress])
+  const handleSoloCloudMutation = useCallback((mutation: SoloCloudMutation) => {
+    const currentAuth = authStateRef.current
+    if (currentAuth.status !== 'authenticated' || !currentAuth.user || !soloCloudProgressRepository) {
+      return
+    }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setSyncStatus(createSyncStatus('offline'))
+      return
+    }
+
+    const userId = currentAuth.user.id
+    setSyncStatus(createSyncStatus('syncing'))
+    const write = soloCloudProgressRepository.saveMutation(userId, mutation)
+      .then((session) => {
+        const latestAuth = authStateRef.current
+        if (latestAuth.status !== 'authenticated' || latestAuth.user?.id !== userId) {
+          return
+        }
+        const hydrated = mergeSoloCloudSessionsIntoProgress(guestProgressRef.current, [session])
+        applyScopedProgress(hydrated.progress, { kind: 'authenticated', userId })
+        if (hasSoloDisplaySlots(hydrated.completedSlots)) {
+          setCompletedSoloSlots((currentSlots) => {
+            const ownerKey = getProgressOwnerKey({ kind: 'authenticated', userId })
+            const nextSlots = mergeSoloDisplaySlots(currentSlots, hydrated.completedSlots)
+            if (nextSlots !== currentSlots) {
+              saveSoloCompletionDisplaySlots(ownerKey, nextSlots)
+            }
+            return nextSlots
+          })
+        }
+        setSyncStatus(createSyncStatus('synced'))
+        flushAuthenticatedProgressSyncRef.current()
+      })
+      .catch(() => {
+        const latestAuth = authStateRef.current
+        if (latestAuth.status === 'authenticated' && latestAuth.user?.id === userId) {
+          setSyncStatus(createSyncStatus('error'))
+        }
+      })
+
+    pendingSoloCloudWriteRef.current = pendingSoloCloudWriteRef.current.then(
+      () => write,
+      () => write,
+    )
+  }, [applyScopedProgress, soloCloudProgressRepository])
   const handleOpenSoloHistory = useCallback((filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => {
     const nextFilters: HistoryFilters = {
       mode: filters?.mode ?? 'all',
@@ -1913,7 +1992,7 @@ function AppInner() {
         isOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
         repository: createSupabaseProgressRepository(supabaseClient),
         userId,
-      }).then((result) => {
+      }).then(async (result) => {
         if (authHydrationRequestRef.current !== requestId) {
           return
         }
@@ -1921,13 +2000,43 @@ function AppInner() {
         if (currentAuth.status !== 'authenticated' || currentAuth.user?.id !== userId) {
           return
         }
-        applyScopedProgress(result.progress, { kind: 'authenticated', userId })
+        let hydratedProgress = result.progress
+        let hydratedCompletedSlots: ResumeSlotCollection = {}
+        let soloCloudStatus = result.status
+        if (soloCloudProgressRepository) {
+          try {
+            const sessions = await soloCloudProgressRepository.loadRecentSessions(userId)
+            const hydrated = mergeSoloCloudSessionsIntoProgress(result.progress, sessions)
+            hydratedProgress = hydrated.progress
+            hydratedCompletedSlots = hydrated.completedSlots
+          } catch {
+            soloCloudStatus = createSyncStatus('error')
+          }
+        }
+        if (authHydrationRequestRef.current !== requestId) {
+          return
+        }
+        const latestAuth = authStateRef.current
+        if (latestAuth.status !== 'authenticated' || latestAuth.user?.id !== userId) {
+          return
+        }
+        applyScopedProgress(hydratedProgress, { kind: 'authenticated', userId })
+        if (hasSoloDisplaySlots(hydratedCompletedSlots)) {
+          setCompletedSoloSlots((currentSlots) => {
+            const ownerKey = getProgressOwnerKey({ kind: 'authenticated', userId })
+            const nextSlots = mergeSoloDisplaySlots(currentSlots, hydratedCompletedSlots)
+            if (nextSlots !== currentSlots) {
+              saveSoloCompletionDisplaySlots(ownerKey, nextSlots)
+            }
+            return nextSlots
+          })
+        }
         if (options.clearSelections !== false) {
           clearIdentityScopedSelections()
         }
-        setSyncStatus(result.status)
+        setSyncStatus(soloCloudStatus)
         if (options.autoResume !== false) {
-          maybeAutoResume(nextAuthState, result.progress)
+          maybeAutoResume(nextAuthState, hydratedProgress)
         }
       })
       return
@@ -1937,7 +2046,7 @@ function AppInner() {
     applyScopedProgress(loadGuestProgress(), scope)
     clearIdentityScopedSelections()
     setSyncStatus(createSyncStatus(supabaseClient ? 'idle' : 'error'))
-  }, [applyScopedProgress, clearIdentityScopedSelections, invalidateAuthenticatedProgressSync, maybeAutoResume, supabaseClient])
+  }, [applyScopedProgress, clearIdentityScopedSelections, invalidateAuthenticatedProgressSync, maybeAutoResume, soloCloudProgressRepository, supabaseClient])
   const refreshAuthenticatedProgressFromCloud = useCallback(() => {
     const nextAuthState = authStateRef.current
     if (!canRefreshAuthenticatedProgress({
@@ -2090,7 +2199,7 @@ function AppInner() {
     setAuthMessage(undefined)
     setProfileMessage(undefined)
     setAuthBusy(true)
-    void signOut(supabaseClient).then((result) => {
+    void pendingSoloCloudWriteRef.current.catch(() => undefined).then(() => signOut(supabaseClient)).then((result) => {
       setAuthBusy(false)
       if (!result.ok) {
         setAuthMessage(result.message)
@@ -2640,6 +2749,7 @@ function AppInner() {
             onSignInWithPassword={handleSignInWithPassword}
             onSignOut={handleSignOut}
             onSignUpWithPassword={handleSignUpWithPassword}
+            onSoloCloudMutation={handleSoloCloudMutation}
             onSoloDailyModeChange={handleSoloDailyModeChange}
             onSoloSubtabChange={handleSoloSubtabChange}
             onSpendCoins={handleSpendCoins}

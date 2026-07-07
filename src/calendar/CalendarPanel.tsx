@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { CompletedGameInput, loadGuestProgress, ResumeCapture, ResumeSlotCollection } from '../account'
+import type { CompletedGameInput, loadGuestProgress, ResumeCapture, ResumeSlotCollection, SoloCloudMutation } from '../account'
 import type { DifficultyTier } from '../data'
 import type { GoPuzzleCount } from '../game/constants'
 import type { GameMode } from '../game/types'
@@ -63,6 +63,7 @@ export interface CalendarPanelProps {
   readonly keyboardDisabled?: boolean
   readonly onGameComplete: (input: CompletedGameInput) => void
   readonly onResumeCapture: (capture: ResumeCapture) => void
+  readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onSpendCoins: (amount: number) => boolean
   readonly onMultiplayerChange: (state: MultiplayerState) => void
   readonly onCompetitiveMultiplayerChange?: (state: MultiplayerCompetitiveState) => void
@@ -163,6 +164,7 @@ export function CalendarPanel({
   keyboardDisabled,
   onGameComplete,
   onResumeCapture,
+  onSoloCloudMutation,
   onSpendCoins,
   onMultiplayerChange,
   onCompetitiveMultiplayerChange,
@@ -314,6 +316,7 @@ export function CalendarPanel({
             onMarkDailyUnlocked={markUnlocked}
             onResumeCapture={onResumeCapture}
             onSaveDifficultyDefault={handleSaveDifficultyDefault}
+            onSoloCloudMutation={onSoloCloudMutation}
             onSpendCoins={onSpendCoins}
             pastDailyDateKey={pastDateKey}
             progressOwnerKey={progressOwnerKey}
@@ -332,6 +335,7 @@ export function CalendarPanel({
             onResumeCapture={onResumeCapture}
             onSaveDifficultyDefault={handleSaveDifficultyDefault}
             onSaveGoPuzzleCountDefault={handleSaveGoPuzzleCountDefault}
+            onSoloCloudMutation={onSoloCloudMutation}
             onSpendCoins={onSpendCoins}
             pastDailyDateKey={pastDateKey}
             progressOwnerKey={progressOwnerKey}
