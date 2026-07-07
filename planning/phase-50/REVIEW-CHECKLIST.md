@@ -1,10 +1,10 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Same-phase recovery implemented - awaiting recovered hosted manual review.
+**Status**: Cross-browser same-phase recovery implemented - awaiting recovered hosted manual review.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
-**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
+**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
 
 This checklist helps the user manually verify Phase 50 behavior. It does not replace automated tests, E2E coverage, the visual handoff review gate, or final verification.
 
@@ -51,6 +51,47 @@ Recovery verification:
 
 The failed hosted manual-review boxes below intentionally remain unchecked until the user verifies the recovered hosted/live candidate.
 
+## Hosted Manual Review Follow-Up - 2026-07-07
+
+The recovered hosted candidate still failed manual review for Daily Solo completion persistence.
+
+Failed:
+
+- Solved Daily Solo completion state did not reliably restore the terminal game-end screen after navigating away and returning.
+- One mobile browser path returned to a fresh/cleared board instead of the solved Daily terminal surface.
+- Another Android browser path showed submitted letters after returning, but did not show the all-green final row or the game-end screen.
+
+Improved or still passed:
+
+- Ordinary Solo auto-scroll behavior was improved by the previous same-phase recovery.
+- Practice new puzzle/new chain, Profile/Settings conveniences, Progression HUD-to-Stats, and local-only artifact expectations remained accepted from the earlier hosted manual review.
+
+Same-phase recovery action:
+
+- Codex reproduced the old hosted candidate failure with a new signed-in Daily OG/GO Playwright regression against the hosted surface.
+- The local recovery now checks account hydration, reload, route re-entry, browser Back/Forward, and all-green terminal rows for Daily OG and Daily GO.
+- Manual acceptance remains unchecked until the next hosted/live Review Candidate is backed up and reviewed.
+
+## Cross-Browser Recovery Result - 2026-07-07
+
+Recovered by source/test changes:
+
+- Completed Solo display slots now outrank stale in-progress resume slots after account hydration.
+- Current-cycle Daily completed display evidence remains visible even while signed-in cloud completion IDs catch up.
+- Daily OG/GO game surfaces remount when completed display evidence arrives after hydration.
+- Authenticated terminal completion schedules an immediate progress-sync flush.
+- Mobile widths below `720px` use a static lunar background instead of the animated fixed canvas/noise layers that contributed to scroll lag.
+- Solo completion E2E now includes signed-in Daily OG and Daily GO restore after reload/account hydration, direct browser Back/Forward checks, and all-green row styling assertions.
+
+Recovery verification:
+
+- Focused signed-in Daily OG/GO regression failed against the old hosted candidate before the local source repair.
+- Focused Solo completion Playwright passed in Chromium, Firefox, WebKit, and mobile Chromium emulation.
+- Full local Playwright E2E passed 42 tests.
+- `npm run lint`, `npm run test`, `npm run build`, and API typecheck passed.
+
+The failed hosted manual-review boxes below intentionally remain unchecked until the user verifies the next hosted/live candidate.
+
 ## How To Use
 
 - Use a safe development/test environment with non-production accounts.
@@ -81,8 +122,10 @@ Automated proof completed:
 - Focused Phase 50 Vitest regression coverage for Solo completion, resume-slot/browser-history behavior, Profile account actions, Settings, HUD, shell, and Stats surfaces.
 - Focused Playwright coverage for Solo completion re-entry across Practice/Daily OG/GO, including full app reload after completion.
 - Focused Playwright coverage for Progression HUD opening the existing Stats route.
-- Full local Vitest suite after recovery: 127 files, 881 tests passed.
-- Full Playwright E2E suite after recovery: clean rerun passed 41 tests.
+- Full local Vitest suite after cross-browser recovery: 127 files, 881 tests passed.
+- Full Playwright E2E suite after cross-browser recovery: clean rerun passed 42 tests.
+- Focused Solo completion re-entry suite passed in Chromium, Firefox, WebKit, and mobile Chromium emulation.
+- Focused signed-in Daily OG/GO regression reproduced the old hosted candidate failure before the local source repair.
 - Production build and API typecheck.
 - Local-only visual handoff review under `test-results/visual-review/phase-50-review-candidate/`.
 - Repository hygiene checks recorded in `progress/PROGRESS-STEP-467.md`.
@@ -106,20 +149,20 @@ Codex intentionally did not verify or perform:
 
 ## Must Manually Verify
 
-- [ ] **Failed in hosted manual review 2026-07-06; recovered by Codex verification:** Completed Practice OG keeps the final winning row and completed state after re-entry.
+- [ ] **Failed in hosted manual review 2026-07-06; recovered by Codex verification and awaiting next hosted check:** Completed Practice OG keeps the final winning row and completed state after re-entry.
   - Expected: after solving a Practice OG puzzle, navigating away and returning through browser Back or the Solo/Practice route still shows the final winning row, completed status, share result, and definitions.
   - Suggested steps: open Solo -> Practice Solo -> OG, solve a safe Practice puzzle, navigate Home, use browser Back, then route away and back through Solo -> Practice Solo -> OG.
-  - Evidence: `progress/PROGRESS-STEP-473.md`; focused Playwright reload coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`.
+  - Evidence: `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`; focused Playwright reload/back coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`.
 
-- [ ] **Failed in hosted manual review 2026-07-06; recovered by Codex verification:** Completed Practice GO keeps the final solved chain after re-entry.
+- [ ] **Failed in hosted manual review 2026-07-06; recovered by Codex verification and awaiting next hosted check:** Completed Practice GO keeps the final solved chain after re-entry.
   - Expected: after solving all Practice GO puzzles, route re-entry still shows the completed chain, the fifth solved row, share result, and definitions.
   - Suggested steps: open Solo -> Practice Solo -> GO, solve a safe Practice GO chain, navigate Home, return through Solo -> Practice Solo -> GO, and inspect the terminal state.
-  - Evidence: `progress/PROGRESS-STEP-473.md`; focused Playwright reload coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`.
+  - Evidence: `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`; focused Playwright reload/back coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`.
 
-- [ ] **Failed in hosted manual review 2026-07-06; recovered by Codex verification:** Completed Daily OG and Daily GO keep terminal Solo state without duplicate rewards.
+- [ ] **Failed in hosted manual review 2026-07-06 and 2026-07-07; recovered by cross-browser Codex verification and awaiting next hosted check:** Completed Daily OG and Daily GO keep terminal Solo state without duplicate rewards.
   - Expected: Daily Solo OG/GO completed state remains visible for the current Daily cycle, and re-entry does not duplicate XP, coins, history, stats, streak entries, Daily claims, or completed IDs.
   - Suggested steps: in a safe browser/profile, complete Daily Solo OG and/or Daily Solo GO if available, record visible Level/Coins/XP, navigate away/back, and confirm the completed screen remains without another reward bump.
-  - Evidence: focused Playwright reload coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`; `progress/PROGRESS-STEP-473.md`.
+  - Evidence: focused signed-in Playwright reload/account-hydration coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`; `progress/PROGRESS-STEP-473.md`; `progress/PROGRESS-STEP-475.md`.
 
 - [ ] Ordinary Solo navigation no longer auto-scrolls the page during normal route/subtab/mode changes or physical-keyboard play.
   - Expected: opening Solo -> Daily/Practice -> OG/GO leaves page positioning under the user's control; the app does not auto-center the board or keyboard. Auto-scroll remains acceptable when a notification/direct-game handoff explicitly routes the user to a game.
@@ -205,5 +248,7 @@ Codex intentionally did not verify or perform:
 - [x] Failed directly Phase 50-related items have been recorded for same-phase Review Follow-up before final acceptance.
 - [x] User explicitly routed the completion re-entry failures, mobile scroll lag, auto-scroll policy change, and process/autonomy repair into Phase 50 rather than a new phase.
 - [x] Same-phase recovery implementation and automated verification were completed before requesting recovered hosted/live manual review.
+- [x] Follow-up hosted/manual Daily Solo completion failures from 2026-07-07 were recorded for same-phase Review Follow-up before final acceptance.
+- [x] Cross-browser same-phase recovery implementation and automated verification were completed before requesting another recovered hosted/live manual review.
 - [x] If a Review Candidate Backup was used, it was treated as live/device review access only and not as final Phase 50 closure.
 - [ ] Final acceptance/closure or Final Acceptance Backup has separate explicit authorization after manual review acceptance.

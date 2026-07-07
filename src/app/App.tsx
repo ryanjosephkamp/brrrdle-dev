@@ -220,8 +220,8 @@ function PracticeGameSwitcher({
   readonly viewerProfile?: MultiplayerProfileSummary
   readonly onOpenEloAbout?: () => void
 }) {
-  const practiceOgResume = resumeSlots['practice-og'] ?? completedSoloSlots['practice-og']
-  const practiceGoResume = resumeSlots['practice-go'] ?? completedSoloSlots['practice-go']
+  const practiceOgResume = completedSoloSlots['practice-og'] ?? resumeSlots['practice-og']
+  const practiceGoResume = completedSoloSlots['practice-go'] ?? resumeSlots['practice-go']
 
   return (
     <section className="space-y-5" aria-label="Practice mode selector">
@@ -620,10 +620,10 @@ function RoutePanel({
   readonly publicSiteStatsRepository?: PublicSiteStatsRepository
   readonly adminDashboardRepository?: AdminOperationalDashboardRepository
 }) {
-  const dailyOgResume = resumeSlots['daily-og'] ?? completedSoloSlots['daily-og']
-  const dailyGoResume = resumeSlots['daily-go'] ?? completedSoloSlots['daily-go']
-  const practiceOgResume = resumeSlots['practice-og'] ?? completedSoloSlots['practice-og']
-  const practiceGoResume = resumeSlots['practice-go'] ?? completedSoloSlots['practice-go']
+  const dailyOgResume = completedSoloSlots['daily-og'] ?? resumeSlots['daily-og']
+  const dailyGoResume = completedSoloSlots['daily-go'] ?? resumeSlots['daily-go']
+  const practiceOgResume = completedSoloSlots['practice-og'] ?? resumeSlots['practice-og']
+  const practiceGoResume = completedSoloSlots['practice-go'] ?? resumeSlots['practice-go']
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
     ? createMultiplayerProfileSummary(authState.user.profile, 'Player')
     : undefined
@@ -1218,22 +1218,7 @@ function AppInner() {
     dailyAlertTimeoutRef.current = setTimeout(() => setDailyAlerting(false), 12_000)
   }, [sound])
   const daily = useDailyCycle({ alertsEnabled: countdownEnabled, onReset: handleDailyReset })
-  const visibleCompletedSoloSlots = useMemo(() => {
-    const dailyOgCurrent = !completedSoloSlots['daily-og'] || guestProgress.completedGameIds.includes(`og:daily:${daily.dateKey}`)
-    const dailyGoCurrent = !completedSoloSlots['daily-go'] || guestProgress.completedGameIds.includes(`go:daily:${daily.dateKey}`)
-    if (dailyOgCurrent && dailyGoCurrent) {
-      return completedSoloSlots
-    }
-
-    const nextSlots = { ...completedSoloSlots }
-    if (!dailyOgCurrent) {
-      delete nextSlots['daily-og']
-    }
-    if (!dailyGoCurrent) {
-      delete nextSlots['daily-go']
-    }
-    return nextSlots
-  }, [completedSoloSlots, daily.dateKey, guestProgress.completedGameIds])
+  const visibleCompletedSoloSlots = completedSoloSlots
   const handleDailyMultiplayerReset = useCallback(() => {
     sound.play('daily-multiplayer-reset')
     setDailyMultiplayerAlerting(true)
@@ -1964,6 +1949,9 @@ function AppInner() {
       const nextProgress = recordCompletedGame(input, currentProgress)
       if (nextProgress !== currentProgress) {
         persistActiveProgress(nextProgress)
+        if (!shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
+          window.setTimeout(() => flushAuthenticatedProgressSyncRef.current(), 0)
+        }
       }
       return nextProgress
     })

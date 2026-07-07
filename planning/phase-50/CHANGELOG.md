@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Same-Phase Recovery Implemented - Awaiting Recovered Review Candidate Backup And Manual Review.
+**Status**: Cross-Browser Same-Phase Recovery Implemented - Awaiting Recovered Review Candidate Backup And Manual Review.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -10,9 +10,48 @@ Phase 50 attempted to repair the completed Solo re-entry bug reported after Phas
 
 Hosted/live manual review on 2026-07-06 found that the completed Solo Daily/Practice OG/GO repair did not work reliably enough to accept Phase 50. Profile now exposes separated account-management actions for Settings and Sign out while keeping Settings canonical. The Progression HUD now offers an explicit Open Stats action while remaining display-only and active-scope-owned.
 
-Same-phase recovery later on 2026-07-06 repaired the hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. Phase 50 still remains open until the recovered candidate is backed up and manually reviewed.
+Same-phase recovery later on 2026-07-06 repaired the first hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. A later hosted/manual review on 2026-07-07 still found signed-in Daily Solo completion restore failures on mobile browsers, so Phase 50 returned to same-phase Review Follow-up again. The cross-browser recovery added authenticated Daily OG/GO coverage and mobile shell scroll mitigation. Phase 50 still remains open until the recovered candidate is backed up and manually reviewed.
 
-No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, multiplayer feature change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed.
+No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, multiplayer feature change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed in this cross-browser recovery pass.
+
+## Hosted Manual Review Update - 2026-07-07
+
+Phase 50 remained not accepted after the recovered hosted candidate.
+
+Failed manual-review items:
+
+- Daily Solo completion still did not reliably restore the solved terminal screen after navigating away and returning.
+- In one mobile browser path, returning to the solved Daily surface cleared the board instead of restoring the completed game.
+- In another Android browser path, returning to the solved Daily surface showed submitted letters but did not restore the all-green final row or end-game screen.
+
+Passed or improved manual-review items:
+
+- The ordinary Solo auto-scroll reduction improved the unwanted automatic page-jump behavior.
+- The remaining optional Profile, Settings, Progression HUD, and artifact-boundary items from the earlier hosted checklist stayed accepted.
+
+Additional same-phase follow-up:
+
+- Reproduce the signed-in hosted Daily Solo completion failure with account hydration and browser history/reload behavior.
+- Strengthen E2E coverage so authenticated Daily OG and Daily GO terminal state must remain visible after reload, route re-entry, and browser Back/Forward.
+- Improve mobile scroll smoothness further without reintroducing broad automatic Solo page scrolling.
+
+## Cross-Browser Recovery Update - 2026-07-07
+
+Recovered:
+
+- Completed Solo display evidence now outranks in-progress resume slots for Practice and Daily OG/GO surfaces, preventing stale cloud in-progress hydration from hiding a locally completed terminal display.
+- Completed Daily display evidence is no longer filtered out merely because cloud `completedGameIds` has not caught up during signed-in hydration. The existing Daily game setup still rejects stale previous-day evidence.
+- Daily OG/GO session keys now include completed-resume update identity when display evidence arrives after account hydration, forcing the game surface to remount into the terminal display instead of keeping an already-mounted stale session.
+- Authenticated Solo completion now schedules an immediate progress sync flush after terminal reward recording instead of waiting only for debounce timing.
+- E2E now asserts all-green final-row tile styling, direct browser Back/Forward, and signed-in Daily OG plus Daily GO terminal restore after reload and account hydration.
+- Mobile scroll mitigation now disables the animated lunar canvas and masked noise overlay below `720px`, replacing them with a static mobile background while preserving the broader visual theme.
+- Cross-browser Playwright coverage passed in Chromium, Firefox, WebKit, and mobile Chromium emulation for the Solo completion re-entry suite. Firefox/WebKit-specific benign external warning guards were narrowed to known Supabase cookie-domain and definition-lookup noise.
+
+Still pending:
+
+- A cross-browser recovered Review Candidate Backup is required before hosted/live desktop and mobile manual review.
+- Manual review must still verify the failed Daily/Practice completion persistence checklist items on the new hosted/live candidate.
+- Final acceptance/closure and any Final Acceptance Backup remain separately authorized future actions.
 
 ## Hosted Manual Review Update - 2026-07-06
 
