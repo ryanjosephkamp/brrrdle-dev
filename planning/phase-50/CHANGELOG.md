@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Daily Solo Polish Recovered Locally - Review Candidate Backup Prompt Prepared.
+**Status**: GO Definition Deduplication Recovered Locally - Review Candidate Backup Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -10,9 +10,42 @@ Phase 50 attempted to repair the completed Solo re-entry bug reported after Phas
 
 Hosted/live manual review on 2026-07-06 found that the completed Solo Daily/Practice OG/GO repair did not work reliably enough to accept Phase 50. Profile now exposes separated account-management actions for Settings and Sign out while keeping Settings canonical. The Progression HUD now offers an explicit Open Stats action while remaining display-only and active-scope-owned.
 
-Same-phase recovery later on 2026-07-06 repaired the first hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. A later hosted/manual review on 2026-07-07 still found signed-in Daily Solo completion restore failures on mobile browsers, so Phase 50 returned to same-phase Review Follow-up again. The cross-browser recovery added authenticated Daily OG/GO coverage and mobile shell scroll mitigation. The next hosted/manual review found that the major terminal-restore problem appears fixed, but identified two Daily-only regressions: deleted Daily OG draft letters could reappear, and settled Daily GO rows could replay visual animations on keyboard input. The Daily Solo polish follow-up recovered those regressions locally and passed the full local verification gate. Phase 50 remains open for hosted/live manual review before final acceptance.
+Same-phase recovery later on 2026-07-06 repaired the first hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. A later hosted/manual review on 2026-07-07 still found signed-in Daily Solo completion restore failures on mobile browsers, so Phase 50 returned to same-phase Review Follow-up again. The cross-browser recovery added authenticated Daily OG/GO coverage and mobile shell scroll mitigation. The next hosted/manual review found that the major terminal-restore problem appears fixed, but identified two Daily-only regressions: deleted Daily OG draft letters could reappear, and settled Daily GO rows could replay visual animations on keyboard input. The Daily Solo polish follow-up recovered those regressions locally and passed the full local verification gate. A later hosted/manual review found one remaining GO terminal UI polish issue: Solo GO could duplicate the final solved definition panel after chain completion. The GO definition deduplication follow-up recovered that locally, verified Multiplayer GO was not affected, and prepared the next Review Candidate Backup prompt. Phase 50 remains open for hosted/live manual review before final acceptance.
 
-No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, multiplayer feature change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed in this Daily Solo polish follow-up pass.
+No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, multiplayer feature change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed in this GO definition follow-up implementation pass.
+
+## GO Definition Deduplication Follow-Up Update - 2026-07-07
+
+Recovered:
+
+- Daily Solo GO and Practice Solo GO no longer render the final solved answer definition twice after completed GO chain restore.
+- The pre-fix component regression reproduced both Solo GO variants rendering six `Definitions` panels for a five-puzzle completed chain.
+- `GoGame` now suppresses the separate terminal current-puzzle definition panel when that answer is already represented in the solved GO-chain definition list.
+- Loss/reveal paths remain able to show the current answer definition because the guard only suppresses the panel when the current answer is already solved.
+- Multiplayer GO was audited at the component level and already rendered one terminal answer/definition section with one definition panel per answer for both Practice and Daily scopes.
+
+Preserved:
+
+- Completed Solo terminal persistence, Daily Solo polish fixes, Practice Solo behavior, GO solved-row hold/transitions, share result behavior, reward idempotence, and multiplayer terminal behavior.
+- Definition lookup provider order and Google search fallback were unchanged.
+
+Still pending:
+
+- A GO-definition recovered Review Candidate Backup is required before hosted/live desktop and mobile manual review.
+- Manual review should re-check Daily Solo GO, spot-check Practice Solo GO, and optionally inspect completed Practice/Daily Multiplayer GO definitions on the hosted/live candidate.
+- Final acceptance/closure and any Final Acceptance Backup remain separately authorized future actions.
+
+## GO Definition Deduplication Manual Review Finding - 2026-07-07
+
+Manual review after the Daily Solo polish Review Candidate Backup reported that Daily Solo GO terminal definitions can duplicate the final solution definition:
+
+- the solved GO chain correctly shows definitions for solved words;
+- after that list, the final solved word can appear a second time in a separate terminal definition panel;
+- the screenshot evidence showed the final GO answer definition rendered once inside the all-solved list and once again below it.
+
+This finding is directly phase-related because Phase 50 is still in Manual Review Window and the issue is a small terminal UI polish bug on the completed GO surface. The next same-phase prompt should reproduce the redundancy, fix it for Daily Solo GO, check and fix Practice Solo GO if affected, audit Multiplayer GO terminal definitions, and add focused regression coverage. Final acceptance/closure and any backup remain separately gated.
+
+No source/runtime implementation, test implementation, Git/GitHub action, backup workflow, deployment, release, migration, next-phase work, or stable `brrrdle` repository work was performed while recording this finding and preparing the prompt artifact.
 
 ## Daily Solo Polish Follow-Up Update - 2026-07-07
 

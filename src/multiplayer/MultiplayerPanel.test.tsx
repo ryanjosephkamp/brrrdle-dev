@@ -50,6 +50,10 @@ import { TIMED_RANKED_PRACTICE_TIME_LIMIT_MS } from './rating'
 
 function noop() {}
 
+function countDefinitionPanels(html: string): number {
+  return html.match(/>Definitions</g)?.length ?? 0
+}
+
 type RankedQueueActionsFixture = Pick<
   MultiplayerRepository,
   'cancelRankedQueueRequest'
@@ -1051,6 +1055,53 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('Multiplayer guess grid')
     expect(html).toContain('Advancing to final results')
     expect(html).not.toContain('Answer and definitions')
+  })
+
+  it.each(['practice', 'daily'] as const)('renders terminal %s go definitions once per answer after the solved hold', (scope) => {
+    const lobby = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      dailyDateKey: '2026-06-04',
+      goPuzzleCount: 5,
+      mode: 'go',
+      playerUserIds: { 'player-one': 'host-user' },
+      scope,
+      seed: 1,
+      wordLength: 5,
+    })
+    const joined = joinMultiplayerGame(addMultiplayerGame(createEmptyMultiplayerState(), lobby), {
+      gameId: lobby.id,
+      userId: 'rival-user',
+    })
+    let state = joined.state
+    let current = joined.game!
+    const answers = getMultiplayerAnswerWords(current)
+    for (const answer of answers) {
+      const submitted = submitMultiplayerGuess(state, {
+        gameId: current.id,
+        guess: answer,
+        playerId: current.currentTurn,
+      })
+      state = submitted.state
+      current = submitted.game!
+    }
+
+    const html = renderToStaticMarkup(
+      <MultiplayerPanel
+        authStatus="authenticated"
+        dailyDateKey="2026-06-04"
+        defaultDifficulty={DEFAULT_DIFFICULTY_TIER}
+        defaultGoPuzzleCount={DEFAULT_GO_PUZZLE_COUNT}
+        onChange={noop}
+        readOnly
+        scope={scope}
+        state={state}
+        viewerUserId="host-user"
+      />,
+    )
+
+    expect(current.status).toBe('won')
+    expect(html).toContain('Answer and definitions')
+    expect(countDefinitionPanels(html)).toBe(answers.length)
   })
 
   it.each(['practice', 'daily'] as const)('keeps a completed %s og surface visible briefly before terminal definitions', (scope) => {

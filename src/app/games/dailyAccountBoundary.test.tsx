@@ -55,6 +55,10 @@ function submitGoWord(session: ReturnType<typeof createGoSession>, word: string)
   return submitGoGuess([...word].reduce((currentSession, letter) => enterGoLetter(currentSession, letter), session))
 }
 
+function countDefinitionPanels(html: string): number {
+  return html.match(/>Definitions</g)?.length ?? 0
+}
+
 function createStartedDailyOgSession(date = getActiveDailyDate()): {
   readonly dateKey: string
   readonly serializedSession: SerializedOgSession
@@ -361,6 +365,32 @@ describe('Daily Solo account boundaries', () => {
     )
 
     expect(html).toContain('5 attempts remaining.')
+  })
+
+  it('renders each completed Daily GO answer definition once after restore', () => {
+    const completed = createCompletedDailyGoSession()
+
+    const html = renderToStaticMarkup(
+      <GoGame
+        coins={0}
+        initialResume={{
+          difficulty: DEFAULT_DIFFICULTY_TIER,
+          goPuzzleCount: 5,
+          mode: 'go',
+          scope: 'daily',
+          serializedSession: completed.serializedSession,
+          updatedAt: '2026-07-05T12:00:02.000Z',
+          wordLength: 5,
+        }}
+        keyboardDisabled
+        onSpendCoins={spendNothing}
+        progressOwnerKey="account:one"
+        scope="daily"
+      />,
+    )
+
+    expect(html).toContain('Solved puzzle definitions')
+    expect(countDefinitionPanels(html)).toBe(completed.serializedSession.puzzles.length)
   })
 
   it('keeps past Daily OG restore on its date-keyed legacy storage path', () => {
