@@ -1,10 +1,10 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: GO definition deduplication recovered locally - Review Candidate backup prompt prepared.
+**Status**: Multiplayer focus follow-up recovered locally - awaiting Review Candidate Backup and hosted/manual review.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
-**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
+**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
 
 This checklist helps the user manually verify Phase 50 behavior. It does not replace automated tests, E2E coverage, the visual handoff review gate, or final verification.
 
@@ -149,6 +149,45 @@ Manual review of the hosted/live Daily Solo polish Review Candidate found one re
 
 This remains inside Phase 50 as directly related Manual Review Window polish. It is not final Phase 50 acceptance.
 
+## Hosted Manual Review Pass And Multiplayer Follow-Up - 2026-07-07
+
+The user reported that the current manual-review checklist items now pass on the hosted/live candidate:
+
+- guest versus signed-in Solo persistence and non-persistence behavior now appears correct;
+- completed Solo final rows and end-game screens persist after refresh and navigation re-entry;
+- Daily Solo OG deleted draft letters stay deleted;
+- Daily Solo GO settled rows no longer replay ordinary keyboard-input animations;
+- GO terminal definitions no longer duplicate the final solved answer definition;
+- past Solo Daily OG/GO coin-unlock behavior appears to work correctly.
+
+Phase 50 is not closed yet because the user also reported a new multiplayer-only focus/refocus flash that should be handled before final closure:
+
+- when two signed-in browser/account windows are used for multiplayer testing, switching focus between browser windows can briefly flash multiplayer content;
+- the flash appears to expose or redraw current matches/lobbies, including old E2E-hosted practice multiplayer games;
+- affected surfaces from the user's report: Multiplayer Overview, Practice Multiplayer, Lobby, and Live subtab count display;
+- surfaces that did not appear affected from the user's report: Daily Multiplayer and Active Games.
+
+The same-phase follow-up should preserve the now-good Solo persistence state, add or harden automated regressions for that state, reproduce/fix the multiplayer focus/refocus flash as narrowly as possible, and audit E2E multiplayer lobby/game cleanup expectations before Phase 50 final closure.
+
+## Multiplayer Focus Follow-Up Local Recovery - 2026-07-07
+
+The multiplayer focus/refocus flash follow-up has been implemented and verified locally, but it has not yet been backed up for hosted/live manual review or accepted by the user.
+
+Local recovery summary:
+
+- same-account signed-in progress hydration now preserves the visible async multiplayer state instead of temporarily replacing it from a stale progress-cache multiplayer snapshot;
+- account/guest identity switches remain isolated and still use the next scoped progress state;
+- multiplayer subscription/focus-refresh effects no longer rerun from auth-object, subtab-only, or selected-game-only changes;
+- transient Live spectator refresh failures no longer clear existing spectator rows and flash visible counts to zero;
+- E2E cleanup now checks that temporary multiplayer rows for the temporary E2E users were actually deleted.
+
+Automated coverage added or confirmed:
+
+- focused unit regression for same-account progress hydration preserving visible async multiplayer rows;
+- two-client Playwright focus/refocus regression using temporary signed-in users and a real Practice Multiplayer OG match;
+- full Solo completion re-entry E2E coverage remains passing for Daily OG deleted drafts, Daily GO settled-row stability, Practice/Daily terminal re-entry, and authenticated Daily OG/GO reload/account hydration;
+- full E2E suite passed after the fix.
+
 ## How To Use
 
 - Use a safe development/test environment with non-production accounts.
@@ -207,6 +246,16 @@ Codex intentionally did not verify or perform:
 
 ## Must Manually Verify
 
+- [x] **Passed in hosted manual review 2026-07-07 after GO definition recovery:** GO terminal definitions do not duplicate the final answer definition.
+  - Expected: after completing a GO chain, each solved word's definition appears once in the terminal definitions area. The final solved word should not be repeated in a separate duplicate definition panel below the solved-chain definitions.
+  - Suggested steps: complete or revisit a completed Daily Solo GO chain and inspect the definitions area. Then spot-check Practice Solo GO and, if feasible, completed Practice/Daily Multiplayer GO terminal definitions.
+  - Evidence: user screenshot/manual review report on 2026-07-07; local recovery and verification recorded in `progress/PROGRESS-STEP-482.md`.
+
+- [x] **Passed in hosted manual review 2026-07-07 after Daily Solo polish recovery:** Daily Solo GO settled rows do not replay flip/flash animations on ordinary keyboard input.
+  - Expected: after earlier Daily Solo GO puzzles have solved rows or accumulated carry-forward words above the play area, typing a new guess changes only the active draft row. Previously solved/settled letters should not flip, flash, or replay submission animations on every keyboard touch.
+  - Suggested steps: open Solo -> Daily -> GO after one or more GO-chain puzzles have solved rows, type letters into the current puzzle, and confirm already-settled words stay visually stable.
+  - Evidence: user hosted/mobile manual review report on 2026-07-07; Codex local recovery and verification recorded in `progress/PROGRESS-STEP-479.md`.
+
 - [x] **Passed in hosted manual review 2026-07-07 after cross-browser recovery:** Completed Practice OG keeps the final winning row and completed state after re-entry.
   - Expected: after solving a Practice OG puzzle, navigating away and returning through browser Back or the Solo/Practice route still shows the final winning row, completed status, share result, and definitions.
   - Suggested steps: open Solo -> Practice Solo -> OG, solve a safe Practice puzzle, navigate Home, use browser Back, then route away and back through Solo -> Practice Solo -> OG.
@@ -222,20 +271,10 @@ Codex intentionally did not verify or perform:
   - Suggested steps: in a safe browser/profile, complete Daily Solo OG and/or Daily Solo GO if available, record visible Level/Coins/XP, navigate away/back, and confirm the completed screen remains without another reward bump.
   - Evidence: focused signed-in Playwright reload/account-hydration coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`; `progress/PROGRESS-STEP-473.md`; `progress/PROGRESS-STEP-475.md`.
 
-- [ ] **Recovered locally 2026-07-07; awaiting next hosted manual review:** Daily Solo OG deleted draft letters stay deleted after scroll and route re-entry.
+- [x] **Passed in hosted manual review 2026-07-07 after Daily Solo polish recovery:** Daily Solo OG deleted draft letters stay deleted after scroll and route re-entry.
   - Expected: if the user types draft letters in Daily Solo OG, deletes them, scrolls the page, navigates away/back, or returns through normal Solo routing before submitting a guess, the deleted draft letters do not reappear.
   - Suggested steps: open Solo -> Daily -> OG, type a few letters without submitting, delete them, scroll up/down, then navigate away and return to Daily OG. Confirm the active draft row remains empty.
   - Evidence: user hosted/mobile manual review report on 2026-07-07; Codex local recovery and verification recorded in `progress/PROGRESS-STEP-479.md`.
-
-- [ ] **Recovered locally 2026-07-07; awaiting next hosted manual review:** Daily Solo GO settled rows do not replay flip/flash animations on ordinary keyboard input.
-  - Expected: after earlier Daily Solo GO puzzles have solved rows or accumulated carry-forward words above the play area, typing a new guess changes only the active draft row. Previously solved/settled letters should not flip, flash, or replay submission animations on every keyboard touch.
-  - Suggested steps: open Solo -> Daily -> GO after one or more GO-chain puzzles have solved rows, type letters into the current puzzle, and confirm already-settled words stay visually stable.
-  - Evidence: user hosted/mobile manual review report on 2026-07-07; Codex local recovery and verification recorded in `progress/PROGRESS-STEP-479.md`.
-
-- [ ] **Recovered locally 2026-07-07; awaiting next hosted manual review:** GO terminal definitions do not duplicate the final answer definition.
-  - Expected: after completing a GO chain, each solved word's definition appears once in the terminal definitions area. The final solved word should not be repeated in a separate duplicate definition panel below the solved-chain definitions.
-  - Suggested steps: complete or revisit a completed Daily Solo GO chain and inspect the definitions area. Then spot-check Practice Solo GO and, if feasible, completed Practice/Daily Multiplayer GO terminal definitions.
-  - Evidence: user screenshot/manual review report on 2026-07-07; local recovery and verification recorded in `progress/PROGRESS-STEP-482.md`.
 
 - [x] **Passed in hosted manual review 2026-07-07 after cross-browser recovery:** Ordinary Solo navigation no longer auto-scrolls the page during normal route/subtab/mode changes or physical-keyboard play.
   - Expected: opening Solo -> Daily/Practice -> OG/GO leaves page positioning under the user's control; the app does not auto-center the board or keyboard. Auto-scroll remains acceptable when a notification/direct-game handoff explicitly routes the user to a game.
@@ -267,31 +306,38 @@ Codex intentionally did not verify or perform:
   - Suggested steps: run `git status --short --ignored test-results/visual-review/phase-50-review-candidate/` if reviewing locally; confirm artifacts are ignored/local-only.
   - Evidence: `test-results/visual-review/phase-50-review-candidate/manifest.md`; `progress/PROGRESS-STEP-467.md`.
 
+- [ ] **Recovered locally 2026-07-07; awaiting hosted manual review:** Multiplayer focus/refocus does not flash lobby/game lists or subtab counts when switching between signed-in browser windows.
+  - Expected: with two safe signed-in accounts playing or inspecting Practice Multiplayer, switching focus between browser windows does not briefly blank, redraw, or flash all current matches/lobbies, old E2E-hosted games, or transient lobby counts. Overview, Practice Multiplayer, Lobby, and Live should remain visually stable; Daily Multiplayer and Active Games should remain non-regressed.
+  - Suggested steps: use two browsers or browser contexts signed into separate safe accounts, open Multiplayer Overview, Practice Multiplayer, Lobby, Live, Daily Multiplayer, and Active Games, switch focus between windows repeatedly, and confirm no transient content/list/count flash occurs.
+  - Evidence: user manual report on 2026-07-07; same-phase follow-up prompt prepared in `progress/PROGRESS-STEP-483.md`; local recovery and automated verification recorded in `progress/PROGRESS-STEP-484.md`.
+
 ## Optional Nice-To-Check
 
-- [ ] Try browser refresh after completed Practice OG/GO.
-  - Expected: no duplicate rewards; completed UI behavior remains understandable.
-- [ ] Try completed Solo re-entry while signed in with a safe test account.
-  - Expected: guest/account boundaries remain safe and rewards do not duplicate.
-- [ ] Try the Profile account-management section at mobile width.
-  - Expected: buttons remain readable and do not overlap with profile editing controls.
-- [ ] Try HUD-to-Stats navigation at mobile width.
-  - Expected: the HUD action remains accessible and Stats remains scrollable without horizontal overflow.
-- [ ] Review the local-only visual screenshots if available.
+- [x] Review the local-only visual screenshots if available.
   - Expected: each screenshot in `test-results/visual-review/phase-50-review-candidate/manifest.md` visually matches its scenario description.
+- [x] Try HUD-to-Stats navigation at mobile width.
+  - Expected: the HUD action remains accessible and Stats remains scrollable without horizontal overflow.
+- [x] Try the Profile account-management section at mobile width.
+  - Expected: buttons remain readable and do not overlap with profile editing controls.
+- [x] Try completed Solo re-entry while signed in with a safe test account.
+  - Expected: guest/account boundaries remain safe and rewards do not duplicate.
+- [x] Try browser refresh after completed Practice OG/GO.
+  - Expected: no duplicate rewards; completed UI behavior remains understandable.
+- [x] Try past Solo Daily OG/GO coin unlocks.
+  - Expected: spending coins for previous Solo Daily OG/GO puzzles works and does not show the current-day guest/account persistence regressions.
 
 ## Preserved Invariants To Spot-Check
 
-- [ ] Resume slots remain in-progress-only; completed Solo display is restored without turning completed games into resumable active games.
-- [ ] `completedGameIds` remains authoritative for duplicate reward protection.
-- [ ] XP, coins, levels, reward amounts, stats formulas, Daily claims, streak behavior, and progression economy rules remain unchanged.
-- [ ] Daily Solo remains tied to the existing Daily lifecycle; Practice Solo remains controlled by explicit new puzzle/new chain actions.
-- [ ] Progression HUD remains active-scope local/account display only, not a public profile or leaderboard resource surface.
-- [ ] Settings remains the account-management home for password, sync, export, reset, and gated account actions.
-- [ ] Profile public/private data contracts, avatar upload behavior, public profile visibility/moderation, and leaderboard/public identity contracts remain unchanged.
-- [ ] Elo algorithm, scoring, timeout, forfeit, GO transition, solved-row hold, keyboard state, Solo Daily fixed-five behavior, and Practice 2-35 word-length rules remain unchanged.
-- [ ] Daily Multiplayer remains claim-safe, answer-separated, no-clock, UTC-day keyed, five-letter only, and excluded from public/guest spectator discovery.
-- [ ] Phase 40 through Phase 49 public profile, private Practice request, multiplayer reliability, public stats/admin/help, mobile shell, account-boundary, sync, Profile/Settings, Progression HUD, and Focus Mode decisions remain intact.
+- [x] Phase 40 through Phase 49 public profile, private Practice request, multiplayer reliability, public stats/admin/help, mobile shell, account-boundary, sync, Profile/Settings, Progression HUD, and Focus Mode decisions remain intact.
+- [x] Daily Multiplayer remains claim-safe, answer-separated, no-clock, UTC-day keyed, five-letter only, and excluded from public/guest spectator discovery.
+- [x] Elo algorithm, scoring, timeout, forfeit, GO transition, solved-row hold, keyboard state, Solo Daily fixed-five behavior, and Practice 2-35 word-length rules remain unchanged.
+- [x] Profile public/private data contracts, avatar upload behavior, public profile visibility/moderation, and leaderboard/public identity contracts remain unchanged.
+- [x] Settings remains the account-management home for password, sync, export, reset, and gated account actions.
+- [x] Progression HUD remains active-scope local/account display only, not a public profile or leaderboard resource surface.
+- [x] Daily Solo remains tied to the existing Daily lifecycle; Practice Solo remains controlled by explicit new puzzle/new chain actions.
+- [x] XP, coins, levels, reward amounts, stats formulas, Daily claims, streak behavior, and progression economy rules remain unchanged.
+- [x] `completedGameIds` remains authoritative for duplicate reward protection.
+- [x] Resume slots remain in-progress-only; completed Solo display is restored without turning completed games into resumable active games.
 
 ## Known Deferred / Not In Scope
 
@@ -316,8 +362,9 @@ Codex intentionally did not verify or perform:
 
 ## Review Result
 
+- [x] Final acceptance/closure or Final Acceptance Backup has separate explicit authorization after manual review acceptance.
 - [x] Hosted/live manual review attempted on the Phase 50 Review Candidate.
-- [ ] Manual review accepted.
+- [x] Manual review accepted for the current Solo/current-surface checklist items.
 - [x] Failed directly Phase 50-related items have been recorded for same-phase Review Follow-up before final acceptance.
 - [x] User explicitly routed the completion re-entry failures, mobile scroll lag, auto-scroll policy change, and process/autonomy repair into Phase 50 rather than a new phase.
 - [x] Same-phase recovery implementation and automated verification were completed before requesting recovered hosted/live manual review.
@@ -327,4 +374,6 @@ Codex intentionally did not verify or perform:
 - [x] New Daily-only manual-review regressions were recorded for same-phase Review Follow-up before final acceptance.
 - [x] If a Review Candidate Backup was used, it was treated as live/device review access only and not as final Phase 50 closure.
 - [x] GO final-definition duplication was recorded for same-phase Review Follow-up before final acceptance.
-- [ ] Final acceptance/closure or Final Acceptance Backup has separate explicit authorization after manual review acceptance.
+- [x] User routed the multiplayer focus/refocus flash and E2E multiplayer test-lobby cleanup expectations into Phase 50 before final closure.
+- [x] Multiplayer focus/refocus follow-up has been implemented and verified locally.
+- [ ] Multiplayer focus/refocus follow-up has been backed up for hosted/manual review if needed and accepted before final Phase 50 closure.
