@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: GO Definition Deduplication Recovered Locally - Review Candidate Backup Prompt Prepared.
+**Status**: Multiplayer Focus Follow-Up Recovered Locally - Review Candidate Backup Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -10,9 +10,76 @@ Phase 50 attempted to repair the completed Solo re-entry bug reported after Phas
 
 Hosted/live manual review on 2026-07-06 found that the completed Solo Daily/Practice OG/GO repair did not work reliably enough to accept Phase 50. Profile now exposes separated account-management actions for Settings and Sign out while keeping Settings canonical. The Progression HUD now offers an explicit Open Stats action while remaining display-only and active-scope-owned.
 
-Same-phase recovery later on 2026-07-06 repaired the first hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. A later hosted/manual review on 2026-07-07 still found signed-in Daily Solo completion restore failures on mobile browsers, so Phase 50 returned to same-phase Review Follow-up again. The cross-browser recovery added authenticated Daily OG/GO coverage and mobile shell scroll mitigation. The next hosted/manual review found that the major terminal-restore problem appears fixed, but identified two Daily-only regressions: deleted Daily OG draft letters could reappear, and settled Daily GO rows could replay visual animations on keyboard input. The Daily Solo polish follow-up recovered those regressions locally and passed the full local verification gate. A later hosted/manual review found one remaining GO terminal UI polish issue: Solo GO could duplicate the final solved definition panel after chain completion. The GO definition deduplication follow-up recovered that locally, verified Multiplayer GO was not affected, and prepared the next Review Candidate Backup prompt. Phase 50 remains open for hosted/live manual review before final acceptance.
+Same-phase recovery later on 2026-07-06 repaired the first hosted/manual completion failure pattern, added reload-based Playwright coverage, simplified Solo auto-scroll behavior, and reran the full local verification gate. A later hosted/manual review on 2026-07-07 still found signed-in Daily Solo completion restore failures on mobile browsers, so Phase 50 returned to same-phase Review Follow-up again. The cross-browser recovery added authenticated Daily OG/GO coverage and mobile shell scroll mitigation. The next hosted/manual review found that the major terminal-restore problem appears fixed, but identified two Daily-only regressions: deleted Daily OG draft letters could reappear, and settled Daily GO rows could replay visual animations on keyboard input. The Daily Solo polish follow-up recovered those regressions locally and passed the full local verification gate. A later hosted/manual review found one remaining GO terminal UI polish issue: Solo GO could duplicate the final solved definition panel after chain completion. The GO definition deduplication follow-up recovered that locally, verified Multiplayer GO was not affected, and was backed up for hosted/live review. The user then reported that the current manual checklist items pass, including the guest versus signed-in Solo persistence behavior and past Solo Daily coin-unlock behavior. The multiplayer-only focus/refocus flash follow-up preserved the accepted Solo behavior, fixed same-account progress-hydration multiplayer state flicker, added two-client E2E coverage, hardened E2E multiplayer row cleanup, and passed the full local verification gate. Phase 50 remains open for a recovered Review Candidate Backup and hosted/live manual review before final acceptance.
 
-No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, multiplayer feature change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed in this GO definition follow-up implementation pass.
+No storage schema, cloud progress contract, Supabase migration, RLS/RPC/table/bucket change, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, Git/GitHub action, backup workflow, release, merge, or stable `brrrdle` repository work was performed in this multiplayer focus follow-up implementation pass.
+
+## Multiplayer Focus Follow-Up Implementation - 2026-07-07
+
+Root cause:
+
+- Authenticated focus/visibility refresh hydrates the signed-in account progress blob.
+- The progress blob can contain stale or empty cached multiplayer state, while signed-in async multiplayer games are actually owned by the Supabase multiplayer repository.
+- Before this follow-up, same-account progress hydration could temporarily replace the visible multiplayer state with the progress-cache state until the async multiplayer repository reloaded, producing a brief multiplayer list/count flash when switching focus between signed-in browser windows.
+
+Implemented:
+
+- Added a scoped progress/multiplayer state selection helper so same signed-in-account progress hydration preserves the currently visible async multiplayer state.
+- Kept identity changes safe: switching accounts or returning to guest scope still uses the next scoped progress state rather than leaking the previous account's multiplayer rows.
+- Trimmed multiplayer subscription/focus-refresh effect dependencies to avoid unnecessary resubscribe/reload churn on auth-object, subtab, or selected-game-only changes.
+- Kept previous Live spectator rows visible when a transient live spectator refresh fails instead of clearing rows and flashing counts to zero.
+- Added a real two-client Playwright regression that signs in two temporary users, opens and joins a Practice Multiplayer OG match, switches focus between pages, and records any active-game empty-state/count flashes.
+- Hardened E2E cleanup so temporary multiplayer rows involving E2E users are checked after deletion; cleanup now fails loudly if any matching temporary rows remain.
+
+Solo persistence hardening:
+
+- Re-ran the full Solo completion re-entry Playwright file.
+- Confirmed Daily OG deleted-draft stability, Daily GO settled-row animation stability, Practice OG/GO terminal re-entry, Daily OG/GO terminal re-entry, and authenticated Daily OG/GO reload/account-hydration persistence remain covered and passing.
+
+Verification:
+
+- Pre-fix focused regression failed for same-account progress hydration selecting stale cached multiplayer state.
+- Post-fix focused regression passed.
+- New focused two-client multiplayer focus/refocus Playwright spec passed.
+- Focused Solo completion re-entry Playwright spec passed: 7 tests.
+- `npx tsc -p tsconfig.app.json --noEmit` passed.
+- `npm run lint` passed.
+- `npm run test`: 128 files, 891 tests passed.
+- `npm run test:e2e`: 45 tests passed.
+- `npm run build` passed with the existing Vite large-chunk advisory.
+- `npx tsc -p tsconfig.api.json --noEmit` passed.
+
+Next action prepared:
+
+- Create a recovered Review Candidate Backup prompt so the locally recovered multiplayer focus follow-up can be backed up for hosted/live manual review while keeping Phase 50 open.
+
+## Hosted Manual Review Pass And Multiplayer Focus Follow-Up Prompt - 2026-07-07
+
+Passed by user manual review:
+
+- Current guest versus signed-in Solo progress, completion persistence, and lack-of-cross-scope persistence now work as intended.
+- Completed Solo final guesses, all-green rows, definitions, and end-game screens persist after refresh and navigation re-entry.
+- Daily Solo OG deleted draft letters stay deleted after scroll and route re-entry.
+- Daily Solo GO settled rows no longer flash/replay on ordinary keyboard input.
+- GO terminal definitions no longer duplicate the final solved answer definition.
+- Past Solo Daily OG/GO coin unlocks appear to work correctly.
+
+New same-phase follow-up recorded:
+
+- Multiplayer surfaces can flash or briefly redraw content when focus switches between two signed-in browser/account windows during multiplayer testing.
+- The user observed the issue on Multiplayer Overview, Practice Multiplayer, Lobby, and Live subtab count display.
+- The user did not observe the issue on Daily Multiplayer, Active Games, or Solo surfaces.
+- Old E2E-hosted practice multiplayer games can be visible in some browsers; the next follow-up should audit cleanup so test lobbies/games are closed or safely cleaned up by final Phase 50 closure.
+
+Next action prepared:
+
+- Created an ignored local prompt package for a bounded same-phase follow-up that preserves the now-good Solo persistence state with hardened regression coverage, reproduces and fixes the multiplayer focus/refocus flash as narrowly as possible, audits E2E multiplayer lobby cleanup, updates progress, and returns Phase 50 to Review Candidate.
+- The prompt includes placeholder-only optional current Daily solution inputs for future real Daily Solo OG/GO E2E/manual-test assistance. Raw answers, credentials, secrets, and private account data must remain out of tracked files, reports, screenshots, logs, and final responses.
+
+Still pending:
+
+- The multiplayer focus/refocus follow-up implementation, verification, and any subsequent Review Candidate Backup for hosted/live review remain separately authorized future actions.
+- Final Phase 50 acceptance/closure and any Final Acceptance Backup remain separately authorized future actions.
 
 ## GO Definition Deduplication Follow-Up Update - 2026-07-07
 

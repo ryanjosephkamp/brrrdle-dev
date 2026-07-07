@@ -45,7 +45,6 @@ import {
   MULTIPLAYER_PROVISIONAL_GAMES,
   MULTIPLAYER_PROVISIONAL_K,
   createLocalStorageMultiplayerRepository,
-  createEmptyMultiplayerState,
   loadAuthenticatedLiveSpectatorRows,
   loadPublicLiveSpectatorRows,
   createMultiplayerProfileSummary,
@@ -75,6 +74,7 @@ import { HistoryWorkspace } from '../history/HistoryWorkspace'
 import { SoloWorkspace } from '../solo/SoloWorkspace'
 import { isSoloActiveGameKey, type SoloActiveGameKey, type SoloMode, type SoloScope } from '../solo/soloViewModels'
 import { createRouteAttentionMap, createWorkspaceAttentionMap, type WorkspaceAttentionMap } from './attentionViewModels'
+import { selectScopedProgressMultiplayerState } from './scopedProgressMultiplayerState'
 import {
   areBrowserNavigationViewStatesEqual,
   createBrowserNavigationViewState,
@@ -1066,6 +1066,7 @@ function AppInner() {
   const browserNavigationPopstateRef = useRef(false)
   const lastBrowserNavigationViewStateRef = useRef<BrowserNavigationViewState | undefined>(undefined)
   const guestProgressRef = useRef(guestProgress)
+  const multiplayerRef = useRef(multiplayer)
   const authStateRef = useRef(authState)
   const activeProgressScopeRef = useRef<ActiveProgressScope>(activeProgressScope)
   const authHydrationRequestRef = useRef(0)
@@ -1085,12 +1086,19 @@ function AppInner() {
     }
   }, [])
   const applyScopedProgress = useCallback((progress: GuestProgressState, scope: ActiveProgressScope) => {
+    const nextMultiplayerState = selectScopedProgressMultiplayerState({
+      currentMultiplayerState: multiplayerRef.current,
+      currentScope: activeProgressScopeRef.current,
+      nextProgress: progress,
+      nextScope: scope,
+    })
     activeProgressScopeRef.current = scope
     setActiveProgressScope(scope)
     setCompletedSoloSlots(loadSoloCompletionDisplaySlots(getProgressOwnerKey(scope)))
     guestProgressRef.current = progress
     setGuestProgress(progress)
-    setMultiplayer(progress.multiplayer ?? createEmptyMultiplayerState())
+    multiplayerRef.current = nextMultiplayerState
+    setMultiplayer(nextMultiplayerState)
     if (shouldPersistProgressToGuestStorage(scope)) {
       saveGuestProgress(progress)
     }
@@ -2237,6 +2245,10 @@ function AppInner() {
     guestProgressRef.current = guestProgress
   }, [guestProgress])
 
+  useEffect(() => {
+    multiplayerRef.current = multiplayer
+  }, [multiplayer])
+
   useEffect(() => () => {
     if (authenticatedProgressSyncTimeoutRef.current) {
       clearTimeout(authenticatedProgressSyncTimeoutRef.current)
@@ -2294,7 +2306,7 @@ function AppInner() {
       isActive = false
       unsubscribe()
     }
-  }, [applyRemoteMultiplayerSnapshot, authState, multiplayerRepository])
+  }, [applyRemoteMultiplayerSnapshot, multiplayerRepository])
 
   useEffect(() => {
     if (activeRouteId !== 'multiplayer') {
@@ -2344,7 +2356,7 @@ function AppInner() {
         window.removeEventListener('focus', refresh)
       }
     }
-  }, [activeRouteId, applyRemoteMultiplayerSnapshot, multiplayerRepository, multiplayerSubtab, selectedMultiplayerGameId])
+  }, [activeRouteId, applyRemoteMultiplayerSnapshot, multiplayerRepository])
 
   useEffect(() => {
     if (!supabaseClient) {
@@ -2373,11 +2385,7 @@ function AppInner() {
             setLiveSpectatorRows(rows)
           }
         })
-        .catch(() => {
-          if (isActive) {
-            setLiveSpectatorRows([])
-          }
-        })
+        .catch(() => undefined)
         .finally(() => {
           inFlight = false
         })

@@ -5,6 +5,7 @@ import {
   deletePrivateMatchRequestsForUsers,
   deleteRankedQueueRowsForUsers,
   deleteRankedRatingRowsForUsers,
+  fetchMultiplayerRowsForUsers,
   fetchStaleE2eUsers,
 } from './supabaseAdmin'
 
@@ -30,6 +31,10 @@ export async function cleanupE2eRun(users: readonly E2eUser[]): Promise<CleanupS
   const rankedQueueRowsDeleted = await deleteRankedQueueRowsForUsers(userIds)
   const rankedRatingRowsDeleted = await deleteRankedRatingRowsForUsers(userIds)
   const multiplayerRowsDeleted = await deleteMultiplayerRowsForUsers(userIds)
+  const remainingMultiplayerRows = await fetchMultiplayerRowsForUsers(userIds)
+  if (remainingMultiplayerRows.length > 0) {
+    throw new Error(`Temporary multiplayer cleanup left ${remainingMultiplayerRows.length} row(s) for E2E users.`)
+  }
   let usersDeleted = 0
   for (const user of users) {
     await deleteE2eUser(user)
