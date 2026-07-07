@@ -38,6 +38,10 @@ function submitGoWord(session: ReturnType<typeof createGoSession>, word: string)
   return submitGoGuess([...word].reduce((currentSession, letter) => enterGoLetter(currentSession, letter), session))
 }
 
+function countDefinitionPanels(html: string): number {
+  return html.match(/>Definitions</g)?.length ?? 0
+}
+
 function createStartedPracticeOgSession(): SerializedOgSession {
   const setup = createPracticeOgSetup(5, 0, DEFAULT_DIFFICULTY_TIER)
   const session = submitOgWord(createOgSession(setup), findWrongGuess(setup.validGuesses, setup.answer))
@@ -50,6 +54,13 @@ function createStartedPracticeGoSession(): SerializedGoSession {
   const activeAnswer = setup.puzzles[0]?.answer ?? ''
   const session = submitGoWord(createGoSession(setup), findWrongGuess(setup.validGuesses, activeAnswer))
   expect(session.status).toBe('playing')
+  return serializeGoSession(session)
+}
+
+function createCompletedPracticeGoSession(): SerializedGoSession {
+  const setup = createPracticeGoSetup(5, 0, DEFAULT_DIFFICULTY_TIER, 5)
+  const session = setup.puzzles.reduce((currentSession, puzzle) => submitGoWord(currentSession, puzzle.answer), createGoSession(setup))
+  expect(session.status).toBe('won')
   return serializeGoSession(session)
 }
 
@@ -106,6 +117,32 @@ describe('Practice Solo account boundaries', () => {
     )
 
     expect(html).toContain('5 attempts remaining.')
+  })
+
+  it('renders each completed Practice GO answer definition once after restore', () => {
+    const completed = createCompletedPracticeGoSession()
+
+    const html = renderToStaticMarkup(
+      <GoGame
+        coins={0}
+        initialResume={{
+          difficulty: DEFAULT_DIFFICULTY_TIER,
+          goPuzzleCount: 5,
+          mode: 'go',
+          scope: 'practice',
+          serializedSession: completed,
+          updatedAt: '2026-07-05T12:00:02.000Z',
+          wordLength: 5,
+        }}
+        keyboardDisabled
+        onSpendCoins={spendNothing}
+        progressOwnerKey="account:one"
+        scope="practice"
+      />,
+    )
+
+    expect(html).toContain('Solved puzzle definitions')
+    expect(countDefinitionPanels(html)).toBe(completed.puzzles.length)
   })
 
   it('starts Practice GO fresh when the active owner has no scoped resume slot', () => {

@@ -1,6 +1,6 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Daily Solo polish recovered locally - Review Candidate Backup prompt prepared.
+**Status**: GO definition deduplication recovered locally - Review Candidate backup prompt prepared.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
@@ -126,6 +126,29 @@ Recovery verification:
 
 The Daily-only boxes below remain unchecked until the next hosted/live Review Candidate is backed up and manually reviewed.
 
+## GO Definition Deduplication Local Recovery - 2026-07-07
+
+Codex locally recovered the GO terminal definition duplication finding:
+
+- Daily Solo GO and Practice Solo GO were both affected by the shared Solo `GoGame` render path.
+- Pre-fix regression coverage reproduced six `Definitions` panels for a five-puzzle completed Solo GO chain in both Daily and Practice scopes.
+- The source fix prevents the separate terminal current-puzzle definition panel from rendering when that answer is already present in the solved GO-chain definition list.
+- Multiplayer GO was audited through component coverage and rendered one terminal answer/definition section with one `Definitions` panel per answer for both Practice and Daily scopes.
+- Focused component and affected Solo browser coverage passed locally.
+
+The GO definition item below remains unchecked until the next hosted/live Review Candidate is backed up and manually reviewed on the user's devices.
+
+## GO Definition Deduplication Finding - 2026-07-07
+
+Manual review of the hosted/live Daily Solo polish Review Candidate found one remaining targeted GO terminal UI issue:
+
+- Daily Solo GO can show the final solution definition twice: once inside the solved GO-chain definitions list and again as a separate final answer definition panel below that list.
+- The user supplied screenshot evidence showing the final answer definition repeated after the all-solved definition cards.
+- Codex source inspection found that Solo `GoGame` currently renders a solved-puzzle definitions list and also renders a separate end-state `DefinitionPanel` for the current puzzle answer, which is a plausible root cause for the observed duplicate final answer panel.
+- Multiplayer GO currently appears to use one terminal answer/definitions section, but the follow-up prompt must audit and verify Practice Solo GO and Multiplayer GO rather than assuming they are unaffected.
+
+This remains inside Phase 50 as directly related Manual Review Window polish. It is not final Phase 50 acceptance.
+
 ## How To Use
 
 - Use a safe development/test environment with non-production accounts.
@@ -160,6 +183,7 @@ Automated proof completed:
 - Full Playwright E2E suite after cross-browser recovery: clean rerun passed 42 tests.
 - Focused Solo completion re-entry suite passed in Chromium, Firefox, WebKit, and mobile Chromium emulation.
 - Focused signed-in Daily OG/GO regression reproduced the old hosted candidate failure before the local source repair.
+- Focused GO definition deduplication coverage reproduced the Solo GO duplicate definition bug before the local source repair, then passed for Daily Solo GO, Practice Solo GO, and Multiplayer GO after repair.
 - Production build and API typecheck.
 - Local-only visual handoff review under `test-results/visual-review/phase-50-review-candidate/`.
 - Repository hygiene checks recorded in `progress/PROGRESS-STEP-467.md`.
@@ -207,6 +231,11 @@ Codex intentionally did not verify or perform:
   - Expected: after earlier Daily Solo GO puzzles have solved rows or accumulated carry-forward words above the play area, typing a new guess changes only the active draft row. Previously solved/settled letters should not flip, flash, or replay submission animations on every keyboard touch.
   - Suggested steps: open Solo -> Daily -> GO after one or more GO-chain puzzles have solved rows, type letters into the current puzzle, and confirm already-settled words stay visually stable.
   - Evidence: user hosted/mobile manual review report on 2026-07-07; Codex local recovery and verification recorded in `progress/PROGRESS-STEP-479.md`.
+
+- [ ] **Recovered locally 2026-07-07; awaiting next hosted manual review:** GO terminal definitions do not duplicate the final answer definition.
+  - Expected: after completing a GO chain, each solved word's definition appears once in the terminal definitions area. The final solved word should not be repeated in a separate duplicate definition panel below the solved-chain definitions.
+  - Suggested steps: complete or revisit a completed Daily Solo GO chain and inspect the definitions area. Then spot-check Practice Solo GO and, if feasible, completed Practice/Daily Multiplayer GO terminal definitions.
+  - Evidence: user screenshot/manual review report on 2026-07-07; local recovery and verification recorded in `progress/PROGRESS-STEP-482.md`.
 
 - [x] **Passed in hosted manual review 2026-07-07 after cross-browser recovery:** Ordinary Solo navigation no longer auto-scrolls the page during normal route/subtab/mode changes or physical-keyboard play.
   - Expected: opening Solo -> Daily/Practice -> OG/GO leaves page positioning under the user's control; the app does not auto-center the board or keyboard. Auto-scroll remains acceptable when a notification/direct-game handoff explicitly routes the user to a game.
@@ -297,4 +326,5 @@ Codex intentionally did not verify or perform:
 - [x] Cross-browser recovered hosted/live manual review found the major Solo completion terminal-restore issue resolved.
 - [x] New Daily-only manual-review regressions were recorded for same-phase Review Follow-up before final acceptance.
 - [x] If a Review Candidate Backup was used, it was treated as live/device review access only and not as final Phase 50 closure.
+- [x] GO final-definition duplication was recorded for same-phase Review Follow-up before final acceptance.
 - [ ] Final acceptance/closure or Final Acceptance Backup has separate explicit authorization after manual review acceptance.

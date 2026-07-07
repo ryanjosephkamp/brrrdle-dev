@@ -257,6 +257,7 @@ function GoGameSession({
   const canReveal = scope === 'practice' && session.status === 'playing' && !isSolvedTransitionActive && currentPuzzle.guesses.length > 0
   const showEndState = endStateRevealed && !isSolvedTransitionActive
   const solvedPuzzles = showEndState ? session.puzzles.filter((puzzle) => puzzle.status === 'won') : []
+  const showCurrentPuzzleDefinition = showEndState && !solvedPuzzles.some((puzzle) => puzzle.answer === currentPuzzle.answer)
   const customizeLocked = hasSubmittedGoGuess(session, setup)
   const hardModeLocked = scope === 'practice'
     ? customizeLocked
@@ -580,7 +581,7 @@ function GoGameSession({
         ) : null}
 
         <DefinitionPanel
-          enabled={showEndState}
+          enabled={showCurrentPuzzleDefinition}
           mode="go"
           scope={scope}
           word={currentPuzzle.answer}
