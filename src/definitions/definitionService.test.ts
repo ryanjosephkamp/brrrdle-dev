@@ -18,31 +18,33 @@ describe('definition service', () => {
     expect(fetcher).not.toHaveBeenCalled()
   })
 
-  it('uses Dictionary API when bundled definitions are absent', async () => {
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse([
-      { meanings: [{ partOfSpeech: 'adjective', definitions: [{ definition: 'Quick and active.' }] }] },
-    ]))
-
-    const result = await lookupDefinitions({ mode: 'og', scope: 'daily', word: 'brisk', wordLength: 5 }, { fetcher })
-
-    expect(result.ok).toBe(true)
-    if (result.ok) {
-      expect(result.source).toBe('dictionary-api')
-      expect(result.definitions).toEqual([{ definition: 'Quick and active.', partOfSpeech: 'adjective', source: 'dictionary-api' }])
-    }
-  })
-
-  it('falls back to Wiktionary after Dictionary API failures or empty results', async () => {
-    const fetcher = vi.fn<typeof fetch>()
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse({ en: [{ partOfSpeech: 'noun', definitions: [{ definition: '<b>A test word.</b>' }] }] }))
+  it('uses Wiktionary when bundled definitions are absent', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+      en: [{ partOfSpeech: 'adjective', definitions: [{ definition: '<b>Quick and active.</b>' }] }],
+    }))
 
     const result = await lookupDefinitions({ mode: 'og', scope: 'daily', word: 'brisk', wordLength: 5 }, { fetcher })
 
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.source).toBe('wiktionary')
-      expect(result.definitions).toEqual([{ definition: 'A test word.', partOfSpeech: 'noun', source: 'wiktionary' }])
+      expect(result.definitions).toEqual([{ definition: 'Quick and active.', partOfSpeech: 'adjective', source: 'wiktionary' }])
+    }
+  })
+
+  it('falls back to Dictionary API after Wiktionary failures or empty results', async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ en: [] }))
+      .mockResolvedValueOnce(jsonResponse([
+        { meanings: [{ partOfSpeech: 'noun', definitions: [{ definition: 'A test word.' }] }] },
+      ]))
+
+    const result = await lookupDefinitions({ mode: 'og', scope: 'daily', word: 'brisk', wordLength: 5 }, { fetcher })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.source).toBe('dictionary-api')
+      expect(result.definitions).toEqual([{ definition: 'A test word.', partOfSpeech: 'noun', source: 'dictionary-api' }])
     }
   })
 

@@ -1,5 +1,5 @@
-import { expect, test, type Locator } from '@playwright/test'
-import { createDailyGoSetup, createPracticeGoSetup, createPracticeOgSetup } from '../../src/game'
+import { expect, test, type Page } from '@playwright/test'
+import { createPracticeOgSetup } from '../../src/game'
 import {
   collectScrollDiagnostics,
   expectLocatorCenterNotCovered,
@@ -9,7 +9,7 @@ import {
   expectPageCanScrollVertically,
   installConsoleGuards,
 } from '../fixtures/assertions'
-import { chooseSoloPracticeMode, navigateToSoloPractice, submitSoloGuessWithKeyboard } from '../fixtures/gameActions'
+import { chooseSoloPracticeMode, navigateToSoloPractice } from '../fixtures/gameActions'
 
 const MOBILE_VIEWPORT = { height: 844, width: 390 } as const
 
@@ -42,38 +42,27 @@ function getWrongPracticeOgGuess(): string {
   return guess
 }
 
-function getWrongPracticeGoGuess(): string {
-  const setup = createPracticeGoSetup(5, 0)
-  const answer = setup.puzzles[0]?.answer
-  const guess = [...setup.validGuesses].find((candidate) => candidate !== answer)
-  if (!guess) {
-    throw new Error('Practice GO fixture did not include a wrong valid guess.')
-  }
-  return guess
+async function installScrollIntoViewCounter(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const win = window as Window & {
+      __brrrdleOriginalScrollIntoView?: Element['scrollIntoView']
+      __brrrdleScrollIntoViewCalls?: number
+    }
+    if (!win.__brrrdleOriginalScrollIntoView) {
+      win.__brrrdleOriginalScrollIntoView = Element.prototype.scrollIntoView
+      Element.prototype.scrollIntoView = function scrollIntoViewCounter(...args: Parameters<Element['scrollIntoView']>) {
+        win.__brrrdleScrollIntoViewCalls = (win.__brrrdleScrollIntoViewCalls ?? 0) + 1
+        return win.__brrrdleOriginalScrollIntoView!.apply(this, args)
+      }
+    }
+    win.__brrrdleScrollIntoViewCalls = 0
+  })
 }
 
-function getWrongDailyGoGuess(): string {
-  const setup = createDailyGoSetup()
-  const answer = setup.puzzles[0]?.answer
-  const guess = [...setup.validGuesses].find((candidate) => candidate !== answer)
-  if (!guess) {
-    throw new Error('Daily GO fixture did not include a wrong valid guess.')
-  }
-  return guess
-}
-
-async function expectKeyboardBottomClearance(keyboard: Locator, minimumGapPx = 8): Promise<void> {
-  await expect(keyboard).toBeVisible()
-  await expect.poll(async () => {
-    return keyboard.evaluate((element) => {
-      const rect = element.getBoundingClientRect()
-      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
-      return Math.floor(viewportHeight - rect.bottom)
-    })
-  }, {
-    message: 'mobile solo keyboard bottom should not be clipped',
-    timeout: 3_000,
-  }).toBeGreaterThanOrEqual(minimumGapPx)
+async function expectNoAppScrollIntoView(page: Page): Promise<void> {
+  await page.waitForTimeout(120)
+  const calls = await page.evaluate(() => (window as Window & { __brrrdleScrollIntoViewCalls?: number }).__brrrdleScrollIntoViewCalls ?? 0)
+  expect(calls, 'ordinary Solo navigation should not call scrollIntoView').toBe(0)
 }
 
 test('progression HUD opens the existing Stats route @layout', async ({ page }) => {
@@ -122,41 +111,25 @@ test.describe('mobile scroll and layout regression harness @layout', () => {
     })
   }
 
-  test('Solo Practice OG keeps submitted-row context and keyboard visible after the first valid guess', async ({ page }) => {
+  test('ordinary Solo Practice OG navigation does not auto-scroll to the game surface', async ({ page }) => {
     const consoleFailures = installConsoleGuards(page)
     await page.goto('/')
-    await navigateToSoloPractice(page)
-    await chooseSoloPracticeMode(page, 'og')
-
-    await submitSoloGuessWithKeyboard(page, /Practice og puzzle/i, getWrongPracticeOgGuess())
-
-    const soloRegion = page.getByRole('region', { name: /Practice og puzzle/i })
-    const submittedTile = soloRegion.getByRole('gridcell', { name: /^Row 1, tile 1,/i })
-    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
-    await expect(soloRegion.getByText(/5 attempts remaining/i)).toBeVisible()
-    await expect(submittedTile).toBeInViewport({ ratio: 0.4 })
-    await expectKeyboardBottomClearance(keyboard)
-    await expectNoHorizontalOverflow(page)
-    await expectNoConsoleFailures(consoleFailures)
-  })
-
-  test('Solo Practice OG keeps the keyboard visible before the first valid guess', async ({ page }) => {
-    const consoleFailures = installConsoleGuards(page)
-    await page.goto('/')
+    await installScrollIntoViewCounter(page)
     await navigateToSoloPractice(page)
     await chooseSoloPracticeMode(page, 'og')
 
     const soloRegion = page.getByRole('region', { name: /Practice og puzzle/i })
-    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
     await expect(soloRegion.getByText(/6 attempts remaining/i)).toBeVisible()
-    await expectKeyboardBottomClearance(keyboard)
+    await expectNoAppScrollIntoView(page)
+    await expectPageCanScrollToEnd(page)
     await expectNoHorizontalOverflow(page)
     await expectNoConsoleFailures(consoleFailures)
   })
 
-  test('Solo Daily GO keeps the keyboard visible before the first valid guess', async ({ page }) => {
+  test('ordinary Solo Daily GO navigation does not auto-scroll to the game surface', async ({ page }) => {
     const consoleFailures = installConsoleGuards(page)
     await page.goto('/')
+    await installScrollIntoViewCounter(page)
     await page.getByRole('button', { name: /^Solo$/i }).click()
     await expect(page.locator('#solo-workspace-title')).toBeVisible()
     await page.getByRole('tab', { name: /^Daily Solo$/i }).click()
@@ -164,66 +137,26 @@ test.describe('mobile scroll and layout regression harness @layout', () => {
     await modeGroup.getByRole('button', { name: /^GO$/i }).click()
 
     const soloRegion = page.getByRole('region', { name: /Daily go chain/i })
-    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
     await expect(soloRegion.getByText(/6 attempts remaining/i)).toBeVisible()
-    await expectKeyboardBottomClearance(keyboard)
+    await expectNoAppScrollIntoView(page)
+    await expectPageCanScrollToEnd(page)
     await expectNoHorizontalOverflow(page)
     await expectNoConsoleFailures(consoleFailures)
   })
 
-  test('Solo Practice GO keeps the keyboard visible after starting a new chain', async ({ page }) => {
+  test('Solo Practice OG physical-keyboard submission does not auto-scroll the page', async ({ page }) => {
     const consoleFailures = installConsoleGuards(page)
     await page.goto('/')
     await navigateToSoloPractice(page)
-    await chooseSoloPracticeMode(page, 'go')
+    await chooseSoloPracticeMode(page, 'og')
+    await installScrollIntoViewCounter(page)
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.keyboard.type(getWrongPracticeOgGuess())
+    await page.keyboard.press('Enter')
 
-    await page.getByRole('button', { name: /^New go chain$/i }).click()
-
-    const soloRegion = page.getByRole('region', { name: /Practice go chain/i })
-    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
-    await expect(soloRegion.getByText(/6 attempts remaining/i)).toBeVisible()
-    await expectKeyboardBottomClearance(keyboard)
-    await expectNoHorizontalOverflow(page)
-    await expectNoConsoleFailures(consoleFailures)
-  })
-
-  test('Solo Daily GO keeps the keyboard visible when re-entering after a submitted guess', async ({ page }) => {
-    const consoleFailures = installConsoleGuards(page)
-    await page.goto('/')
-    await page.getByRole('button', { name: /^Solo$/i }).click()
-    await expect(page.locator('#solo-workspace-title')).toBeVisible()
-    await page.getByRole('tab', { name: /^Daily Solo$/i }).click()
-    const modeGroup = page.getByRole('group', { name: /^Daily Solo mode$/i })
-    await modeGroup.getByRole('button', { name: /^GO$/i }).click()
-
-    await submitSoloGuessWithKeyboard(page, /Daily go chain/i, getWrongDailyGoGuess())
-    await page.getByRole('tab', { name: /^Overview$/i }).click()
-    await page.getByRole('tab', { name: /^Daily Solo$/i }).click()
-    await modeGroup.getByRole('button', { name: /^GO$/i }).click()
-
-    const soloRegion = page.getByRole('region', { name: /Daily go chain/i })
-    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
+    const soloRegion = page.getByRole('region', { name: /Practice og puzzle/i })
     await expect(soloRegion.getByText(/5 attempts remaining/i)).toBeVisible()
-    await expectKeyboardBottomClearance(keyboard)
-    await expectNoHorizontalOverflow(page)
-    await expectNoConsoleFailures(consoleFailures)
-  })
-
-  test('Solo Practice GO keeps the keyboard visible when re-entering after a submitted guess', async ({ page }) => {
-    const consoleFailures = installConsoleGuards(page)
-    await page.goto('/')
-    await navigateToSoloPractice(page)
-    await chooseSoloPracticeMode(page, 'go')
-
-    await submitSoloGuessWithKeyboard(page, /Practice go chain/i, getWrongPracticeGoGuess())
-    await page.getByRole('tab', { name: /^Overview$/i }).click()
-    await page.getByRole('tab', { name: /^Practice Solo$/i }).click()
-    await chooseSoloPracticeMode(page, 'go')
-
-    const soloRegion = page.getByRole('region', { name: /Practice go chain/i })
-    const keyboard = soloRegion.getByRole('region', { name: /^Keyboard$/i })
-    await expect(soloRegion.getByText(/5 attempts remaining/i)).toBeVisible()
-    await expectKeyboardBottomClearance(keyboard)
+    await expectNoAppScrollIntoView(page)
     await expectNoHorizontalOverflow(page)
     await expectNoConsoleFailures(consoleFailures)
   })

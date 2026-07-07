@@ -30,7 +30,6 @@ import { Button, Keyboard, Panel, ShareButton } from '../../ui'
 import { classNames } from '../../ui/classNames'
 import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } from '../gameplayAutoCenter'
 import { CustomizeMenu } from './CustomizeMenu'
-import { scheduleSoloKeyboardAutoCenter, scheduleSoloKeyboardEntryAutoCenter } from './soloGameplayAutoCenter'
 import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
 
 interface OgGameProps {
@@ -208,7 +207,6 @@ function OgGameSession({
   })
   const suppressInitialCompletionReportRef = useRef(Boolean(restoreFrom) && session.status !== 'playing')
   const [continuationMessage, setContinuationMessage] = useState<string>()
-  const previousSubmittedGuessCountRef = useRef<number | undefined>(undefined)
   const completionPercentage = getCompletionPercentage(session)
   const continuationCost = calculatePayToContinueCost({
     completionPercentage,
@@ -249,16 +247,6 @@ function OgGameSession({
       wordLength: session.wordLength,
     })
   }, [difficulty, onResumeCapture, scope, session])
-
-  useEffect(() => {
-    const previousSubmittedGuessCount = previousSubmittedGuessCountRef.current
-    previousSubmittedGuessCountRef.current = session.guesses.length
-    scheduleSoloKeyboardAutoCenter(previousSubmittedGuessCount, session.guesses.length)
-  }, [session.guesses.length])
-
-  useEffect(() => {
-    scheduleSoloKeyboardEntryAutoCenter(session.status === 'playing')
-  }, [session.guesses.length, session.status])
 
   useEffect(() => {
     if (session.status === 'playing') {

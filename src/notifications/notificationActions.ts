@@ -74,5 +74,5 @@ export function activateNotificationItem(
   },
 ): void {
   markNotificationItemRead(item, options.updateMetadata, options.now)
-  dispatchDashboardAction(item.actionTarget, options.dashboardHandlers)
+  dispatchDashboardAction(item.actionTarget, options.dashboardHandlers, { autoCenterSoloGame: true })
 }

@@ -14,6 +14,8 @@ import {
   isOgSessionInProgress,
   isOgSessionWon,
   mergeResumeSlots,
+  normalizeCompletedSoloDisplaySlot,
+  normalizeCompletedSoloDisplaySlots,
   normalizeResumeSlot,
   normalizeResumeSlots,
   type ResumeCapture,
@@ -103,6 +105,37 @@ describe('resume slot model', () => {
     expect(isCaptureComplete(capture)).toBe(true)
     expect(isCaptureInProgress(capture)).toBe(false)
     expect(normalizeResumeSlot(slot)).toBeUndefined()
+  })
+
+  it('normalizes completed display slots separately from resumable slots', () => {
+    const practiceOg = createResumeSlot({ difficulty: 'expert', mode: 'og', scope: 'practice', serializedSession: ogSession({ guesses: ['crane'] }), wordLength: 5 }, '2026-07-06T00:00:00.000Z')
+    const dailyGo = createResumeSlot({
+      difficulty: 'expert',
+      goPuzzleCount: 5,
+      mode: 'go',
+      scope: 'daily',
+      serializedSession: goSession({
+        currentPuzzleIndex: 1,
+        priorAnswers: ['crane'],
+        puzzles: [
+          { answer: 'crane', continuationCount: 0, currentGuess: '', guesses: ['crane'], maxAttempts: 6, prefilledGuesses: [] },
+          { answer: 'plumb', continuationCount: 0, currentGuess: '', guesses: ['plumb'], maxAttempts: 6, prefilledGuesses: ['crane'] },
+        ],
+      }),
+      wordLength: 5,
+    }, '2026-07-06T00:01:00.000Z')
+    const inProgress = createResumeSlot({ difficulty: 'expert', mode: 'og', scope: 'daily', serializedSession: ogSession({ currentGuess: 'cr' }), wordLength: 5 }, '2026-07-06T00:02:00.000Z')
+
+    expect(normalizeCompletedSoloDisplaySlot(practiceOg)).toEqual(practiceOg)
+    expect(normalizeCompletedSoloDisplaySlot(inProgress)).toBeUndefined()
+    expect(normalizeCompletedSoloDisplaySlots({
+      'daily-go': dailyGo,
+      'daily-og': inProgress,
+      'practice-og': practiceOg,
+    })).toEqual({
+      'daily-go': dailyGo,
+      'practice-og': practiceOg,
+    })
   })
 
   it('round-trips a valid og slot through normalization', () => {

@@ -9,19 +9,24 @@ export interface DashboardActionHandlers {
   readonly onResumeMultiplayerGame?: (id: string) => boolean | void
   readonly onSelectMultiplayerGame: (id: string) => void
   readonly onSelectRoute: (routeId: AppRouteId) => void
-  readonly onSelectSoloGame: (key: SoloActiveGameKey) => void
+  readonly onSelectSoloGame: (key: SoloActiveGameKey, options?: { readonly autoCenter?: boolean }) => void
   readonly onSoloSubtabChange: (subtab: SoloSubtabId) => void
+}
+
+export interface DashboardActionDispatchOptions {
+  readonly autoCenterSoloGame?: boolean
 }
 
 export function dispatchDashboardAction(
   target: DashboardActionTarget,
   handlers: DashboardActionHandlers,
+  options: DashboardActionDispatchOptions = {},
 ): void {
   if (target.routeId === 'solo') {
     handlers.onSelectRoute('solo')
     handlers.onSoloSubtabChange(target.soloSubtab)
     if (target.selectedSoloGameKey) {
-      handlers.onSelectSoloGame(target.selectedSoloGameKey)
+      handlers.onSelectSoloGame(target.selectedSoloGameKey, { autoCenter: options.autoCenterSoloGame ?? false })
     }
     return
   }

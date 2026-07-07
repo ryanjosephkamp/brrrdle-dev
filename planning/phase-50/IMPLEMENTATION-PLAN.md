@@ -622,3 +622,46 @@ After Stage 50.2, the next prompt should be chosen based on evidence:
 
 - If source-only core repair is safe, create a Stage 50.3-50.4 implementation prompt.
 - If a storage/reward/Supabase contract is needed, create an addendum prompt and stop.
+
+## 13. Same-Phase Recovery Addendum - 2026-07-06
+
+The first Phase 50 Review Candidate reached hosted/live manual review but failed the core completed Solo persistence items. This addendum preserves the historical plan above and records the same-phase recovery stages used to return Phase 50 toward a real Review Candidate.
+
+### Stage 50.10 - Same-Phase Recovery Reproduction And Contract Repair
+
+Authorized only by the same-phase recovery prompt:
+
+- add Playwright coverage for completed Solo reload/re-entry after terminal state, not only browser Back within the same React lifecycle;
+- keep `resumeSlots` in-progress-only;
+- add a separate local terminal-display cache using existing serialized Solo session evidence so completed boards can re-render without replaying rewards;
+- keep `completedGameIds` authoritative for XP, coins, history, stats, streaks, Daily claims, and duplicate reward protection;
+- persist Daily/Practice OG/GO mode selection as `selectedSoloGameKey` so refresh/reload returns to the selected mode instead of defaulting to OG;
+- avoid storage schema, cloud progress contract, migration, Supabase/RLS/RPC/table/bucket, reward formula, gameplay-rule, scoring, Elo/rating, and stable-repo changes.
+
+### Stage 50.11 - Auto-Scroll Policy Simplification And Scroll Quality
+
+Authorized only by the same-phase recovery prompt:
+
+- remove automatic page scrolling for ordinary Solo route, Daily/Practice subtab, OG/GO mode, and physical-keyboard input paths;
+- remove Solo keyboard auto-centering from normal gameplay entry and guess submission;
+- preserve explicit game-target auto-scroll for notification/direct-game handoffs and existing direct resume-style routing;
+- update mobile layout E2E from "keyboard must be automatically visible" to "ordinary Solo navigation must not call app-level `scrollIntoView`, while the page remains manually scrollable and overflow-safe";
+- keep multiplayer explicit game auto-scroll behavior untouched unless a later prompt scopes it.
+
+### Stage 50.12 - Recovery Verification And Review-Candidate Prep
+
+Required gates:
+
+- focused resume/display-cache unit coverage;
+- focused dashboard/notification auto-scroll policy coverage;
+- focused definition lookup coverage if provider order changes to reduce browser console noise;
+- focused Solo completion Playwright coverage across Practice/Daily OG/GO with reload;
+- focused mobile scroll/layout Playwright coverage;
+- `npm run lint`;
+- `npm run test`;
+- `npm run test:e2e`;
+- `npm run build`;
+- `npx tsc -p tsconfig.api.json --noEmit`;
+- repository hygiene checks from the Phase 50 prompt.
+
+If full E2E has an isolated timing failure outside touched Phase 50 surfaces, rerun the failing test once for triage and report both the full-suite result and the targeted rerun. Do not claim a clean Review Candidate until either the full suite reruns cleanly or the final report clearly marks the residual E2E risk and provides a bounded follow-up prompt.

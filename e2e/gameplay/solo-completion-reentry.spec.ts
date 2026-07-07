@@ -84,6 +84,10 @@ async function expectCompletionSurvivesReentry(
   await expectTerminalState(page, options.statusText, options.gridLabel, options.finalAnswer, options.finalAnswerRow)
   await expect(readGuestProgress(page)).resolves.toEqual(completedProgress)
 
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expectTerminalState(page, options.statusText, options.gridLabel, options.finalAnswer, options.finalAnswerRow)
+  await expect(readGuestProgress(page)).resolves.toEqual(completedProgress)
+
   await goHome(page)
   await options.reenter()
   await expectTerminalState(page, options.statusText, options.gridLabel, options.finalAnswer, options.finalAnswerRow)
