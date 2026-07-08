@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSupabaseSoloCloudProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, mergeSoloCloudSessionsIntoProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection, type SoloCloudMutation, type SoloCloudProgressRepository } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createAccountPracticeSeed, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSupabaseSoloCloudProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, mergeSoloCloudSessionsIntoProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection, type SoloCloudMutation, type SoloCloudProgressRepository } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
@@ -171,12 +171,50 @@ function mergeSoloDisplaySlots(slots: ResumeSlotCollection, additions: ResumeSlo
   return nextSlots
 }
 
+function selectPracticeSoloResumeSlot(completedSlot: ResumeSlot | undefined, resumeSlot: ResumeSlot | undefined): ResumeSlot | undefined {
+  if (!completedSlot) {
+    return resumeSlot
+  }
+  if (!resumeSlot) {
+    return completedSlot
+  }
+  return resumeSlot.updatedAt.localeCompare(completedSlot.updatedAt) >= 0 ? resumeSlot : completedSlot
+}
+
 function hasSoloDisplaySlots(slots: ResumeSlotCollection): boolean {
   return Object.keys(slots).length > 0
 }
 
 function getProgressOwnerKey(scope: ActiveProgressScope): string {
   return scope.kind === 'authenticated' ? `account:${scope.userId}` : scope.kind
+}
+
+function getPracticeSoloSlotKey(mode: PracticeMode): SoloActiveGameKey {
+  return mode === 'go' ? 'practice-go' : 'practice-og'
+}
+
+function clearProgressResumeSlot(progress: GuestProgressState, slotKey: SoloActiveGameKey): GuestProgressState {
+  const currentSlots = normalizeResumeSlots(progress.resumeSlots)
+  const currentLegacySlotMatches = progress.resumeSlot ? getResumeSlotKey(progress.resumeSlot) === slotKey : false
+  if (!currentSlots[slotKey] && !currentLegacySlotMatches) {
+    return progress
+  }
+
+  const nextSlots = { ...currentSlots }
+  delete nextSlots[slotKey]
+  const resumeSlotsForSave = Object.keys(nextSlots).length > 0 ? nextSlots : undefined
+  return {
+    ...progress,
+    resumeSlot: getLatestResumeSlot(resumeSlotsForSave ?? {}),
+    resumeSlots: resumeSlotsForSave,
+  }
+}
+
+function getCurrentPracticeCloudSeeds(userId: string, progress: GuestProgressState): { readonly go: number; readonly og: number } {
+  return {
+    go: createAccountPracticeSeed('go', userId, progress.practiceSeeds.go),
+    og: createAccountPracticeSeed('og', userId, progress.practiceSeeds.og),
+  }
 }
 
 function PracticeGameSwitcher({
@@ -242,8 +280,8 @@ function PracticeGameSwitcher({
   readonly viewerProfile?: MultiplayerProfileSummary
   readonly onOpenEloAbout?: () => void
 }) {
-  const practiceOgResume = completedSoloSlots['practice-og'] ?? resumeSlots['practice-og']
-  const practiceGoResume = completedSoloSlots['practice-go'] ?? resumeSlots['practice-go']
+  const practiceOgResume = selectPracticeSoloResumeSlot(completedSoloSlots['practice-og'], resumeSlots['practice-og'])
+  const practiceGoResume = selectPracticeSoloResumeSlot(completedSoloSlots['practice-go'], resumeSlots['practice-go'])
 
   return (
     <section className="space-y-5" aria-label="Practice mode selector">
@@ -646,8 +684,8 @@ function RoutePanel({
 }) {
   const dailyOgResume = completedSoloSlots['daily-og'] ?? resumeSlots['daily-og']
   const dailyGoResume = completedSoloSlots['daily-go'] ?? resumeSlots['daily-go']
-  const practiceOgResume = completedSoloSlots['practice-og'] ?? resumeSlots['practice-og']
-  const practiceGoResume = completedSoloSlots['practice-go'] ?? resumeSlots['practice-go']
+  const practiceOgResume = selectPracticeSoloResumeSlot(completedSoloSlots['practice-og'], resumeSlots['practice-og'])
+  const practiceGoResume = selectPracticeSoloResumeSlot(completedSoloSlots['practice-go'], resumeSlots['practice-go'])
   const viewerProfile = authState.status === 'authenticated' && authState.user?.profile
     ? createMultiplayerProfileSummary(authState.user.profile, 'Player')
     : undefined
@@ -1109,6 +1147,7 @@ function AppInner() {
   const authenticatedProgressSyncVersionRef = useRef(0)
   const latestAuthenticatedProgressSyncRef = useRef<ReturnType<typeof createAuthenticatedProgressSyncRequest> | undefined>(undefined)
   const flushAuthenticatedProgressSyncRef = useRef<() => void>(() => {})
+  const pendingAuthenticatedProgressSyncRef = useRef<Promise<void>>(Promise.resolve())
   const pendingSoloCloudWriteRef = useRef<Promise<void>>(Promise.resolve())
   const invalidateAuthenticatedProgressSync = useCallback(() => {
     authenticatedProgressSyncVersionRef.current += 1
@@ -1156,7 +1195,7 @@ function AppInner() {
     authenticatedProgressSyncDirtyRef.current = false
     setSyncStatus(createSyncStatus('syncing'))
 
-    void syncAuthenticatedProgress({
+    const syncPromise = syncAuthenticatedProgress({
       isOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
       localProgress: request.localProgress,
       localUpdatedAt: request.localUpdatedAt,
@@ -1183,6 +1222,11 @@ function AppInner() {
         )
       }
     })
+    pendingAuthenticatedProgressSyncRef.current = syncPromise.then(
+      () => undefined,
+      () => undefined,
+    )
+    void syncPromise
   }, [applyScopedProgress, supabaseClient])
   useEffect(() => {
     flushAuthenticatedProgressSyncRef.current = flushAuthenticatedProgressSync
@@ -1501,13 +1545,35 @@ function AppInner() {
     setMultiplayerLiveSurfaceActive(active)
   }, [])
   const handlePracticeSeedAdvance = useCallback((mode: PracticeMode) => {
+    const slotKey = getPracticeSoloSlotKey(mode)
+    setActiveRouteId('solo')
+    setPracticeModeState(mode)
+    setSoloSubtab('practice')
+    setSelectedSoloGameKey(slotKey)
+    saveNavigationState({
+      activeRouteId: 'solo',
+      legacyPracticeMode: mode,
+      selectedSoloGameKey: slotKey,
+      soloSubtab: 'practice',
+    })
+    setCompletedSoloSlots((currentSlots) => {
+      const nextSlots = clearSoloDisplaySlot(currentSlots, slotKey)
+      if (nextSlots !== currentSlots) {
+        saveSoloCompletionDisplaySlots(activeProgressOwnerKey, nextSlots)
+      }
+      return nextSlots
+    })
     setGuestProgress((currentProgress) => {
+      const progressWithoutSupersededSlot = clearProgressResumeSlot(currentProgress, slotKey)
       const practiceSeeds = advancePracticeSeedState(currentProgress.practiceSeeds, mode)
-      const nextProgress = { ...currentProgress, practiceSeeds }
+      const nextProgress = { ...progressWithoutSupersededSlot, practiceSeeds }
       persistActiveProgress(nextProgress)
+      if (!shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
+        window.setTimeout(() => flushAuthenticatedProgressSyncRef.current(), 0)
+      }
       return nextProgress
     })
-  }, [persistActiveProgress])
+  }, [activeProgressOwnerKey, persistActiveProgress])
   const handleNavigate = useCallback((routeId: AppRoute['id']) => {
     // Phase 22 Addendum (§27.10): the dedicated daily routes are retired. Any
     // deep link to them gracefully redirects into the Calendar with today's
@@ -1723,7 +1789,9 @@ function AppInner() {
         if (latestAuth.status !== 'authenticated' || latestAuth.user?.id !== userId) {
           return
         }
-        const hydrated = mergeSoloCloudSessionsIntoProgress(guestProgressRef.current, [session])
+        const hydrated = mergeSoloCloudSessionsIntoProgress(guestProgressRef.current, [session], {
+          currentPracticeSeeds: getCurrentPracticeCloudSeeds(userId, guestProgressRef.current),
+        })
         applyScopedProgress(hydrated.progress, { kind: 'authenticated', userId })
         if (hasSoloDisplaySlots(hydrated.completedSlots)) {
           setCompletedSoloSlots((currentSlots) => {
@@ -2006,7 +2074,9 @@ function AppInner() {
         if (soloCloudProgressRepository) {
           try {
             const sessions = await soloCloudProgressRepository.loadRecentSessions(userId)
-            const hydrated = mergeSoloCloudSessionsIntoProgress(result.progress, sessions)
+            const hydrated = mergeSoloCloudSessionsIntoProgress(result.progress, sessions, {
+              currentPracticeSeeds: getCurrentPracticeCloudSeeds(userId, result.progress),
+            })
             hydratedProgress = hydrated.progress
             hydratedCompletedSlots = hydrated.completedSlots
           } catch {
@@ -2199,7 +2269,11 @@ function AppInner() {
     setAuthMessage(undefined)
     setProfileMessage(undefined)
     setAuthBusy(true)
-    void pendingSoloCloudWriteRef.current.catch(() => undefined).then(() => signOut(supabaseClient)).then((result) => {
+    flushAuthenticatedProgressSyncRef.current()
+    void Promise.all([
+      pendingSoloCloudWriteRef.current.catch(() => undefined),
+      pendingAuthenticatedProgressSyncRef.current.catch(() => undefined),
+    ]).then(() => signOut(supabaseClient)).then((result) => {
       setAuthBusy(false)
       if (!result.ok) {
         setAuthMessage(result.message)

@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Solo Cloud Persistence Overhaul Recovered Locally And Backup Prompt Prepared.
+**Status**: Practice Solo Persistence Follow-Up Recovered Locally And Backup Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -14,7 +14,38 @@ Same-phase recovery later on 2026-07-06 repaired the first hosted/manual complet
 
 After the multiplayer focus backup and the user's manual checklist update, the user requested a deeper same-phase Phase 50 response to signed-in Solo cloud persistence timing inconsistencies. A planning-only audit found that signed-in Solo still relied primarily on debounced whole-progress `progress_snapshots` uploads and compact completion summaries. The follow-up implementation keeps `progress_snapshots` for aggregate progress while adding immediate signed-in Solo session/event persistence through the existing user-owned `game_history` table.
 
+Hosted/live manual review after the Solo cloud persistence backup found that Daily Solo now appears correct, but Practice Solo still had a same-phase persistence bug after an explicit new Practice game action: completing Practice GO, pressing `New go chain`, and submitting progress in the new chain could restore the previous terminal chain after refresh, re-entry, or sign-in/account hydration. The Practice Solo persistence follow-up recovered this locally by making Practice game supersession explicit in app state and by filtering superseded Practice cloud sessions by the current Practice seed during authenticated hydration.
+
 No new Supabase migration, new table, RLS/RPC/table/bucket change, Supabase remote operation, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, Git/GitHub action, backup workflow, release, merge, final Phase 50 closure, next-phase work, or stable `brrrdle` repository work was performed in the implementation step.
+
+## Practice Solo Persistence And Refresh Follow-Up - 2026-07-07
+
+Recovered:
+
+- Practice Solo now treats `New practice puzzle` and `New go chain` as explicit supersession actions for the current Practice lane.
+- Starting a new Practice OG/GO puzzle or chain clears the stale completed display slot and matching resume slot for that Practice lane, persists the selected Solo Practice route, and advances the Practice seed.
+- Signing out now flushes and waits for any pending authenticated aggregate progress sync in addition to pending Solo cloud writes, reducing race risk when a signed-in player starts a new Practice game and signs out before submitting a new guess.
+- Practice Solo resume selection now compares completed display slots against in-progress resume slots by timestamp, so newer in-progress Practice state can beat an older completed terminal display. Daily Solo keeps completed-state precedence.
+- Authenticated Solo cloud hydration now filters superseded Practice cloud sessions by the account's current Practice seed, so old completed Practice cloud history remains historical but does not rehydrate as the current playable Practice surface after the user has moved on.
+- The focused authenticated Practice GO regression failed before the source repair because the restored fresh browser still showed the old completed GO terminal screen. It passed after the repair with the new chain's submitted first guess visible.
+- The user-reported Practice GO refresh/re-entry path and analogous Practice OG first-guess path are covered in `e2e/gameplay/solo-completion-reentry.spec.ts`.
+
+Preserved:
+
+- Completed Practice OG/GO still remain visible until the player explicitly starts a new Practice puzzle/chain.
+- Daily Solo OG/GO completion persistence, Daily GO puzzle-two hydration, Daily OG deleted-draft stability, Daily GO settled-row stability, GO definition deduplication, rewards, claims, scoring, Elo/rating, and multiplayer behavior were not intentionally changed.
+- No practice answer-selection/randomness algorithm change was made in this follow-up; the observed Practice GO answer similarity should be audited separately if still concerning.
+
+Verification:
+
+- Pre-fix focused E2E reproduced the authenticated Practice GO stale-terminal restore in a fresh browser after a completed chain was superseded.
+- Focused unit coverage passed for Solo cloud hydration filtering: `npm run test:unit -- src/account/soloCloudProgress.test.ts`.
+- Focused Practice supersession E2E passed: `npm run test:e2e -- e2e/gameplay/solo-completion-reentry.spec.ts --grep "superseding|fresh Practice GO"`.
+- Full Solo completion/re-entry E2E passed: `npx playwright test e2e/gameplay/solo-completion-reentry.spec.ts` with 12 tests.
+
+Next action:
+
+- Use `prompt-packages/phase-50/PHASE-50-PRACTICE-SOLO-PERSISTENCE-RECOVERED-REVIEW-CANDIDATE-GITHUB-BACKUP-PROMPT-2026-07-07.md` to authorize a Practice-Solo-persistence recovered Review Candidate Backup for hosted/live manual review while keeping Phase 50 open.
 
 ## Solo Cloud Persistence Overhaul Implementation - 2026-07-07
 
