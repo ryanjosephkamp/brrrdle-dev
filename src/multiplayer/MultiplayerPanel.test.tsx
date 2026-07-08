@@ -34,6 +34,7 @@ import {
   mergeFinalizedRankedGameIntoLocalState,
   getMultiplayerPlayerDisplayLabel,
   getRankedQueueActiveRequestId,
+  getRecoverableRankedQueueGame,
   shouldShowRankedQueueBusyForRefresh,
   shouldAutoRefreshRankedQueue,
 } from './multiplayerPanelRouting'
@@ -62,6 +63,7 @@ type RankedQueueActionsFixture = Pick<
   | 'createRankedQueueRequest'
   | 'finalizeRankedQueueGame'
   | 'getRankedQueueStatus'
+  | 'load'
 >
 
 type PracticeRematchActionsFixture = Pick<
@@ -205,6 +207,11 @@ function createRankedQueueActionsFixture(): RankedQueueActionsFixture {
     createRankedQueueRequest: async () => request,
     finalizeRankedQueueGame: async () => finalization,
     getRankedQueueStatus: async () => status,
+    load: async () => ({
+      serverNow: '2026-06-24T00:25:00.000Z',
+      state: createEmptyMultiplayerState(),
+      version: 1,
+    }),
   }
 }
 
@@ -521,6 +528,50 @@ describe('MultiplayerPanel', () => {
       status: 'won',
       winnerId: 'player-one',
     })
+  })
+
+  it('recovers only viewer-owned ranked Practice games after a broken finalization response', () => {
+    const recoverableGame = createMultiplayerGame({
+      id: 'ranked-practice-1',
+      matchmakingRequestId: 'queue-request-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      ranked: true,
+      ratingBucket: 'multiplayer:og',
+      scope: 'practice',
+      wordLength: 6,
+    })
+    const unrankedGame = {
+      ...recoverableGame,
+      id: 'unranked-practice-1',
+      ranked: false,
+    }
+    const cancelledGame = {
+      ...recoverableGame,
+      id: 'cancelled-ranked-practice-1',
+      status: 'cancelled' as const,
+    }
+
+    expect(getRecoverableRankedQueueGame({
+      currentGames: [recoverableGame],
+      matchedGameId: recoverableGame.id,
+      viewerUserId: 'rival-user',
+    })).toBe(recoverableGame)
+    expect(getRecoverableRankedQueueGame({
+      currentGames: [recoverableGame],
+      matchedGameId: recoverableGame.id,
+      viewerUserId: 'spectator-user',
+    })).toBeUndefined()
+    expect(getRecoverableRankedQueueGame({
+      currentGames: [unrankedGame],
+      matchedGameId: unrankedGame.id,
+      viewerUserId: 'host-user',
+    })).toBeUndefined()
+    expect(getRecoverableRankedQueueGame({
+      currentGames: [cancelledGame],
+      matchedGameId: cancelledGame.id,
+      viewerUserId: 'host-user',
+    })).toBeUndefined()
   })
 
   it('polls queued ranked requests only while the creator has a valid active queue', () => {

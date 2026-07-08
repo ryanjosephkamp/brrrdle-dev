@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Multiplayer Matchmaking And First-Turn Persistence Recovery Prompt Prepared.
+**Status**: Ranked Multiplayer Cross-Browser Recovery Recovered Locally; Review Candidate Backup Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -28,7 +28,64 @@ Hosted/live manual review after the Refresh Home Reset Review Candidate Backup f
 
 The second-pass follow-up reproduced the remaining delayed route-away-from-Home behavior locally through an authenticated Daily GO progress-hydration regression. Startup/auth progress hydration now loads signed-in progress without automatically invoking the Solo resume router. Focused refresh tests now assert that Home remains selected after delayed startup effects settle, while Solo persistence tests still re-enter Solo and verify the accepted saved Daily/Practice state. Phase 50 remains open for a recovered Review Candidate Backup and hosted/live manual review before final acceptance.
 
-Hosted/live manual review after the second-pass Refresh Home reset backup found that Solo persistence and Home-on-refresh now appear accepted. The user then reported serious multiplayer-only regressions affecting private Practice requests, public Practice/Daily lobby creation, ranked Practice queue finalization, and first-turn persistence/forfeit behavior. Because these are hosted Review Candidate regressions that make multiplayer effectively unplayable before Phase 50 closure, Phase 50 remains open for a same-phase multiplayer recovery prompt. This prompt-generation step did not change source/runtime code, tests, migrations, Git/GitHub state, deployment configuration, or the stable `brrrdle` repository.
+Hosted/live manual review after the second-pass Refresh Home reset backup found that Solo persistence and Home-on-refresh now appear accepted. The user then reported serious multiplayer-only regressions affecting private Practice requests, public Practice/Daily lobby creation, ranked Practice queue finalization, and first-turn persistence/forfeit behavior. Because these are hosted Review Candidate regressions that make multiplayer effectively unplayable before Phase 50 closure, Phase 50 remained open for a same-phase multiplayer recovery prompt. That recovery was implemented and verified locally in Step 495, then backed up for hosted/live review. The next hosted/live manual review found that ranked Practice Multiplayer still had a cross-browser finalization/routing issue, especially with Safari/WebKit involvement, so Phase 50 remained open for another same-phase ranked multiplayer recovery pass. The ranked recovery pass was implemented locally in Step 497 and now awaits a recovered Review Candidate Backup plus hosted/live manual acceptance.
+
+## Ranked Multiplayer Cross-Browser Recovery Planning - 2026-07-08
+
+Hosted/manual review update:
+
+- Solo persistence and Home-on-refresh are reported passing and remain accepted guardrails.
+- Ranked Practice Multiplayer is not accepted.
+- The user reported that Firefox/Safari ranked Practice queues can create a durable game while one participant still sees `Unable to finalize ranked queue game: Empty or invalid json`.
+- The affected participant can often manually open the resulting `OG Playing` current-match button, suggesting the durable game row may exist even though finalization/routing failed locally.
+- Firefox/Brave ranked matching was also reported inconsistent.
+- Safari public unranked Practice Multiplayer can flash/revert when opening a match, while Firefox and Brave appear better.
+
+Planning-only analysis:
+
+- Created `planning/phase-50/MULTIPLAYER-RANKED-MATCHMAKING-CROSS-BROWSER-ANALYSIS-AND-RECOVERY-STRATEGY-2026-07-08.md`.
+- The analysis identified the most likely targeted fix as ranked queue client recovery after a recoverable finalization failure: if status is already matched and the durable game exists for the viewer, open the durable game instead of leaving the user on the queue panel with a red invalid-JSON banner.
+- The analysis also identified a coverage gap: the default Playwright config currently runs Chromium only, so the previous local gate did not directly test Safari/WebKit-style behavior.
+
+Next action prepared:
+
+- Created an ignored local prompt package: `prompt-packages/phase-50/PHASE-50-RANKED-MULTIPLAYER-CROSS-BROWSER-RECOVERY-PROMPT-2026-07-08.md`.
+- The prompt asks Codex to reproduce or simulate the ranked finalization/routing failure, implement the smallest safe source/test recovery, add focused WebKit/cross-engine or deterministic regression coverage where feasible, preserve accepted Solo and Home-on-refresh behavior, update Phase 50 docs/progress, and return Phase 50 to Review Candidate.
+
+Completed by this planning pass:
+
+- The analysis and prompt artifact authorized the bounded local implementation/testing follow-up that is now recorded below.
+- Any Git/GitHub backup, final Phase 50 acceptance/closure, Final Acceptance Backup, deployment configuration, release, merge, migrations, Supabase/RLS/RPC/table/bucket execution, next-phase work, public tunneling, or stable `brrrdle` repository work remained separately gated.
+
+## Ranked Multiplayer Cross-Browser Local Recovery - 2026-07-08
+
+Recovered:
+
+- Ranked queue finalization now has a narrow client-side recovery path for the hosted failure pattern where the trusted backend has already created the durable matched ranked Practice game, but the finalization response throws as empty/invalid JSON.
+- The panel first checks current local multiplayer state, then reloads multiplayer state through the existing authenticated repository and opens the matched game only if it is ranked, Practice-scoped, not cancelled, and belongs to the current viewer.
+- If no valid durable matched game is found, the original finalization failure remains visible instead of being treated as success.
+- The recovery is shared by ranked Practice OG and GO because both modes use the same queue finalization/routing path.
+- No Supabase migration, RLS/RPC/table/bucket/schema change, scoring/Elo/rating change, Daily claim change, Solo persistence rewrite, Home-on-refresh change, Git/GitHub action, deployment/release, next-phase work, public tunnel, or stable `brrrdle` repository work was performed.
+
+Verification:
+
+- Pre-fix existing ranked Practice Chromium E2E passed, so the hosted Safari/WebKit symptom was treated as a deterministic recovery simulation plus real ranked non-regression.
+- `npm run test -- src/multiplayer/MultiplayerPanel.test.tsx`: 1 file, 40 tests passed.
+- `npx playwright test e2e/gameplay/practice-multiplayer-og.spec.ts --grep "routes ranked search-again"` passed before and after the fix.
+- `npm run test -- src/multiplayer/MultiplayerPanel.test.tsx src/multiplayer/multiplayerRepository.test.ts src/multiplayer/privateMatchmaking.test.ts src/app/scopedProgressMultiplayerState.test.ts`: 4 files, 84 tests passed.
+- `npx playwright test e2e/gameplay/practice-multiplayer-og.spec.ts e2e/gameplay/practice-multiplayer-go.spec.ts e2e/gameplay/private-matchmaking.spec.ts`: 10 tests passed.
+- `npx playwright test e2e/gameplay/multiplayer-reliability.spec.ts e2e/gameplay/multiplayer-focus-refocus.spec.ts`: 6 tests passed.
+- `npx playwright test e2e/navigation/refresh-route-persistence.spec.ts e2e/gameplay/solo-completion-reentry.spec.ts`: 17 tests passed.
+- `npm run lint` passed.
+- `npm run test`: 129 files, 900 tests passed.
+- `npm run test:e2e`: 55 tests passed.
+- `npm run build` passed with the existing Vite large-chunk advisory.
+
+Next prompt package:
+
+- `prompt-packages/phase-50/PHASE-50-RANKED-MULTIPLAYER-RECOVERED-REVIEW-CANDIDATE-GITHUB-BACKUP-PROMPT-2026-07-08.md`
+
+Phase 50 remains open for a recovered Review Candidate Backup and hosted/live manual review. Final acceptance/closure, Final Acceptance Backup, deployment, release, migrations, next-phase work, public tunneling, and stable-repository work remain unexecuted.
 
 ## Multiplayer Matchmaking And First-Turn Persistence Recovery Prompt - 2026-07-08
 
