@@ -1,12 +1,14 @@
 # Future Workflow Timeline
 
-**Status:** Planning and discussion aid.
+**Status:** Historical planning and discussion aid.
 **Created:** 2026-07-06.
 **Authority:** Supporting roadmap document only. It does not authorize implementation, tests, migrations, deployment, Git/GitHub work, backup workflow execution, release work, gameplay-rule changes, Elo changes, or work in the original stable `brrrdle` repository.
 
 ## Purpose
 
 This document gives a single forward-looking view of the work currently routed after Phase 49. It is meant to help decide whether Phase 50 should become a larger macro-phase while keeping individual stages narrow, reviewable, and verification-friendly.
+
+Closure update, 2026-07-08: Phase 50 was expanded into the macro-phase recommended here, iterated through the Review Candidate Backup Loop, and was manually accepted by the user before the separately authorized Final Acceptance Backup. Use this document as historical rationale and workflow guidance, not as an active Phase 50 prompt.
 
 The current recommendation is to make Phase 50 larger than recent phases only if it remains cohesive:
 
@@ -21,6 +23,7 @@ The phase can be bigger. The stages should stay small.
 - Phase 49 is complete, backed up, merged, branch-cleaned, and manually reviewed.
 - Phase 49 manual review passed.
 - Current expected `main` and `origin/main`: `cc878c6a109406b56f2a9195be6114c1ccf02259`.
+- Phase 50 is accepted by the user and is closing through the Final Acceptance Backup.
 - The original stable `brrrdle` repository remains untouched.
 - Latest transition record before this document: `progress/PROGRESS-STEP-453.md`.
 

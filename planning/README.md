@@ -16,13 +16,13 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 49 is complete, backed up, merged, branch-cleaned, and manually reviewed. Use the Phase 50 planning brief before any Phase 50 specification or implementation planning.
+7. The active or next phase plan. Phase 50 is accepted by the user and is closing through the Final Acceptance Backup. After that backup, create or read the separately authorized Phase 51 planning package before any Phase 51 implementation.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
 
 - `planning/IMPLEMENTATION-PLAN.md`: lightweight living project plan.
-- `planning/FUTURE-WORKFLOW-TIMELINE.md`: forward-looking timeline and Mermaid workflow map for Phase 50 scope-sizing and later routed work.
+- `planning/FUTURE-WORKFLOW-TIMELINE.md`: historical Phase 50 scope-sizing and Review Candidate loop aid, plus later routed work.
 - `planning/phase-24/`: active Phase 24 planning and changelog area.
 - `planning/phase-25/`: Phase 25 planning brief and implementation plan.
 - `planning/phase-26/`: revised Phase 26 planning brief, implementation plan, and changelog for responsive polish, notification controls, and Live v1 spectation.
@@ -49,7 +49,7 @@ For normal future work, read:
 - `planning/phase-47/`: Phase 47 planning brief, implementation plan, changelog, and review checklist for mobile Solo GO keyboard visibility, re-entry scroll behavior, signed-out guest display-boundary follow-up, and same-account session freshness routing.
 - `planning/phase-48/`: Phase 48 planning brief and implementation plan for profile/public-profile/private-profile simplification, Profile/Settings account-management clarity, custom-code/private game routing, private Daily feasibility, ranked Daily contract decisioning, and early routing of the late Phase 47 mobile scroll-lag observation.
 - `planning/phase-49/`: Phase 49 planning brief, implementation plan, changelog, and review checklist for progression HUD/resource visibility, Focus Mode first slice, compact/mobile shell polish decisioning, and explicit storage/mobile-shell/gameplay gates.
-- `planning/phase-50/`: Phase 50 planning brief for an expanded macro-phase covering Solo completion-state persistence, reward idempotence hardening, Profile account conveniences, Progression HUD click-through, and future-work routing with narrow gated stages.
+- `planning/phase-50/`: Phase 50 accepted closeout materials for the expanded macro-phase covering Solo persistence, Home-on-refresh, multiplayer review follow-ups, Profile account conveniences, Progression HUD click-through, and future-work routing with narrow gated stages.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.

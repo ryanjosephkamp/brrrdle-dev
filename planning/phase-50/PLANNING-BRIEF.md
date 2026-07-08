@@ -1,10 +1,18 @@
 # Phase 50 Planning Brief - Solo Completion Persistence And Current-Surface Convenience Macro-Phase
 
 **Date:** 2026-07-06
-**Status:** Draft for review
+**Status:** Accepted and closing through Final Acceptance Backup
 **Authority:** Current user authorization, `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md`, `planning/FUTURE-WORKFLOW-TIMELINE.md`, and the completed Phase 49 evidence.
 
 This planning brief authorizes no implementation by itself. Phase 50 source/runtime changes, tests, migrations, storage changes, Supabase/Vercel configuration, deployment, Git/GitHub actions, backup workflow execution, gameplay-rule changes, Elo changes, and original stable `brrrdle` repository work remain gated behind later explicit prompts.
+
+## Final Acceptance Addendum - 2026-07-08
+
+Phase 50 was expanded beyond this initial planning brief through explicitly authorized same-phase Review Follow-up prompts. After the final ranked Practice FIFO Review Candidate Backup, the user reported that all manual review testing passes, no bugs or regressions are currently visible, and Phase 50 is ready to close.
+
+The final accepted Phase 50 scope includes the original Solo completion persistence and current-surface convenience work plus same-phase recovery for Solo cloud persistence, Practice Solo persistence, Home-on-refresh, multiplayer focus/refocus, multiplayer matchmaking and first-turn persistence, ranked Practice cross-browser finalization, and ranked Practice FIFO matchmaking.
+
+Phase 50 closes through the Final Acceptance Backup prompt. Phase 51 planning/implementation, release, deployment configuration changes, profile-name emoji/special-character policy, admin queue visualization, Practice GO answer-selection/randomness auditing, public tunneling, and original stable `brrrdle` repository work remain separately gated.
 
 ## Current Baseline
 
@@ -410,4 +418,4 @@ After Phase 50 final verification, a Review Candidate Backup may be explicitly a
 
 ## Next Gated Prompt
 
-The next safe step is a unified Phase 50 specification for review only. That prompt should preserve this planning brief and create one implementation-oriented spec under `planning/specs/phase-50/` without beginning implementation.
+After Phase 50 final acceptance backup completes, the next safe step is a Phase 51 planning prompt package. Phase 51 implementation remains gated until that planning package is created, reviewed, and explicitly authorized.
