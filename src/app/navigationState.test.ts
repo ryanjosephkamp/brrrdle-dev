@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_NAVIGATION_STATE,
   LEGACY_NAVIGATION_STORAGE_KEY,
@@ -17,6 +17,17 @@ function createStorage(initial: Record<string, string> = {}) {
     },
   }
 }
+
+function createBrowserStorage(localInitial: Record<string, string> = {}, sessionInitial: Record<string, string> = {}) {
+  const localStorage = createStorage(localInitial)
+  const sessionStorage = createStorage(sessionInitial)
+  vi.stubGlobal('window', { localStorage, sessionStorage })
+  return { localStorage, sessionStorage }
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('navigationState', () => {
   it('returns defaults without browser storage', () => {
@@ -46,6 +57,50 @@ describe('navigationState', () => {
       selectedPublicProfileId: '123e4567-e89b-42d3-a456-426614174000',
       selectedSoloGameKey: 'practice-go',
       soloSubtab: 'daily',
+    })
+  })
+
+  it('prefers same-tab session navigation over stale local navigation on browser loads', () => {
+    createBrowserStorage({
+      [NAVIGATION_STORAGE_KEY]: JSON.stringify({
+        activeRouteId: 'home',
+        legacyPracticeMode: 'og',
+        multiplayerSubtab: 'overview',
+        soloSubtab: 'overview',
+      }),
+    }, {
+      [NAVIGATION_STORAGE_KEY]: JSON.stringify({
+        activeRouteId: 'solo',
+        legacyPracticeMode: 'go',
+        multiplayerSubtab: 'overview',
+        selectedSoloGameKey: 'practice-go',
+        soloSubtab: 'practice',
+      }),
+    })
+
+    expect(loadNavigationState()).toMatchObject({
+      activeRouteId: 'solo',
+      legacyPracticeMode: 'go',
+      selectedSoloGameKey: 'practice-go',
+      soloSubtab: 'practice',
+    })
+  })
+
+  it('saves default browser navigation to local and same-tab session storage', () => {
+    const { localStorage, sessionStorage } = createBrowserStorage()
+
+    saveNavigationState({
+      activeRouteId: 'multiplayer',
+      multiplayerSubtab: 'lobby',
+    })
+
+    expect(loadNavigationState(localStorage)).toMatchObject({
+      activeRouteId: 'multiplayer',
+      multiplayerSubtab: 'lobby',
+    })
+    expect(loadNavigationState(sessionStorage)).toMatchObject({
+      activeRouteId: 'multiplayer',
+      multiplayerSubtab: 'lobby',
     })
   })
 

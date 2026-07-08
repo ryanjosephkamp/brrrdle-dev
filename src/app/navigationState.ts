@@ -49,8 +49,12 @@ export const DEFAULT_NAVIGATION_STATE: NavigationState = {
   soloSubtab: 'overview',
 }
 
-function getDefaultStorage(): StorageLike | undefined {
+function getDefaultLocalStorage(): StorageLike | undefined {
   return typeof window === 'undefined' ? undefined : window.localStorage
+}
+
+function getDefaultSessionStorage(): StorageLike | undefined {
+  return typeof window === 'undefined' ? undefined : window.sessionStorage
 }
 
 function readRecord(storage: StorageLike, key: string): Record<string, unknown> | null {
@@ -134,9 +138,9 @@ export function normalizeNavigationState(value: unknown): NavigationState {
   }
 }
 
-export function loadNavigationState(storage: StorageLike | undefined = getDefaultStorage()): NavigationState {
+export function loadStoredNavigationState(storage: StorageLike | undefined): NavigationState | undefined {
   if (!storage) {
-    return DEFAULT_NAVIGATION_STATE
+    return undefined
   }
 
   const v2Record = readRecord(storage, NAVIGATION_STORAGE_KEY)
@@ -149,19 +153,40 @@ export function loadNavigationState(storage: StorageLike | undefined = getDefaul
     return normalizeNavigationState(legacyRecord)
   }
 
-  return DEFAULT_NAVIGATION_STATE
+  return undefined
 }
 
-export function saveNavigationState(patch: Partial<NavigationState>, storage: StorageLike | undefined = getDefaultStorage()): void {
+export function loadNavigationState(storage?: StorageLike): NavigationState {
+  if (storage) {
+    return loadStoredNavigationState(storage) ?? DEFAULT_NAVIGATION_STATE
+  }
+
+  return loadStoredNavigationState(getDefaultSessionStorage())
+    ?? loadStoredNavigationState(getDefaultLocalStorage())
+    ?? DEFAULT_NAVIGATION_STATE
+}
+
+function saveNavigationStateToStorage(patch: Partial<NavigationState>, storage: StorageLike | undefined, baseState?: NavigationState): void {
   if (!storage) {
     return
   }
 
   try {
-    const current = loadNavigationState(storage)
+    const current = baseState ?? loadNavigationState(storage)
     const next = normalizeNavigationState({ ...current, ...patch })
     storage.setItem(NAVIGATION_STORAGE_KEY, JSON.stringify(next))
   } catch {
     // Browser storage is best-effort only; navigation still works without it.
   }
+}
+
+export function saveNavigationState(patch: Partial<NavigationState>, storage?: StorageLike): void {
+  if (storage) {
+    saveNavigationStateToStorage(patch, storage)
+    return
+  }
+
+  const next = normalizeNavigationState({ ...loadNavigationState(), ...patch })
+  saveNavigationStateToStorage(next, getDefaultLocalStorage(), next)
+  saveNavigationStateToStorage(next, getDefaultSessionStorage(), next)
 }
