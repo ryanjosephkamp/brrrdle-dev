@@ -99,6 +99,7 @@ type RankedQueueActions = Pick<
   | 'createRankedQueueRequest'
   | 'finalizeRankedQueueGame'
   | 'getRankedQueueStatus'
+  | 'load'
 >
 type PracticeRematchActions = Pick<
   MultiplayerRepository,

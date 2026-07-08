@@ -41,6 +41,7 @@ import type {
   MultiplayerRepository,
   ParticipantIdentitySummaryResult,
   PrivateMatchRequestResult,
+  RankedQueueFinalizationResult,
   RankedQueueStatusResult,
 } from './multiplayerRepository'
 import type { PracticeRematchRequestResult } from './multiplayerRepository'
@@ -62,6 +63,7 @@ import {
   getPrivateMatchCreatedGameAutoRouteId,
   getMultiplayerPlayerDisplayLabel,
   getRankedQueueActiveRequestId,
+  getRecoverableRankedQueueGame,
   mergeFinalizedRankedGameIntoLocalState,
   type RankedQueueRefreshTrigger,
   shouldAutoRefreshRankedQueue,
@@ -82,6 +84,7 @@ type RankedQueueActions = Pick<
   | 'createRankedQueueRequest'
   | 'finalizeRankedQueueGame'
   | 'getRankedQueueStatus'
+  | 'load'
 >
 type PracticeRematchActions = Pick<
   MultiplayerRepository,
@@ -919,6 +922,30 @@ export function MultiplayerPanel({
     onGameplayAutoCenterRequest?.()
   }, [normalized.games, onChange, onGameplayAutoCenterRequest, selectGame])
 
+  const loadRecoverableRankedQueueGame = useCallback(async (matchedGameId: string | undefined) => {
+    const localGame = getRecoverableRankedQueueGame({
+      currentGames: normalized.games,
+      matchedGameId,
+      viewerUserId,
+    })
+    if (localGame) {
+      return localGame
+    }
+    if (!rankedQueueActions || !matchedGameId || !viewerUserId) {
+      return undefined
+    }
+    try {
+      const snapshot = await rankedQueueActions.load()
+      return getRecoverableRankedQueueGame({
+        currentGames: snapshot.state.games,
+        matchedGameId,
+        viewerUserId,
+      })
+    } catch {
+      return undefined
+    }
+  }, [normalized.games, rankedQueueActions, viewerUserId])
+
   const finalizeRankedQueueMatch = useCallback(async (requestId: string) => {
     if (!rankedQueueActions) {
       throw new Error('Ranked queue requires authenticated Supabase multiplayer.')
@@ -946,12 +973,28 @@ export function MultiplayerPanel({
     if (!game || !idempotencyKey) {
       throw new Error('Unable to build a valid ranked Practice game from queue status.')
     }
-    const finalization = await rankedQueueActions.finalizeRankedQueueGame({
-      game,
-      idempotencyKey,
-      matchedGameId: status.matchedGameId,
-      requestId: status.requestId,
-    })
+    let finalization: RankedQueueFinalizationResult
+    try {
+      finalization = await rankedQueueActions.finalizeRankedQueueGame({
+        game,
+        idempotencyKey,
+        matchedGameId: status.matchedGameId,
+        requestId: status.requestId,
+      })
+    } catch (error) {
+      const recoveredGame = await loadRecoverableRankedQueueGame(status.matchedGameId)
+      if (recoveredGame) {
+        upsertFinalizedRankedGame(recoveredGame)
+        setRankedQueue({
+          matchedGameId: recoveredGame.id,
+          message: 'Ranked match already finalized. Opening the durable game.',
+          requestId: status.requestId,
+          status: 'matched',
+        })
+        return
+      }
+      throw error
+    }
     if (finalization.gameId !== game.id) {
       throw new Error('Ranked queue finalization returned an unexpected game id.')
     }
@@ -964,7 +1007,7 @@ export function MultiplayerPanel({
       requestId: status.requestId,
       status: 'matched',
     })
-  }, [defaultDifficulty, defaultGoPuzzleCount, rankedQueueActions, upsertFinalizedRankedGame, viewerProfile])
+  }, [defaultDifficulty, defaultGoPuzzleCount, loadRecoverableRankedQueueGame, rankedQueueActions, upsertFinalizedRankedGame, viewerProfile])
 
   const enterRankedQueue = async (override?: Pick<PracticePostgameSettings, 'hardMode' | 'mode' | 'timeLimitMs' | 'wordLength'>) => {
     const queueMode = override?.mode ?? mode

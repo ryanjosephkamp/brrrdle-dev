@@ -137,6 +137,25 @@ export function mergeFinalizedRankedGameIntoLocalState(
   ]
 }
 
+export function getRecoverableRankedQueueGame({
+  currentGames,
+  matchedGameId,
+  viewerUserId,
+}: {
+  readonly currentGames: readonly MultiplayerGame[]
+  readonly matchedGameId: string | undefined
+  readonly viewerUserId: string | undefined
+}): MultiplayerGame | undefined {
+  if (!matchedGameId || !viewerUserId) {
+    return undefined
+  }
+  const game = currentGames.find((entry) => entry.id === matchedGameId)
+  if (!game || !game.ranked || game.scope !== 'practice' || game.status === 'cancelled') {
+    return undefined
+  }
+  return getViewerMultiplayerPlayerId(game, viewerUserId) ? game : undefined
+}
+
 export function getMultiplayerPlayerDisplayLabel(
   game: MultiplayerGame,
   playerId: MultiplayerPlayerId,
