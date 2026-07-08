@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Refresh Routing Recovered Locally And Backup Prompt Prepared.
+**Status**: Refresh Home Reset Recovered Locally And Backup Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -20,7 +20,63 @@ After the Practice Solo persistence recovered Review Candidate Backup, the user 
 
 The refresh-routing follow-up recovered this locally by making same-tab navigation state the durable refresh source while still preserving browser-history back/forward behavior and public-profile/private-match route handoff. The full local verification gate passed after the repair.
 
-No new Supabase migration, new table, RLS/RPC/table/bucket change, Supabase remote operation, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, Git/GitHub action, backup workflow, release, merge, final Phase 50 closure, next-phase work, Practice GO answer-selection/randomness algorithm change, or stable `brrrdle` repository work was performed while implementing the refresh-routing follow-up.
+Hosted/live manual review after the refresh-routing recovered Review Candidate Backup found that the preservation approach improved refresh behavior but still did not make it consistent enough for acceptance. The user then changed the acceptance target to a simpler deterministic rule: a manual hard/browser refresh may route to Home consistently instead of trying to preserve the exact current app surface.
+
+The Home-reset follow-up recovered that policy locally. App startup now defaults to Home on full page load/manual refresh, while ordinary in-session browser Back/Forward still uses the existing browser-history popstate path. A narrow public-profile route-handoff exception remains so private Practice request/public profile flows can open the intended profile after an intentional app-controlled reload. Accepted Solo persistence remains covered by the focused Solo re-entry suite. No Supabase migration, new table, RLS/RPC/table/bucket change, Supabase remote operation, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, Git/GitHub action, backup workflow, release, merge, final Phase 50 closure, next-phase work, Practice GO answer-selection/randomness algorithm change, or stable `brrrdle` repository work was performed by this follow-up.
+
+## Refresh Home Reset Follow-Up Local Recovery - 2026-07-08
+
+Recovered:
+
+- Manual hard/browser refresh now starts on Home by default instead of restoring the last saved route/tab/subtab/mode surface.
+- Ordinary in-app navigation and browser Back/Forward remain handled through the existing browser-history popstate path.
+- Public profile route handoff remains a narrow startup exception, preserving private Practice request/public-profile flows that intentionally load the app with a protected profile target.
+- Accepted Solo persistence behavior remains intact: after a refresh lands on Home, re-entering the relevant Solo surface restores the saved completed or in-progress state.
+- Multiplayer E2E helper flows that intentionally reload during gameplay now explicitly re-enter Multiplayer before resuming a match, matching the new Home-on-refresh policy.
+
+Automated coverage:
+
+- Updated `e2e/navigation/refresh-route-persistence.spec.ts` so the focused refresh suite expects Home after hard refresh from stale storage/history, Solo Practice GO, Multiplayer Lobby, and Settings surfaces.
+- Preserved focused Back/Forward coverage in the same navigation suite.
+- Updated `e2e/gameplay/solo-completion-reentry.spec.ts` so refresh assertions now check Home first, then re-enter Solo and assert that saved terminal/in-progress state remains available.
+- Kept public-profile/private-request behavior covered by the existing private matchmaking and multiplayer reliability E2E paths.
+
+Verification:
+
+- Pre-fix focused navigation E2E failed for the expected old behavior: refresh still restored non-Home surfaces.
+- `npm run test -- src/app/navigationState.test.ts`: 9 tests passed.
+- `npx playwright test e2e/navigation/refresh-route-persistence.spec.ts`: 5 tests passed.
+- `npx playwright test e2e/gameplay/solo-completion-reentry.spec.ts`: 12 tests passed.
+- Focused private-profile/private-request recovery reruns passed: 3 tests total across the reliability subset and dedicated private matchmaking spec.
+- Focused multiplayer reload/re-entry reruns passed after helper alignment: Practice Multiplayer GO transition and timed Practice OG timeout precedence.
+- `npm run lint` passed.
+- `npm run test`: 129 files, 898 tests passed.
+- `npm run build` passed with the existing Vite large-chunk advisory.
+- `npx tsc -p tsconfig.api.json --noEmit` passed.
+- `npm run test:e2e`: 55 tests passed.
+
+Next action:
+
+- Use `prompt-packages/phase-50/PHASE-50-REFRESH-HOME-RESET-RECOVERED-REVIEW-CANDIDATE-GITHUB-BACKUP-PROMPT-2026-07-08.md` to authorize a Refresh-Home-reset recovered Review Candidate Backup for hosted/live manual review while keeping Phase 50 open.
+
+## Refresh Home Reset Follow-Up Prompt - 2026-07-08
+
+Manual review update:
+
+- The refresh-routing recovered hosted/live candidate improved the problem, especially for Solo, but did not fully solve it.
+- The prior preserve-current-surface target is now superseded for Phase 50 acceptance.
+- The new same-phase acceptance target is simpler: a manual hard/browser refresh should route the player to Home consistently from representative app surfaces.
+- The Home-reset policy should preserve saved game/account progress and ordinary in-app navigation; it should only simplify full page-load/manual refresh startup behavior unless implementation investigation proves a narrower distinction is required.
+
+Next action prepared:
+
+- Created an ignored local prompt package for a bounded same-phase Home-on-refresh implementation/testing follow-up: `prompt-packages/phase-50/PHASE-50-REFRESH-HOME-RESET-FOLLOW-UP-PROMPT-2026-07-08.md`.
+- The prompt asks Codex to replace the previous preserve-current-surface refresh expectation with deterministic Home-on-refresh behavior, update focused refresh-routing tests, preserve accepted Solo persistence and ordinary navigation behavior, update Phase 50 docs/progress, and return Phase 50 to Review Candidate.
+
+Still pending:
+
+- The Home-on-refresh implementation and verification remain separately authorized future work.
+- Any subsequent Review Candidate Backup, final Phase 50 acceptance/closure, Final Acceptance Backup, deployment configuration, release, merge, or next-phase work remains separately gated.
 
 ## Refresh Routing Persistence Follow-Up - 2026-07-08
 

@@ -23,6 +23,14 @@ export async function navigateToPracticeMultiplayer(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { level: 3, name: /^Practice Multiplayer$/i })).toBeVisible()
 }
 
+async function ensureMultiplayerWorkspace(page: Page): Promise<void> {
+  if (await page.locator('#multiplayer-workspace-title').isVisible({ timeout: 1_000 }).catch(() => false)) {
+    return
+  }
+  await page.getByRole('button', { name: /^Multiplayer$/i }).click()
+  await expect(page.locator('#multiplayer-workspace-title')).toBeVisible({ timeout: 20_000 })
+}
+
 export async function navigateToCalendar(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^Calendar$/i }).click()
   await expect(page.getByRole('heading', { level: 1, name: /^Calendar$/i })).toBeVisible()
@@ -120,30 +128,51 @@ async function expandCollapsedMultiplayerGameTab(page: Page, panelTab: Locator):
 }
 
 export async function selectMultiplayerGame(page: Page, gameId: string, options: SelectMultiplayerGameOptions = {}): Promise<void> {
+  await ensureMultiplayerWorkspace(page)
   const selectedGame = page.getByTestId('multiplayer-selected-game')
-  if (await selectedGame.getAttribute('data-game-id', { timeout: 1_000 }).catch(() => null) === gameId) {
+  const selectedLookupTimeout = 5_000
+  if (await selectedGame.getAttribute('data-game-id', { timeout: selectedLookupTimeout }).catch(() => null) === gameId) {
     try {
       await expectSelectedMultiplayerGame(page, gameId, options)
+      return
     } catch (error) {
       if (!options.status || !options.reloadOnStaleStatus) {
         throw error
       }
       await page.reload({ waitUntil: 'domcontentloaded' })
-      await expectSelectedMultiplayerGame(page, gameId, options)
+      await ensureMultiplayerWorkspace(page)
+      try {
+        await expectSelectedMultiplayerGame(page, gameId, { ...options, timeoutMs: 5_000 })
+        return
+      } catch {
+        // The selected game did not hydrate after the refresh, so fall back to
+        // the tab/lobby/active-game selectors below.
+      }
     }
-    return
   }
   const panelTab = page.getByTestId(`multiplayer-game-tab-${gameId}`)
   try {
     await expandCollapsedMultiplayerGameTab(page, panelTab)
     await panelTab.click({ timeout: 5_000 })
   } catch {
+    try {
+      await expectSelectedMultiplayerGame(page, gameId, { ...options, timeoutMs: 5_000 })
+      return
+    } catch {
+      // The selected surface is not yet usable; continue through the tab fallbacks.
+    }
     const lobbyTab = page.getByRole('tab', { name: /^Lobby$/i })
     await lobbyTab.click()
     const lobbyAction = page.getByTestId(`multiplayer-lobby-action-${gameId}`)
     try {
       await lobbyAction.click({ timeout: 10_000 })
     } catch {
+      try {
+        await expectSelectedMultiplayerGame(page, gameId, { ...options, timeoutMs: 5_000 })
+        return
+      } catch {
+        // Try the Active Games resume control as the last explicit selector.
+      }
       await page.getByRole('tab', { name: /^Active Games$/i }).click()
       await page.getByTestId(`multiplayer-active-resume-${gameId}`).click({ timeout: 10_000 })
     }
