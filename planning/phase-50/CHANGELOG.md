@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Refresh Home Reset Recovered Locally And Backup Prompt Prepared.
+**Status**: Refresh Home Reset Second-Pass Recovered Locally And Backup Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -23,6 +23,65 @@ The refresh-routing follow-up recovered this locally by making same-tab navigati
 Hosted/live manual review after the refresh-routing recovered Review Candidate Backup found that the preservation approach improved refresh behavior but still did not make it consistent enough for acceptance. The user then changed the acceptance target to a simpler deterministic rule: a manual hard/browser refresh may route to Home consistently instead of trying to preserve the exact current app surface.
 
 The Home-reset follow-up recovered that policy locally. App startup now defaults to Home on full page load/manual refresh, while ordinary in-session browser Back/Forward still uses the existing browser-history popstate path. A narrow public-profile route-handoff exception remains so private Practice request/public profile flows can open the intended profile after an intentional app-controlled reload. Accepted Solo persistence remains covered by the focused Solo re-entry suite. No Supabase migration, new table, RLS/RPC/table/bucket change, Supabase remote operation, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, Git/GitHub action, backup workflow, release, merge, final Phase 50 closure, next-phase work, Practice GO answer-selection/randomness algorithm change, or stable `brrrdle` repository work was performed by this follow-up.
+
+Hosted/live manual review after the Refresh Home Reset Review Candidate Backup found that the refresh behavior improved but still does not meet the Home-on-refresh acceptance target: refreshing now pretty consistently returns the game to the Solo tab instead of the Home tab. This suggests a second path may be reselecting Solo after initial startup, such as auth/progress/Solo cloud hydration, auto-resume, saved navigation reconciliation, focus/visibility refresh, or browser-history rewriting. Phase 50 remains open for a bounded second-pass same-phase Review Follow-up.
+
+The second-pass follow-up reproduced the remaining delayed route-away-from-Home behavior locally through an authenticated Daily GO progress-hydration regression. Startup/auth progress hydration now loads signed-in progress without automatically invoking the Solo resume router. Focused refresh tests now assert that Home remains selected after delayed startup effects settle, while Solo persistence tests still re-enter Solo and verify the accepted saved Daily/Practice state. Phase 50 remains open for a recovered Review Candidate Backup and hosted/live manual review before final acceptance.
+
+## Refresh Home Reset Second-Pass Local Recovery - 2026-07-08
+
+Root cause:
+
+- The first Home-reset follow-up made the initial startup route Home, but auth/progress hydration could still call the existing Solo auto-resume path after the Home screen appeared.
+- That delayed hydration path could reselect Solo without user action, matching the hosted/manual symptom where refresh improved but then pretty consistently ended up on Solo instead of Home.
+
+Recovered:
+
+- Startup/auth progress hydration now uses `autoResume: false`, so signed-in progress still loads but no longer automatically navigates away from Home after a manual hard/browser refresh.
+- Explicit user navigation and resume actions remain available; saved Solo state is preserved and can be viewed by manually navigating back to the relevant Solo surface after refresh.
+- Browser Back/Forward behavior remains covered by the focused navigation suite.
+- The public-profile/private-request handoff path remains covered by the full E2E suite and was not changed by this follow-up.
+
+Automated coverage:
+
+- Added a focused authenticated Daily GO regression that reloads after puzzle-one solve, waits for startup/auth hydration to settle, and asserts the app remains on Home before manually re-entering Daily GO and verifying the saved puzzle-two progress.
+- Strengthened completed authenticated Daily OG/GO reload coverage to assert Home still remains selected after delayed startup effects settle before re-entering Solo and verifying terminal state.
+- Strengthened focused navigation refresh coverage so Home must still be visible after a short post-load settle window and Solo/Multiplayer/Settings surfaces must remain hidden.
+
+Verification:
+
+- Pre-fix focused authenticated Daily GO regression failed for the expected reason: after reload, startup initially showed Home, then auth/progress hydration routed to Solo.
+- `npm run test -- src/app/navigationState.test.ts`: 9 tests passed.
+- `npx playwright test e2e/navigation/refresh-route-persistence.spec.ts`: 5 tests passed.
+- Focused authenticated Daily GO regression rerun passed after the source fix.
+- `npx playwright test e2e/gameplay/solo-completion-reentry.spec.ts`: 12 tests passed.
+- `npm run lint` passed.
+- `npm run test`: 129 files, 898 tests passed.
+- `npm run test:e2e`: 55 tests passed.
+- `npm run build` passed with the existing Vite large-chunk advisory.
+- `npx tsc -p tsconfig.api.json --noEmit` passed.
+
+Next action:
+
+- Use `prompt-packages/phase-50/PHASE-50-REFRESH-HOME-RESET-SECOND-PASS-RECOVERED-REVIEW-CANDIDATE-GITHUB-BACKUP-PROMPT-2026-07-08.md` to authorize a Refresh-Home-reset second-pass recovered Review Candidate Backup for hosted/live manual review while keeping Phase 50 open.
+
+## Refresh Home Reset Second-Pass Prompt - 2026-07-08
+
+Manual review update:
+
+- The hosted/live Refresh Home Reset Review Candidate still fails the Home-on-refresh target.
+- User-observed behavior: refreshing the page now pretty consistently returns the game to the Solo tab instead of the Home tab.
+- The acceptance target remains deterministic Home-on-refresh, while preserving saved Solo state so the user can navigate back to Solo after refresh and resume/review the saved game.
+
+Next action prepared:
+
+- Created an ignored local prompt package for a bounded same-phase second-pass implementation/testing follow-up: `prompt-packages/phase-50/PHASE-50-REFRESH-HOME-RESET-SECOND-PASS-FOLLOW-UP-PROMPT-2026-07-08.md`.
+- The prompt asks Codex to reproduce or tightly simulate the hosted refresh-to-Solo symptom, investigate delayed startup/auth/progress hydration and auto-resume paths, make the smallest safe fix so refresh lands and remains on Home, add stronger post-hydration focused refresh coverage, preserve accepted Solo persistence and public-profile handoff behavior, update Phase 50 docs/progress, and return Phase 50 to Review Candidate.
+
+Still pending:
+
+- The second-pass Home-on-refresh implementation and verification remain separately authorized future work.
+- Any subsequent Review Candidate Backup, final Phase 50 acceptance/closure, Final Acceptance Backup, deployment configuration, release, merge, or next-phase work remains separately gated.
 
 ## Refresh Home Reset Follow-Up Local Recovery - 2026-07-08
 

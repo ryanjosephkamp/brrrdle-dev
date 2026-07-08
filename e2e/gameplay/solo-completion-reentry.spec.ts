@@ -69,6 +69,16 @@ async function goHome(page: Page): Promise<void> {
   await expect(page.locator('#dashboard-home-title')).toBeVisible()
 }
 
+async function expectHomeAfterStartupSettles(page: Page): Promise<void> {
+  await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+  // There is no explicit "auth hydration complete" signal on Home. Give async
+  // auth/progress resume effects a short window, then assert they did not route
+  // the app away from Home without a user action.
+  await page.waitForTimeout(2_000)
+  await expect(page.locator('#dashboard-home-title')).toBeVisible()
+  await expect(page.locator('#solo-workspace-title')).toBeHidden()
+}
+
 async function waitForSignedInProgressHydration(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^Settings$/i }).click()
   await expect(page.locator('#settings-title')).toBeVisible()
@@ -462,6 +472,12 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
         wordLength: 5,
       }), 'playing')
 
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await expectHomeAfterStartupSettles(page)
+      await navigateToSoloDaily(page, 'go')
+      await expect(page.getByText(/Puzzle 2 of 5/i).first()).toBeVisible({ timeout: 20_000 })
+      await expectWordVisible(page, /^Go guess grid$/i, answers[0], 1)
+
       restoreContext = await browser.newContext()
       await installFixedBrowserTime(restoreContext, FIXED_DAILY_ISO)
       const restorePage = await restoreContext.newPage()
@@ -510,7 +526,7 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
       }), 'won')
 
       await page.reload({ waitUntil: 'domcontentloaded' })
-      await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+      await expectHomeAfterStartupSettles(page)
       await navigateToSoloDaily(page, 'og')
       await expectTerminalState(page, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, ogAnswer, 1)
 
@@ -532,7 +548,7 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
       }), 'won')
 
       await page.reload({ waitUntil: 'domcontentloaded' })
-      await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+      await expectHomeAfterStartupSettles(page)
       await navigateToSoloDaily(page, 'go')
       await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
 
