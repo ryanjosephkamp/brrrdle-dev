@@ -6,6 +6,11 @@ const NAVIGATION_STORAGE_KEY = 'brrrdle:navigation:v2'
 
 async function expectHome(page: Page): Promise<void> {
   await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+  await page.waitForTimeout(1_000)
+  await expect(page.locator('#dashboard-home-title')).toBeVisible()
+  await expect(page.locator('#solo-workspace-title')).toBeHidden()
+  await expect(page.locator('#multiplayer-workspace-title')).toBeHidden()
+  await expect(page.locator('#settings-title')).toBeHidden()
 }
 
 test.describe('refresh route persistence @navigation', () => {

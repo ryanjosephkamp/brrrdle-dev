@@ -2703,7 +2703,7 @@ function AppInner() {
         const shouldOpenPasswordReset = isPasswordResetUrl() && nextAuthState.status === 'authenticated'
         authStateRef.current = nextAuthState
         setAuthState(nextAuthState)
-        hydrateProgressForAuthState(nextAuthState, { autoResume: !shouldOpenPasswordReset })
+        hydrateProgressForAuthState(nextAuthState, { autoResume: false })
         if (shouldOpenPasswordReset) {
           setAuthModalOpen(false)
           setProfilePanelOpen(false)
@@ -2719,7 +2719,7 @@ function AppInner() {
         authStateRef.current = nextAuthState
         setAuthState(nextAuthState)
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'PASSWORD_RECOVERY') {
-          hydrateProgressForAuthState(nextAuthState, { autoResume: !shouldOpenPasswordReset })
+          hydrateProgressForAuthState(nextAuthState, { autoResume: false })
         }
         if (shouldOpenPasswordReset) {
           setAuthModalOpen(false)

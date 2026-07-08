@@ -1,10 +1,10 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Refresh Home reset recovered locally; hosted/live manual review pending.
+**Status**: Refresh Home reset second-pass recovered locally; hosted/live manual review pending.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
-**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, `progress/PROGRESS-STEP-487.md`, `progress/PROGRESS-STEP-489.md`, `progress/PROGRESS-STEP-491.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
+**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, `progress/PROGRESS-STEP-487.md`, `progress/PROGRESS-STEP-489.md`, `progress/PROGRESS-STEP-491.md`, `progress/PROGRESS-STEP-493.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
 
 This checklist helps the user manually verify Phase 50 behavior. It does not replace automated tests, E2E coverage, the visual handoff review gate, or final verification.
 
@@ -233,6 +233,47 @@ Automated verification passed locally:
 - focused private profile/private request recovery reruns;
 - focused multiplayer GO transition and timed timeout reruns;
 - full lint, unit/component, build, API typecheck, and E2E gates.
+
+This item remains pending hosted/live manual review until the next Review Candidate Backup is authorized and reviewed.
+
+## Refresh Home Reset Hosted Review Follow-Up - 2026-07-08
+
+Hosted/live manual review after the Refresh Home Reset Review Candidate Backup found that the behavior improved but still does not pass:
+
+- refreshing the page now pretty consistently returns the game to the Solo tab instead of the Home tab.
+
+The acceptance target remains unchanged:
+
+- manual hard/browser refresh should land on Home consistently;
+- the app should not later auto-route back to Solo without user action after auth/progress/Solo cloud hydration or other delayed startup effects settle;
+- saved Solo state must remain available when the user manually navigates back to the relevant Solo surface after refresh.
+
+Same-phase action prepared:
+
+- `prompt-packages/phase-50/PHASE-50-REFRESH-HOME-RESET-SECOND-PASS-FOLLOW-UP-PROMPT-2026-07-08.md`
+
+This finding remains inside Phase 50 as directly related Manual Review Window follow-up work. It is not final Phase 50 acceptance.
+
+## Refresh Home Reset Second-Pass Local Recovery - 2026-07-08
+
+Codex locally recovered the remaining refresh-to-Solo symptom:
+
+- auth/progress hydration on app startup now loads signed-in progress without automatically routing to the Solo resume surface;
+- manual hard/browser refresh is expected to land on Home and remain on Home after startup/auth hydration settles;
+- saved Solo progress is not cleared by the Home reset and remains available after the user manually navigates back to the relevant Solo surface;
+- the public-profile/private-request route handoff path remains protected by existing E2E coverage and was not changed in this follow-up.
+
+Automated verification passed locally:
+
+- pre-fix authenticated Daily GO refresh regression failed for the expected delayed route-away-from-Home behavior;
+- focused navigation unit and browser refresh tests;
+- focused Solo completion/re-entry tests, including authenticated Daily GO/OG hydration after reload;
+- full lint, unit/component, build, API typecheck, and E2E gates.
+
+Manual review item for the next hosted/live Review Candidate:
+
+- [ ] From representative signed-in and guest surfaces, manually hard-refresh the hosted site and confirm it lands on Home and does not automatically route back to Solo after a short wait.
+- [ ] After the refresh lands on Home, manually navigate back to the relevant Solo surface and confirm the saved accepted Daily/Practice Solo state is still available.
 
 This item remains pending hosted/live manual review until the next Review Candidate Backup is authorized and reviewed.
 
