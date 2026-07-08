@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Ranked Multiplayer Cross-Browser Recovery Recovered Locally; Review Candidate Backup Prompt Prepared.
+**Status**: Ranked Practice FIFO Matchmaking Implemented Locally And Applied Remotely; Review Candidate Backup Pending.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -28,7 +28,63 @@ Hosted/live manual review after the Refresh Home Reset Review Candidate Backup f
 
 The second-pass follow-up reproduced the remaining delayed route-away-from-Home behavior locally through an authenticated Daily GO progress-hydration regression. Startup/auth progress hydration now loads signed-in progress without automatically invoking the Solo resume router. Focused refresh tests now assert that Home remains selected after delayed startup effects settle, while Solo persistence tests still re-enter Solo and verify the accepted saved Daily/Practice state. Phase 50 remains open for a recovered Review Candidate Backup and hosted/live manual review before final acceptance.
 
-Hosted/live manual review after the second-pass Refresh Home reset backup found that Solo persistence and Home-on-refresh now appear accepted. The user then reported serious multiplayer-only regressions affecting private Practice requests, public Practice/Daily lobby creation, ranked Practice queue finalization, and first-turn persistence/forfeit behavior. Because these are hosted Review Candidate regressions that make multiplayer effectively unplayable before Phase 50 closure, Phase 50 remained open for a same-phase multiplayer recovery prompt. That recovery was implemented and verified locally in Step 495, then backed up for hosted/live review. The next hosted/live manual review found that ranked Practice Multiplayer still had a cross-browser finalization/routing issue, especially with Safari/WebKit involvement, so Phase 50 remained open for another same-phase ranked multiplayer recovery pass. The ranked recovery pass was implemented locally in Step 497 and now awaits a recovered Review Candidate Backup plus hosted/live manual acceptance.
+Hosted/live manual review after the second-pass Refresh Home reset backup found that Solo persistence and Home-on-refresh now appear accepted. The user then reported serious multiplayer-only regressions affecting private Practice requests, public Practice/Daily lobby creation, ranked Practice queue finalization, and first-turn persistence/forfeit behavior. Because these are hosted Review Candidate regressions that make multiplayer effectively unplayable before Phase 50 closure, Phase 50 remained open for a same-phase multiplayer recovery prompt. That recovery was implemented and verified locally in Step 495, then backed up for hosted/live review. The next hosted/live manual review found that ranked Practice Multiplayer still had a cross-browser finalization/routing issue, especially with Safari/WebKit involvement, so Phase 50 remained open for another same-phase ranked multiplayer recovery pass. The ranked recovery pass was implemented locally in Step 497 and backed up. The next hosted/live manual review found that ranked Practice GO appears to work, but ranked Practice OG still does not reliably match repeated compatible players. Phase 50 remained open for a targeted ranked Practice FIFO matchmaking follow-up. That follow-up is implemented locally as a source-controlled Supabase RPC migration artifact and local app/test update. The FIFO RPC migration was then separately authorized and applied to the intended remote `brrrdle-dev` Supabase project before the Review Candidate Backup.
+
+## Ranked Practice FIFO Matchmaking Local Recovery - 2026-07-08
+
+Implemented locally:
+
+- Added `supabase/migrations/20260708202000_phase50_ranked_practice_fifo_matchmaking.sql`.
+- Replaced the intended `claim_ranked_async_matchmaking_pair(text, text)` contract with a first-come, first-served ranked Practice claim rule among compatible queued requests.
+- Preserved authentication, owner checks, no-self-match, queued-only matching, expiry cleanup, Practice/ranked settings compatibility, supported ranked time controls, storage rating-bucket compatibility, `for update skip locked`, and the existing browser-facing return shape.
+- Removed the Phase 43 recent-opponent preference and rating-distance ordering from current ranked Practice pairing.
+- Updated the ranked Practice UI copy to say that the oldest compatible queued rival is paired first.
+- Updated the ranked queue SQL contract test to lock the new FIFO rule and to guard against reintroducing recent-opponent or rating-distance preference into the current claim RPC.
+- Added a real two-client ranked Practice GO queue smoke test, preserving the user-reported working GO path while the queue contract changes.
+
+Local verification evidence so far:
+
+- `npm run test -- src/multiplayer/rankedQueueFairnessContract.test.ts`: 1 file, 3 tests passed.
+- `npm run test -- src/multiplayer/rankedQueueFairnessContract.test.ts src/multiplayer/MultiplayerPanel.test.tsx src/multiplayer/multiplayerRepository.test.ts src/multiplayer/privateMatchmaking.test.ts src/app/scopedProgressMultiplayerState.test.ts`: 5 files, 87 tests passed.
+- `npx playwright test e2e/gameplay/practice-multiplayer-go.spec.ts`: 2 tests passed, including the new ranked Practice GO queue smoke.
+- `npx playwright test e2e/gameplay/practice-multiplayer-og.spec.ts e2e/gameplay/practice-multiplayer-go.spec.ts e2e/gameplay/private-matchmaking.spec.ts`: 11 tests passed after the ranked Practice GO smoke was added.
+- `npx playwright test e2e/gameplay/multiplayer-reliability.spec.ts e2e/gameplay/multiplayer-focus-refocus.spec.ts`: 6 tests passed.
+- `npx playwright test e2e/navigation/refresh-route-persistence.spec.ts e2e/gameplay/solo-completion-reentry.spec.ts`: 17 tests passed.
+
+Remote migration evidence:
+
+- Applied `phase50_ranked_practice_fifo_matchmaking` to the intended remote Supabase project on 2026-07-08.
+- Remote migration ledger now includes `phase50_ranked_practice_fifo_matchmaking`.
+- Remote function probe confirmed: Phase 50 function comment present; `candidate.queued_at` and `candidate.id` FIFO ordering present; `for update skip locked` present; `phase43_is_recent_ranked_practice_opponent` absent; rating-distance ordering absent; `authenticated` can execute; `anon` cannot execute.
+
+Important boundary:
+
+- Remote Supabase execution was limited to the one named FIFO RPC migration. No other remote SQL, RLS, schema, table, bucket, data cleanup, deployment configuration, or production action was performed.
+- Git/GitHub backup, branch creation, staging, commit, push, PR, merge, branch cleanup, deployment configuration, release, final Phase 50 acceptance/closure, next-phase work, profile-name policy implementation, admin queue visualization, and stable `brrrdle` repository work remain unexecuted.
+
+## Ranked Practice FIFO Matchmaking Planning - 2026-07-08
+
+Hosted/manual review update:
+
+- Solo persistence and manual hard/browser refresh to Home are reported passing and remain accepted guardrails.
+- Ranked Practice GO matchmaking appears to work and should be preserved.
+- Ranked Practice OG matchmaking still does not reliably pair two compatible signed-in accounts in separate browsers.
+- Repeated ranked matching between the same two players appears artificially inhibited, especially when the same pair recently played each other.
+- Some ranked matches can be difficult or impossible to forfeit out of once created.
+- Emoji or special-character public profile names may break Daily Multiplayer for affected accounts; this is recorded as a later profile-name/public-identity policy concern unless it directly blocks the FIFO follow-up.
+- A future admin/debug surface for visualizing ranked queue state remains useful but deferred.
+
+Planning-only analysis:
+
+- Created `planning/phase-50/RANKED-PRACTICE-FIFO-MATCHMAKING-PLAN-2026-07-08.md`.
+- The plan found that the current ranked queue RPC is not FIFO: `supabase/migrations/20260703230106_phase43_ranked_queue_matching_fairness.sql` orders compatible candidates by recent-opponent penalty, rating distance, queue age, and id.
+- The plan recommends first-come, first-served matching among compatible queued ranked Practice requests, preserving authentication, ownership, no-self-match, Practice/ranked/settings/time-control compatibility, expiry, and the existing durable-game finalization recovery.
+- The plan notes that a true hosted/backend FIFO change likely requires a local source-controlled Supabase RPC migration artifact, while remote Supabase execution remains separately gated.
+
+Next action prepared:
+
+- Created an ignored local prompt package: `prompt-packages/phase-50/PHASE-50-RANKED-PRACTICE-FIFO-MATCHMAKING-FOLLOW-UP-PROMPT-2026-07-08.md`.
+- The prompt asks Codex to implement the bounded ranked Practice FIFO matchmaking follow-up, add or update tests/E2E coverage, preserve accepted Solo and Home-on-refresh guardrails, update Phase 50 docs/progress, and stop before any remote Supabase execution or Git/GitHub backup.
 
 ## Ranked Multiplayer Cross-Browser Recovery Planning - 2026-07-08
 

@@ -1,6 +1,6 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Solo and Home-on-refresh reported passing; ranked multiplayer cross-browser recovery implemented locally and pending hosted/live manual acceptance.
+**Status**: Solo, Home-on-refresh, and ranked Practice GO reported passing; ranked Practice FIFO matchmaking implemented locally and applied remotely, with hosted Review Candidate backup/review pending.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
@@ -361,7 +361,40 @@ Local automated verification passed:
 
 Hosted/live acceptance remains unchecked until the recovered candidate is backed up and manually reviewed on the user's devices.
 
-This follow-up does not reopen accepted Solo persistence or Home-on-refresh behavior except as guardrail verification. It also does not authorize Git/GitHub backup, final Phase 50 acceptance/closure, migrations, deployment, release, merge, next-phase work, public tunneling, production configuration, or stable `brrrdle` repository work.
+This follow-up does not reopen accepted Solo persistence or Home-on-refresh behavior except as guardrail verification. It also does not authorize Git/GitHub backup, final Phase 50 acceptance/closure, remote Supabase migration execution, deployment, release, merge, next-phase work, public tunneling, production configuration, or stable `brrrdle` repository work.
+
+## Ranked Practice FIFO Matchmaking Finding - 2026-07-08
+
+Hosted/live manual review after the ranked multiplayer recovered backup found that the Step 497 durable-game recovery improved the state but did not fully accept ranked Practice Multiplayer:
+
+- ranked Practice GO matchmaking appears to work and should be preserved;
+- ranked Practice OG matchmaking still does not reliably match two compatible signed-in accounts in separate browsers;
+- repeated ranked matching between the same two players appears artificially inhibited after they recently played each other;
+- some ranked matches can be difficult or impossible to forfeit out of once created.
+
+Source inspection found that the current ranked queue RPC still contains Phase 43 fairness logic that prefers compatible non-recent opponents before rating-distance and queue-age ordering. The new Phase 50 acceptance target is first-come, first-served matching among compatible ranked Practice queue requests.
+
+New same-phase recovery items:
+
+- [x] **Implemented locally and applied remotely; hosted review pending:** Ranked Practice OG uses first-come, first-served matching for compatible queued requests.
+  - Expected: two compatible signed-in accounts can repeatedly enter ranked Practice OG queue and match each other, even if they just completed a ranked Practice OG game together and no third player is needed to make matching work.
+  - Suggested steps: use two safe signed-in accounts in separate browsers, enter compatible ranked Practice OG settings, complete or forfeit a ranked game if feasible, then immediately search ranked Practice OG again with both accounts and confirm a new ranked game opens for both.
+  - Evidence: `supabase/migrations/20260708202000_phase50_ranked_practice_fifo_matchmaking.sql` replaces the ranked claim RPC with compatible FIFO ordering; `src/multiplayer/rankedQueueFairnessContract.test.ts` verifies the FIFO contract and guards against reintroducing recent-opponent/rating-distance preference; `e2e/gameplay/practice-multiplayer-og.spec.ts` covers ranked Practice search-again. The remote Supabase migration ledger includes `phase50_ranked_practice_fifo_matchmaking`, and a remote function probe confirmed FIFO ordering, no recent-opponent helper, no rating-distance ordering, authenticated execute, and anon denial. Hosted/live manual acceptance remains pending.
+
+- [x] **Verified locally; hosted review pending:** Ranked Practice GO remains non-regressed after the FIFO change.
+  - Expected: compatible ranked Practice GO queue requests still match/open correctly after the queue contract changes.
+  - Suggested steps: repeat the ranked queue check with GO settings where feasible and confirm both players land in the same ranked Practice GO game without invalid-JSON or stranded current-match fallback behavior.
+  - Local evidence: `e2e/gameplay/practice-multiplayer-go.spec.ts` includes a real two-client ranked Practice GO queue smoke test and the existing solved GO transition synchronization check.
+
+- [x] **Verified locally on existing ranked/Practice coverage; continue hosted spot-check:** Ranked Practice forfeit/cancel behavior is either verified or separately routed.
+  - Expected: created ranked Practice matches should not trap a player in an un-forfeitable active game. If a ranked forfeit/cancel issue is separate from FIFO matching or requires broader settlement/schema work, it should be documented and routed to a separate prompt.
+  - Suggested steps: inspect ranked Practice OG/GO active games created by the new queue path and try the normal forfeit/cancel controls before and after at least one submitted turn where safe.
+  - Local evidence: `e2e/gameplay/practice-multiplayer-og.spec.ts` covers post-guess forfeit persistence/loss behavior and ranked Practice search-again/terminal actions. If hosted/live manual review finds a specific ranked-only un-forfeitable game after the remote FIFO migration, route that as a separate same-phase follow-up with the concrete game state.
+
+Deferred later-phase notes:
+
+- Profile names with emoji or special characters may need either safe support or validation/blocking when the public/private profile-name model is simplified.
+- An admin/debug ranked queue visualization could help manual diagnosis, but it is deferred to a later admin dashboard or observability phase.
 
 ## Refresh Home Reset Hosted Review Follow-Up - 2026-07-08
 
@@ -649,6 +682,6 @@ Codex intentionally did not verify or perform:
 - [x] User routed the multiplayer matchmaking, first-turn persistence, private forfeit/cancel, Daily/Practice lobby flash-revert, and ranked queue invalid-JSON regressions into Phase 50 before final closure.
 - [x] Multiplayer matchmaking and first-turn persistence recovery has been implemented and verified locally before final Phase 50 closure.
 - [x] Ranked Practice cross-browser finalization/routing recovery has been implemented and verified locally before final Phase 50 closure.
-- [ ] Ranked Practice cross-browser finalization/routing recovery has been accepted in hosted/live manual review before final Phase 50 closure.
+- [ ] Ranked Practice FIFO matchmaking has been backed up if needed and accepted in hosted/live manual review before final Phase 50 closure.
 - [x] User reported that preserve-current-surface refresh behavior improved but remained inconsistent, and routed the simpler Home-on-refresh policy into Phase 50.
 - [x] Refresh Home reset follow-up has been implemented, backed up if needed, and accepted by the user before final Phase 50 closure.

@@ -1974,7 +1974,7 @@ export function MultiplayerPanel({
                 <Button className="mt-2" onClick={onOpenEloAbout} size="sm" variant="ghost">How is Elo calculated?</Button>
               ) : null}
               <p className="mt-1">
-                Ranked is signed-in Practice only. Choose no clock for the current ranked track or 5 minutes for the separate timed ranked track. The queue matches mode, word length, Hard Mode, rating bucket, and ranked time control.
+                Ranked is signed-in Practice only. Choose no clock for the current ranked track or 5 minutes for the separate timed ranked track. The queue matches mode, word length, Hard Mode, rating bucket, and ranked time control, then pairs the oldest compatible queued rival first.
               </p>
               <p className="mt-1">
                 Points decide the match result first. Elo changes afterward only after trusted settlement confirms durable ranked evidence. Daily ranked and ranked custom-code games remain deferred.

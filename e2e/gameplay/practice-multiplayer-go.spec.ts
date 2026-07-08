@@ -1,11 +1,54 @@
 import { expect, test } from '@playwright/test'
 import { expectKeyboardState, expectNoConsoleFailures } from '../fixtures/assertions'
 import { getCurrentAnswer, projectionFromRow } from '../fixtures/answers'
-import { chooseMultiplayerMode, navigateToPracticeMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
-import { waitForMultiplayerRowByIdForUsers, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
+import { chooseMultiplayerMode, navigateToPracticeMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, setPracticeMultiplayerMatchType, setPracticeMultiplayerWordLength, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
+import { upsertPublicProfileForUser, waitForMultiplayerRowByIdForUsers, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession } from '../fixtures/twoClientGame'
 
+const RANKED_GO_E2E_WORD_LENGTH = 7
+
 test.describe('Practice Multiplayer GO @practice @multiplayer', () => {
+  test('matches ranked Practice GO queue requests for two real clients', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+    try {
+      await Promise.all([
+        upsertPublicProfileForUser(session.host.user, 'cyan'),
+        upsertPublicProfileForUser(session.rival.user, 'rose'),
+      ])
+
+      await navigateToPracticeMultiplayer(session.host.page)
+      await chooseMultiplayerMode(session.host.page, 'go')
+      await setPracticeMultiplayerWordLength(session.host.page, RANKED_GO_E2E_WORD_LENGTH)
+      await setPracticeMultiplayerMatchType(session.host.page, 'ranked')
+      await session.host.page.getByRole('button', { name: /^Enter ranked queue$/i }).click()
+      await expect(session.host.page.getByTestId('ranked-queue-status')).toContainText(/Waiting for a compatible signed-in rival/i)
+
+      await navigateToPracticeMultiplayer(session.rival.page)
+      await chooseMultiplayerMode(session.rival.page, 'go')
+      await setPracticeMultiplayerWordLength(session.rival.page, RANKED_GO_E2E_WORD_LENGTH)
+      await setPracticeMultiplayerMatchType(session.rival.page, 'ranked')
+      await session.rival.page.getByRole('button', { name: /^Enter ranked queue$/i }).click()
+
+      const rankedRow = await waitForMultiplayerRowForUsers({
+        mode: 'go',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      const rankedGame = projectionFromRow(rankedRow)
+      expect(rankedGame.mode).toBe('go')
+      expect(rankedGame.ranked).toBe(true)
+      expect(rankedGame.wordLength).toBe(RANKED_GO_E2E_WORD_LENGTH)
+      await expect(session.host.page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-game-id', rankedRow.id, { timeout: 30_000 })
+      await expect(session.rival.page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-game-id', rankedRow.id, { timeout: 30_000 })
+
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
   test('keeps clients synchronized across a solved GO transition with prior rows and keyboard evidence', async ({ browser }) => {
     const session = await createTwoClientSession(browser)
     try {

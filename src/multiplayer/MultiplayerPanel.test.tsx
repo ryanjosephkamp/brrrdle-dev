@@ -941,6 +941,7 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('Ranked Practice v1')
     expect(html).toContain('How is Elo calculated?')
     expect(html).toContain('Choose no clock for the current ranked track or 5 minutes for the separate timed ranked track.')
+    expect(html).toContain('pairs the oldest compatible queued rival first')
     expect(html).toContain('Daily ranked and ranked custom-code games remain deferred.')
     expect(html).toContain('Points decide the match result first. Elo changes afterward only after trusted settlement')
     expect(html).not.toContain('<option value="custom">Custom code</option>')
