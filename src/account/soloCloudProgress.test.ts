@@ -127,4 +127,33 @@ describe('solo cloud progress', () => {
     expect(slot?.mode === 'go' ? slot.serializedSession.currentPuzzleIndex : undefined).toBe(1)
     expect(slot?.mode === 'go' ? slot.serializedSession.priorAnswers : []).toEqual(['CRANE'])
   })
+
+  it('skips superseded Practice cloud sessions when the account has advanced to a newer seed', () => {
+    const hydrated = mergeSoloCloudSessionsIntoProgress(createDefaultGuestProgress(), [
+      createOgRecord({
+        completedAt: updatedAt,
+        practiceSeed: 0,
+        scope: 'practice',
+        serializedSession: {
+          answer: 'SLATE',
+          continuationCount: 0,
+          currentGuess: '',
+          guesses: ['SLATE'],
+          hardMode: false,
+          maxAttempts: 6,
+        },
+        sessionKey: 'solo:practice:og:expert:5:0',
+        status: 'won',
+      }),
+      createOgRecord({
+        practiceSeed: 1,
+        scope: 'practice',
+        sessionKey: 'solo:practice:og:expert:5:1',
+      }),
+    ], { currentPracticeSeeds: { og: 1 } })
+
+    expect(hydrated.completedSlots['practice-og']).toBeUndefined()
+    expect(hydrated.progress.resumeSlots?.['practice-og']?.mode).toBe('og')
+    expect(hydrated.progress.resumeSlots?.['practice-og']?.updatedAt).toBe(updatedAt)
+  })
 })

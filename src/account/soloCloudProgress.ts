@@ -77,6 +77,10 @@ export interface SoloCloudHydrationResult {
   readonly progress: GuestProgressState
 }
 
+export interface SoloCloudHydrationOptions {
+  readonly currentPracticeSeeds?: Partial<Record<GameMode, number>>
+}
+
 export interface SoloCloudProgressRepository {
   readonly loadRecentSessions: (userId: string, limit?: number) => Promise<readonly SoloCloudSessionRecord[]>
   readonly saveMutation: (userId: string, mutation: SoloCloudMutation) => Promise<SoloCloudSessionRecord>
@@ -416,14 +420,28 @@ function collectionHasSlots(slots: ResumeSlotCollection): boolean {
   return Object.keys(slots).length > 0
 }
 
+function isSupersededPracticeSession(session: SoloCloudSessionRecord, options: SoloCloudHydrationOptions | undefined): boolean {
+  if (session.scope !== 'practice') {
+    return false
+  }
+  const currentSeed = options?.currentPracticeSeeds?.[session.mode]
+  return typeof currentSeed === 'number'
+    && typeof session.practiceSeed === 'number'
+    && session.practiceSeed !== currentSeed
+}
+
 export function mergeSoloCloudSessionsIntoProgress(
   progress: GuestProgressState,
   sessions: readonly SoloCloudSessionRecord[],
+  options?: SoloCloudHydrationOptions,
 ): SoloCloudHydrationResult {
   const resumeSlots = { ...normalizeResumeSlots(progress.resumeSlots) }
   const completedSlots: ResumeSlotCollection = {}
 
   for (const session of sessions) {
+    if (isSupersededPracticeSession(session, options)) {
+      continue
+    }
     const slot = createSlotFromSoloCloudSession(session)
     if (!slot) {
       continue

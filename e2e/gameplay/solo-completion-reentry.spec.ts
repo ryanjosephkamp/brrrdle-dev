@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createSoloCloudSessionKey } from '../../src/account'
+import { createAccountPracticeSeed, createSoloCloudSessionKey } from '../../src/account'
 import { dateKeyToLocalDate } from '../../src/daily'
 import { createDailyGoSetup, createPracticeGoSetup } from '../../src/game/go/session'
 import { createDailyOgSetup, createPracticeOgSetup } from '../../src/game/og/session'
@@ -90,6 +90,14 @@ async function waitForSoloCloudSessionStatus(user: E2eUser, sessionKey: string, 
     const entry = data.entry as { readonly kind?: string; readonly session?: { readonly status?: string } } | undefined
     return entry?.kind === 'solo-cloud-session-v1' ? entry.session?.status : undefined
   }, { timeout: 20_000 }).toBe(status)
+}
+
+function findWrongGuess(validGuesses: ReadonlySet<string>, answer: string): string {
+  const guess = [...validGuesses].find((candidate) => candidate.length === answer.length && candidate !== answer)
+  if (!guess) {
+    throw new Error(`No wrong ${answer.length}-letter guess is available for the test fixture.`)
+  }
+  return guess
 }
 
 async function expectSubmittedWord(page: Page, gridLabel: RegExp, word: string, rowNumber: number): Promise<void> {
@@ -293,6 +301,74 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
     await expectNoConsoleFailures(consoleFailures)
   })
 
+  test('keeps a fresh Practice GO chain selected after a completed chain is superseded and the page refreshes', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    await page.goto('/')
+    await navigateToSoloPractice(page)
+    await chooseSoloPracticeMode(page, 'go')
+
+    const completedAnswers = createPracticeGoSetup(5, 0).puzzles.map((puzzle) => puzzle.answer)
+    await solveGoChain(page, /Practice go chain/i, completedAnswers)
+    await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, completedAnswers[completedAnswers.length - 1], completedAnswers.length)
+
+    await page.getByRole('button', { name: /^New go chain$/i }).click()
+    await expect(page.getByText(/Puzzle 1 of 5/i).first()).toBeVisible({ timeout: 20_000 })
+    await expectDraftRowEmpty(page, /^Go guess grid$/i, 1)
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.getByRole('region', { name: /Practice go chain/i })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i).first()).toBeHidden()
+    await expect(page.getByText(/Puzzle 1 of 5/i).first()).toBeVisible({ timeout: 20_000 })
+    await expectDraftRowEmpty(page, /^Go guess grid$/i, 1)
+    await expectNoConsoleFailures(consoleFailures)
+  })
+
+  test('restores a valid first guess in a superseding Practice GO chain after refresh', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    await page.goto('/')
+    await navigateToSoloPractice(page)
+    await chooseSoloPracticeMode(page, 'go')
+
+    const completedAnswers = createPracticeGoSetup(5, 0).puzzles.map((puzzle) => puzzle.answer)
+    await solveGoChain(page, /Practice go chain/i, completedAnswers)
+    await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, completedAnswers[completedAnswers.length - 1], completedAnswers.length)
+
+    await page.getByRole('button', { name: /^New go chain$/i }).click()
+    const nextSetup = createPracticeGoSetup(5, 1)
+    const wrongGuess = findWrongGuess(nextSetup.validGuesses, nextSetup.puzzles[0].answer)
+    await submitSoloGuessWithKeyboard(page, /Practice go chain/i, wrongGuess)
+    await expectWordVisible(page, /^Go guess grid$/i, wrongGuess, 1)
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.getByRole('region', { name: /Practice go chain/i })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i).first()).toBeHidden()
+    await expectWordVisible(page, /^Go guess grid$/i, wrongGuess, 1)
+    await expectNoConsoleFailures(consoleFailures)
+  })
+
+  test('restores a valid first guess in a superseding Practice OG puzzle after refresh', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    await page.goto('/')
+    await navigateToSoloPractice(page)
+    await chooseSoloPracticeMode(page, 'og')
+
+    const completedAnswer = createPracticeOgSetup(5, 0).answer
+    await submitSoloGuessWithKeyboard(page, /Practice og puzzle/i, completedAnswer)
+    await expectTerminalState(page, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, completedAnswer, 1)
+
+    await page.getByRole('button', { name: /^New practice puzzle$/i }).click()
+    const nextSetup = createPracticeOgSetup(5, 1)
+    const wrongGuess = findWrongGuess(nextSetup.validGuesses, nextSetup.answer)
+    await submitSoloGuessWithKeyboard(page, /Practice og puzzle/i, wrongGuess)
+    await expectWordVisible(page, /^Guess grid$/i, wrongGuess, 1)
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.getByRole('region', { name: /Practice og puzzle/i })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/^Solved\. Daily completion is preserved on refresh\.$/i).first()).toBeHidden()
+    await expectWordVisible(page, /^Guess grid$/i, wrongGuess, 1)
+    await expectNoConsoleFailures(consoleFailures)
+  })
+
   test('keeps completed Daily OG visible across route re-entry and browser Back without duplicate rewards', async ({ browser }) => {
     const context = await browser.newContext()
     await installFixedBrowserTime(context, FIXED_DAILY_ISO)
@@ -462,6 +538,70 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
       await expectTerminalState(restorePage, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, ogAnswer, 1)
       await navigateToSoloDaily(restorePage, 'go')
       await expectTerminalState(restorePage, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
+      await expectNoConsoleFailures(restoreConsoleFailures)
+      await expectNoConsoleFailures(consoleFailures)
+    } finally {
+      await restoreContext?.close()
+      await context.close()
+      await cleanupE2eRun(users)
+    }
+  })
+
+  test('restores authenticated Practice GO superseding-chain progress in a fresh browser', async ({ browser }) => {
+    getE2eEnv()
+
+    const runId = createRunId()
+    const users: E2eUser[] = []
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    const consoleFailures = installConsoleGuards(page)
+    let restoreContext: Awaited<ReturnType<typeof browser.newContext>> | undefined
+    try {
+      const user = await createE2eUser('solo-practice-go-supersede', runId)
+      users.push(user)
+
+      await signInThroughUi(page, user)
+      await waitForSignedInProgressHydration(page)
+      await navigateToSoloPractice(page)
+      await chooseSoloPracticeMode(page, 'go')
+
+      const firstSeed = createAccountPracticeSeed('go', user.id, 0)
+      const firstAnswers = createPracticeGoSetup(5, firstSeed).puzzles.map((puzzle) => puzzle.answer)
+      await solveGoChain(page, /Practice go chain/i, firstAnswers)
+      await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, firstAnswers[firstAnswers.length - 1], firstAnswers.length)
+      await waitForSoloCloudSessionStatus(user, createSoloCloudSessionKey({
+        difficulty: 'expert',
+        goPuzzleCount: 5,
+        mode: 'go',
+        practiceSeed: firstSeed,
+        scope: 'practice',
+        wordLength: 5,
+      }), 'won')
+
+      await page.getByRole('button', { name: /^New go chain$/i }).click()
+      const nextSeed = createAccountPracticeSeed('go', user.id, 1)
+      const nextSetup = createPracticeGoSetup(5, nextSeed)
+      const wrongGuess = findWrongGuess(nextSetup.validGuesses, nextSetup.puzzles[0].answer)
+      await submitSoloGuessWithKeyboard(page, /Practice go chain/i, wrongGuess)
+      await expectWordVisible(page, /^Go guess grid$/i, wrongGuess, 1)
+      await waitForSoloCloudSessionStatus(user, createSoloCloudSessionKey({
+        difficulty: 'expert',
+        goPuzzleCount: 5,
+        mode: 'go',
+        practiceSeed: nextSeed,
+        scope: 'practice',
+        wordLength: 5,
+      }), 'playing')
+
+      restoreContext = await browser.newContext()
+      const restorePage = await restoreContext.newPage()
+      const restoreConsoleFailures = installConsoleGuards(restorePage)
+      await signInThroughUi(restorePage, user)
+      await waitForSignedInProgressHydration(restorePage)
+      await navigateToSoloPractice(restorePage)
+      await chooseSoloPracticeMode(restorePage, 'go')
+      await expect(restorePage.getByText(/^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i).first()).toBeHidden()
+      await expectWordVisible(restorePage, /^Go guess grid$/i, wrongGuess, 1)
       await expectNoConsoleFailures(restoreConsoleFailures)
       await expectNoConsoleFailures(consoleFailures)
     } finally {

@@ -1,10 +1,10 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Solo cloud persistence overhaul recovered locally - recovered Review Candidate Backup prompt prepared.
+**Status**: Practice Solo persistence follow-up recovered locally - recovered Review Candidate Backup prompt prepared.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
-**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
+**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, `progress/PROGRESS-STEP-487.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
 
 This checklist helps the user manually verify Phase 50 behavior. It does not replace automated tests, E2E coverage, the visual handoff review gate, or final verification.
 
@@ -313,20 +313,37 @@ Codex intentionally did not verify or perform:
 
 ## Solo Cloud Persistence Overhaul Manual Review - 2026-07-07
 
-- [ ] **Awaiting hosted/manual review after recovered backup:** Signed-in Daily GO first-puzzle solve persists the transition to puzzle 2 immediately.
+- [x] **Passed in hosted/manual review 2026-07-07 after Solo cloud persistence backup:** Signed-in Daily GO first-puzzle solve persists the transition to puzzle 2 immediately.
   - Expected: after signing in, solving the first Daily GO puzzle, and leaving before entering any manual guess on puzzle 2, a fresh browser/device sign-in returns to Daily GO on puzzle 2 with the carried-forward prior answer row visible.
   - Suggested steps: use a safe signed-in account, solve only puzzle 1 of Daily GO, then test another browser/device or clear local site data, sign in again, and open Solo -> Daily -> GO.
   - Evidence: focused Playwright coverage in `e2e/gameplay/solo-completion-reentry.spec.ts` verifies fresh-browser account hydration for this exact transition.
 
-- [ ] **Awaiting hosted/manual review after recovered backup:** Signed-in Daily OG and Daily GO terminal states persist immediately across fresh browser/device account hydration.
+- [x] **Passed in hosted/manual review 2026-07-07 after Solo cloud persistence backup:** Signed-in Daily OG and Daily GO terminal states persist immediately across fresh browser/device account hydration.
   - Expected: after completing Daily OG or the full Daily GO chain while signed in, a fresh browser/device sign-in shows the completed terminal board/end screen without requiring a delayed manual sync or another guess.
   - Suggested steps: solve Daily OG and/or Daily GO with a safe signed-in account, then sign in on another browser/device or clear local site data, open the same Solo Daily surface, and confirm the completed screen and final rows are present.
   - Evidence: focused Playwright coverage in `e2e/gameplay/solo-completion-reentry.spec.ts` verifies fresh-browser completed Daily OG/GO hydration from the signed-in account cloud record.
 
-- [ ] **Awaiting hosted/manual review after recovered backup:** Guest/account boundaries remain unchanged after the Solo cloud persistence overhaul.
+- [x] **Passed in hosted/manual review 2026-07-07 after Solo cloud persistence backup:** Guest/account boundaries remain unchanged after the Solo cloud persistence overhaul.
   - Expected: guest drafts and guest-only progress remain local unless explicitly transferred; signed-in Solo cloud records belong only to the authenticated account; signing out does not expose account-owned Solo terminal state to guest mode.
   - Suggested steps: compare guest mode and signed-in mode in separate browsers/profiles, and confirm each scope shows only its own Solo progress.
   - Evidence: the implementation writes only when `authState.status === 'authenticated'`; existing guest/account manual-review checks remain listed above.
+
+## Practice Solo Persistence Follow-Up Manual Review - 2026-07-07
+
+- [ ] **Awaiting hosted/manual review after recovered backup:** Practice GO starts and restores a new chain after a completed chain is superseded.
+  - Expected: after completing Practice GO, pressing `New go chain` starts a new blank chain. If the player submits a valid guess in the new chain, refresh, route re-entry, or fresh signed-in browser/account hydration returns to the new in-progress chain, not the previous completed terminal screen.
+  - Suggested steps: sign in with a safe account, complete Practice Solo GO, click `New go chain`, submit one valid incorrect guess in the new chain, then refresh and/or sign out/sign in on another browser/device. Confirm the submitted guess remains visible and the old terminal screen does not return.
+  - Evidence: pre-fix focused E2E reproduced the authenticated fresh-browser stale terminal restore; local recovery and verification recorded in `progress/PROGRESS-STEP-487.md`.
+
+- [ ] **Awaiting hosted/manual review after recovered backup:** Practice GO remains blank after `New go chain` even before the first new guess.
+  - Expected: after completing Practice GO and pressing `New go chain`, a refresh or route re-entry still shows the new blank chain's first puzzle instead of the previous completed terminal chain.
+  - Suggested steps: complete Practice Solo GO, click `New go chain`, do not submit a guess, refresh the page, and confirm Solo -> Practice -> GO shows puzzle 1 of a fresh chain with an empty draft row.
+  - Evidence: focused Playwright refresh coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`.
+
+- [ ] **Awaiting hosted/manual review after recovered backup:** Practice OG starts and restores a new puzzle after a completed puzzle is superseded.
+  - Expected: after completing Practice OG, pressing `New practice puzzle` starts a new puzzle. If the player submits a valid guess in the new puzzle, refresh or route re-entry returns to that in-progress puzzle, not the previous completed terminal screen.
+  - Suggested steps: complete Practice Solo OG, click `New practice puzzle`, submit one valid incorrect guess, refresh and/or route away and back, and confirm the submitted guess remains visible while the old completed screen stays superseded.
+  - Evidence: focused Playwright refresh coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`; local recovery recorded in `progress/PROGRESS-STEP-487.md`.
 
 ## Optional Nice-To-Check
 
@@ -361,6 +378,7 @@ Codex intentionally did not verify or perform:
 - Final phase closure, Final Acceptance Backup, release, deployment configuration, or production configuration change.
 - New storage schema, new Supabase/RLS/RPC/table/bucket, migration, destructive cloud progress change, or deployment-configuration change.
 - Broader resume/session contracts, one-active-session leases, server-authoritative Daily submissions, forced sign-out, remote invalidation, or session security work.
+- Practice GO answer-selection/randomness auditing or algorithm changes beyond preserving the current deterministic Practice seed flow.
 - Reward formula, XP curve, level curve, coin economy, inventory, consumables, Pay-to-Continue, reveal-answer, marketplace, monetization, stats-calculation, Daily claim, gameplay-rule, scoring, or Elo/rating changes.
 - Broad Profile/public-profile model simplification, visibility/moderation contract changes, account deletion, privacy controls, top-right player-chip popover, or route-architecture changes.
 - Stats redesign, cloud stats, multiplayer stats, public stats expansion, or HUD economic controls.
