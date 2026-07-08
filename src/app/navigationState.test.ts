@@ -60,7 +60,7 @@ describe('navigationState', () => {
     })
   })
 
-  it('prefers same-tab session navigation over stale local navigation on browser loads', () => {
+  it('prefers same-tab session navigation over stale local navigation when merging saved state', () => {
     createBrowserStorage({
       [NAVIGATION_STORAGE_KEY]: JSON.stringify({
         activeRouteId: 'home',

@@ -89,7 +89,7 @@ import { GAMEPLAY_AUTOCENTER_TARGETS, scheduleGameplayAutoCenter } from './gamep
 import { LunarSignalStage } from './LunarSignalStage'
 import { ProgressionHud } from './ProgressionHud'
 import { getPrimaryNavigationRoutes, getRouteById, type AppRoute, type AppRouteId } from './routes'
-import { DEFAULT_NAVIGATION_STATE, loadNavigationState, loadStoredNavigationState, saveNavigationState, type HistoryFilters, type LegacyPracticeMode, type MultiplayerSubtabId, type NavigationState, type SoloSubtabId } from './navigationState'
+import { DEFAULT_NAVIGATION_STATE, loadNavigationState, saveNavigationState, type HistoryFilters, type LegacyPracticeMode, type MultiplayerSubtabId, type NavigationState, type SoloSubtabId } from './navigationState'
 
 type PracticeMode = LegacyPracticeMode
 type RankedQueueActions = Pick<
@@ -139,41 +139,16 @@ function isSameResumeSlot(left: ResumeSlot | undefined, right: ResumeSlot): bool
     && JSON.stringify(left.serializedSession) === JSON.stringify(right.serializedSession)
 }
 
-function getBrowserStorage(kind: 'localStorage' | 'sessionStorage'): Storage | undefined {
-  if (typeof window === 'undefined') {
-    return undefined
-  }
-
-  try {
-    return window[kind]
-  } catch {
-    return undefined
-  }
-}
-
-function areNavigationStatesEquivalent(first: NavigationState | undefined, second: NavigationState | undefined): boolean {
-  if (!first || !second) {
-    return first === second
-  }
-
-  return JSON.stringify(first) === JSON.stringify(second)
+function isStartupRouteHandoff(navigation: NavigationState): boolean {
+  return navigation.activeRouteId === 'public-profile' && Boolean(navigation.selectedPublicProfileId)
 }
 
 function selectInitialNavigationState(browserNavigation: BrowserNavigationViewState | undefined): NavigationState {
-  const sessionNavigation = loadStoredNavigationState(getBrowserStorage('sessionStorage'))
-  const localNavigation = loadStoredNavigationState(getBrowserStorage('localStorage'))
-  const historyNavigation = browserNavigation?.navigation
-
-  if (
-    historyNavigation
-    && localNavigation
-    && areNavigationStatesEquivalent(historyNavigation, localNavigation)
-    && !areNavigationStatesEquivalent(historyNavigation, sessionNavigation)
-  ) {
-    return historyNavigation
+  if (browserNavigation && isStartupRouteHandoff(browserNavigation.navigation)) {
+    return browserNavigation.navigation
   }
 
-  return sessionNavigation ?? localNavigation ?? historyNavigation ?? DEFAULT_NAVIGATION_STATE
+  return DEFAULT_NAVIGATION_STATE
 }
 
 function setSoloDisplaySlot(slots: ResumeSlotCollection, slotKey: SoloActiveGameKey, slot: ResumeSlot): ResumeSlotCollection {
@@ -1096,12 +1071,7 @@ function AppInner() {
   const sound = useSound()
   const [initialBrowserNavigation] = useState(() => readCurrentBrowserNavigationViewState())
   const [initialNavigation] = useState(() => selectInitialNavigationState(initialBrowserNavigation))
-  const [initialFocusedLiveSpectatorGameId] = useState(() => (
-    initialBrowserNavigation
-    && JSON.stringify(initialBrowserNavigation.navigation) === JSON.stringify(initialNavigation)
-      ? initialBrowserNavigation.focusedLiveSpectatorGameId
-      : undefined
-  ))
+  const [initialFocusedLiveSpectatorGameId] = useState<string | undefined>(undefined)
   const [activeRouteId, setActiveRouteId] = useState<AppRouteId>(() => initialNavigation.activeRouteId)
   const [focusModeEnabled, setFocusModeEnabled] = useState(false)
   const [guestProgress, setGuestProgress] = useState(() => loadGuestProgress())

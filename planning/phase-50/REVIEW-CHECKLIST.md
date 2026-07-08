@@ -1,10 +1,10 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Refresh routing recovered locally; backup/manual review pending.
+**Status**: Refresh Home reset recovered locally; hosted/live manual review pending.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
-**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, `progress/PROGRESS-STEP-487.md`, `progress/PROGRESS-STEP-489.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
+**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, `progress/PROGRESS-STEP-487.md`, `progress/PROGRESS-STEP-489.md`, `progress/PROGRESS-STEP-491.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
 
 This checklist helps the user manually verify Phase 50 behavior. It does not replace automated tests, E2E coverage, the visual handoff review gate, or final verification.
 
@@ -190,7 +190,7 @@ Automated coverage added or confirmed:
 
 ## Refresh Routing Follow-Up Local Recovery - 2026-07-08
 
-The refresh-routing follow-up has been implemented and verified locally, but it has not yet been backed up for hosted/live manual review or accepted by the user.
+The refresh-routing follow-up was implemented, verified locally, and backed up for hosted/live manual review. Hosted/live manual review found that it improved the behavior but did not solve refresh routing consistently enough for acceptance.
 
 Local recovery summary:
 
@@ -206,6 +206,35 @@ Automated coverage added or confirmed:
 - focused refresh coverage now checks Solo Practice GO and Multiplayer Lobby immediate refresh;
 - private Practice request/public-profile route handoff tests passed after the startup precedence repair;
 - full Solo re-entry E2E, mobile scroll/layout E2E, and full E2E all passed after the repair.
+
+## Refresh Home Reset Follow-Up - 2026-07-08
+
+New manual-review target:
+
+- The preserve-current-surface refresh policy is superseded for Phase 50 acceptance.
+- A manual hard/browser refresh should route to Home consistently from representative app surfaces.
+- Saved game/account progress, accepted Solo persistence, ordinary in-app navigation, and browser Back/Forward behavior should remain preserved unless implementation investigation finds a direct conflict that must be reported.
+- This follow-up remains inside Phase 50 as a directly related Manual Review Window finding.
+
+## Refresh Home Reset Local Recovery - 2026-07-08
+
+Codex locally recovered the revised refresh target:
+
+- Full page load/manual hard refresh now starts on Home by default.
+- Browser Back/Forward remains preserved for ordinary in-session navigation.
+- Public profile handoff remains a narrow exception so private Practice request/public-profile flows can intentionally open the target profile after an app-controlled reload.
+- Saved Solo progress is not cleared by the Home reset; manual review should refresh, confirm Home appears, then navigate back to the relevant Solo surface and confirm the saved completed or in-progress game state is still there.
+- Multiplayer refresh/re-entry test helpers now explicitly re-enter Multiplayer after refresh before resuming a match, matching the new user-facing policy.
+
+Automated verification passed locally:
+
+- focused navigation unit and browser refresh tests;
+- focused Solo completion/re-entry tests;
+- focused private profile/private request recovery reruns;
+- focused multiplayer GO transition and timed timeout reruns;
+- full lint, unit/component, build, API typecheck, and E2E gates.
+
+This item remains pending hosted/live manual review until the next Review Candidate Backup is authorized and reviewed.
 
 ## How To Use
 
@@ -366,11 +395,16 @@ Codex intentionally did not verify or perform:
 
 ## Refresh Routing Follow-Up Manual Review - 2026-07-08
 
-- [x] **Recovered locally 2026-07-08; awaiting backup/hosted manual review:** Browser refresh preserves the current route, tab, subtab, and selected gameplay surface.
+- [ ] **Pending same-phase follow-up:** Manual hard/browser refresh routes to Home consistently.
+  - Expected: refreshing the browser from representative ordinary app surfaces returns the user to Home after reload. Examples include Solo Daily OG/GO, Solo Practice OG/GO, Multiplayer Overview, Practice Multiplayer, Daily Multiplayer, Active Games, Lobby, Live, Profile, Settings, Stats, Calendar, History, Leaderboard, Word Explorer, About, and Home.
+  - Suggested steps: open representative desktop/mobile surfaces, use browser refresh, and confirm the reloaded app lands on Home consistently instead of bouncing among Solo, Multiplayer, or another stale surface.
+  - Evidence: follow-up prompt prepared in `progress/PROGRESS-STEP-490.md`; implementation evidence remains pending.
+
+- [x] **Superseded evidence only after hosted manual review 2026-07-08:** Browser refresh preserves the current route, tab, subtab, and selected gameplay surface.
   - Expected: refreshing the browser from any ordinary app page keeps the user on the same visible app surface after reload. Examples include Solo Daily OG/GO, Solo Practice OG/GO, Multiplayer Overview, Practice Multiplayer, Daily Multiplayer, Active Games, Lobby, Live, Profile, Settings, Stats, Calendar, History, Leaderboard, Word Explorer, About, and Home.
   - Suggested steps: open representative desktop/mobile surfaces, use browser refresh, and confirm the reloaded page returns to the same route/tab/subtab/mode instead of defaulting to another surface.
   - Evidence: focused refresh-routing Playwright coverage in `e2e/navigation/refresh-route-persistence.spec.ts`; full local E2E passed after the repair; local recovery recorded in `progress/PROGRESS-STEP-489.md`.
-  - Evidence: follow-up prompt prepared in `progress/PROGRESS-STEP-488.md`; implementation evidence remains pending.
+  - Manual-review result: the hosted/live candidate improved the refresh problem but did not solve it consistently, so this is no longer the acceptance target.
 
 ## Optional Nice-To-Check
 
@@ -442,4 +476,6 @@ Codex intentionally did not verify or perform:
 - [x] Practice Solo persistence follow-up has been backed up and accepted by the user before final Phase 50 closure.
 - [x] User routed the refresh rerouting issue into Phase 50 before final closure.
 - [x] Refresh routing follow-up has been implemented and verified locally before final Phase 50 closure.
-- [ ] Refresh routing follow-up has been backed up if needed and accepted by the user before final Phase 50 closure.
+- [x] Refresh routing preserve-current-surface follow-up has been backed up for hosted/live manual review.
+- [x] User reported that preserve-current-surface refresh behavior improved but remained inconsistent, and routed the simpler Home-on-refresh policy into Phase 50.
+- [ ] Refresh Home reset follow-up has been implemented, backed up if needed, and accepted by the user before final Phase 50 closure.

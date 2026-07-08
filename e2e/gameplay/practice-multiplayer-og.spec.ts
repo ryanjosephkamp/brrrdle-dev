@@ -217,6 +217,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       }
       await updateMultiplayerProjection(backdatedGame)
       await session.host.page.reload({ waitUntil: 'domcontentloaded' })
+      await selectMultiplayerGame(session.host.page, playingRow.id)
 
       const timedOutRow = await waitForMultiplayerRowForUsers({
         mode: 'og',

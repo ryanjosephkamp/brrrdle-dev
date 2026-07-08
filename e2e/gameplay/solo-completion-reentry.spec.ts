@@ -158,10 +158,9 @@ async function expectCompletionSurvivesReentry(
   await expect(readGuestProgress(page)).resolves.toEqual(completedProgress)
 
   await page.reload({ waitUntil: 'domcontentloaded' })
-  await expectTerminalState(page, options.statusText, options.gridLabel, options.finalAnswer, options.finalAnswerRow)
+  await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
   await expect(readGuestProgress(page)).resolves.toEqual(completedProgress)
 
-  await goHome(page)
   await options.reenter()
   await expectTerminalState(page, options.statusText, options.gridLabel, options.finalAnswer, options.finalAnswerRow)
   await expect(readGuestProgress(page)).resolves.toEqual(completedProgress)
@@ -316,6 +315,9 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
     await expectDraftRowEmpty(page, /^Go guess grid$/i, 1)
 
     await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+    await navigateToSoloPractice(page)
+    await chooseSoloPracticeMode(page, 'go')
     await expect(page.getByRole('region', { name: /Practice go chain/i })).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText(/^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i).first()).toBeHidden()
     await expect(page.getByText(/Puzzle 1 of 5/i).first()).toBeVisible({ timeout: 20_000 })
@@ -340,6 +342,9 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
     await expectWordVisible(page, /^Go guess grid$/i, wrongGuess, 1)
 
     await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+    await navigateToSoloPractice(page)
+    await chooseSoloPracticeMode(page, 'go')
     await expect(page.getByRole('region', { name: /Practice go chain/i })).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText(/^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i).first()).toBeHidden()
     await expectWordVisible(page, /^Go guess grid$/i, wrongGuess, 1)
@@ -363,6 +368,9 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
     await expectWordVisible(page, /^Guess grid$/i, wrongGuess, 1)
 
     await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+    await navigateToSoloPractice(page)
+    await chooseSoloPracticeMode(page, 'og')
     await expect(page.getByRole('region', { name: /Practice og puzzle/i })).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText(/^Solved\. Daily completion is preserved on refresh\.$/i).first()).toBeHidden()
     await expectWordVisible(page, /^Guess grid$/i, wrongGuess, 1)
@@ -502,6 +510,8 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
       }), 'won')
 
       await page.reload({ waitUntil: 'domcontentloaded' })
+      await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+      await navigateToSoloDaily(page, 'og')
       await expectTerminalState(page, /^Solved\. Daily completion is preserved on refresh\.$/i, /^Guess grid$/i, ogAnswer, 1)
 
       await goHome(page)
@@ -522,6 +532,8 @@ test.describe('Solo completion re-entry @solo @practice @daily', () => {
       }), 'won')
 
       await page.reload({ waitUntil: 'domcontentloaded' })
+      await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+      await navigateToSoloDaily(page, 'go')
       await expectTerminalState(page, /^Solved all 5 go puzzles\. Daily completion is preserved on refresh\.$/i, /^Go guess grid$/i, answers[answers.length - 1], answers.length)
 
       await goHome(page)
