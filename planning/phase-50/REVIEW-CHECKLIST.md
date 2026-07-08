@@ -1,10 +1,10 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Practice Solo persistence follow-up recovered locally - recovered Review Candidate Backup prompt prepared.
+**Status**: Refresh routing recovered locally; backup/manual review pending.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
-**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, `progress/PROGRESS-STEP-487.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
+**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, `progress/PROGRESS-STEP-487.md`, `progress/PROGRESS-STEP-489.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
 
 This checklist helps the user manually verify Phase 50 behavior. It does not replace automated tests, E2E coverage, the visual handoff review gate, or final verification.
 
@@ -188,6 +188,25 @@ Automated coverage added or confirmed:
 - full Solo completion re-entry E2E coverage remains passing for Daily OG deleted drafts, Daily GO settled-row stability, Practice/Daily terminal re-entry, and authenticated Daily OG/GO reload/account hydration;
 - full E2E suite passed after the fix.
 
+## Refresh Routing Follow-Up Local Recovery - 2026-07-08
+
+The refresh-routing follow-up has been implemented and verified locally, but it has not yet been backed up for hosted/live manual review or accepted by the user.
+
+Local recovery summary:
+
+- same-tab navigation state is now saved to session storage as well as local storage;
+- browser refresh startup normally restores the same-tab saved route/tab/subtab/mode surface instead of stale browser-history payloads;
+- public-profile and private-request route handoff remains intact when local storage and browser history intentionally agree against an older session route;
+- browser back/forward popstate behavior remains active and updates saved navigation for later refreshes;
+- focused Live spectator history state is retained only when it matches the selected saved navigation state.
+
+Automated coverage added or confirmed:
+
+- focused stale-history refresh regression failed before the source repair and passed after it;
+- focused refresh coverage now checks Solo Practice GO and Multiplayer Lobby immediate refresh;
+- private Practice request/public-profile route handoff tests passed after the startup precedence repair;
+- full Solo re-entry E2E, mobile scroll/layout E2E, and full E2E all passed after the repair.
+
 ## How To Use
 
 - Use a safe development/test environment with non-production accounts.
@@ -330,20 +349,28 @@ Codex intentionally did not verify or perform:
 
 ## Practice Solo Persistence Follow-Up Manual Review - 2026-07-07
 
-- [ ] **Awaiting hosted/manual review after recovered backup:** Practice GO starts and restores a new chain after a completed chain is superseded.
+- [x] **Passed in hosted/manual review after recovered backup:** Practice GO starts and restores a new chain after a completed chain is superseded.
   - Expected: after completing Practice GO, pressing `New go chain` starts a new blank chain. If the player submits a valid guess in the new chain, refresh, route re-entry, or fresh signed-in browser/account hydration returns to the new in-progress chain, not the previous completed terminal screen.
   - Suggested steps: sign in with a safe account, complete Practice Solo GO, click `New go chain`, submit one valid incorrect guess in the new chain, then refresh and/or sign out/sign in on another browser/device. Confirm the submitted guess remains visible and the old terminal screen does not return.
-  - Evidence: pre-fix focused E2E reproduced the authenticated fresh-browser stale terminal restore; local recovery and verification recorded in `progress/PROGRESS-STEP-487.md`.
+  - Evidence: pre-fix focused E2E reproduced the authenticated fresh-browser stale terminal restore; local recovery and verification recorded in `progress/PROGRESS-STEP-487.md`; user hosted/live report after the recovered backup said the problems appear solved.
 
-- [ ] **Awaiting hosted/manual review after recovered backup:** Practice GO remains blank after `New go chain` even before the first new guess.
+- [x] **Passed in hosted/manual review after recovered backup:** Practice GO remains blank after `New go chain` even before the first new guess.
   - Expected: after completing Practice GO and pressing `New go chain`, a refresh or route re-entry still shows the new blank chain's first puzzle instead of the previous completed terminal chain.
   - Suggested steps: complete Practice Solo GO, click `New go chain`, do not submit a guess, refresh the page, and confirm Solo -> Practice -> GO shows puzzle 1 of a fresh chain with an empty draft row.
-  - Evidence: focused Playwright refresh coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`.
+  - Evidence: focused Playwright refresh coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`; user hosted/live report after the recovered backup said the problems appear solved.
 
-- [ ] **Awaiting hosted/manual review after recovered backup:** Practice OG starts and restores a new puzzle after a completed puzzle is superseded.
+- [x] **Passed in hosted/manual review after recovered backup:** Practice OG starts and restores a new puzzle after a completed puzzle is superseded.
   - Expected: after completing Practice OG, pressing `New practice puzzle` starts a new puzzle. If the player submits a valid guess in the new puzzle, refresh or route re-entry returns to that in-progress puzzle, not the previous completed terminal screen.
   - Suggested steps: complete Practice Solo OG, click `New practice puzzle`, submit one valid incorrect guess, refresh and/or route away and back, and confirm the submitted guess remains visible while the old completed screen stays superseded.
-  - Evidence: focused Playwright refresh coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`; local recovery recorded in `progress/PROGRESS-STEP-487.md`.
+  - Evidence: focused Playwright refresh coverage in `e2e/gameplay/solo-completion-reentry.spec.ts`; local recovery recorded in `progress/PROGRESS-STEP-487.md`; user hosted/live report after the recovered backup said the problems appear solved.
+
+## Refresh Routing Follow-Up Manual Review - 2026-07-08
+
+- [x] **Recovered locally 2026-07-08; awaiting backup/hosted manual review:** Browser refresh preserves the current route, tab, subtab, and selected gameplay surface.
+  - Expected: refreshing the browser from any ordinary app page keeps the user on the same visible app surface after reload. Examples include Solo Daily OG/GO, Solo Practice OG/GO, Multiplayer Overview, Practice Multiplayer, Daily Multiplayer, Active Games, Lobby, Live, Profile, Settings, Stats, Calendar, History, Leaderboard, Word Explorer, About, and Home.
+  - Suggested steps: open representative desktop/mobile surfaces, use browser refresh, and confirm the reloaded page returns to the same route/tab/subtab/mode instead of defaulting to another surface.
+  - Evidence: focused refresh-routing Playwright coverage in `e2e/navigation/refresh-route-persistence.spec.ts`; full local E2E passed after the repair; local recovery recorded in `progress/PROGRESS-STEP-489.md`.
+  - Evidence: follow-up prompt prepared in `progress/PROGRESS-STEP-488.md`; implementation evidence remains pending.
 
 ## Optional Nice-To-Check
 
@@ -412,3 +439,7 @@ Codex intentionally did not verify or perform:
 - [x] User routed the multiplayer focus/refocus flash and E2E multiplayer test-lobby cleanup expectations into Phase 50 before final closure.
 - [x] Multiplayer focus/refocus follow-up has been implemented and verified locally.
 - [x] Multiplayer focus/refocus follow-up has been backed up for hosted/manual review if needed and accepted before final Phase 50 closure.
+- [x] Practice Solo persistence follow-up has been backed up and accepted by the user before final Phase 50 closure.
+- [x] User routed the refresh rerouting issue into Phase 50 before final closure.
+- [x] Refresh routing follow-up has been implemented and verified locally before final Phase 50 closure.
+- [ ] Refresh routing follow-up has been backed up if needed and accepted by the user before final Phase 50 closure.

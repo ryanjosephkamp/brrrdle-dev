@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Practice Solo Persistence Follow-Up Recovered Locally And Backup Prompt Prepared.
+**Status**: Refresh Routing Recovered Locally And Backup Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -16,7 +16,76 @@ After the multiplayer focus backup and the user's manual checklist update, the u
 
 Hosted/live manual review after the Solo cloud persistence backup found that Daily Solo now appears correct, but Practice Solo still had a same-phase persistence bug after an explicit new Practice game action: completing Practice GO, pressing `New go chain`, and submitting progress in the new chain could restore the previous terminal chain after refresh, re-entry, or sign-in/account hydration. The Practice Solo persistence follow-up recovered this locally by making Practice game supersession explicit in app state and by filtering superseded Practice cloud sessions by the current Practice seed during authenticated hydration.
 
-No new Supabase migration, new table, RLS/RPC/table/bucket change, Supabase remote operation, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, Git/GitHub action, backup workflow, release, merge, final Phase 50 closure, next-phase work, or stable `brrrdle` repository work was performed in the implementation step.
+After the Practice Solo persistence recovered Review Candidate Backup, the user reported that the Practice Solo problems now appear solved and requested one final same-phase fix before Phase 50 closure: browser refresh should preserve the current page/tab/subtab/mode surface instead of rerouting the player to a different part of the app.
+
+The refresh-routing follow-up recovered this locally by making same-tab navigation state the durable refresh source while still preserving browser-history back/forward behavior and public-profile/private-match route handoff. The full local verification gate passed after the repair.
+
+No new Supabase migration, new table, RLS/RPC/table/bucket change, Supabase remote operation, deployment configuration, gameplay-rule change, reward formula change, scoring change, Elo/rating change, Git/GitHub action, backup workflow, release, merge, final Phase 50 closure, next-phase work, Practice GO answer-selection/randomness algorithm change, or stable `brrrdle` repository work was performed while implementing the refresh-routing follow-up.
+
+## Refresh Routing Persistence Follow-Up - 2026-07-08
+
+Root cause:
+
+- The app stored navigation in local browser storage and browser history.
+- On startup, browser history state was trusted before saved navigation state.
+- A refresh could therefore restore a stale history payload instead of the latest saved route/tab/subtab/mode surface.
+- A naive same-tab storage preference also risked breaking public-profile/private-request route handoff when local storage and history intentionally agreed against older session state.
+
+Recovered:
+
+- Browser navigation saves now write to both local storage and same-tab session storage.
+- Refresh startup now uses same-tab session navigation as the normal durable current-tab source.
+- If local storage and browser history agree against stale session state, startup uses that matched local/history route, preserving public-profile/private-request route handoff.
+- Focused Live spectator details continue to initialize from browser history only when the history navigation matches the selected saved navigation state.
+- Browser back/forward popstate handling still applies and saves the resolved navigation state for subsequent refreshes.
+
+Automated coverage:
+
+- Added `e2e/navigation/refresh-route-persistence.spec.ts`.
+- The focused stale-history regression failed before the source repair, then passed after it.
+- The refresh suite now checks stale-history recovery, immediate refresh after Solo Practice GO selection, and immediate refresh after Multiplayer Lobby selection.
+- The previously failing private-profile/private-match route handoff tests passed after the startup precedence repair.
+
+Verification:
+
+- `npm run test -- src/app/navigationState.test.ts`: 9 tests passed.
+- `npx playwright test e2e/navigation/refresh-route-persistence.spec.ts`: 3 tests passed.
+- Focused private-match recovery subset passed: 3 tests.
+- `npx playwright test e2e/gameplay/solo-completion-reentry.spec.ts`: 12 tests passed.
+- `npm run lint` passed.
+- `npm run test`: 129 files, 898 tests passed.
+- `npm run build` passed with the existing Vite large-chunk advisory.
+- `npx tsc -p tsconfig.api.json --noEmit` passed.
+- `npm run test:e2e`: 53 tests passed.
+
+Preserved:
+
+- Accepted Practice Solo OG/GO persistence behavior remained covered and passing.
+- Accepted Daily Solo OG/GO terminal restore and signed-in hydration behavior remained covered and passing.
+- Multiplayer focus/refocus, private Practice request routing, public-profile handoff, Live spectator read-only behavior, mobile scroll/layout, and route navigation smoke coverage remained passing.
+- Practice GO answer-selection/randomness remains deferred to a later phase or separate audit.
+
+Next action:
+
+- Use `prompt-packages/phase-50/PHASE-50-REFRESH-ROUTING-RECOVERED-REVIEW-CANDIDATE-GITHUB-BACKUP-PROMPT-2026-07-08.md` to authorize a refresh-routing recovered Review Candidate Backup for hosted/live manual review while keeping Phase 50 open.
+
+## Refresh Routing Follow-Up Prompt - 2026-07-08
+
+Manual review update:
+
+- The user reported that the Practice Solo persistence issues fixed in the previous follow-up appear solved on the hosted/live candidate.
+- The Practice Solo checklist items are now recorded as passed based on that user report.
+- One final same-phase Phase 50 issue remains before closure: refreshing the browser should preserve the exact current app surface instead of moving the player to another route, tab, subtab, or Solo/Multiplayer mode.
+
+Next action prepared:
+
+- Created an ignored local prompt package for a bounded same-phase refresh-routing implementation/testing follow-up: `prompt-packages/phase-50/PHASE-50-REFRESH-ROUTING-PERSISTENCE-FOLLOW-UP-PROMPT-2026-07-08.md`.
+- The prompt asks Codex to reproduce the refresh rerouting behavior first, make the smallest safe route-state persistence fix, add focused reload/refresh regression coverage across representative app surfaces, preserve the accepted Solo persistence behavior, update Phase 50 docs/progress, and return Phase 50 to Review Candidate.
+
+Still pending:
+
+- The refresh-routing implementation and verification remain separately authorized future work.
+- Any subsequent Review Candidate Backup, final Phase 50 acceptance/closure, Final Acceptance Backup, deployment configuration, release, merge, or next-phase work remains separately gated.
 
 ## Practice Solo Persistence And Refresh Follow-Up - 2026-07-07
 
