@@ -637,7 +637,7 @@ Codex intentionally did not verify or perform:
 
 ## Known Deferred / Not In Scope
 
-- Final phase closure, Final Acceptance Backup, release, deployment configuration, or production configuration change.
+- Release, deployment configuration, or production configuration change.
 - New storage schema, new Supabase/RLS/RPC/table/bucket, migration, destructive cloud progress change, or deployment-configuration change.
 - Broader resume/session contracts, one-active-session leases, server-authoritative Daily submissions, forced sign-out, remote invalidation, or session security work.
 - Practice GO answer-selection/randomness auditing or algorithm changes beyond preserving the current deterministic Practice seed flow.
@@ -682,6 +682,7 @@ Codex intentionally did not verify or perform:
 - [x] User routed the multiplayer matchmaking, first-turn persistence, private forfeit/cancel, Daily/Practice lobby flash-revert, and ranked queue invalid-JSON regressions into Phase 50 before final closure.
 - [x] Multiplayer matchmaking and first-turn persistence recovery has been implemented and verified locally before final Phase 50 closure.
 - [x] Ranked Practice cross-browser finalization/routing recovery has been implemented and verified locally before final Phase 50 closure.
-- [ ] Ranked Practice FIFO matchmaking has been backed up if needed and accepted in hosted/live manual review before final Phase 50 closure.
+- [x] Ranked Practice FIFO matchmaking has been backed up if needed and accepted in hosted/live manual review before final Phase 50 closure.
 - [x] User reported that preserve-current-surface refresh behavior improved but remained inconsistent, and routed the simpler Home-on-refresh policy into Phase 50.
 - [x] Refresh Home reset follow-up has been implemented, backed up if needed, and accepted by the user before final Phase 50 closure.
+- [x] User reported on 2026-07-08 that all Phase 50 manual review testing passes, no bugs or regressions are currently visible, and Phase 50 is ready for formal final acceptance closure.

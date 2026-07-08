@@ -1,12 +1,14 @@
 # Phase 50 Changelog
 
-**Status**: Ranked Practice FIFO Matchmaking Implemented Locally And Applied Remotely; Review Candidate Backup Pending.
+**Status**: Final Manual Acceptance Recorded; Phase 50 Closing Through Final Acceptance Backup.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
 ## Summary
 
 Phase 50 attempted to repair the completed Solo re-entry bug reported after Phase 49 manual review and added two small current-surface conveniences that were audited as source-only and low risk.
+
+Final acceptance update, 2026-07-08: after the Phase 50 ranked Practice FIFO Review Candidate Backup in PR #44, the user reported that all manual review testing passes, no bugs or regressions are currently visible, and the game is stable enough to close Phase 50. The final acceptance closeout records that accepted hosted/live state and routes the next step to a governed Final Acceptance Backup. Phase 51 planning and implementation remain separately gated after Phase 50 closure.
 
 Hosted/live manual review on 2026-07-06 found that the completed Solo Daily/Practice OG/GO repair did not work reliably enough to accept Phase 50. Profile now exposes separated account-management actions for Settings and Sign out while keeping Settings canonical. The Progression HUD now offers an explicit Open Stats action while remaining display-only and active-scope-owned.
 
@@ -61,6 +63,30 @@ Important boundary:
 
 - Remote Supabase execution was limited to the one named FIFO RPC migration. No other remote SQL, RLS, schema, table, bucket, data cleanup, deployment configuration, or production action was performed.
 - Git/GitHub backup, branch creation, staging, commit, push, PR, merge, branch cleanup, deployment configuration, release, final Phase 50 acceptance/closure, next-phase work, profile-name policy implementation, admin queue visualization, and stable `brrrdle` repository work remain unexecuted.
+
+## Final Manual Acceptance And Closure - 2026-07-08
+
+User final manual review result:
+
+- All Phase 50 manual review testing is reported passing.
+- No visible Phase 50 bugs or regressions are currently reported.
+- Solo persistence, Home-on-refresh, multiplayer matchmaking, first-turn persistence, private forfeit/cancel behavior, ranked Practice cross-browser recovery, ranked Practice FIFO matchmaking, and the other required checklist items are accepted.
+- The accepted hosted/live candidate is the Phase 50 ranked Practice FIFO Review Candidate backed by PR #44 at `408dd5ec876c98d8fc4ca20c2e20b2f66b59abeb`.
+
+Final closure scope:
+
+- Phase 50 closes through the separately authorized Final Acceptance Backup prompt.
+- The final backup branch is `codex/phase-50-final-acceptance-closure-backup-2026-07-08`.
+- The final backup commit subject is `Close Phase 50 after final manual acceptance`.
+- The final PR title is `Phase 50 final acceptance closure`.
+
+Still deferred after Phase 50:
+
+- Phase 51 planning/implementation until separately authorized.
+- Profile-name emoji/special-character policy.
+- Admin multiplayer queue visualization or backend observability UI.
+- Practice GO answer-selection/randomness auditing or algorithm changes.
+- Release, production release labeling, deployment configuration changes, public tunneling, and stable `brrrdle` repository work.
 
 ## Ranked Practice FIFO Matchmaking Planning - 2026-07-08
 
