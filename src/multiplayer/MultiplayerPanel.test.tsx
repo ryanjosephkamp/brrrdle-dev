@@ -25,6 +25,7 @@ import {
   buildFinalizedRankedGameFromStatus,
   buildRankedQueueRequestInput,
   getRankedQueueFinalizationIdempotencyKey,
+  withRankedQueueExpiry,
 } from './multiplayerPanelRankedQueue'
 import {
   getActivePrivateMatchRequests,
@@ -614,6 +615,24 @@ describe('MultiplayerPanel', () => {
       timeLimitMs: 120_000,
       wordLength: 5,
     })).toBeUndefined()
+  })
+
+  it('adds a finite ranked queue expiry before creating remote requests', () => {
+    const request = buildRankedQueueRequestInput({
+      hardMode: false,
+      mode: 'og',
+      timeLimitMs: null,
+      wordLength: 7,
+    })
+
+    expect(request).toBeDefined()
+    expect(withRankedQueueExpiry(request!, new Date('2026-07-08T15:00:00.000Z'))).toEqual({
+      hardMode: false,
+      expiresAt: '2026-07-08T15:05:00.000Z',
+      mode: 'og',
+      timeLimitMs: null,
+      wordLength: 7,
+    })
   })
 
   it('builds timed ranked finalized game projections from matched queue status', () => {

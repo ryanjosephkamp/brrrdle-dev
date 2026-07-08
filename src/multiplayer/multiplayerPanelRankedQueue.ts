@@ -21,6 +21,8 @@ export interface RankedQueueSelectionSettings {
   readonly wordLength: number
 }
 
+export const RANKED_QUEUE_REQUEST_TTL_MS = 5 * 60 * 1000
+
 export interface BuildFinalizedRankedGameInput {
   readonly defaultDifficulty: DifficultyTier
   readonly defaultGoPuzzleCount: GoPuzzleCount
@@ -48,6 +50,16 @@ export function buildRankedQueueRequestInput(
     mode: settings.mode,
     timeLimitMs,
     wordLength: settings.wordLength,
+  }
+}
+
+export function withRankedQueueExpiry(
+  request: CreateRankedQueueRequestInput,
+  now: Date = new Date(),
+): CreateRankedQueueRequestInput {
+  return {
+    ...request,
+    expiresAt: new Date(now.getTime() + RANKED_QUEUE_REQUEST_TTL_MS).toISOString(),
   }
 }
 

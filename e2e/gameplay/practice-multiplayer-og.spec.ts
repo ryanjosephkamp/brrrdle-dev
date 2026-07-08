@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { expectNoConsoleFailures, expectVisibleStatus } from '../fixtures/assertions'
 import { getCurrentAnswer, getValidWrongGuess, projectionFromRow } from '../fixtures/answers'
-import { navigateToPracticeMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, setPracticeMultiplayerTimeLimit, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
-import { updateMultiplayerProjection, upsertPublicProfileForUser, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
+import { navigateToPracticeMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, setPracticeMultiplayerTimeLimit, setPracticeMultiplayerWordLength, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
+import { updateMultiplayerProjection, upsertPublicProfileForUser, waitForMultiplayerRowByIdForUsers, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession, type TwoClientSession } from '../fixtures/twoClientGame'
 
 const TIMED_RANKED_PRACTICE_TIME_LIMIT_MS = 300_000
+const RANKED_E2E_WORD_LENGTH = 7
 
 async function openAndJoinPracticeOgMatch(session: TwoClientSession) {
   await navigateToPracticeMultiplayer(session.host.page)
@@ -102,6 +103,15 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
         status: 'waiting',
         userIds: [session.host.user.id],
       })
+      await session.host.page.waitForTimeout(1500)
+      const stableWaitingRow = await waitForMultiplayerRowByIdForUsers({
+        id: waitingRow.id,
+        mode: 'og',
+        scope: 'practice',
+        status: 'waiting',
+        userIds: [session.host.user.id],
+      })
+      expect(stableWaitingRow.id).toBe(waitingRow.id)
 
       await navigateToPracticeMultiplayer(session.rival.page)
       await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id)
@@ -299,11 +309,13 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       ])
 
       await navigateToPracticeMultiplayer(session.host.page)
+      await setPracticeMultiplayerWordLength(session.host.page, RANKED_E2E_WORD_LENGTH)
       await setPracticeMatchType(session.host.page, 'ranked')
       await session.host.page.getByRole('button', { name: /^Enter ranked queue$/i }).click()
       await expect(session.host.page.getByTestId('ranked-queue-status')).toContainText(/Waiting for a compatible signed-in rival/i)
 
       await navigateToPracticeMultiplayer(session.rival.page)
+      await setPracticeMultiplayerWordLength(session.rival.page, RANKED_E2E_WORD_LENGTH)
       await setPracticeMatchType(session.rival.page, 'ranked')
       await session.rival.page.getByRole('button', { name: /^Enter ranked queue$/i }).click()
 
@@ -318,6 +330,7 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       await expectOpponentNamesVisible(session)
 
       const firstRankedGame = projectionFromRow(firstRankedRow)
+      expect(firstRankedGame.wordLength).toBe(RANKED_E2E_WORD_LENGTH)
       await waitForTurn(session.host.page)
       await submitGuessWithKeyboard(session.host.page, getCurrentAnswer(firstRankedGame))
       const terminalRankedRow = await waitForMultiplayerRowForUsers({

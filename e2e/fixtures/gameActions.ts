@@ -59,6 +59,15 @@ export async function setPracticeMultiplayerTimeLimit(page: Page, valueMs: strin
   await expect(timeLimitSelect).toHaveValue(valueMs)
 }
 
+export async function setPracticeMultiplayerWordLength(page: Page, wordLength: number): Promise<void> {
+  const panel = page.getByTestId('multiplayer-panel-practice')
+  await expect(panel).toBeVisible()
+  const lengthInput = panel.getByLabel(/^Length$/i)
+  await expect(lengthInput).toBeVisible()
+  await lengthInput.fill(String(wordLength))
+  await expect(lengthInput).toHaveValue(String(wordLength))
+}
+
 export async function setPracticeMultiplayerMatchType(page: Page, matchType: 'custom' | 'ranked' | 'unranked'): Promise<void> {
   const panel = page.getByTestId('multiplayer-panel-practice')
   const matchTypeSelect = panel.locator('select').nth(1)

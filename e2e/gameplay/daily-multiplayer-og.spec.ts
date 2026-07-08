@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { expectNoConsoleFailures, expectVisibleStatus } from '../fixtures/assertions'
 import { getCurrentAnswer, projectionFromRow } from '../fixtures/answers'
 import { launchDailyMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
-import { waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
+import { waitForMultiplayerRowByIdForUsers, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession } from '../fixtures/twoClientGame'
 
 test.describe('Daily Multiplayer OG @daily @multiplayer', () => {
@@ -17,6 +17,15 @@ test.describe('Daily Multiplayer OG @daily @multiplayer', () => {
         status: 'waiting',
         userIds: [session.host.user.id],
       })
+      await session.host.page.waitForTimeout(1500)
+      const stableWaitingRow = await waitForMultiplayerRowByIdForUsers({
+        id: waitingRow.id,
+        mode: 'og',
+        scope: 'daily',
+        status: 'waiting',
+        userIds: [session.host.user.id],
+      })
+      expect(stableWaitingRow.id).toBe(waitingRow.id)
 
       await launchDailyMultiplayer(session.rival.page)
       await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id, { via: 'selected' })

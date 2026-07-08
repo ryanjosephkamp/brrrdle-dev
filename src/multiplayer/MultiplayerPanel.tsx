@@ -71,6 +71,7 @@ import {
   buildFinalizedRankedGameFromStatus,
   buildRankedQueueRequestInput,
   getRankedQueueFinalizationIdempotencyKey,
+  withRankedQueueExpiry,
 } from './multiplayerPanelRankedQueue'
 
 type MultiplayerMatchKind = 'unranked' | 'ranked' | 'custom'
@@ -1000,7 +1001,7 @@ export function MultiplayerPanel({
     setRankedQueueBusy(true)
     let createdRequestId: string | undefined
     try {
-      const request = await rankedQueueActions.createRankedQueueRequest(requestInput)
+      const request = await rankedQueueActions.createRankedQueueRequest(withRankedQueueExpiry(requestInput))
       createdRequestId = request.requestId
       const claim = await rankedQueueActions.claimRankedQueuePair({ requestId: request.requestId })
       if (claim.requestStatus !== 'matched' || !claim.matchedGameId) {
