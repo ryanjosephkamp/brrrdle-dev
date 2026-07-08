@@ -1,6 +1,6 @@
 # Phase 50 Changelog
 
-**Status**: Refresh Home Reset Second-Pass Recovered Locally And Backup Prompt Prepared.
+**Status**: Multiplayer Matchmaking And First-Turn Persistence Recovery Prompt Prepared.
 **Phase**: Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 
@@ -27,6 +27,33 @@ The Home-reset follow-up recovered that policy locally. App startup now defaults
 Hosted/live manual review after the Refresh Home Reset Review Candidate Backup found that the refresh behavior improved but still does not meet the Home-on-refresh acceptance target: refreshing now pretty consistently returns the game to the Solo tab instead of the Home tab. This suggests a second path may be reselecting Solo after initial startup, such as auth/progress/Solo cloud hydration, auto-resume, saved navigation reconciliation, focus/visibility refresh, or browser-history rewriting. Phase 50 remains open for a bounded second-pass same-phase Review Follow-up.
 
 The second-pass follow-up reproduced the remaining delayed route-away-from-Home behavior locally through an authenticated Daily GO progress-hydration regression. Startup/auth progress hydration now loads signed-in progress without automatically invoking the Solo resume router. Focused refresh tests now assert that Home remains selected after delayed startup effects settle, while Solo persistence tests still re-enter Solo and verify the accepted saved Daily/Practice state. Phase 50 remains open for a recovered Review Candidate Backup and hosted/live manual review before final acceptance.
+
+Hosted/live manual review after the second-pass Refresh Home reset backup found that Solo persistence and Home-on-refresh now appear accepted. The user then reported serious multiplayer-only regressions affecting private Practice requests, public Practice/Daily lobby creation, ranked Practice queue finalization, and first-turn persistence/forfeit behavior. Because these are hosted Review Candidate regressions that make multiplayer effectively unplayable before Phase 50 closure, Phase 50 remains open for a same-phase multiplayer recovery prompt. This prompt-generation step did not change source/runtime code, tests, migrations, Git/GitHub state, deployment configuration, or the stable `brrrdle` repository.
+
+## Multiplayer Matchmaking And First-Turn Persistence Recovery Prompt - 2026-07-08
+
+Hosted manual review status:
+
+- Solo Daily/Practice persistence, guest/account boundaries, and manual hard/browser refresh landing on Home are reported as passing and should be preserved.
+- Multiplayer is not accepted. The reported failures are limited to multiplayer surfaces and include private, Practice, Daily, and ranked flows.
+
+Reported multiplayer failures to recover:
+
+- Private unranked Practice requests created from public/leaderboard profile flows can be joined by both players, but the requester/player one's first valid guess briefly appears as a submitted colored row and then reverts to the typed draft. A first-guess solve also flashes solved feedback, then reverts without terminal state or rival visibility.
+- Private match forfeit/cancel does not appear to persist.
+- Daily Multiplayer `Open Multiplayer Match` briefly shows the expected waiting/claimed surface and a Lobby count badge, then reverts as if the match was canceled.
+- Practice public unranked `Open Multiplayer Match` has the same flash/revert/cancel behavior.
+- Ranked Practice queue finalization can fail with `Unable to finalize ranked queue game: Empty or invalid json`.
+
+Next action prepared:
+
+- Created an ignored local prompt package for a bounded same-phase implementation/testing follow-up: `prompt-packages/phase-50/PHASE-50-MULTIPLAYER-MATCHMAKING-AND-FIRST-TURN-PERSISTENCE-RECOVERY-PROMPT-2026-07-08.md`.
+- The prompt asks Codex to reproduce the multiplayer regressions with real temporary-account E2E first, investigate recent Phase 50 side effects and multiplayer repository/RPC contracts, make the smallest safe source/test fix, preserve accepted Solo and Home-on-refresh behavior, update Phase 50 docs/progress, and return Phase 50 to Review Candidate.
+
+Still pending:
+
+- The multiplayer recovery implementation and verification remain separately authorized future work.
+- Any Supabase migration/RLS/RPC/table execution, Git/GitHub backup, final Phase 50 acceptance/closure, Final Acceptance Backup, deployment configuration, release, merge, or next-phase work remains separately gated.
 
 ## Refresh Home Reset Second-Pass Local Recovery - 2026-07-08
 
@@ -603,3 +630,37 @@ Key Review Candidate evidence:
 - Final repository hygiene checks passed.
 
 Phase 50 returned from Review Candidate to same-phase Review Follow-up after hosted manual review failed required Solo completion persistence checks. A later separately authorized Review Candidate Backup may be used again for hosted/live device review without closing the phase. Manual review acceptance, Final Acceptance Backup, deployment configuration, release, merge, and stable-repository work remain unexecuted.
+
+## Multiplayer Matchmaking And First-Turn Persistence Local Recovery - 2026-07-08
+
+- Preserved accepted Solo persistence and Home-on-refresh behavior as guardrails.
+- Reproduced and covered the private Practice request first-turn path with a real temporary-account E2E flow:
+  - requester creates a private Practice request from the public profile path;
+  - rival accepts and opens the durable match;
+  - requester submits the first valid guess;
+  - the remote row records one submitted move;
+  - rival sees the submitted guess;
+  - requester reloads/re-enters and still sees the submitted guess.
+- Extended the same private-match E2E to forfeit after a submitted move and verify the forfeited player, winner, lost status, and post-refresh forfeit message persist.
+- Hardened public Practice/Daily lobby E2E so the exact waiting row is rechecked by id after a short settle before the rival joins, covering the hosted flash/revert/cancel report for Practice OG, Practice GO, Daily OG, and Daily GO.
+- Added a finite five-minute expiry to ranked Practice queue requests before they are sent to the trusted queue RPC.
+- Adjusted the untimed ranked Practice E2E path to use a non-default word length, reducing collisions with old default-length queue rows while still verifying real matching, finalization, search-again, and safe opponent labels.
+- Did not change Solo persistence, Home-on-refresh, Supabase schema/RLS/RPC/table definitions, Daily claim rules, scoring, Elo/rating, gameplay rules, deployment configuration, Git/GitHub state, or the stable `brrrdle` repository.
+
+Recovery verification:
+
+- `npm run test -- src/multiplayer/multiplayerRepository.test.ts src/multiplayer/MultiplayerPanel.test.tsx src/multiplayer/privateMatchmaking.test.ts src/app/scopedProgressMultiplayerState.test.ts`: 4 files, 83 tests passed.
+- `npx playwright test e2e/gameplay/private-matchmaking.spec.ts e2e/gameplay/practice-multiplayer-og.spec.ts`: 9 tests passed.
+- `npx playwright test e2e/gameplay/practice-multiplayer-go.spec.ts e2e/gameplay/daily-multiplayer-og.spec.ts e2e/gameplay/daily-multiplayer-go.spec.ts`: 3 tests passed.
+- `npx playwright test e2e/gameplay/multiplayer-reliability.spec.ts e2e/gameplay/multiplayer-focus-refocus.spec.ts e2e/navigation/refresh-route-persistence.spec.ts e2e/gameplay/solo-completion-reentry.spec.ts`: 23 tests passed.
+- `npm run lint` passed.
+- `npm run test`: 129 files, 899 tests passed.
+- `npm run test:e2e`: 55 tests passed.
+- `npm run build` passed with the existing Vite large-chunk advisory.
+- `npx tsc -p tsconfig.api.json --noEmit` passed.
+
+Next prompt package:
+
+- `prompt-packages/phase-50/PHASE-50-MULTIPLAYER-MATCHMAKING-RECOVERED-REVIEW-CANDIDATE-GITHUB-BACKUP-PROMPT-2026-07-08.md`
+
+Phase 50 remains open for a recovered Review Candidate Backup and hosted/live manual review. Final acceptance/closure, Final Acceptance Backup, deployment, release, migrations, next-phase work, public tunneling, and stable-repository work remain unexecuted.

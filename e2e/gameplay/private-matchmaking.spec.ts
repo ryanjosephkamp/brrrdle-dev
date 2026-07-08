@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { expectNoConsoleFailures } from '../fixtures/assertions'
-import { navigateToPracticeMultiplayer } from '../fixtures/gameActions'
+import { getValidWrongGuess, projectionFromRow } from '../fixtures/answers'
+import { navigateToPracticeMultiplayer, selectMultiplayerGame, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
 import { fetchPublicProfileIdForUser, upsertPublicProfileForUser, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession } from '../fixtures/twoClientGame'
 
@@ -41,7 +42,7 @@ async function openPublicProfile(page: Page, publicProfileId: string): Promise<v
 }
 
 test.describe('Private matchmaking @multiplayer', () => {
-  test('creates and accepts a private Practice match from safe public profile identity', async ({ browser }) => {
+  test('creates, accepts, and persists the requester first turn in a private Practice match', async ({ browser }) => {
     const session = await createTwoClientSession(browser)
 
     try {
@@ -84,6 +85,44 @@ test.describe('Private matchmaking @multiplayer', () => {
       await expect(session.host.page.locator('body')).not.toContainText(rivalPublicProfileId)
       await expect(session.rival.page.locator('body')).not.toContainText('playerUserIds')
       await expect(session.host.page.getByRole('tab', { name: /^Daily Multiplayer$/i })).toBeVisible()
+
+      const createdGame = projectionFromRow(createdRow)
+      const firstGuess = getValidWrongGuess(createdGame)
+
+      await selectMultiplayerGame(session.host.page, createdRow.id, { reloadOnStaleStatus: true, status: 'playing' })
+      await waitForTurn(session.host.page)
+      await submitGuessWithKeyboard(session.host.page, firstGuess)
+
+      await expect.poll(async () => {
+        const row = await waitForMultiplayerRowForUsers({
+          mode: 'og',
+          scope: 'practice',
+          status: 'playing',
+          timeoutMs: 2_000,
+          userIds: [session.host.user.id, session.rival.user.id],
+        })
+        return projectionFromRow(row).moves.length
+      }, { timeout: 30_000 }).toBe(1)
+
+      await selectMultiplayerGame(session.rival.page, createdRow.id, { reloadOnStaleStatus: true, status: 'playing' })
+      await expect(session.rival.page.getByTestId('multiplayer-selected-game')).toContainText(new RegExp(firstGuess, 'i'), { timeout: 30_000 })
+      await session.host.page.reload({ waitUntil: 'domcontentloaded' })
+      await selectMultiplayerGame(session.host.page, createdRow.id, { reloadOnStaleStatus: true, status: 'playing' })
+      await expect(session.host.page.getByTestId('multiplayer-selected-game')).toContainText(new RegExp(firstGuess, 'i'), { timeout: 30_000 })
+
+      await session.rival.page.getByRole('button', { name: /^Forfeit$/i }).click()
+      const forfeitedRow = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'lost',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      const forfeitedGame = projectionFromRow(forfeitedRow)
+      expect(forfeitedGame.forfeitedPlayerId).toBe('player-two')
+      expect(forfeitedGame.winnerId).toBe('player-one')
+      await session.rival.page.reload({ waitUntil: 'domcontentloaded' })
+      await selectMultiplayerGame(session.rival.page, createdRow.id, { reloadOnStaleStatus: true, status: 'lost' })
+      await expect(session.rival.page.getByText(/You forfeited this multiplayer match\./i)).toBeVisible({ timeout: 30_000 })
 
       await expectNoConsoleFailures(session.host.consoleFailures)
       await expectNoConsoleFailures(session.rival.consoleFailures)

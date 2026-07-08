@@ -1,10 +1,10 @@
 # Phase 50 Manual Review Checklist
 
-**Status**: Refresh Home reset second-pass recovered locally; hosted/live manual review pending.
+**Status**: Solo and Home-on-refresh reported passing; multiplayer recovery follow-up locally recovered and awaiting hosted manual review.
 **Phase**: Phase 50 - Solo Completion Persistence And Current-Surface Convenience.
 **Repository**: `brrrdle-dev` only.
 **Created**: 2026-07-06.
-**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, `progress/PROGRESS-STEP-487.md`, `progress/PROGRESS-STEP-489.md`, `progress/PROGRESS-STEP-491.md`, `progress/PROGRESS-STEP-493.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
+**Evidence**: `planning/phase-50/CHANGELOG.md`, `progress/PROGRESS-STEP-467.md`, `progress/PROGRESS-STEP-472.md`, `progress/PROGRESS-STEP-473.md`, `progress/PROGRESS-STEP-475.md`, `progress/PROGRESS-STEP-482.md`, `progress/PROGRESS-STEP-483.md`, `progress/PROGRESS-STEP-484.md`, `progress/PROGRESS-STEP-486.md`, `progress/PROGRESS-STEP-487.md`, `progress/PROGRESS-STEP-489.md`, `progress/PROGRESS-STEP-491.md`, `progress/PROGRESS-STEP-493.md`, `progress/PROGRESS-STEP-494.md`, `progress/PROGRESS-STEP-495.md`, and local-only visual manifest `test-results/visual-review/phase-50-review-candidate/manifest.md` when present.
 
 This checklist helps the user manually verify Phase 50 behavior. It does not replace automated tests, E2E coverage, the visual handoff review gate, or final verification.
 
@@ -236,6 +236,68 @@ Automated verification passed locally:
 
 This item remains pending hosted/live manual review until the next Review Candidate Backup is authorized and reviewed.
 
+## Hosted Multiplayer Regression Follow-Up - 2026-07-08
+
+Hosted/manual review update:
+
+- The user reported that Solo persistence and manual hard/browser refresh landing on Home now pass and should be treated as accepted guardrails.
+- Multiplayer is not accepted and requires same-phase recovery before Phase 50 can close.
+- The reported multiplayer regressions were not intentionally accepted by the user and should be reproduced with real temporary-account E2E where feasible.
+
+New multiplayer recovery items:
+
+- [ ] **Locally recovered; pending hosted manual review:** Private Practice request first-turn submission persists and is visible to the rival.
+  - Expected: after player one requests a private unranked Practice match and both safe test accounts open the match, player one's first valid submitted guess remains a submitted colored row, clears the typed draft, advances/persists the turn state, and becomes visible to player two as appropriate. If the first guess solves the puzzle, the solved/terminal state must persist rather than reverting to typed draft.
+  - Suggested steps: use two safe signed-in accounts, create a private Practice request from a public/leaderboard profile path, accept/open it, submit a valid first guess as the requester, and confirm it remains after short settle, focus switch, route re-entry, and refresh/re-entry.
+  - Evidence target: real temporary-account E2E plus repository/RPC root-cause notes from the follow-up prompt.
+
+- [ ] **Locally recovered; pending hosted manual review:** Private Practice request forfeit/cancel persists.
+  - Expected: after a private Practice match exists, forfeit/cancel should save durably, update the local and rival views, and not restore the active match after refresh/re-entry.
+  - Suggested steps: use two safe signed-in accounts with a private Practice match, trigger forfeit/cancel from the relevant player, wait briefly, refresh/re-enter, and confirm the match does not revert to active playable state.
+  - Evidence target: focused private-match E2E coverage and cleanup proof.
+
+- [ ] **Locally recovered; pending hosted manual review:** Daily Multiplayer `Open Multiplayer Match` creates a durable waiting/open match instead of flash-reverting.
+  - Expected: for an eligible safe account with no current Daily Multiplayer claim in that bucket, clicking `Open Multiplayer Match` should leave a stable waiting/open multiplayer state, keep the relevant Lobby/Active count consistent, and not automatically cancel/revert after a short settle or focus refresh.
+  - Suggested steps: use a safe signed-in account that has not claimed the relevant Daily Multiplayer bucket, open Daily Multiplayer OG and GO when feasible, click `Open Multiplayer Match`, wait, refresh/re-enter if safe, and confirm the waiting/open state remains until joined/canceled.
+  - Evidence target: focused Daily Multiplayer E2E with remote row/claim cleanup.
+
+- [ ] **Locally recovered; pending hosted manual review:** Practice public unranked `Open Multiplayer Match` creates a durable waiting/open match instead of flash-reverting.
+  - Expected: opening a public unranked Practice Multiplayer match should leave a stable waiting lobby row and visible waiting state until another player joins or the creator cancels/forfeits.
+  - Suggested steps: use a safe signed-in account, open Practice Multiplayer OG and GO where feasible, choose unranked/public settings, click `Open Multiplayer Match`, wait, refresh/re-enter if safe, and confirm the waiting/open state remains.
+  - Evidence target: focused Practice Multiplayer E2E with cleanup proof.
+
+- [ ] **Locally recovered; pending hosted manual review:** Ranked Practice queue finalizes without the invalid JSON error.
+  - Expected: compatible safe test accounts entering ranked Practice queue should either remain in a stable searchable queue state or finalize to a ranked Practice game without showing `Unable to finalize ranked queue game: Empty or invalid json`.
+  - Suggested steps: use two safe signed-in accounts, enter compatible ranked Practice queue settings, wait for matching/finalization, and confirm no invalid JSON banner appears and the resulting game/queue rows are stable.
+  - Evidence target: focused ranked queue E2E and repository/RPC contract notes.
+
+This follow-up does not reopen accepted Solo or refresh behavior except as guardrail verification. It also does not authorize Git/GitHub backup, final Phase 50 acceptance/closure, migrations, deployment, release, merge, next-phase work, public tunneling, production configuration, or stable `brrrdle` repository work.
+
+## Multiplayer Matchmaking And First-Turn Persistence Local Recovery - 2026-07-08
+
+Codex locally recovered and hardened the reported multiplayer regressions, pending the next hosted/live Review Candidate:
+
+- private Practice request coverage now submits the requester's first valid guess, verifies the remote row contains a submitted move, verifies the rival can see the move, reloads/re-enters the requester view, and verifies the submitted row persists;
+- the same private Practice request coverage now forfeits from the rival side and verifies the forfeited player, winner, lost status, and post-refresh forfeit message persist;
+- Practice and Daily public open-match E2E coverage now waits after the initial open action and rechecks the exact waiting row by id before a rival joins, covering the hosted flash/revert/cancel symptom for OG and GO where feasible;
+- ranked Practice queue requests now carry a finite five-minute expiry before they are sent to the trusted queue RPC, preventing newly created queue rows from becoming immortal stale match candidates;
+- ranked Practice E2E now uses a non-default word length for the untimed queue path, reducing collision with old default-length rows while still verifying real matching/finalization and safe opponent labels;
+- accepted Solo persistence and Home-on-refresh behavior remained protected by the full Solo completion re-entry and refresh-route E2E suites.
+
+Local automated verification passed:
+
+- focused unit/component slice: 4 files, 83 tests;
+- private + Practice OG Playwright: 9 tests;
+- Practice GO, Daily OG, and Daily GO Playwright: 3 tests;
+- multiplayer reliability/focus, refresh-route, and Solo completion Playwright: 23 tests;
+- `npm run lint`;
+- `npm run test`: 129 files, 899 tests;
+- `npm run test:e2e`: 55 tests;
+- `npm run build` with the existing Vite large-chunk advisory;
+- `npx tsc -p tsconfig.api.json --noEmit`.
+
+The checkboxes above remain unchecked until the recovered hosted/live candidate is backed up and manually reviewed on the user's devices.
+
 ## Refresh Home Reset Hosted Review Follow-Up - 2026-07-08
 
 Hosted/live manual review after the Refresh Home Reset Review Candidate Backup found that the behavior improved but still does not pass:
@@ -436,10 +498,10 @@ Codex intentionally did not verify or perform:
 
 ## Refresh Routing Follow-Up Manual Review - 2026-07-08
 
-- [ ] **Pending same-phase follow-up:** Manual hard/browser refresh routes to Home consistently.
+- [x] **Passed in hosted/manual review 2026-07-08 after second-pass recovery:** Manual hard/browser refresh routes to Home consistently.
   - Expected: refreshing the browser from representative ordinary app surfaces returns the user to Home after reload. Examples include Solo Daily OG/GO, Solo Practice OG/GO, Multiplayer Overview, Practice Multiplayer, Daily Multiplayer, Active Games, Lobby, Live, Profile, Settings, Stats, Calendar, History, Leaderboard, Word Explorer, About, and Home.
   - Suggested steps: open representative desktop/mobile surfaces, use browser refresh, and confirm the reloaded app lands on Home consistently instead of bouncing among Solo, Multiplayer, or another stale surface.
-  - Evidence: follow-up prompt prepared in `progress/PROGRESS-STEP-490.md`; implementation evidence remains pending.
+  - Evidence: local recovery recorded in `progress/PROGRESS-STEP-493.md`; user hosted/manual report on 2026-07-08 said manual refresh now lands on Home consistently.
 
 - [x] **Superseded evidence only after hosted manual review 2026-07-08:** Browser refresh preserves the current route, tab, subtab, and selected gameplay surface.
   - Expected: refreshing the browser from any ordinary app page keeps the user on the same visible app surface after reload. Examples include Solo Daily OG/GO, Solo Practice OG/GO, Multiplayer Overview, Practice Multiplayer, Daily Multiplayer, Active Games, Lobby, Live, Profile, Settings, Stats, Calendar, History, Leaderboard, Word Explorer, About, and Home.
@@ -518,5 +580,8 @@ Codex intentionally did not verify or perform:
 - [x] User routed the refresh rerouting issue into Phase 50 before final closure.
 - [x] Refresh routing follow-up has been implemented and verified locally before final Phase 50 closure.
 - [x] Refresh routing preserve-current-surface follow-up has been backed up for hosted/live manual review.
+- [x] Refresh Home reset second-pass follow-up has been backed up and reported passing by the user before final Phase 50 closure.
+- [x] User routed the multiplayer matchmaking, first-turn persistence, private forfeit/cancel, Daily/Practice lobby flash-revert, and ranked queue invalid-JSON regressions into Phase 50 before final closure.
+- [ ] Multiplayer matchmaking and first-turn persistence recovery has been implemented and verified before final Phase 50 closure.
 - [x] User reported that preserve-current-surface refresh behavior improved but remained inconsistent, and routed the simpler Home-on-refresh policy into Phase 50.
 - [ ] Refresh Home reset follow-up has been implemented, backed up if needed, and accepted by the user before final Phase 50 closure.

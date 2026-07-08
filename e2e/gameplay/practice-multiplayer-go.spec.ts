@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { expectKeyboardState, expectNoConsoleFailures } from '../fixtures/assertions'
 import { getCurrentAnswer, projectionFromRow } from '../fixtures/answers'
 import { chooseMultiplayerMode, navigateToPracticeMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
-import { waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
+import { waitForMultiplayerRowByIdForUsers, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession } from '../fixtures/twoClientGame'
 
 test.describe('Practice Multiplayer GO @practice @multiplayer', () => {
@@ -18,6 +18,15 @@ test.describe('Practice Multiplayer GO @practice @multiplayer', () => {
         status: 'waiting',
         userIds: [session.host.user.id],
       })
+      await session.host.page.waitForTimeout(1500)
+      const stableWaitingRow = await waitForMultiplayerRowByIdForUsers({
+        id: waitingRow.id,
+        mode: 'go',
+        scope: 'practice',
+        status: 'waiting',
+        userIds: [session.host.user.id],
+      })
+      expect(stableWaitingRow.id).toBe(waitingRow.id)
 
       await navigateToPracticeMultiplayer(session.rival.page)
       await chooseMultiplayerMode(session.rival.page, 'go')

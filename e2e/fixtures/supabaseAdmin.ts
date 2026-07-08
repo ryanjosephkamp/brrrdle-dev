@@ -438,6 +438,40 @@ export async function waitForMultiplayerRowForUsers({
   throw new Error(`Timed out waiting for multiplayer row. Last rows: ${latestRows.map((row) => `${row.id}:${row.scope}:${row.mode}:${row.status}`).join(', ') || 'none'}`)
 }
 
+export async function waitForMultiplayerRowByIdForUsers({
+  id,
+  mode,
+  scope,
+  status,
+  timeoutMs = 20_000,
+  userIds,
+}: {
+  readonly id: string
+  readonly mode?: 'go' | 'og'
+  readonly scope?: 'daily' | 'practice'
+  readonly status?: string
+  readonly timeoutMs?: number
+  readonly userIds: readonly string[]
+}): Promise<AsyncMultiplayerGameRow> {
+  const startedAt = Date.now()
+  let latestRows: readonly AsyncMultiplayerGameRow[] = []
+  while (Date.now() - startedAt < timeoutMs) {
+    latestRows = await fetchMultiplayerRowsForUsers(userIds) as readonly AsyncMultiplayerGameRow[]
+    const match = latestRows.find((row) => (
+      row.id === id
+      && (!mode || row.mode === mode)
+      && (!scope || row.scope === scope)
+      && (!status || row.status === status)
+    ))
+    if (match) {
+      return match
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+
+  throw new Error(`Timed out waiting for multiplayer row ${id}. Last rows: ${latestRows.map((row) => `${row.id}:${row.scope}:${row.mode}:${row.status}`).join(', ') || 'none'}`)
+}
+
 export async function waitForMultiplayerRowForExactUsers({
   mode,
   scope,
