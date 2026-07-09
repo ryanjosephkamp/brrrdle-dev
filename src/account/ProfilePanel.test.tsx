@@ -30,18 +30,18 @@ describe('ProfilePanel', () => {
     expect(html).toBe('')
   })
 
-  it('renders private profile fields, email, Save/Cancel controls, and separated account actions', () => {
+  it('renders one public Player name, email, Save/Cancel controls, and separated account actions', () => {
     const html = renderToStaticMarkup(
       <ProfilePanel authState={authState} isOpen onClose={noop} onOpenSettings={noop} onSave={noop} onSignOut={noop} />,
     )
     expect(html).toContain('Your profile')
     expect(html).toContain('Player identity')
-    expect(html).toContain('This is the name brrrdle uses for your signed-in account')
+    expect(html).toContain('This one Player name appears on the account chip')
     expect(html).toContain('Player name')
     expect(html).toContain('emoji and symbols are not supported')
     expect(html).toContain('Accent color')
     expect(html).toContain('ada@example.com')
-    expect(html).toContain('Save')
+    expect(html).toContain('Save player profile')
     expect(html).toContain('Cancel')
     expect(html).toContain('Account management')
     expect(html).toContain('Open Settings')
@@ -54,7 +54,7 @@ describe('ProfilePanel', () => {
     const html = renderToStaticMarkup(
       <ProfilePanel authState={authState} isOpen onClose={noop} onSave={noop} onSignOut={noop} />,
     )
-    expect(html).toContain('Private image upload is unavailable')
+    expect(html).toContain('Image upload is unavailable')
     expect(html).not.toContain('type="file"')
   })
 
@@ -68,7 +68,7 @@ describe('ProfilePanel', () => {
     expect(html).toContain('aurora')
   })
 
-  it('uses the selected private accent for the initials avatar preview', () => {
+  it('uses the selected accent for the initials avatar preview', () => {
     const html = renderToStaticMarkup(
       <ProfilePanel
         authState={{
@@ -93,11 +93,11 @@ describe('ProfilePanel', () => {
     expect(html).not.toContain('from-emerald-500 to-teal-700')
   })
 
-  it('renders public profile controls only when the public save seam is supplied', () => {
+  it('renders player-card details only when the public save seam is supplied', () => {
     const hiddenHtml = renderToStaticMarkup(
       <ProfilePanel authState={authState} isOpen onClose={noop} onSave={noop} onSignOut={noop} />,
     )
-    expect(hiddenHtml).not.toContain('Public profile')
+    expect(hiddenHtml).not.toContain('Player card')
 
     const html = renderToStaticMarkup(
       <ProfilePanel
@@ -120,16 +120,18 @@ describe('ProfilePanel', () => {
         }}
       />,
     )
-    expect(html).toContain('Opt-in public profile')
-    expect(html).toContain('Public player name')
-    expect(html).toContain('Public views use your player name by default')
-    expect(html).toContain('Leave blank to use Player name')
-    expect(html).not.toContain('accent, flair, avatar URL')
+    expect(html).toContain('Player card')
+    expect(html).toContain('The Player name above is the only name shown to other players')
+    expect(html).not.toContain('Opt-in public profile')
+    expect(html).not.toContain('Public player name')
+    expect(html).not.toContain('Leave blank to use Player name')
+    expect(html).not.toContain('Visibility')
     expect(html).toContain('Bio')
-    expect(html).toContain('Public Ada')
-    expect(html).toContain('from-sky-400 to-cyan-700')
-    expect(html).toContain('123e4567-e89b-42d3-a456-426614174000')
-    expect(html).toContain('Save public profile')
+    expect(html).toContain('Ada')
+    expect(html).toContain('from-cyan-300 to-sky-600')
+    expect(html).not.toContain('123e4567-e89b-42d3-a456-426614174000')
+    expect(html).not.toContain('Save public profile')
+    expect(html).toContain('Save player profile')
   })
 
   it('renders the reusable route editor with account actions but without modal-only cancel chrome', () => {
@@ -155,8 +157,9 @@ describe('ProfilePanel', () => {
 
     expect(html).toContain('Signed in as')
     expect(html).toContain('Player identity')
-    expect(html).toContain('Route Ada')
-    expect(html).toContain('Save public profile')
+    expect(html).not.toContain('Route Ada')
+    expect(html).not.toContain('Save public profile')
+    expect(html).toContain('Save player profile')
     expect(html).toContain('Account management')
     expect(html).toContain('Open Settings')
     expect(html).toContain('>Sign out</button>')

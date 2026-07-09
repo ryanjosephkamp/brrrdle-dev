@@ -50,6 +50,8 @@ describe('AccountBadge', () => {
     expect(html).toContain('AL')
     expect(html).toMatch(/aria-label="Open account menu for Ada Lovelace"/)
     expect(html).toContain('role="menu"')
+    expect(html).toContain('data-testid="account-menu"')
+    expect(html).toContain('max-w-[calc(100vw-1.3rem)]')
     expect(html).toContain('>Profile</button>')
     expect(html).toContain('>Settings</button>')
     expect(html).toContain('>Sign out</button>')

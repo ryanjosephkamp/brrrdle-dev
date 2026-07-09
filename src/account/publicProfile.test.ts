@@ -48,7 +48,7 @@ describe('public profile text normalization', () => {
 
   it('requires a display name before public visibility', () => {
     expect(normalizePublicProfileUpdateInput({ visibility: 'public' })).toEqual({
-      message: 'Add a public display name before making your profile public.',
+      message: 'Add a Player name before saving your player profile.',
       ok: false,
     })
     expect(normalizePublicProfileUpdateInput({ displayName: 'Ada', visibility: 'public' })).toMatchObject({
@@ -59,7 +59,7 @@ describe('public profile text normalization', () => {
       },
     })
     expect(normalizePublicProfileUpdateInput({ displayName: 'Ada \u{1f9ca}', visibility: 'public' })).toEqual({
-      message: 'Public player name must be 1-50 characters using letters, numbers, spaces, apostrophes, periods, underscores, or hyphens. Emoji, control characters, and symbols are not supported.',
+      message: 'Player name must be 1-50 characters using letters, numbers, spaces, apostrophes, periods, underscores, or hyphens. Emoji, control characters, and symbols are not supported.',
       ok: false,
     })
   })

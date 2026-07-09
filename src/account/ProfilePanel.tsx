@@ -20,10 +20,8 @@ import {
 } from './profile'
 import {
   PUBLIC_PROFILE_BIO_MAX_LENGTH,
-  PUBLIC_PROFILE_VISIBILITIES,
   type OwnerPublicProfile,
   type PublicProfileUpdateInput,
-  type PublicProfileVisibility,
 } from './publicProfile'
 
 interface ProfileEditorProps {
@@ -90,11 +88,8 @@ export function ProfileEditor({
   const [storageAvailable, setStorageAvailable] = useState(false)
   const [localError, setLocalError] = useState<string | undefined>(undefined)
   const [uploading, setUploading] = useState(false)
-  const [publicDisplayName, setPublicDisplayName] = useState(publicProfile?.displayName ?? '')
-  const [publicAccentColor, setPublicAccentColor] = useState<ProfileAccentColor>(publicProfile?.accentColor ?? DEFAULT_PROFILE_ACCENT_COLOR)
   const [publicAvatarUrl, setPublicAvatarUrl] = useState(publicProfile?.avatarUrl ?? '')
   const [publicBio, setPublicBio] = useState(publicProfile?.bio ?? '')
-  const [publicVisibility, setPublicVisibility] = useState<PublicProfileVisibility>(publicProfile?.visibility ?? 'private')
 
   // Re-hydrate fields whenever the dialog re-opens. Uses the
   // compare-and-update-during-render idiom recommended by React 19's lint rules
@@ -113,15 +108,12 @@ export function ProfileEditor({
 
   const [publicHydratedKey, setPublicHydratedKey] = useState<string | undefined>(undefined)
   const publicProfileKey = active
-    ? `${publicProfile?.publicProfileId ?? 'new'}|${publicProfile?.displayName ?? ''}|${publicProfile?.accentColor ?? ''}|${publicProfile?.avatarUrl ?? ''}|${publicProfile?.bio ?? ''}|${publicProfile?.visibility ?? ''}`
+    ? `${publicProfile?.publicProfileId ?? 'new'}|${publicProfile?.avatarUrl ?? ''}|${publicProfile?.bio ?? ''}`
     : undefined
   if (active && publicHydratedKey !== publicProfileKey) {
     setPublicHydratedKey(publicProfileKey)
-    setPublicDisplayName(publicProfile?.displayName ?? '')
-    setPublicAccentColor(publicProfile?.accentColor ?? DEFAULT_PROFILE_ACCENT_COLOR)
     setPublicAvatarUrl(publicProfile?.avatarUrl ?? '')
     setPublicBio(publicProfile?.bio ?? '')
-    setPublicVisibility(publicProfile?.visibility ?? 'private')
   } else if (!active && publicHydratedKey !== undefined) {
     setPublicHydratedKey(undefined)
   }
@@ -177,48 +169,38 @@ export function ProfileEditor({
   }
 
   function handleSave() {
+    void savePlayerProfile()
+  }
+
+  async function savePlayerProfile() {
     setLocalError(undefined)
     const playerNameError = getPlayerDisplayNameValidationMessage(displayName, 'Player name')
     if (playerNameError) {
       setLocalError(playerNameError)
       return
     }
-    void onSave({
-      displayName: displayName.trim(),
+    const trimmedDisplayName = displayName.trim()
+    await onSave({
+      displayName: trimmedDisplayName,
       accentColor,
       avatarUrl,
     })
-  }
-
-  function handleSavePublicProfile() {
     if (!onSavePublicProfile) {
       return
     }
-    setLocalError(undefined)
-    const effectivePublicDisplayName = publicDisplayName.trim() || displayName.trim()
-    if (effectivePublicDisplayName) {
-      const publicNameError = getPlayerDisplayNameValidationMessage(effectivePublicDisplayName, 'Public player name')
-      if (publicNameError) {
-        setLocalError(publicNameError)
-        return
-      }
-    } else if (publicVisibility === 'public') {
-      setLocalError('Add a player name before making your profile public.')
-      return
-    }
-    void onSavePublicProfile({
-      accentColor: publicAccentColor,
+    await onSavePublicProfile({
+      accentColor,
       avatarUrl: publicAvatarUrl,
       bio: publicBio,
-      displayName: effectivePublicDisplayName,
+      displayName: trimmedDisplayName,
       flairKey: 'none',
-      visibility: publicVisibility,
+      visibility: 'public',
     })
   }
 
   const message = localError ?? statusMessage
-  const publicMessage = publicProfileStatusMessage
-  const publicProfileLabel = publicDisplayName.trim() || displayName.trim() || 'Private player'
+  const playerCardMessage = publicProfileStatusMessage
+  const publicProfileLabel = displayName.trim() || 'Player'
   const publicProfilePreviewInitials = publicProfileLabel
     .split(/[\s._-]+/u)
     .filter(Boolean)
@@ -252,7 +234,7 @@ export function ProfileEditor({
         <div className="space-y-1 border-t border-slate-800 pt-4">
           <p className="font-semibold text-cyan-100">Player identity</p>
           <p className="text-xs leading-5 text-slate-400">
-            This is the name brrrdle uses for your signed-in account and, when you opt in, public player surfaces.
+            This one Player name appears on the account chip, profiles, leaderboards, and multiplayer surfaces.
           </p>
         </div>
 
@@ -295,7 +277,7 @@ export function ProfileEditor({
 
         {storageAvailable ? (
           <label className="grid gap-1 font-semibold text-cyan-100">
-            Private avatar image
+            Avatar image
             <input
               accept="image/png,image/jpeg,image/webp"
               className="text-xs text-slate-300 file:mr-3 file:rounded-full file:border-0 file:bg-[var(--color-ice-200)] file:px-3 file:py-1 file:text-slate-950"
@@ -312,13 +294,13 @@ export function ProfileEditor({
           </label>
         ) : (
           <p className="text-xs text-slate-400">
-            Private image upload is unavailable. Your current-player avatar uses your initials on a colored gradient.
+            Image upload is unavailable. Your avatar uses your initials on a colored gradient.
             An admin can enable image uploads by creating an <code>{AVATAR_STORAGE_BUCKET}</code> Supabase Storage bucket.
           </p>
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={handleSave} variant="primary" disabled={busy || uploading}>Save</Button>
+          <Button onClick={handleSave} variant="primary" disabled={busy || publicProfileBusy || uploading}>Save player profile</Button>
           {onCancel ? (
             <Button onClick={onCancel} variant="ghost">{cancelLabel}</Button>
           ) : null}
@@ -354,69 +336,11 @@ export function ProfileEditor({
         {onSavePublicProfile ? (
           <div className="space-y-4 border-t border-slate-800 pt-4">
             <div className="space-y-1">
-              <p className="font-semibold text-cyan-100">Opt-in public profile</p>
+              <p className="font-semibold text-cyan-100">Player card</p>
               <p className="text-xs leading-5 text-slate-400">
-                Public profiles stay private until you choose Public. Public views use your player name by default, plus the public accent, avatar URL, bio, and opaque profile ID saved here.
+                The Player name above is the only name shown to other players. Add an optional bio or public avatar URL for player-facing profile cards.
               </p>
             </div>
-
-            <fieldset className="space-y-2">
-              <legend className="font-semibold text-cyan-100">Visibility</legend>
-              <div role="radiogroup" aria-label="Public profile visibility" className="flex flex-wrap gap-2">
-                {PUBLIC_PROFILE_VISIBILITIES.map((visibility) => (
-                  <button
-                    aria-checked={publicVisibility === visibility}
-                    className={classNames(
-                      'rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]',
-                      publicVisibility === visibility ? 'border-[var(--color-ice-200)] text-white' : 'border-slate-700 text-slate-300',
-                    )}
-                    key={visibility}
-                    onClick={() => setPublicVisibility(visibility)}
-                    role="radio"
-                    type="button"
-                  >
-                    {visibility}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-
-            <label className="grid gap-1 font-semibold text-cyan-100">
-              Public player name
-              <input
-                className="rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
-                maxLength={PROFILE_DISPLAY_NAME_MAX_LENGTH}
-                onChange={(event) => setPublicDisplayName(event.target.value)}
-                type="text"
-                value={publicDisplayName}
-              />
-              <span className="text-xs text-slate-400">
-                {publicDisplayName.length}/{PROFILE_DISPLAY_NAME_MAX_LENGTH} · Leave blank to use Player name. Emoji and symbols are not supported.
-              </span>
-            </label>
-
-            <fieldset className="space-y-2">
-              <legend className="font-semibold text-cyan-100">Public accent</legend>
-              <div role="radiogroup" aria-label="Public profile accent" className="flex flex-wrap gap-2">
-                {PROFILE_ACCENT_COLORS.map((color) => (
-                  <button
-                    aria-checked={publicAccentColor === color}
-                    aria-label={`Public accent ${color}`}
-                    key={color}
-                    onClick={() => setPublicAccentColor(color)}
-                    role="radio"
-                    type="button"
-                    className={classNames(
-                      'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]',
-                      publicAccentColor === color ? 'border-[var(--color-ice-200)] text-white' : 'border-slate-700 text-slate-300',
-                    )}
-                  >
-                    <span aria-hidden="true" className={classNames('inline-block h-3 w-3 rounded-full', ACCENT_SWATCHES[color])} />
-                    {color}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
 
             <label className="grid gap-1 font-semibold text-cyan-100">
               Public avatar URL
@@ -427,7 +351,7 @@ export function ProfileEditor({
                 type="url"
                 value={publicAvatarUrl}
               />
-              <span className="text-xs text-slate-400">Optional. Use an https image URL for public surfaces; keep it separate from private avatar uploads because public URLs must not include your account ID.</span>
+              <span className="text-xs text-slate-400">Optional. Use an https image URL that does not include your raw account ID.</span>
             </label>
 
             <label className="grid gap-1 font-semibold text-cyan-100">
@@ -448,28 +372,21 @@ export function ProfileEditor({
                   aria-hidden="true"
                   className={classNames(
                     'inline-grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gradient-to-br text-xs font-bold text-white shadow-inner',
-                    getProfileAccentAvatarBackground(publicAccentColor),
+                    getProfileAccentAvatarBackground(accentColor),
                   )}
                 >
                   {publicAvatarPreviewUrl ? <img alt="" src={publicAvatarPreviewUrl} className="h-full w-full object-cover" /> : publicProfilePreviewInitials}
                 </span>
                 <div>
                   <p className="break-words font-semibold text-white">{publicProfileLabel}</p>
-                  <p className="text-xs text-slate-400">{publicVisibility === 'public' ? 'Visible when active' : 'Private to you'}</p>
+                  <p className="text-xs text-slate-400">Visible to other players</p>
                 </div>
               </div>
               {publicBio.trim() ? <p className="break-words text-slate-300">{publicBio.trim()}</p> : null}
-              {publicProfile?.publicProfileId ? (
-                <p className="break-all text-xs text-slate-500">ID: <code>{publicProfile.publicProfileId}</code></p>
-              ) : null}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={handleSavePublicProfile} variant="primary" disabled={busy || publicProfileBusy}>Save public profile</Button>
-            </div>
-
-            {publicMessage ? (
-              <p aria-live="polite" className="text-sm text-slate-300">{publicMessage}</p>
+            {playerCardMessage ? (
+              <p aria-live="polite" className="text-sm text-slate-300">{playerCardMessage}</p>
             ) : null}
           </div>
         ) : null}
