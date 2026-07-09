@@ -1091,6 +1091,14 @@ describe('multiplayer repository seam', () => {
     const rows = normalizePrivateMatchRequestRows([
       createPrivateMatchRequestRow(),
       createPrivateMatchRequestRow({
+        go_puzzle_count: 5,
+        hard_mode: true,
+        mode: 'go',
+        request_id: 'private-request-go',
+        time_limit_ms: 300_000,
+        word_length: 7,
+      }),
+      createPrivateMatchRequestRow({
         created: true,
         created_game_id: 'private-game-1',
         idempotent: true,
@@ -1106,7 +1114,7 @@ describe('multiplayer repository seam', () => {
       }),
     ], new Date('2026-07-01T23:40:00.000Z'))
 
-    expect(rows).toHaveLength(3)
+    expect(rows).toHaveLength(4)
     expect(rows[0]).toMatchObject({
       created: false,
       expired: false,
@@ -1130,13 +1138,21 @@ describe('multiplayer repository seam', () => {
       wordLength: 5,
     })
     expect(rows[1]).toMatchObject({
+      goPuzzleCount: 5,
+      hardMode: true,
+      mode: 'go',
+      requestId: 'private-request-go',
+      timeLimitMs: 300_000,
+      wordLength: 7,
+    })
+    expect(rows[2]).toMatchObject({
       created: true,
       createdGameId: 'private-game-1',
       idempotent: true,
       requestStatus: 'created',
       respondedAt: '2026-07-01T23:50:00.000Z',
     })
-    expect(rows[2]).toMatchObject({
+    expect(rows[3]).toMatchObject({
       expired: true,
       viewerCanAccept: false,
       viewerCanCancel: false,
@@ -1163,9 +1179,21 @@ describe('multiplayer repository seam', () => {
       wordLength: 5,
     })
     const rpc = vi.fn(async (name: string, params?: Record<string, unknown>) => {
-      void params
       if (name === 'create_private_multiplayer_match_request') {
-        return { data: [createPrivateMatchRequestRow({ viewer_can_accept: false, viewer_can_cancel: true, viewer_can_decline: false, viewer_role: 'requester' })], error: null }
+        return {
+          data: [createPrivateMatchRequestRow({
+            go_puzzle_count: params?.p_mode === 'go' ? params.p_go_puzzle_count : null,
+            hard_mode: params?.p_hard_mode,
+            mode: params?.p_mode,
+            time_limit_ms: params?.p_time_limit_ms,
+            viewer_can_accept: false,
+            viewer_can_cancel: true,
+            viewer_can_decline: false,
+            viewer_role: 'requester',
+            word_length: params?.p_word_length,
+          })],
+          error: null,
+        }
       }
       if (name === 'get_private_multiplayer_match_requests') {
         return { data: [createPrivateMatchRequestRow()], error: null }
@@ -1203,6 +1231,15 @@ describe('multiplayer repository seam', () => {
       timeLimitMs: null,
       wordLength: 5,
     })
+    const goRequested = await repository.createPrivateMatchRequest({
+      goPuzzleCount: 5,
+      hardMode: true,
+      idempotencyKey: 'phase52-private-request:create:test',
+      mode: 'go',
+      targetPublicProfileId: '22222222-2222-4222-8222-222222222222',
+      timeLimitMs: 300_000,
+      wordLength: 7,
+    })
     const listed = await repository.listPrivateMatchRequests({ limit: 10 })
     const cancelled = await repository.cancelPrivateMatchRequest('private-request-1')
     const declined = await repository.declinePrivateMatchRequest('private-request-1')
@@ -1213,6 +1250,13 @@ describe('multiplayer repository seam', () => {
     })
 
     expect(requested.viewerRole).toBe('requester')
+    expect(goRequested).toMatchObject({
+      goPuzzleCount: 5,
+      hardMode: true,
+      mode: 'go',
+      timeLimitMs: 300_000,
+      wordLength: 7,
+    })
     expect(listed[0]).toMatchObject({ viewerCanAccept: true, viewerRole: 'opponent' })
     expect(cancelled.requestStatus).toBe('cancelled')
     expect(declined.requestStatus).toBe('declined')
@@ -1230,6 +1274,16 @@ describe('multiplayer repository seam', () => {
       p_target_public_profile_id: '22222222-2222-4222-8222-222222222222',
       p_time_limit_ms: null,
       p_word_length: 5,
+    })
+    expect(rpc).toHaveBeenCalledWith('create_private_multiplayer_match_request', {
+      p_expires_at: null,
+      p_go_puzzle_count: 5,
+      p_hard_mode: true,
+      p_idempotency_key: 'phase52-private-request:create:test',
+      p_mode: 'go',
+      p_target_public_profile_id: '22222222-2222-4222-8222-222222222222',
+      p_time_limit_ms: 300_000,
+      p_word_length: 7,
     })
     expect(rpc).toHaveBeenCalledWith('get_private_multiplayer_match_requests', {
       p_limit: 10,

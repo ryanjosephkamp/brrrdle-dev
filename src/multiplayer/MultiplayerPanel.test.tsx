@@ -238,6 +238,31 @@ describe('PrivateMatchRequestsPanel', () => {
     expect(html).not.toContain('playerUserIds')
   })
 
+  it('renders selected GO, Hard Mode, and time-control settings for private match requests', () => {
+    const html = renderToStaticMarkup(
+      <PrivateMatchRequestsPanel
+        busy={false}
+        onAccept={noop}
+        onCancel={noop}
+        onDecline={noop}
+        requests={[
+          createPrivateMatchRequestFixture({
+            goPuzzleCount: 5,
+            hardMode: true,
+            mode: 'go',
+            timeLimitMs: 300_000,
+            wordLength: 7,
+          }),
+        ]}
+      />,
+    )
+
+    expect(html).toContain('GO, 7 letters, 5 puzzles, Hard Mode on, 5:00 per side')
+    expect(html).toContain('Accept private match')
+    expect(html).not.toContain('11111111-1111-4111-8111-111111111111')
+    expect(html).not.toContain('playerUserIds')
+  })
+
   it('keeps the empty private request shelf collapsed by default', () => {
     const html = renderToStaticMarkup(
       <PrivateMatchRequestsPanel

@@ -44,8 +44,37 @@ describe('PublicProfileCard', () => {
     )
 
     expect(html).toContain('Private Practice match')
+    expect(html).toContain('Private Practice mode')
+    expect(html).toContain('Private Practice word length')
+    expect(html).toContain('Private Practice time control')
+    expect(html).toContain('Private Practice Hard Mode')
+    expect(html).toContain('Current request: OG, 5 letters, Hard Mode off, no clock')
     expect(html).toContain('Request Practice match')
     expect(html).toContain('Private Practice match request sent.')
+    expect(html).not.toContain(PROFILE.publicProfileId)
+    expect(html).not.toContain('user_id')
+    expect(html).not.toContain('playerUserIds')
+  })
+
+  it('summarizes selected private Practice GO settings without exposing profile ids', () => {
+    const html = renderToStaticMarkup(
+      <PublicProfileCard
+        authStatus="authenticated"
+        onRequestPrivateMatch={() => undefined}
+        privateMatchRequestsAvailable
+        privatePracticeSettings={{
+          goPuzzleCount: 5,
+          hardMode: true,
+          mode: 'go',
+          timeLimitMs: 300_000,
+          wordLength: 7,
+        }}
+        profile={PROFILE}
+        status="ready"
+      />,
+    )
+
+    expect(html).toContain('Current request: GO, 7 letters, 5 puzzles, Hard Mode on, 5:00 per side')
     expect(html).not.toContain(PROFILE.publicProfileId)
     expect(html).not.toContain('user_id')
     expect(html).not.toContain('playerUserIds')
