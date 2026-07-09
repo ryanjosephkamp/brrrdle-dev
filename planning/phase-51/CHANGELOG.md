@@ -1,6 +1,6 @@
 # Phase 51 Changelog - Account, Profile, And Player Identity
 
-**Status:** Recovered Review Candidate prepared.
+**Status:** Final manual acceptance recorded; Final Acceptance Backup prompt prepared.
 **Phase:** Phase 51.
 **Repository:** `brrrdle-dev` only.
 **Updated:** 2026-07-09.
@@ -8,6 +8,8 @@
 ## Summary
 
 Phase 51 implemented a bounded account/Profile/player-identity pass while preserving the accepted Phase 50 gameplay baseline. The 2026-07-09 same-phase review follow-up repairs mobile account-menu fit, collapses Profile to one public `Player name`, and adds bounded mobile scroll-weight reductions.
+
+The recovered hosted/mobile Review Candidate after PR #47 passed user manual review. No additional Phase 51 implementation is recommended before final acceptance closure.
 
 ## Implemented
 
@@ -49,4 +51,15 @@ Phase 51 implemented a bounded account/Profile/player-identity pass while preser
 - Minimal-shell handoff preparation remains routed to the future pre-Phase-55 process.
 - Design-heavy homepage widgets, broad shell redesign, theme modernization, ShadCN/Impeccable adoption, generated design concepts, and image-generation concept work remain later-phase work.
 - Sound/Focus entries inside the account menu are deferred to a later shell phase unless they can be added without broader shell/state changes.
-- Git/GitHub backup, PR, merge, deployment, release, and Phase 51 closure remain separately authorized steps.
+- Final Acceptance Backup and Phase 51 closure remain separately authorized by the next prompt.
+- Deployment configuration changes and release work remain later protected actions.
+
+## Manual Acceptance - 2026-07-09
+
+- User reported that page scrolling is better.
+- User reported that Profile now looks the way it should.
+- User reported that player-name emoji and special-character exclusions work properly.
+- User reported that the signed-in player chip/menu works as intended and fits on mobile.
+- User reported that, as far as they can tell, the manual review checklist passes.
+
+Recommended next action: execute the Phase 51 Final Acceptance Closure and Backup prompt to record closure and perform the governed Final Acceptance GitHub Backup.
