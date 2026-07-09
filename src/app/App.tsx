@@ -954,10 +954,13 @@ function RoutePanel({
   if (route.id === 'stats') {
     return (
       <StatsDashboard
+        authStatus={authState.status}
+        competitiveMultiplayer={guestProgress.competitiveMultiplayer}
         history={guestProgress.history}
         progression={guestProgress.progression}
         publicSiteStatsRepository={publicSiteStatsRepository}
         stats={guestProgress.stats}
+        viewerUserId={authState.user?.id}
       />
     )
   }
@@ -986,6 +989,7 @@ function RoutePanel({
         privateMatchActions={privateMatchActions}
         onBack={() => onSelectRoute('leaderboard')}
         publicProfileId={selectedPublicProfileId}
+        publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
         repository={publicProfileRepository}
       />
     )

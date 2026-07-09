@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { DEFAULT_GO_PUZZLE_COUNT } from '../game/constants'
 import type { GameMode } from '../game/types'
+import type { PublicRankedLeaderboardRepository } from '../leaderboards/publicRankedLeaderboard'
 import {
   PRACTICE_MULTIPLAYER_TIME_LIMIT_OPTIONS,
   type PracticeMultiplayerTimeLimitMs,
@@ -22,9 +23,14 @@ import {
   PRIVATE_MATCH_REQUESTER_PUBLIC_PROFILE_REQUIRED_MESSAGE,
   type PrivatePracticeRequestSettings,
 } from './publicProfilePrivateMatch'
+import {
+  createPublicProfileRatingMetadata,
+  type PublicProfileRatingMetadata,
+} from './publicProfileRatingMetadata'
 import type { MultiplayerRepository } from '../multiplayer/multiplayerRepository'
 
 export type PublicProfilePageStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error'
+export type PublicProfileRatingMetadataStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 type PrivateMatchActions = Pick<MultiplayerRepository, 'createPrivateMatchRequest'>
 type PublicProfilePageRepository = Pick<PublicProfileRepository, 'loadPublicProfile'> & Partial<Pick<PublicProfileRepository, 'loadMine'>>
@@ -42,6 +48,7 @@ interface PublicProfilePageProps {
   readonly privateMatchActions?: PrivateMatchActions
   readonly onBack?: () => void
   readonly publicProfileId?: string
+  readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
   readonly repository?: PublicProfilePageRepository
 }
 
@@ -56,6 +63,8 @@ interface PublicProfileCardProps {
   readonly onRequestPrivateMatch?: () => void
   readonly onBack?: () => void
   readonly profile?: PublicPlayerProfile
+  readonly ratingMetadata?: readonly PublicProfileRatingMetadata[]
+  readonly ratingMetadataStatus?: PublicProfileRatingMetadataStatus
   readonly status: PublicProfilePageStatus
 }
 
@@ -125,6 +134,8 @@ export function PublicProfileCard({
   onRequestPrivateMatch,
   onBack,
   profile,
+  ratingMetadata = [],
+  ratingMetadataStatus = 'idle',
   status,
 }: PublicProfileCardProps) {
   const updatedLabel = profile ? formatPublicProfileUpdatedAt(profile.updatedAt) : undefined
@@ -192,6 +203,64 @@ export function PublicProfileCard({
                 <dd className="mt-1 font-semibold text-cyan-50">Active public profile</dd>
               </div>
             </dl>
+
+            <div className="rounded-lg border border-white/10 bg-black/25 p-4">
+              <p className="font-bold text-white">Public ranked Practice metadata</p>
+              <p className="mt-1 text-xs leading-5 text-slate-400">
+                These rows are derived only from the public ranked Practice leaderboard. They are not private Solo stats, full match history, queue internals, or raw account data.
+              </p>
+              {authStatus !== 'authenticated' ? (
+                <p className="mt-3 rounded-md border border-white/10 bg-black/25 p-3 text-xs text-slate-300">
+                  Sign in to view public ranked Practice metadata for visible public profiles.
+                </p>
+              ) : ratingMetadataStatus === 'loading' ? (
+                <LoadingState label="Loading public ranked Practice metadata..." />
+              ) : ratingMetadataStatus === 'error' ? (
+                <p className="mt-3 rounded-md border border-rose-300/30 bg-rose-950/20 p-3 text-xs text-rose-100" role="alert">
+                  Unable to load public ranked Practice metadata right now.
+                </p>
+              ) : ratingMetadata.length > 0 ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {ratingMetadata.map((metadata) => (
+                    <article className="rounded-lg border border-white/10 bg-black/30 p-3" key={metadata.bucketLabel}>
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-cyan-100">{metadata.bucketLabel}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{metadata.rankLabel} · {metadata.rankBandLabel} band</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-white">{metadata.ratingLabel}</p>
+                          <p className="text-xs text-slate-400">{metadata.provisionalLabel}</p>
+                        </div>
+                      </div>
+                      <dl className="mt-3 grid gap-2 text-xs text-slate-300">
+                        <div className="flex justify-between gap-3">
+                          <dt>Record</dt>
+                          <dd className="font-semibold text-slate-100">{metadata.recordLabel}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt>Games</dt>
+                          <dd className="font-semibold text-slate-100">{metadata.gamesLabel}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt>Movement</dt>
+                          <dd className="font-semibold text-slate-100">{metadata.latestMovementLabel}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt>Peak</dt>
+                          <dd className="font-semibold text-slate-100">{metadata.peakLabel}</dd>
+                        </div>
+                      </dl>
+                      <p className="mt-3 text-xs text-slate-500">Leaderboard freshness: {metadata.updatedLabel}</p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 rounded-md border border-white/10 bg-black/25 p-3 text-xs text-slate-300">
+                  No public ranked Practice metadata is visible for this player yet.
+                </p>
+              )}
+            </div>
 
             <div className="rounded-lg border border-cyan-300/25 bg-cyan-300/10 p-4">
               <p className="font-bold text-cyan-50">Private Practice match</p>
@@ -314,6 +383,7 @@ export function PublicProfilePage({
   privateMatchActions,
   onBack,
   publicProfileId,
+  publicRankedLeaderboardRepository,
   repository,
 }: PublicProfilePageProps) {
   const normalizedPublicProfileId = useMemo(() => normalizePublicProfileId(publicProfileId), [publicProfileId])
@@ -329,6 +399,11 @@ export function PublicProfilePage({
     readonly publicProfileId?: string
   }>({ busy: false })
   const [privatePracticeSettings, setPrivatePracticeSettings] = useState<PrivatePracticeRequestSettings>(DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS)
+  const [ratingMetadataResult, setRatingMetadataResult] = useState<{
+    readonly metadata: readonly PublicProfileRatingMetadata[]
+    readonly publicProfileId?: string
+    readonly status: PublicProfileRatingMetadataStatus
+  }>({ metadata: [], status: 'idle' })
 
   useEffect(() => {
     if (!normalizedPublicProfileId || !repository) {
@@ -363,6 +438,45 @@ export function PublicProfilePage({
     }
   }, [normalizedPublicProfileId, repository])
 
+  useEffect(() => {
+    const profile = loadResult.status === 'ready' && loadResult.publicProfileId === normalizedPublicProfileId
+      ? loadResult.profile
+      : undefined
+    if (!profile || authStatus !== 'authenticated' || !publicRankedLeaderboardRepository) {
+      return undefined
+    }
+
+    let cancelled = false
+    void Promise.all([
+      publicRankedLeaderboardRepository.loadRankedPracticeLeaderboard({ bucket: 'multiplayer:og', limit: 100 }),
+      publicRankedLeaderboardRepository.loadRankedPracticeLeaderboard({ bucket: 'multiplayer:go', limit: 100 }),
+    ])
+      .then(([ogRows, goRows]) => {
+        if (cancelled) {
+          return
+        }
+        setRatingMetadataResult({
+          metadata: createPublicProfileRatingMetadata([...ogRows, ...goRows], profile.publicProfileId),
+          publicProfileId: profile.publicProfileId,
+          status: 'ready',
+        })
+      })
+      .catch(() => {
+        if (cancelled) {
+          return
+        }
+        setRatingMetadataResult({
+          metadata: [],
+          publicProfileId: profile.publicProfileId,
+          status: 'error',
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [authStatus, loadResult, normalizedPublicProfileId, publicRankedLeaderboardRepository])
+
   const status: PublicProfilePageStatus = !normalizedPublicProfileId || !repository
     ? 'unavailable'
     : loadResult.publicProfileId === normalizedPublicProfileId
@@ -376,6 +490,14 @@ export function PublicProfilePage({
   const privateMatchBusy = privateMatchState.publicProfileId === profile?.publicProfileId
     ? privateMatchState.busy
     : false
+  const ratingMetadataStatus: PublicProfileRatingMetadataStatus = authStatus !== 'authenticated' || !profile || !publicRankedLeaderboardRepository
+    ? 'idle'
+    : ratingMetadataResult.publicProfileId === profile.publicProfileId
+      ? ratingMetadataResult.status
+      : 'loading'
+  const ratingMetadata = ratingMetadataStatus === 'ready'
+    ? ratingMetadataResult.metadata
+    : []
 
   const requestPrivatePracticeMatch = async () => {
     if (!profile || authStatus !== 'authenticated' || !privateMatchActions) {
@@ -442,6 +564,8 @@ export function PublicProfilePage({
       onRequestPrivateMatch={() => { void requestPrivatePracticeMatch() }}
       onBack={onBack}
       profile={profile}
+      ratingMetadata={ratingMetadata}
+      ratingMetadataStatus={ratingMetadataStatus}
       status={status}
     />
   )
