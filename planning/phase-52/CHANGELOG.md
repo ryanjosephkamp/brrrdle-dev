@@ -1,6 +1,6 @@
 # Phase 52 Changelog - Private Practice Matchmaking Expansion
 
-**Status:** Review Candidate prepared; Review Candidate Backup prompt prepared.
+**Status:** Hosted/manual review accepted; Final Acceptance Backup prompt prepared.
 **Phase:** Phase 52.
 **Repository:** `brrrdle-dev` only.
 **Updated:** 2026-07-09.
@@ -8,6 +8,8 @@
 ## Summary
 
 Phase 52 expands private Practice matchmaking through the existing Phase 40 private-request contract. Signed-in players can now request unranked private Practice matches from public profiles with selectable OG/GO mode, Practice word length, Hard Mode, and supported Practice time controls.
+
+The user reported on 2026-07-09 that the hosted/manual review checklist appears to pass and requested preparation for official Phase 52 closure.
 
 No Supabase migration, remote RPC/RLS/schema change, deployment configuration change, gameplay-rule change, ranked queue change, scoring/reward/Elo change, Daily change, or stable `brrrdle` repository work was performed.
 
@@ -47,6 +49,12 @@ No Supabase migration, remote RPC/RLS/schema change, deployment configuration ch
 - Broad redesign, theme modernization, ShadCN/Impeccable adoption, generated design concepts, and homepage widgets.
 - Deployment configuration changes, release work, and final Phase 52 acceptance/closure.
 
+## Manual Review Acceptance
+
+- Review Candidate Backup completed through PR #49.
+- The user reported that the Phase 52 hosted/manual review checklist appears to pass.
+- No direct Phase 52 follow-up bugs are currently reported.
+
 ## Next Recommended Action
 
-Execute the Phase 52 Review Candidate Backup prompt so this verified candidate can be tested on the hosted/live surface while keeping Phase 52 open for manual review follow-up.
+Execute the Phase 52 Final Acceptance Closure and Backup prompt to record final acceptance, close Phase 52, and then route to separately authorized Phase 53 planning.
