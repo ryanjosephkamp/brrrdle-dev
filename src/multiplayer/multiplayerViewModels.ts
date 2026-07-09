@@ -1,3 +1,4 @@
+import { normalizePublicProfileId } from '../account/publicProfile'
 import type { GameMode, PlayScope } from '../game/types'
 import {
   canViewerCancelMultiplayerGame,
@@ -34,6 +35,7 @@ export interface MultiplayerActiveGameViewModel {
   readonly detailLabel: string
   readonly turnLabel: string
   readonly opponentLabel: string
+  readonly opponentPublicProfileId?: string
   readonly ruleLabel: string
   readonly updatedAt: string
   readonly actionLabel: string
@@ -85,6 +87,7 @@ export interface MultiplayerLiveGameViewModel {
   readonly detailLabel: string
   readonly turnLabel: string
   readonly opponentLabel: string
+  readonly opponentPublicProfileId?: string
   readonly rankingLabel: 'Ranked' | 'Unranked'
   readonly ruleLabel: string
   readonly updatedAt: string
@@ -114,6 +117,8 @@ export interface MultiplayerLiveSpectatorDetailsViewModel {
 
 export type MultiplayerParticipantProfileMap = Partial<Record<MultiplayerPlayerId, MultiplayerProfileSummary>>
 export type MultiplayerParticipantProfileMapByGameId = Readonly<Record<string, MultiplayerParticipantProfileMap | undefined>>
+export type MultiplayerParticipantPublicProfileIdMap = Partial<Record<MultiplayerPlayerId, string>>
+export type MultiplayerParticipantPublicProfileIdMapByGameId = Readonly<Record<string, MultiplayerParticipantPublicProfileIdMap | undefined>>
 
 export function participantIdentitySummariesToProfileMap(
   summaries: readonly ParticipantIdentitySummaryResult[],
@@ -130,6 +135,18 @@ export function participantIdentitySummariesToProfileMap(
     }, summary.displayName)] as const]
   })
   return Object.fromEntries(entries) as MultiplayerParticipantProfileMap
+}
+
+export function participantIdentitySummariesToPublicProfileIdMap(
+  summaries: readonly ParticipantIdentitySummaryResult[],
+): MultiplayerParticipantPublicProfileIdMap {
+  const entries = summaries.flatMap((summary) => {
+    const publicProfileId = summary.identityAvailable
+      ? normalizePublicProfileId(summary.publicProfileId)
+      : undefined
+    return publicProfileId ? [[summary.seat, publicProfileId] as const] : []
+  })
+  return Object.fromEntries(entries) as MultiplayerParticipantPublicProfileIdMap
 }
 
 export function getMultiplayerModeLabel(mode: GameMode): string {
@@ -229,6 +246,22 @@ function getOpponentLabel(
     : 'Waiting for rival'
 }
 
+function getOpponentPublicProfileId(
+  game: MultiplayerGame,
+  viewerUserId: string | undefined,
+  publicProfileIds?: MultiplayerParticipantPublicProfileIdMap,
+): string | undefined {
+  const viewerPlayerId = getViewerMultiplayerPlayerId(game, viewerUserId)
+  if (!viewerPlayerId) {
+    return undefined
+  }
+  const opponentId = viewerPlayerId === 'player-one' ? 'player-two' : 'player-one'
+  if (!game.playerUserIds?.[opponentId]) {
+    return undefined
+  }
+  return normalizePublicProfileId(publicProfileIds?.[opponentId])
+}
+
 function formatParticipantTurnLabel(label: string): string {
   return label === 'Rival' ? 'Rival turn' : `${label}'s turn`
 }
@@ -268,6 +301,7 @@ function toActiveGameViewModel(
   game: MultiplayerGame,
   viewerUserId: string | undefined,
   profileOverrides?: MultiplayerParticipantProfileMap,
+  publicProfileIds?: MultiplayerParticipantPublicProfileIdMap,
 ): MultiplayerActiveGameViewModel {
   const viewerPlayerId = getViewerMultiplayerPlayerId(game, viewerUserId)
   const isViewerParticipant = Boolean(viewerPlayerId)
@@ -280,6 +314,7 @@ function toActiveGameViewModel(
     mode: game.mode,
     modeLabel: getMultiplayerModeLabel(game.mode),
     opponentLabel: getOpponentLabel(game, viewerUserId, profileOverrides),
+    opponentPublicProfileId: getOpponentPublicProfileId(game, viewerUserId, publicProfileIds),
     ruleLabel: getGameRuleLabel(game),
     scope: game.scope,
     scopeLabel: getMultiplayerScopeLabel(game.scope),
@@ -295,6 +330,7 @@ export function selectActiveMultiplayerGameRows(
   state: MultiplayerState | undefined,
   viewerUserId?: string,
   participantProfilesByGameId: MultiplayerParticipantProfileMapByGameId = {},
+  participantPublicProfileIdsByGameId: MultiplayerParticipantPublicProfileIdMapByGameId = {},
 ): readonly MultiplayerActiveGameViewModel[] {
   if (!viewerUserId) {
     return []
@@ -302,15 +338,21 @@ export function selectActiveMultiplayerGameRows(
 
   return [...getActiveMultiplayerGames(normalizeMultiplayerState(state), viewerUserId)]
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .map((game) => toActiveGameViewModel(game, viewerUserId, participantProfilesByGameId[game.id]))
+    .map((game) => toActiveGameViewModel(
+      game,
+      viewerUserId,
+      participantProfilesByGameId[game.id],
+      participantPublicProfileIdsByGameId[game.id],
+    ))
 }
 
 function toLiveGameViewModel(
   game: MultiplayerGame,
   viewerUserId: string,
   profileOverrides?: MultiplayerParticipantProfileMap,
+  publicProfileIds?: MultiplayerParticipantPublicProfileIdMap,
 ): MultiplayerLiveGameViewModel {
-  const active = toActiveGameViewModel(game, viewerUserId, profileOverrides)
+  const active = toActiveGameViewModel(game, viewerUserId, profileOverrides, publicProfileIds)
   return {
     actionLabel: 'Resume live game',
     canResume: true,
@@ -320,6 +362,7 @@ function toLiveGameViewModel(
     mode: active.mode,
     modeLabel: active.modeLabel,
     opponentLabel: active.opponentLabel,
+    opponentPublicProfileId: active.opponentPublicProfileId,
     rankingLabel: getRankingLabel(game),
     ruleLabel: active.ruleLabel,
     scope: active.scope,
@@ -422,12 +465,18 @@ export function selectLiveMultiplayerRows(
   viewerUserId?: string,
   spectatorRows: readonly AuthenticatedLiveSpectatorGame[] = [],
   participantProfilesByGameId: MultiplayerParticipantProfileMapByGameId = {},
+  participantPublicProfileIdsByGameId: MultiplayerParticipantPublicProfileIdMapByGameId = {},
 ): readonly MultiplayerLiveGameViewModel[] {
   const participantRows = viewerUserId
     ? normalizeMultiplayerState(state).games
       .filter((game) => game.status === 'playing')
       .filter((game) => Boolean(getViewerMultiplayerPlayerId(game, viewerUserId)))
-      .map((game) => toLiveGameViewModel(game, viewerUserId, participantProfilesByGameId[game.id]))
+      .map((game) => toLiveGameViewModel(
+        game,
+        viewerUserId,
+        participantProfilesByGameId[game.id],
+        participantPublicProfileIdsByGameId[game.id],
+      ))
     : []
   const participantIds = new Set(participantRows.map((row) => row.id))
   const readOnlySpectatorRows = spectatorRows

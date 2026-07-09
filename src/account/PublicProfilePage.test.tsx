@@ -141,6 +141,18 @@ describe('PublicProfileCard', () => {
 })
 
 describe('PublicProfilePage', () => {
+  it('accepts contextual return copy without changing the public-profile content boundary', () => {
+    const html = renderToStaticMarkup(
+      <PublicProfilePage
+        backLabel="Back to Multiplayer"
+        onBack={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('Back to Multiplayer')
+    expect(html).toContain('Player profile')
+  })
+
   it('renders an unavailable state for malformed profile route ids without calling a repository', () => {
     const html = renderToStaticMarkup(
       <PublicProfilePage

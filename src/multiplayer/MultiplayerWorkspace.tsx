@@ -10,6 +10,7 @@ import { MultiplayerActiveGames } from './MultiplayerActiveGames'
 import { MultiplayerLobby } from './MultiplayerLobby'
 import { MultiplayerLive, MultiplayerLiveSpectatorDetails } from './MultiplayerLive'
 import {
+  participantIdentitySummariesToPublicProfileIdMap,
   participantIdentitySummariesToProfileMap,
   selectActiveMultiplayerGameRows,
   selectLiveMultiplayerRows,
@@ -17,6 +18,7 @@ import {
   selectRecentMultiplayerResults,
   selectRestrictedLiveMultiplayerCount,
   type MultiplayerParticipantProfileMapByGameId,
+  type MultiplayerParticipantPublicProfileIdMapByGameId,
   type MultiplayerRecentResultViewModel,
 } from './multiplayerViewModels'
 
@@ -44,6 +46,7 @@ interface MultiplayerWorkspaceProps {
   readonly onLiveSurfaceActiveChange?: (active: boolean) => void
   readonly onJoinGame?: (id: string) => void
   readonly onOpenFocusedSpectatorGame?: (id: string) => void
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame: (id: string) => void
   readonly onSubtabChange: (subtab: MultiplayerSubtabId) => void
@@ -216,6 +219,7 @@ function MultiplayerOverview({
   liveRows,
   onOpenHistory,
   onOpenFocusedSpectatorGame,
+  onOpenPublicProfile,
   onResumeGame,
   onJoinGame,
   onSelectGame,
@@ -230,6 +234,7 @@ function MultiplayerOverview({
   readonly liveRows: ReturnType<typeof selectLiveMultiplayerRows>
   readonly onOpenHistory: () => void
   readonly onOpenFocusedSpectatorGame?: (id: string) => void
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly onJoinGame?: (id: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame: (id: string) => void
@@ -255,7 +260,7 @@ function MultiplayerOverview({
           </div>
           <Button onClick={() => onSubtabChange('active')} size="sm" variant="ghost">View Active</Button>
         </div>
-        <MultiplayerActiveGames activeGames={activeGames} limit={4} onResumeGame={onResumeGame} selectedGameId={selectedGameId} />
+        <MultiplayerActiveGames activeGames={activeGames} limit={4} onOpenPublicProfile={onOpenPublicProfile} onResumeGame={onResumeGame} selectedGameId={selectedGameId} />
       </Panel>
 
       <Panel className="space-y-4" tone="muted">
@@ -281,7 +286,7 @@ function MultiplayerOverview({
           </div>
           <Button onClick={() => onSubtabChange('live')} size="sm" variant="ghost">Open Live</Button>
         </div>
-        <MultiplayerLive liveGames={liveRows.slice(0, 4)} onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame} onResumeGame={onResumeGame} onSelectGame={onSelectGame} restrictedGameCount={restrictedLiveCount} selectedGameId={selectedGameId} viewerUserId={viewerUserId} />
+        <MultiplayerLive liveGames={liveRows.slice(0, 4)} onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame} onOpenPublicProfile={onOpenPublicProfile} onResumeGame={onResumeGame} onSelectGame={onSelectGame} restrictedGameCount={restrictedLiveCount} selectedGameId={selectedGameId} viewerUserId={viewerUserId} />
       </Panel>
 
       <Panel className="space-y-4" tone="muted">
@@ -307,6 +312,7 @@ export function MultiplayerWorkspace({
   onCloseFocusedSpectatorGame,
   onLiveSurfaceActiveChange,
   onOpenFocusedSpectatorGame,
+  onOpenPublicProfile,
   onOpenHistory,
   onJoinGame,
   onResumeGame,
@@ -321,6 +327,7 @@ export function MultiplayerWorkspace({
   viewerUserId,
 }: MultiplayerWorkspaceProps) {
   const [participantProfilesByGameId, setParticipantProfilesByGameId] = useState<MultiplayerParticipantProfileMapByGameId>({})
+  const [participantPublicProfileIdsByGameId, setParticipantPublicProfileIdsByGameId] = useState<MultiplayerParticipantPublicProfileIdMapByGameId>({})
   const participantIdentityTargets = useMemo(
     () => getParticipantLiveIdentityTargets(state, viewerUserId),
     [state, viewerUserId],
@@ -341,9 +348,13 @@ export function MultiplayerWorkspace({
       void Promise.all(participantIdentityTargets.map(async (target) => {
         try {
           const summaries = await participantIdentityActions.getParticipantIdentitySummaries({ gameId: target.id })
-          return [target.id, participantIdentitySummariesToProfileMap(summaries)] as const
+          return {
+            id: target.id,
+            profiles: participantIdentitySummariesToProfileMap(summaries),
+            publicProfileIds: participantIdentitySummariesToPublicProfileIdMap(summaries),
+          }
         } catch {
-          return [target.id, {}] as const
+          return { id: target.id, profiles: {}, publicProfileIds: {} }
         }
       })).then((entries) => {
         if (!active) {
@@ -352,7 +363,11 @@ export function MultiplayerWorkspace({
         const activeIds = new Set(participantIdentityTargets.map((target) => target.id))
         setParticipantProfilesByGameId((current) => {
           const currentEntries = Object.entries(current).filter(([gameId]) => activeIds.has(gameId))
-          return Object.fromEntries([...currentEntries, ...entries])
+          return Object.fromEntries([...currentEntries, ...entries.map((entry) => [entry.id, entry.profiles])])
+        })
+        setParticipantPublicProfileIdsByGameId((current) => {
+          const currentEntries = Object.entries(current).filter(([gameId]) => activeIds.has(gameId))
+          return Object.fromEntries([...currentEntries, ...entries.map((entry) => [entry.id, entry.publicProfileIds])])
         })
       })
     }, LIVE_PARTICIPANT_IDENTITY_FETCH_DELAY_MS)
@@ -363,9 +378,20 @@ export function MultiplayerWorkspace({
     }
   }, [participantIdentityActions, participantIdentityFetchKey, participantIdentityTargets, viewerUserId])
 
-  const activeGames = selectActiveMultiplayerGameRows(state, viewerUserId, participantProfilesByGameId)
+  const activeGames = selectActiveMultiplayerGameRows(
+    state,
+    viewerUserId,
+    participantProfilesByGameId,
+    participantPublicProfileIdsByGameId,
+  )
   const lobbyRows = selectMultiplayerLobbyRows(state, { dailyDateKey, viewerUserId })
-  const liveRows = selectLiveMultiplayerRows(state, viewerUserId, liveSpectatorRows, participantProfilesByGameId)
+  const liveRows = selectLiveMultiplayerRows(
+    state,
+    viewerUserId,
+    liveSpectatorRows,
+    participantProfilesByGameId,
+    participantPublicProfileIdsByGameId,
+  )
   const restrictedLiveCount = selectRestrictedLiveMultiplayerCount(state, viewerUserId, liveSpectatorRows)
   const recentResults = selectRecentMultiplayerResults(competitiveState, viewerUserId, 5)
   const focusedSpectatorGame = focusedSpectatorGameId
@@ -405,7 +431,7 @@ export function MultiplayerWorkspace({
             <h3 className="text-lg font-bold text-white">Active Multiplayer Games</h3>
             <p className="text-sm text-slate-400">{activeGames.length} active{activeGames.some((game) => game.turnLabel === 'Your turn') ? ' · turn attention' : ''}</p>
           </div>
-          <MultiplayerActiveGames activeGames={activeGames} onResumeGame={onResumeGame} selectedGameId={selectedGameId} />
+          <MultiplayerActiveGames activeGames={activeGames} onOpenPublicProfile={onOpenPublicProfile} onResumeGame={onResumeGame} selectedGameId={selectedGameId} />
         </Panel>
       ) : activeSubtab === 'lobby' ? (
         <div className="min-w-0 space-y-5">
@@ -426,7 +452,7 @@ export function MultiplayerWorkspace({
               Participant resume and read-only spectator visibility. {liveRows.length} visible{restrictedLiveCount > 0 ? ` · ${restrictedLiveCount} restricted` : ''}{liveRows[0] ? ` · Freshest ${formatDateTime(liveRows[0].updatedAt)}` : ''}
             </p>
           </div>
-          <MultiplayerLive liveGames={liveRows} onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame} onResumeGame={onResumeGame} onSelectGame={onSelectGame} restrictedGameCount={restrictedLiveCount} selectedGameId={selectedGameId} viewerUserId={viewerUserId} />
+          <MultiplayerLive liveGames={liveRows} onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame} onOpenPublicProfile={onOpenPublicProfile} onResumeGame={onResumeGame} onSelectGame={onSelectGame} restrictedGameCount={restrictedLiveCount} selectedGameId={selectedGameId} viewerUserId={viewerUserId} />
         </Panel>
       ) : (
         <MultiplayerOverview
@@ -435,6 +461,7 @@ export function MultiplayerWorkspace({
           liveRows={liveRows}
           onOpenHistory={onOpenHistory}
           onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame}
+          onOpenPublicProfile={onOpenPublicProfile}
           onJoinGame={onJoinGame}
           onResumeGame={onResumeGame}
           onSelectGame={onSelectGame}

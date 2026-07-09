@@ -42,6 +42,7 @@ describe('MultiplayerLobby', () => {
     expect(html).toContain('aria-label="Join multiplayer match"')
     expect(html).toContain('>Join</button>')
     expect(html).not.toContain('Open to join')
+    expect(html).not.toContain('Open public profile')
   })
 
   it('keeps own-lobby management and blocked rows on the open path', () => {

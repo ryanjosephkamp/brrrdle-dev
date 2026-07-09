@@ -7,6 +7,8 @@ export type SoloSubtabId = 'overview' | 'daily' | 'practice' | 'active'
 
 export type MultiplayerSubtabId = 'overview' | 'daily' | 'practice' | 'active' | 'lobby' | 'live'
 
+export type PublicProfileReturnRoute = 'leaderboard' | 'multiplayer'
+
 export type HistoryPlayerFilter = 'all' | 'solo' | 'multiplayer'
 
 export type HistoryPlayScopeFilter = 'all' | 'daily' | 'practice'
@@ -27,6 +29,7 @@ export interface NavigationState {
   readonly selectedSoloGameKey?: string
   readonly selectedMultiplayerGameId?: string
   readonly selectedPublicProfileId?: string
+  readonly publicProfileReturnRoute?: PublicProfileReturnRoute
   readonly historyFilters: HistoryFilters
 }
 
@@ -83,6 +86,10 @@ function isMultiplayerSubtabId(value: unknown): value is MultiplayerSubtabId {
   return value === 'overview' || value === 'daily' || value === 'practice' || value === 'active' || value === 'lobby' || value === 'live'
 }
 
+function isPublicProfileReturnRoute(value: unknown): value is PublicProfileReturnRoute {
+  return value === 'leaderboard' || value === 'multiplayer'
+}
+
 function isHistoryPlayerFilter(value: unknown): value is HistoryPlayerFilter {
   return value === 'all' || value === 'solo' || value === 'multiplayer'
 }
@@ -127,6 +134,9 @@ export function normalizeNavigationState(value: unknown): NavigationState {
     historyFilters: normalizeHistoryFilters(record.historyFilters),
     legacyPracticeMode,
     multiplayerSubtab: isMultiplayerSubtabId(record.multiplayerSubtab) ? record.multiplayerSubtab : DEFAULT_NAVIGATION_STATE.multiplayerSubtab,
+    publicProfileReturnRoute: isPublicProfileReturnRoute(record.publicProfileReturnRoute)
+      ? record.publicProfileReturnRoute
+      : undefined,
     selectedMultiplayerGameId: normalizeOptionalString(record.selectedMultiplayerGameId),
     selectedPublicProfileId: normalizePublicProfileId(record.selectedPublicProfileId),
     selectedSoloGameKey: normalizeOptionalString(record.selectedSoloGameKey),
