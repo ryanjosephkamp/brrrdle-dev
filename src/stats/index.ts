@@ -1,6 +1,7 @@
 export * from './PublicSiteStatsPanel'
 export * from './siteStats'
 export * from './StatsDashboard'
+export * from './playerStatsOverview'
 export * from './statistics'
 export * from './statsSelectors'
 export * from './types'

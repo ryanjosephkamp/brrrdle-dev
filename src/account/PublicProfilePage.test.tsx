@@ -22,6 +22,8 @@ describe('PublicProfileCard', () => {
     expect(html).toContain('Public Ada')
     expect(html).toContain('Ranked word nerd.')
     expect(html).toContain('Active public profile')
+    expect(html).toContain('Public ranked Practice metadata')
+    expect(html).toContain('Sign in to view public ranked Practice metadata')
     expect(html).toContain('Updated Jun')
     expect(html).not.toContain(PROFILE.publicProfileId)
     expect(html).not.toContain('user_id')
@@ -29,6 +31,45 @@ describe('PublicProfileCard', () => {
     expect(html).not.toContain('rating_transaction_id')
     expect(html).not.toContain('queue_id')
     expect(html).not.toContain('serialized_session')
+  })
+
+  it('renders safe public ranked Practice metadata without exposing leaderboard internals', () => {
+    const html = renderToStaticMarkup(
+      <PublicProfileCard
+        authStatus="authenticated"
+        profile={PROFILE}
+        ratingMetadata={[{
+          bucketLabel: 'OG ranked Practice',
+          gamesLabel: '12 rated',
+          latestMovementLabel: '+18 from last settlement',
+          peakLabel: 'Peak 1290',
+          provisionalLabel: 'Established',
+          rankBandLabel: 'Silver',
+          rankLabel: '#4',
+          ratingLabel: '1260',
+          recordLabel: '8-3-1',
+          updatedLabel: '9 Jul, 12:05 UTC',
+        }]}
+        ratingMetadataStatus="ready"
+        status="ready"
+      />,
+    )
+
+    expect(html).toContain('Public ranked Practice metadata')
+    expect(html).toContain('OG ranked Practice')
+    expect(html).toContain('#4 · Silver band')
+    expect(html).toContain('1260')
+    expect(html).toContain('8-3-1')
+    expect(html).toContain('+18 from last settlement')
+    expect(html).toContain('Peak 1290')
+    expect(html).toContain('Leaderboard freshness')
+    expect(html).not.toContain(PROFILE.publicProfileId)
+    expect(html).not.toContain('publicProfileId')
+    expect(html).not.toContain('user_id')
+    expect(html).not.toContain('email')
+    expect(html).not.toContain('match_id')
+    expect(html).not.toContain('queue_id')
+    expect(html).not.toContain('rating_transaction_id')
   })
 
   it('shows authenticated private Practice request controls without exposing profile ids', () => {
