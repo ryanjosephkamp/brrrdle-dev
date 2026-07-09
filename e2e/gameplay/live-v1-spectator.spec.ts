@@ -46,6 +46,17 @@ async function expectParticipantLiveResume(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: /^Resume live game$/i })).toBeVisible({ timeout: 30_000 })
 }
 
+async function expectParticipantPublicProfileAndReturn(page: Page, opponentDisplayName: string): Promise<void> {
+  const profileButton = page.getByRole('button', { name: `Open public profile for ${opponentDisplayName}` })
+  await expect(profileButton).toBeVisible({ timeout: 30_000 })
+  await profileButton.click()
+  await expect(page.getByRole('heading', { name: /^Player profile$/i })).toBeVisible()
+  await expect(page.getByText(/^Public ranked Practice metadata$/i)).toBeVisible()
+  await page.getByRole('button', { name: /^Back to Multiplayer$/i }).click()
+  await expect(page.getByRole('tab', { name: /^Live$/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Resume live game$/i })).toBeVisible()
+}
+
 async function expectSpectatorLiveReadOnly(
   page: Page,
   submittedGuess: string,
@@ -75,6 +86,7 @@ async function expectSpectatorLiveReadOnly(
   await expect(page.getByRole('button', { name: /^Forfeit$/i })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^Cancel game$/i })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^Join multiplayer match$/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Open public profile/i })).toHaveCount(0)
   await page.getByRole('button', { name: /^Back to Live list$/i }).click()
   await expect(page.getByRole('tab', { name: /^Live$/i })).toBeVisible()
 }
@@ -123,6 +135,9 @@ test.describe('Live v1 spectator @multiplayer', () => {
 
       const spectator = await createSignedInSeat(browser, 'spectator', runId)
       seats.push(spectator)
+
+      await expectParticipantLiveResume(host.page)
+      await expectParticipantPublicProfileAndReturn(host.page, rival.user.displayName)
 
       for (const viewport of LIVE_SMOKE_VIEWPORTS) {
         await host.page.setViewportSize(viewport)

@@ -89,7 +89,7 @@ import { GAMEPLAY_AUTOCENTER_TARGETS, scheduleGameplayAutoCenter } from './gamep
 import { LunarSignalStage } from './LunarSignalStage'
 import { ProgressionHud } from './ProgressionHud'
 import { getPrimaryNavigationRoutes, getRouteById, type AppRoute, type AppRouteId } from './routes'
-import { DEFAULT_NAVIGATION_STATE, loadNavigationState, saveNavigationState, type HistoryFilters, type LegacyPracticeMode, type MultiplayerSubtabId, type NavigationState, type SoloSubtabId } from './navigationState'
+import { DEFAULT_NAVIGATION_STATE, loadNavigationState, saveNavigationState, type HistoryFilters, type LegacyPracticeMode, type MultiplayerSubtabId, type NavigationState, type PublicProfileReturnRoute, type SoloSubtabId } from './navigationState'
 
 type PracticeMode = LegacyPracticeMode
 type RankedQueueActions = Pick<
@@ -582,6 +582,7 @@ function RoutePanel({
   soloSubtab,
   selectedMultiplayerGameId,
   selectedPublicProfileId,
+  publicProfileReturnRoute,
   focusedLiveSpectatorGameId,
   multiplayerSubtab,
   historyFilters,
@@ -650,13 +651,14 @@ function RoutePanel({
   readonly onOpenAuthModal: () => void
   readonly onOpenSettings: () => void
   readonly onOpenProfilePanel: () => void
-  readonly onOpenPublicProfile: (publicProfileId: string) => void
+  readonly onOpenPublicProfile: (publicProfileId: string, returnRoute?: PublicProfileReturnRoute) => void
   readonly onOpenPasswordChange: () => void
   readonly onSyncNow: () => void
   readonly practiceMode: PracticeMode
   readonly soloDailyMode: SoloMode
   readonly selectedMultiplayerGameId?: string
   readonly selectedPublicProfileId?: string
+  readonly publicProfileReturnRoute?: PublicProfileReturnRoute
   readonly focusedLiveSpectatorGameId?: string
   readonly resumeSlots: ResumeSlotCollection
   readonly progressOwnerKey: string
@@ -916,6 +918,7 @@ function RoutePanel({
         onLiveSurfaceActiveChange={onLiveSurfaceActiveChange}
         onOpenHistory={onOpenMultiplayerHistory}
         onOpenFocusedSpectatorGame={onOpenFocusedLiveSpectatorGame}
+        onOpenPublicProfile={(publicProfileId) => onOpenPublicProfile(publicProfileId, 'multiplayer')}
         onJoinGame={handleJoinLobbyMultiplayerGame}
         onResumeGame={onResumeMultiplayerGame}
         onSelectGame={onSelectMultiplayerGame}
@@ -983,11 +986,13 @@ function RoutePanel({
   }
 
   if (route.id === 'public-profile') {
+    const backToMultiplayer = publicProfileReturnRoute === 'multiplayer'
     return (
       <PublicProfilePage
         authStatus={authState.status}
+        backLabel={backToMultiplayer ? 'Back to Multiplayer' : undefined}
         privateMatchActions={privateMatchActions}
-        onBack={() => onSelectRoute('leaderboard')}
+        onBack={() => onSelectRoute(backToMultiplayer ? 'multiplayer' : 'leaderboard')}
         publicProfileId={selectedPublicProfileId}
         publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
         repository={publicProfileRepository}
@@ -1143,6 +1148,7 @@ function AppInner() {
   const [multiplayerSubtab, setMultiplayerSubtab] = useState<MultiplayerSubtabId>(() => initialNavigation.multiplayerSubtab)
   const [selectedMultiplayerGameId, setSelectedMultiplayerGameId] = useState<string | undefined>(() => initialNavigation.selectedMultiplayerGameId)
   const [selectedPublicProfileId, setSelectedPublicProfileId] = useState<string | undefined>(() => initialNavigation.selectedPublicProfileId)
+  const [publicProfileReturnRoute, setPublicProfileReturnRoute] = useState<PublicProfileReturnRoute | undefined>(() => initialNavigation.publicProfileReturnRoute)
   const [focusedLiveSpectatorGameId, setFocusedLiveSpectatorGameId] = useState<string | undefined>(() => initialFocusedLiveSpectatorGameId)
   const [multiplayerLiveSurfaceActive, setMultiplayerLiveSurfaceActive] = useState(false)
   const [historyFilters, setHistoryFilters] = useState(() => initialNavigation.historyFilters)
@@ -1396,6 +1402,7 @@ function AppInner() {
     historyFilters,
     legacyPracticeMode: practiceMode,
     multiplayerSubtab,
+    publicProfileReturnRoute,
     selectedMultiplayerGameId,
     selectedPublicProfileId,
     selectedSoloGameKey,
@@ -1406,6 +1413,7 @@ function AppInner() {
     historyFilters,
     multiplayerSubtab,
     practiceMode,
+    publicProfileReturnRoute,
     selectedMultiplayerGameId,
     selectedPublicProfileId,
     selectedSoloGameKey,
@@ -1445,6 +1453,7 @@ function AppInner() {
     setMultiplayerSubtab(navigation.multiplayerSubtab)
     setSelectedMultiplayerGameId(navigation.selectedMultiplayerGameId)
     setSelectedPublicProfileId(navigation.selectedPublicProfileId)
+    setPublicProfileReturnRoute(navigation.publicProfileReturnRoute)
     setFocusedLiveSpectatorGameId(resolved.focusedLiveSpectatorGameId)
     setHistoryFilters(navigation.historyFilters)
     saveNavigationState(navigation)
@@ -1614,15 +1623,20 @@ function AppInner() {
     if (routeId !== 'multiplayer') {
       setFocusedLiveSpectatorGameId(undefined)
     }
+    if (routeId !== 'public-profile') {
+      setPublicProfileReturnRoute(undefined)
+    }
     setActiveRouteId(routeId)
-    saveNavigationState({ activeRouteId: routeId })
+    saveNavigationState({ activeRouteId: routeId, publicProfileReturnRoute: undefined })
   }, [daily.dateKey])
-  const handleOpenPublicProfile = useCallback((publicProfileId: string) => {
+  const handleOpenPublicProfile = useCallback((publicProfileId: string, returnRoute: PublicProfileReturnRoute = 'leaderboard') => {
     setFocusedLiveSpectatorGameId(undefined)
     setSelectedPublicProfileId(publicProfileId)
+    setPublicProfileReturnRoute(returnRoute)
     setActiveRouteId('public-profile')
     saveNavigationState({
       activeRouteId: 'public-profile',
+      publicProfileReturnRoute: returnRoute,
       selectedPublicProfileId: publicProfileId,
     })
   }, [])
@@ -2866,6 +2880,7 @@ function AppInner() {
             publicProfile={publicProfile}
             publicProfileBusy={publicProfileBusy}
             publicProfileMessage={publicProfileMessage}
+            publicProfileReturnRoute={publicProfileReturnRoute}
             participantIdentityActions={multiplayerRepository}
             rankedQueueActions={multiplayerRepository}
             progressOwnerKey={activeProgressOwnerKey}

@@ -51,4 +51,20 @@ describe('MultiplayerActiveGames', () => {
     expect(html).toContain('Your turn')
     expect(html).toContain('ring-cyan-200/20')
   })
+
+  it('renders a participant opponent as a public-profile action only when a validated target exists', () => {
+    const html = renderToStaticMarkup(
+      <MultiplayerActiveGames
+        activeGames={[{
+          ...activeGame,
+          opponentPublicProfileId: '22222222-2222-4222-8222-222222222222',
+        }]}
+        onOpenPublicProfile={() => undefined}
+        onResumeGame={() => undefined}
+      />,
+    )
+
+    expect(html).toContain('aria-label="Open public profile for Rival player"')
+    expect(html).not.toContain('22222222-2222-4222-8222-222222222222')
+  })
 })

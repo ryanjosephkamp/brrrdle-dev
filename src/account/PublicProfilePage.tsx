@@ -45,6 +45,7 @@ const DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS: PrivatePracticeRequestSettings 
 
 interface PublicProfilePageProps {
   readonly authStatus?: PublicProfileAuthStatus
+  readonly backLabel?: string
   readonly privateMatchActions?: PrivateMatchActions
   readonly onBack?: () => void
   readonly publicProfileId?: string
@@ -54,6 +55,7 @@ interface PublicProfilePageProps {
 
 interface PublicProfileCardProps {
   readonly authStatus?: PublicProfileAuthStatus
+  readonly backLabel?: string
   readonly errorMessage?: string
   readonly privateMatchBusy?: boolean
   readonly privateMatchMessage?: string
@@ -125,6 +127,7 @@ function PublicProfileAvatar({ profile }: { readonly profile: PublicPlayerProfil
 
 export function PublicProfileCard({
   authStatus = 'unconfigured',
+  backLabel = 'Back to leaderboard',
   errorMessage,
   privateMatchBusy = false,
   privateMatchMessage,
@@ -157,7 +160,7 @@ export function PublicProfileCard({
         </div>
         {onBack ? (
           <Button onClick={onBack} size="sm" variant="secondary">
-            Back to leaderboard
+            {backLabel}
           </Button>
         ) : null}
       </div>
@@ -380,6 +383,7 @@ export function PublicProfileCard({
 
 export function PublicProfilePage({
   authStatus = 'unconfigured',
+  backLabel,
   privateMatchActions,
   onBack,
   publicProfileId,
@@ -555,6 +559,7 @@ export function PublicProfilePage({
   return (
     <PublicProfileCard
       authStatus={authStatus}
+      backLabel={backLabel}
       errorMessage={errorMessage}
       privateMatchBusy={privateMatchBusy}
       privateMatchMessage={privateMatchMessage}

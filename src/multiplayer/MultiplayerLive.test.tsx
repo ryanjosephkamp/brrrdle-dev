@@ -89,6 +89,24 @@ describe('MultiplayerLive', () => {
     expect(html).toContain('Live')
   })
 
+  it('renders a participant opponent profile action without exposing its target value', () => {
+    const html = renderToStaticMarkup(
+      <MultiplayerLive
+        liveGames={[{
+          ...liveGame,
+          opponentPublicProfileId: '22222222-2222-4222-8222-222222222222',
+        }]}
+        onOpenPublicProfile={() => undefined}
+        onResumeGame={noop}
+        restrictedGameCount={0}
+        viewerUserId="host-user"
+      />,
+    )
+
+    expect(html).toContain('aria-label="Open public profile for Rival"')
+    expect(html).not.toContain('22222222-2222-4222-8222-222222222222')
+  })
+
   it('renders authenticated spectator rows as read-only Live v1 details', () => {
     const html = renderToStaticMarkup(
       <MultiplayerLive liveGames={[spectatorGame]} onResumeGame={noop} onSelectGame={noop} restrictedGameCount={0} viewerUserId="spectator-user" />,
@@ -109,6 +127,7 @@ describe('MultiplayerLive', () => {
     expect(html).not.toContain('Forfeit')
     expect(html).not.toContain('Cancel game')
     expect(html).not.toContain('Join game')
+    expect(html).not.toContain('Open public profile')
   })
 
   it('renders public spectator rows for anonymous viewers without mutation actions', () => {
@@ -126,6 +145,7 @@ describe('MultiplayerLive', () => {
     expect(html).not.toContain('Forfeit')
     expect(html).not.toContain('Cancel game')
     expect(html).not.toContain('Join game')
+    expect(html).not.toContain('Open public profile')
   })
 
   it('renders restricted messaging without exposing nonparticipant rows', () => {

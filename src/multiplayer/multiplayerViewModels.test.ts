@@ -12,6 +12,7 @@ import {
 } from './competitiveMultiplayer'
 import type { AuthenticatedLiveSpectatorGame } from './multiplayerRepository'
 import {
+  participantIdentitySummariesToPublicProfileIdMap,
   participantIdentitySummariesToProfileMap,
   selectActiveMultiplayerGameRows,
   selectLiveMultiplayerRows,
@@ -562,6 +563,74 @@ describe('multiplayer view models', () => {
     expect(profiles['player-one']).not.toHaveProperty('flairKey')
     expect(profiles['player-one']).not.toHaveProperty('isViewer')
     expect(profiles['player-two']).toBeUndefined()
+  })
+
+  it('projects validated public profile targets only for an authenticated participant opponent', () => {
+    const game = createMultiplayerGame({
+      createdAt: '2026-07-09T18:00:00.000Z',
+      id: 'participant-profile-link-game',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const summaries = [
+      {
+        displayName: 'Host player',
+        identityAvailable: true,
+        isViewer: true,
+        publicProfileId: '11111111-1111-4111-8111-111111111111',
+        seat: 'player-one',
+      },
+      {
+        displayName: 'Rival player',
+        identityAvailable: true,
+        isViewer: false,
+        publicProfileId: '22222222-2222-4222-8222-222222222222',
+        seat: 'player-two',
+      },
+    ] satisfies readonly ParticipantIdentitySummaryResult[]
+    const profiles = participantIdentitySummariesToProfileMap(summaries)
+    const publicProfileIds = participantIdentitySummariesToPublicProfileIdMap(summaries)
+
+    const activeRows = selectActiveMultiplayerGameRows(
+      { games: [game] },
+      'host-user',
+      { [game.id]: profiles },
+      { [game.id]: publicProfileIds },
+    )
+    const liveRows = selectLiveMultiplayerRows(
+      { games: [game] },
+      'host-user',
+      [spectatorGame],
+      { [game.id]: profiles },
+      { [game.id]: publicProfileIds },
+    )
+
+    expect(publicProfileIds).toEqual({
+      'player-one': '11111111-1111-4111-8111-111111111111',
+      'player-two': '22222222-2222-4222-8222-222222222222',
+    })
+    expect(participantIdentitySummariesToPublicProfileIdMap([{
+      identityAvailable: true,
+      isViewer: false,
+      publicProfileId: 'not-a-public-profile-id',
+      seat: 'player-two',
+    }])).toEqual({})
+    expect(activeRows[0]).toMatchObject({
+      opponentLabel: 'Rival player',
+      opponentPublicProfileId: '22222222-2222-4222-8222-222222222222',
+    })
+    expect(liveRows.find((row) => row.id === game.id)).toMatchObject({
+      opponentLabel: 'Rival player',
+      opponentPublicProfileId: '22222222-2222-4222-8222-222222222222',
+      viewerRole: 'participant',
+    })
+    const spectatorRow = liveRows.find((row) => row.id === spectatorGame.id)
+    expect(spectatorRow).toBeDefined()
+    expect(spectatorRow).not.toHaveProperty('opponentPublicProfileId')
+    expect(JSON.stringify(spectatorRow)).not.toContain('publicProfileId')
+    expect(JSON.stringify(profiles)).not.toContain('11111111-1111-4111-8111-111111111111')
   })
 
   it('projects authenticated spectator RPC rows as read-only Live v1 rows', () => {

@@ -110,12 +110,14 @@ export function MultiplayerLiveSpectatorDetails({
 function MultiplayerLiveCard({
   game,
   onOpenFocusedSpectatorGame,
+  onOpenPublicProfile,
   onResumeGame,
   onSelectGame,
   selected,
 }: {
   readonly game: MultiplayerLiveGameViewModel
   readonly onOpenFocusedSpectatorGame?: (id: string) => void
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame?: (id: string) => void
   readonly selected: boolean
@@ -157,7 +159,18 @@ function MultiplayerLiveCard({
       <dl className="mt-4 space-y-2 text-sm text-slate-300">
         <div>
           <dt className="sr-only">Opponent</dt>
-          <dd>{game.opponentLabel}</dd>
+          <dd>
+            {game.viewerRole === 'participant' && game.opponentPublicProfileId && onOpenPublicProfile ? (
+              <Button
+                aria-label={`Open public profile for ${game.opponentLabel}`}
+                onClick={() => onOpenPublicProfile(game.opponentPublicProfileId!)}
+                size="sm"
+                variant="ghost"
+              >
+                {game.opponentLabel}
+              </Button>
+            ) : game.opponentLabel}
+          </dd>
         </div>
         <div>
           <dt className="sr-only">Turn</dt>
@@ -195,6 +208,7 @@ function MultiplayerLiveCard({
 export function MultiplayerLive({
   liveGames,
   onOpenFocusedSpectatorGame,
+  onOpenPublicProfile,
   onResumeGame,
   onSelectGame,
   restrictedGameCount,
@@ -203,6 +217,7 @@ export function MultiplayerLive({
 }: {
   readonly liveGames: readonly MultiplayerLiveGameViewModel[]
   readonly onOpenFocusedSpectatorGame?: (id: string) => void
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly onResumeGame: (id: string) => void
   readonly onSelectGame?: (id: string) => void
   readonly restrictedGameCount: number
@@ -242,6 +257,7 @@ export function MultiplayerLive({
             game={game}
             key={game.id}
             onOpenFocusedSpectatorGame={onOpenFocusedSpectatorGame}
+            onOpenPublicProfile={onOpenPublicProfile}
             onResumeGame={onResumeGame}
             onSelectGame={onSelectGame}
             selected={game.viewerRole === 'spectator' && (selectedGameId === game.id || (!selectedGameId && spectatorGameCount === 1))}

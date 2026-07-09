@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 52 is accepted and closed at commit `9f0096c839ac007d2717f2b7a0ba91541f18ed4d`; [planning/phase-53/](phase-53/) has user-reported manual review acceptance and awaits its separately authorized Final Acceptance Backup. Phase 54 planning remains the next phase-level action after that closure.
+7. The active or next phase plan. Phase 53 is accepted and closed at commit `52b44d3e533baa200d57b36af6ea5d33c7ddde97`; [planning/phase-54/](phase-54/) is the active planning package for Live/Lobby identity and spectator-adjacent polish.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -53,6 +53,7 @@ For normal future work, read:
 - `planning/phase-51/`: Phase 51 accepted closeout materials for account access, Profile simplification, player identity/menu design, source-only player-name policy, mobile account-menu fit, and related Profile/Settings routing decisions.
 - `planning/phase-52/`: Phase 52 accepted closeout materials for private Practice matchmaking expansion, including settings-aware unranked Practice OG/GO requests, existing private-request contract review, request lifecycle clarity, changelog, manual review checklist, and focused E2E requirements.
 - `planning/phase-53/`: Phase 53 accepted-review materials for Stats clarity, progression transparency, cloud-sync provenance copy, local multiplayer performance summaries, and privacy-safe public rating/profile metadata, including planning brief, implementation plan, changelog, and manual review checklist; closure remains separately authorized.
+- `planning/phase-54/`: Phase 54 Review Candidate materials for participant-owned Live/Active public-profile links, source-aware profile return routing, static Lobby/spectator identity boundaries, focused spectator preservation, protected-contract routing, changelog, and manual review checklist; Phase 54 remains open for hosted/manual review.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.

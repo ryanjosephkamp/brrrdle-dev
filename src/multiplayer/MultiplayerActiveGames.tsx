@@ -28,10 +28,12 @@ function EmptyState({ children }: { readonly children: ReactNode }) {
 
 function MultiplayerActiveGameCard({
   game,
+  onOpenPublicProfile,
   onResume,
   selected,
 }: {
   readonly game: MultiplayerActiveGameViewModel
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly onResume: (id: string) => void
   readonly selected: boolean
 }) {
@@ -68,7 +70,18 @@ function MultiplayerActiveGameCard({
       <dl className="mt-4 space-y-2 text-sm text-slate-300">
         <div>
           <dt className="sr-only">Opponent</dt>
-          <dd>{game.opponentLabel}</dd>
+          <dd>
+            {game.opponentPublicProfileId && onOpenPublicProfile ? (
+              <Button
+                aria-label={`Open public profile for ${game.opponentLabel}`}
+                onClick={() => onOpenPublicProfile(game.opponentPublicProfileId!)}
+                size="sm"
+                variant="ghost"
+              >
+                {game.opponentLabel}
+              </Button>
+            ) : game.opponentLabel}
+          </dd>
         </div>
         <div>
           <dt className="sr-only">Progress</dt>
@@ -93,11 +106,13 @@ function MultiplayerActiveGameCard({
 export function MultiplayerActiveGames({
   activeGames,
   limit,
+  onOpenPublicProfile,
   onResumeGame,
   selectedGameId,
 }: {
   readonly activeGames: readonly MultiplayerActiveGameViewModel[]
   readonly limit?: number
+  readonly onOpenPublicProfile?: (publicProfileId: string) => void
   readonly onResumeGame: (id: string) => void
   readonly selectedGameId?: string
 }) {
@@ -112,6 +127,7 @@ export function MultiplayerActiveGames({
         <MultiplayerActiveGameCard
           game={game}
           key={game.id}
+          onOpenPublicProfile={onOpenPublicProfile}
           onResume={onResumeGame}
           selected={game.id === selectedGameId}
         />
