@@ -176,12 +176,12 @@ export function normalizePublicProfileUpdateInput(
   const displayName = normalizePublicProfileDisplayName(input.displayName)
   if (input.displayName !== undefined && input.displayName.trim() !== '' && !displayName) {
     return {
-      message: `Public player name must be 1-${PROFILE_DISPLAY_NAME_MAX_LENGTH} characters using ${PROFILE_DISPLAY_NAME_ALLOWED_CHARACTERS_DESCRIPTION}. Emoji, control characters, and symbols are not supported.`,
+      message: `Player name must be 1-${PROFILE_DISPLAY_NAME_MAX_LENGTH} characters using ${PROFILE_DISPLAY_NAME_ALLOWED_CHARACTERS_DESCRIPTION}. Emoji, control characters, and symbols are not supported.`,
       ok: false,
     }
   }
   if (visibility === 'public' && !displayName) {
-    return { message: 'Add a public display name before making your profile public.', ok: false }
+    return { message: 'Add a Player name before saving your player profile.', ok: false }
   }
 
   const accentColor = normalizePublicProfileAccentColor(input.accentColor) ?? 'ice'

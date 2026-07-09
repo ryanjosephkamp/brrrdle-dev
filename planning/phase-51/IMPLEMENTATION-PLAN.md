@@ -1,6 +1,6 @@
 # Phase 51 Implementation Plan - Account, Profile, And Player Identity
 
-**Status:** Planning complete; implementation separately gated.
+**Status:** Planning complete; updated by the 2026-07-09 same-phase review follow-up.
 **Created:** 2026-07-08.
 **Repository:** `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`.
 **Baseline:** Phase 50 Golden Checkpoint and closure commit `a8f7fdeb0bfdfd5f25f68c7531588d65b87d7ede`.
@@ -17,7 +17,7 @@ The phase should improve:
 
 - how players find Profile, Settings, Sign out, and account actions;
 - how the game explains and validates the player's display name;
-- how private account profile and opt-in public profile controls relate to each other;
+- how the single public `Player name` relates to account management and player-card details;
 - how future private-match, stats, Live identity, and shell redesign work can build on a simpler identity model.
 
 The phase should not change gameplay rules, storage authority for gameplay, reward/scoring/Elo rules, Daily claims, word selection, ranked queue behavior, or multiplayer match lifecycle logic.
@@ -124,22 +124,23 @@ Add focused unit tests covering:
 
 ### Goal
 
-Reduce confusion between private account profile and opt-in public profile without changing backend contracts.
+Collapse Profile to one public `Player name` while preserving existing backend contracts.
 
 ### Recommended Shape
 
 - Present one primary "Player name" concept.
 - Keep account email private and separate from public display.
-- Retain public profile visibility controls.
-- Keep public profile opt-in.
-- Retain public avatar URL/bio only if they remain clearly public.
+- Remove separate public/private player-name controls and private-profile name language.
+- Save the same validated `Player name` through the existing public-profile display-name seam when available.
+- Treat player identity as public for player-facing surfaces.
+- Retain optional public avatar URL/bio only if they remain clearly player-card details, not a second identity.
 - Preserve separate storage fields behind the scenes if needed for compatibility.
 
 ### Acceptable Source-Only Paths
 
 - Rename and reorganize Profile sections so the user sees one coherent identity flow.
-- Default the public profile display-name field from the player name when no public display name exists.
-- Validate both private and public display-name inputs with the same helper.
+- Remove the separate public display-name field from the UI.
+- Validate the one `Player name` with the shared helper before all relevant save paths.
 - Save current-player and public profile values through existing callbacks/RPCs only.
 
 ### Stop Conditions
@@ -160,7 +161,7 @@ Make Profile and Settings responsibilities predictable.
 
 ### Expected Responsibility Split
 
-- Profile: player name, accent/avatar, public visibility, public-safe preview, link to Settings, optional separated Sign out convenience.
+- Profile: public `Player name`, accent/avatar, player-card preview, optional player-card bio/public avatar URL, link to Settings, optional separated Sign out convenience.
 - Settings: account management, Sign out, password change, cloud sync, progress export/reset, notification and sound preferences, Danger Zone copy.
 
 ### Implementation Notes
@@ -238,7 +239,7 @@ Create or update as appropriate:
 - signed-in chip/menu;
 - Profile player-name save with safe names;
 - invalid emoji/symbol name rejection;
-- public profile visibility and safe preview;
+- one public `Player name` and player-card preview;
 - Settings account management and Danger Zone;
 - Sign out from the expected location;
 - quick smoke that Phase 50 gameplay invariants remain intact.

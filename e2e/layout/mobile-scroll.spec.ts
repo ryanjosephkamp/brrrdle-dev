@@ -10,6 +10,7 @@ import {
   installConsoleGuards,
 } from '../fixtures/assertions'
 import { chooseSoloPracticeMode, navigateToSoloPractice } from '../fixtures/gameActions'
+import { createE2eUser, deleteE2eUser, signInThroughUi, type E2eUser } from '../fixtures/testUsers'
 
 const MOBILE_VIEWPORT = { height: 844, width: 390 } as const
 
@@ -110,6 +111,36 @@ test.describe('mobile scroll and layout regression harness @layout', () => {
       await expectNoConsoleFailures(consoleFailures)
     })
   }
+
+  test('signed-in account menu stays inside the mobile viewport @layout', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    let user: E2eUser | undefined
+    try {
+      user = await createE2eUser('mobile-menu')
+      await signInThroughUi(page, user)
+
+      const accountButton = page.getByRole('button', { name: /open account menu for/i })
+      await accountButton.click()
+
+      const accountMenu = page.getByTestId('account-menu')
+      await expect(accountMenu).toBeVisible()
+      await expectNoHorizontalOverflow(page)
+
+      const bounds = await accountMenu.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        return {
+          left: rect.left,
+          right: rect.right,
+          viewportWidth: window.innerWidth,
+        }
+      })
+      expect(bounds.left, 'account menu should not clip beyond the left viewport edge').toBeGreaterThanOrEqual(0)
+      expect(bounds.right, 'account menu should not clip beyond the right viewport edge').toBeLessThanOrEqual(bounds.viewportWidth + 1)
+      await expectNoConsoleFailures(consoleFailures)
+    } finally {
+      await deleteE2eUser(user)
+    }
+  })
 
   test('ordinary Solo Practice OG navigation does not auto-scroll to the game surface', async ({ page }) => {
     const consoleFailures = installConsoleGuards(page)

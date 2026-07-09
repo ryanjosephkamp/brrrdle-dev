@@ -104,7 +104,7 @@ export const APP_ROUTES = [
     id: 'profile',
     label: 'Profile',
     shortLabel: 'Profile',
-    description: 'Manage your current-player private and public profile settings.',
+    description: 'Manage your public Player name and player-card details.',
     navigationGroup: 'support',
   },
   {

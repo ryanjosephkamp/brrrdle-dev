@@ -486,7 +486,7 @@ function CurrentPlayerProfileRoute({
       <div className="space-y-2">
         <h2 id="profile-title" className="text-3xl font-bold text-white">Profile</h2>
         <p className="max-w-3xl text-sm leading-6 text-slate-300">
-          Manage how your current account appears to you and, when you opt in, to other signed-in players.
+          Manage the Player name and player-card details other signed-in players can see.
         </p>
       </div>
 
@@ -510,7 +510,7 @@ function CurrentPlayerProfileRoute({
         <Panel className="space-y-4 text-sm leading-6 text-slate-300" tone="muted">
           <div className="space-y-1">
             <h3 className="text-xl font-bold text-white">Sign in to manage your profile</h3>
-            <p>Your private and public profile controls appear here after sign-in.</p>
+            <p>Your Player name, account controls, and player-card details appear here after sign-in.</p>
           </div>
           <AuthPanel
             authMessage={authMessage}

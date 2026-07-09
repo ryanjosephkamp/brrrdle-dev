@@ -238,10 +238,12 @@ body {
   display: grid;
   justify-items: end;
   gap: 0.5rem;
+  max-width: 100%;
 }
 
 .brrrdle-lunar-account {
   min-width: min(100%, 18rem);
+  max-width: 100%;
 }
 
 .brrrdle-lunar-daily-status {
@@ -1087,10 +1089,20 @@ body {
 
   .brrrdle-lunar-account {
     min-width: 0;
+    width: 100%;
   }
 
   .brrrdle-lunar-account-stack {
-    justify-items: start;
+    justify-items: stretch;
+    max-width: 100%;
+  }
+
+  .brrrdle-lunar-account-stack > * {
+    max-width: 100%;
+  }
+
+  .brrrdle-progression-hud {
+    width: 100%;
   }
 
   .brrrdle-notification-center,
@@ -1187,7 +1199,13 @@ body {
   .brrrdle-lunar-rail-button,
   .brrrdle-lunar-panel,
   .brrrdle-lunar-playfield,
+  .brrrdle-lunar-account button,
+  .brrrdle-lunar-account [role='menu'],
+  .brrrdle-progression-hud,
+  .brrrdle-progression-hud-action,
   .brrrdle-notification-panel,
+  .brrrdle-notification-summary,
+  .brrrdle-back-to-top,
   .brrrdle-daily-countdown {
     box-shadow: none;
     -webkit-backdrop-filter: none;
@@ -1196,6 +1214,26 @@ body {
 
   .brrrdle-lunar-rail-button[aria-current='page'] {
     box-shadow: none;
+  }
+
+  .shadow,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl,
+  .shadow-2xl,
+  .shadow-inner {
+    box-shadow: none !important;
+  }
+
+  .backdrop-blur,
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 }
 

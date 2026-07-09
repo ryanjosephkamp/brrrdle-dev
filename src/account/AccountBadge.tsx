@@ -34,14 +34,14 @@ export function AccountBadge({
     const avatarBackground = getProfileAccentAvatarBackground(profile?.accentColor)
     const avatarUrl = profile?.avatarUrl
     return (
-      <div className="relative inline-block text-left">
+      <div className="relative inline-block max-w-full text-left sm:w-auto">
         <button
           type="button"
           aria-expanded={menuOpen}
           aria-haspopup="menu"
           aria-label={`Open account menu for ${label}`}
           onClick={() => setMenuOpen((current) => !current)}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-slate-950/75 px-2 py-1 text-sm text-slate-100 shadow-inner shadow-white/5 transition hover:border-[var(--color-ice-300)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
+          className="inline-flex max-w-full items-center gap-2 rounded-lg border border-white/10 bg-slate-950/75 px-2 py-1 text-sm text-slate-100 shadow-inner shadow-white/5 transition hover:border-[var(--color-ice-300)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
         >
           <span
             aria-hidden="true"
@@ -63,8 +63,9 @@ export function AccountBadge({
         <div
           role="menu"
           aria-label="Account menu"
+          data-testid="account-menu"
           hidden={!menuOpen}
-          className="absolute right-0 z-50 mt-2 grid min-w-40 gap-1 rounded-xl border border-slate-700 bg-slate-950 p-2 text-sm text-slate-100 shadow-xl shadow-black/35"
+          className="absolute left-0 z-50 mt-2 grid w-[min(16rem,calc(100vw-1.3rem))] max-w-[calc(100vw-1.3rem)] gap-1 rounded-xl border border-slate-700 bg-slate-950 p-2 text-sm text-slate-100 shadow-xl shadow-black/35 sm:left-auto sm:right-0 sm:w-auto sm:min-w-40"
         >
           <button
             type="button"
