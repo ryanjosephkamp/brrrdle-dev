@@ -6,7 +6,9 @@ import {
   PROFILE_DISPLAY_NAME_MAX_LENGTH,
   deriveInitials,
   deriveProfileFromUser,
+  getPlayerDisplayNameValidationMessage,
   normalizeDisplayName,
+  normalizePlayerDisplayName,
   pickInitialsGradient,
   validateAccentColor,
   validateAvatarUrl,
@@ -43,13 +45,26 @@ describe('normalizeDisplayName', () => {
     expect(normalizeDisplayName('   ')).toBeUndefined()
   })
 
-  it('trims and caps at the max length', () => {
-    const long = 'x'.repeat(PROFILE_DISPLAY_NAME_MAX_LENGTH + 10)
-    expect(normalizeDisplayName(long)?.length).toBe(PROFILE_DISPLAY_NAME_MAX_LENGTH)
+  it('trims safe player names', () => {
+    expect(normalizePlayerDisplayName('  Ada Lovelace  ')).toBe('Ada Lovelace')
+    expect(normalizePlayerDisplayName('Jean-Luc_Picard.2')).toBe('Jean-Luc_Picard.2')
   })
 
-  it('strips control characters', () => {
-    expect(normalizeDisplayName('Ada\u0001\u001fLovelace')).toBe('AdaLovelace')
+  it('rejects names over the max length', () => {
+    const long = 'x'.repeat(PROFILE_DISPLAY_NAME_MAX_LENGTH + 10)
+    expect(normalizeDisplayName(long)).toBeUndefined()
+  })
+
+  it('rejects unsafe control, emoji, and symbol names', () => {
+    expect(normalizeDisplayName('Ada\u0001\u001fLovelace')).toBeUndefined()
+    expect(normalizeDisplayName('Ada \u{1f9ca}')).toBeUndefined()
+    expect(normalizeDisplayName('!!!')).toBeUndefined()
+    expect(normalizeDisplayName('Ada & Bob')).toBeUndefined()
+  })
+
+  it('returns clear validation messages for rejected names', () => {
+    expect(getPlayerDisplayNameValidationMessage('Ada \u{1f9ca}')).toContain('Emoji')
+    expect(getPlayerDisplayNameValidationMessage('Ada Lovelace')).toBeUndefined()
   })
 })
 

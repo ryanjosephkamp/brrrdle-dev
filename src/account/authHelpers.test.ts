@@ -158,11 +158,20 @@ describe('updateProfile', () => {
     expect(result).toEqual({ ok: true })
   })
 
-  it('clears display name when given the empty string', async () => {
+  it('rejects an empty display name without touching Supabase', async () => {
     const update = vi.fn().mockResolvedValue({ error: null })
     const c = client({ updateUser: update })
-    await updateProfile(c, { displayName: '' })
-    expect(update).toHaveBeenCalledWith({ data: { display_name: null } })
+    const result = await updateProfile(c, { displayName: '' })
+    expect(update).not.toHaveBeenCalled()
+    expect('ok' in result && result.ok).toBe(false)
+  })
+
+  it('rejects emoji and unsafe symbols in display names before touching Supabase', async () => {
+    const update = vi.fn().mockResolvedValue({ error: null })
+    const c = client({ updateUser: update })
+    const result = await updateProfile(c, { displayName: 'Ada \u{1f9ca}' })
+    expect(update).not.toHaveBeenCalled()
+    expect('ok' in result && result.ok).toBe(false)
   })
 
   it('falls back to default accent for unknown values', async () => {

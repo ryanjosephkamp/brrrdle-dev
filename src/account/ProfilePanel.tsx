@@ -12,7 +12,9 @@ import {
   DEFAULT_PROFILE_ACCENT_COLOR,
   PROFILE_ACCENT_COLORS,
   PROFILE_AVATAR_MAX_BYTES,
+  PROFILE_DISPLAY_NAME_ALLOWED_CHARACTERS_DESCRIPTION,
   PROFILE_DISPLAY_NAME_MAX_LENGTH,
+  getPlayerDisplayNameValidationMessage,
   getProfileAccentAvatarBackground,
   type ProfileAccentColor,
 } from './profile'
@@ -176,8 +178,13 @@ export function ProfileEditor({
 
   function handleSave() {
     setLocalError(undefined)
+    const playerNameError = getPlayerDisplayNameValidationMessage(displayName, 'Player name')
+    if (playerNameError) {
+      setLocalError(playerNameError)
+      return
+    }
     void onSave({
-      displayName: displayName,
+      displayName: displayName.trim(),
       accentColor,
       avatarUrl,
     })
@@ -188,11 +195,22 @@ export function ProfileEditor({
       return
     }
     setLocalError(undefined)
+    const effectivePublicDisplayName = publicDisplayName.trim() || displayName.trim()
+    if (effectivePublicDisplayName) {
+      const publicNameError = getPlayerDisplayNameValidationMessage(effectivePublicDisplayName, 'Public player name')
+      if (publicNameError) {
+        setLocalError(publicNameError)
+        return
+      }
+    } else if (publicVisibility === 'public') {
+      setLocalError('Add a player name before making your profile public.')
+      return
+    }
     void onSavePublicProfile({
       accentColor: publicAccentColor,
       avatarUrl: publicAvatarUrl,
       bio: publicBio,
-      displayName: publicDisplayName,
+      displayName: effectivePublicDisplayName,
       flairKey: 'none',
       visibility: publicVisibility,
     })
@@ -200,7 +218,7 @@ export function ProfileEditor({
 
   const message = localError ?? statusMessage
   const publicMessage = publicProfileStatusMessage
-  const publicProfileLabel = publicDisplayName.trim() || 'Private player'
+  const publicProfileLabel = publicDisplayName.trim() || displayName.trim() || 'Private player'
   const publicProfilePreviewInitials = publicProfileLabel
     .split(/[\s._-]+/u)
     .filter(Boolean)
@@ -232,14 +250,14 @@ export function ProfileEditor({
         </div>
 
         <div className="space-y-1 border-t border-slate-800 pt-4">
-          <p className="font-semibold text-cyan-100">Private account profile</p>
+          <p className="font-semibold text-cyan-100">Player identity</p>
           <p className="text-xs leading-5 text-slate-400">
-            These current-player fields stay with your signed-in account and are not published on your public profile.
+            This is the name brrrdle uses for your signed-in account and, when you opt in, public player surfaces.
           </p>
         </div>
 
         <label className="grid gap-1 font-semibold text-cyan-100">
-          Display name
+          Player name
           <input
             className="rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
             maxLength={PROFILE_DISPLAY_NAME_MAX_LENGTH}
@@ -247,7 +265,9 @@ export function ProfileEditor({
             type="text"
             value={displayName}
           />
-          <span className="text-xs text-slate-400">{displayName.length}/{PROFILE_DISPLAY_NAME_MAX_LENGTH}</span>
+          <span className="text-xs text-slate-400">
+            {displayName.length}/{PROFILE_DISPLAY_NAME_MAX_LENGTH} · Use {PROFILE_DISPLAY_NAME_ALLOWED_CHARACTERS_DESCRIPTION}; emoji and symbols are not supported.
+          </span>
         </label>
 
         <fieldset className="space-y-2">
@@ -309,12 +329,12 @@ export function ProfileEditor({
             <div className="space-y-1">
               <p className="font-semibold text-cyan-100">Account management</p>
               <p className="text-xs leading-5 text-slate-400">
-                Password changes, sync, progress export, and account-reset controls stay in Settings.
+                Password changes, cloud sync, progress export, and reset controls stay in Settings.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {onOpenSettings ? (
-                <Button onClick={onOpenSettings} variant="secondary">Open Settings account management</Button>
+                <Button onClick={onOpenSettings} variant="secondary">Open Settings</Button>
               ) : null}
               {onSignOut ? (
                 <Button onClick={onSignOut} variant="secondary">Sign out</Button>
@@ -324,7 +344,7 @@ export function ProfileEditor({
         ) : null}
 
         <p className="text-xs text-slate-400">
-          Settings account management remains the home for account, sync, export, and reset controls.
+          Settings remains the home for sign out, password, sync, export, and reset controls.
         </p>
 
         {message ? (
@@ -336,7 +356,7 @@ export function ProfileEditor({
             <div className="space-y-1">
               <p className="font-semibold text-cyan-100">Opt-in public profile</p>
               <p className="text-xs leading-5 text-slate-400">
-                Public profiles are private until you choose Public. Public views use only the public display name, accent, avatar URL, bio, and opaque profile ID saved here.
+                Public profiles stay private until you choose Public. Public views use your player name by default, plus the public accent, avatar URL, bio, and opaque profile ID saved here.
               </p>
             </div>
 
@@ -362,7 +382,7 @@ export function ProfileEditor({
             </fieldset>
 
             <label className="grid gap-1 font-semibold text-cyan-100">
-              Public display name
+              Public player name
               <input
                 className="rounded-xl border border-slate-600 bg-slate-950 px-3 py-2 text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]"
                 maxLength={PROFILE_DISPLAY_NAME_MAX_LENGTH}
@@ -370,7 +390,9 @@ export function ProfileEditor({
                 type="text"
                 value={publicDisplayName}
               />
-              <span className="text-xs text-slate-400">{publicDisplayName.length}/{PROFILE_DISPLAY_NAME_MAX_LENGTH}</span>
+              <span className="text-xs text-slate-400">
+                {publicDisplayName.length}/{PROFILE_DISPLAY_NAME_MAX_LENGTH} · Leave blank to use Player name. Emoji and symbols are not supported.
+              </span>
             </label>
 
             <fieldset className="space-y-2">

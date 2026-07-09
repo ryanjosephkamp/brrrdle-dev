@@ -2743,7 +2743,13 @@ function AppInner() {
       <LunarSignalStage
         accountControls={(
           <div className="brrrdle-lunar-account-stack">
-            <AccountBadge authState={authState} onOpenAuthModal={handleOpenAuthModal} onOpenProfile={handleOpenProfilePanel} />
+            <AccountBadge
+              authState={authState}
+              onOpenAuthModal={handleOpenAuthModal}
+              onOpenProfile={handleOpenProfilePanel}
+              onOpenSettings={handleOpenSettings}
+              onSignOut={handleSignOut}
+            />
             <NotificationCenter
               onActivate={handleNotificationAction}
               onDismiss={handleDismissNotification}

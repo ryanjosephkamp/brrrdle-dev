@@ -111,12 +111,13 @@ describe('Settings', () => {
     )
 
     expect(html).toContain('Account management')
-    expect(html).toContain('Profile editing now lives in the Profile tab')
+    expect(html).toContain('Profile is where you edit player identity')
     expect(html).toContain('Settings is the account-management home for Sign out, password changes, cloud sync, progress export, reset, and gated account actions')
     expect(html).toContain('Open Profile tab')
     expect(html).toContain('Change password')
     expect(html).toContain('Email changes remain gated until Supabase email confirmation and redirect settings are verified')
     expect(html).toContain('Password changes use the signed-in Supabase account session')
+    expect(html).toContain('Danger Zone actions stay separated from Profile saves')
   })
 
   it('consolidates signed-in email and sign-out into Account management', () => {

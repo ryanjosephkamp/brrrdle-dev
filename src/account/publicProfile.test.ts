@@ -39,6 +39,8 @@ describe('public profile text normalization', () => {
   it('normalizes public display name and bio as bounded plain text', () => {
     expect(normalizePublicProfileDisplayName('  Ada Lovelace  ')).toBe('Ada Lovelace')
     expect(normalizePublicProfileDisplayName('Ada\u0001Lovelace')).toBeUndefined()
+    expect(normalizePublicProfileDisplayName('Ada \u{1f9ca}')).toBeUndefined()
+    expect(normalizePublicProfileDisplayName('Ada & Bob')).toBeUndefined()
     expect(normalizePublicProfileDisplayName('x'.repeat(51))).toBeUndefined()
     expect(normalizePublicProfileBio('  ranked word nerd  ')).toBe('ranked word nerd')
     expect(normalizePublicProfileBio('x'.repeat(161))).toBeUndefined()
@@ -55,6 +57,10 @@ describe('public profile text normalization', () => {
         displayName: 'Ada',
         visibility: 'public',
       },
+    })
+    expect(normalizePublicProfileUpdateInput({ displayName: 'Ada \u{1f9ca}', visibility: 'public' })).toEqual({
+      message: 'Public player name must be 1-50 characters using letters, numbers, spaces, apostrophes, periods, underscores, or hyphens. Emoji, control characters, and symbols are not supported.',
+      ok: false,
     })
   })
 

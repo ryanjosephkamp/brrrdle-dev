@@ -337,7 +337,7 @@ export function Settings({
                 <Button onClick={onSignOut} variant="secondary">Sign out</Button>
               ) : null}
             </div>
-            <p>Profile editing now lives in the Profile tab. Settings is the account-management home for Sign out, password changes, cloud sync, progress export, reset, and gated account actions.</p>
+            <p>Profile is where you edit player identity. Settings is the account-management home for Sign out, password changes, cloud sync, progress export, reset, and gated account actions.</p>
             <div className="flex flex-wrap gap-2">
               {onOpenProfilePanel ? (
                 <Button onClick={onOpenProfilePanel} variant="primary">Open Profile tab</Button>
@@ -394,7 +394,7 @@ export function Settings({
         <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/55 p-3">
           <p className="font-semibold text-cyan-100">Danger zone</p>
           <p>Destructive actions must require typed confirmations: `{RESET_PROGRESS_CONFIRMATION}` for local resets and `{DELETE_ACCOUNT_CONFIRMATION}` for account deletion.</p>
-          <p>Password changes use the signed-in Supabase account session. Email changes remain gated until confirmation and redirect settings are verified.</p>
+          <p>Password changes use the signed-in Supabase account session. Danger Zone actions stay separated from Profile saves and remain gated by typed confirmations.</p>
         </div>
       </Panel>
     </section>

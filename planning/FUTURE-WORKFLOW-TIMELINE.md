@@ -8,7 +8,13 @@
 
 This document gives a single forward-looking view of the work currently routed after Phase 49. It is meant to help decide whether Phase 50 should become a larger macro-phase while keeping individual stages narrow, reviewable, and verification-friendly.
 
-Closure update, 2026-07-08: Phase 50 was expanded into the macro-phase recommended here, iterated through the Review Candidate Backup Loop, and was manually accepted by the user before the separately authorized Final Acceptance Backup. Use this document as historical rationale and workflow guidance, not as an active Phase 50 prompt.
+Closure update, 2026-07-08: Phase 50 was expanded into the macro-phase recommended here, iterated through the Review Candidate Backup Loop, manually accepted by the user, closed through the separately authorized Final Acceptance Backup, and captured with the Phase 50 Golden Checkpoint. Use the Phase 50 sections of this document as historical rationale and workflow guidance, not as an active Phase 50 prompt.
+
+Forward-routing update, 2026-07-08: the user agrees with the Phase 51 account/Profile/player-identity direction and wants admin/backend visualization deferred. The user also wants a future GPT-5.6-oriented handoff-preparation step after the near-term foundation phases and before the deeper UI/theme work. That handoff step should strip visual ornamentation toward a minimal, terminal-like, fully playable shell while preserving all features and backend/gameplay behavior. The living blueprint is `planning/handoffs/GPT-56-MINIMAL-SHELL-HANDOFF-BLUEPRINT-2026-07-08.md`.
+
+Phase 51 planning update, 2026-07-08: the canonical Phase 51 planning package is `planning/phase-51/PLANNING-BRIEF.md` and `planning/phase-51/IMPLEMENTATION-PLAN.md`. The next recommended gated action is bounded Phase 51 source/test implementation for account access, Profile simplification, source-only player-name policy, Profile/Settings account-management clarity, and a compact player chip/menu if it remains small and source-only.
+
+Phase 51 implementation update, 2026-07-08: the local Phase 51 account/Profile/player-identity Review Candidate is prepared in `planning/phase-51/CHANGELOG.md` and `planning/phase-51/REVIEW-CHECKLIST.md`. The next governed action is a separate Review Candidate GitHub Backup prompt so the user can perform hosted/manual review while keeping Phase 51 open for follow-up if needed.
 
 The current recommendation is to make Phase 50 larger than recent phases only if it remains cohesive:
 
@@ -20,12 +26,13 @@ The phase can be bigger. The stages should stay small.
 
 ## Current Baseline
 
-- Phase 49 is complete, backed up, merged, branch-cleaned, and manually reviewed.
-- Phase 49 manual review passed.
-- Current expected `main` and `origin/main`: `cc878c6a109406b56f2a9195be6114c1ccf02259`.
-- Phase 50 is accepted by the user and is closing through the Final Acceptance Backup.
+- Phase 50 is complete, backed up, merged, branch-cleaned, manually reviewed, and captured with the Golden Checkpoint.
+- Current accepted Phase 50 closure commit: `a8f7fdeb0bfdfd5f25f68c7531588d65b87d7ede`.
+- Phase 50 Golden Checkpoint tag: `phase-50-golden-2026-07-08`.
+- Phase 51 account/Profile/player-identity implementation is prepared locally as a Review Candidate; the next gated action is the separate Review Candidate GitHub Backup if verification remains clean.
 - The original stable `brrrdle` repository remains untouched.
-- Latest transition record before this document: `progress/PROGRESS-STEP-453.md`.
+- Latest Phase 50 closure record: `progress/PROGRESS-STEP-500.md`.
+- Latest Phase 51 planning record: `progress/PROGRESS-STEP-502.md`.
 
 ## Current Problem To Prioritize
 
@@ -122,10 +129,29 @@ Route, but do not implement yet:
 | Phase 52 | Private Practice matchmaking expansion | Likely contract-heavy; may need Supabase/RLS addenda | Multi-surface requests, GO, custom unranked Practice settings, inbox/outbox, opt-out controls. |
 | Phase 53 | Stats, progression transparency, and public rating/profile metadata | Likely staged source plus possible storage/RLS decision gates | Solo/multiplayer stats clarity, cloud stats decisioning, HUD-to-Stats, public Elo/profile metadata. |
 | Phase 54 | Live/Lobby identity and spectator-adjacent polish | Likely source plus privacy gates | Clickable names, safe profile cards, ranked metadata, spectator preview routing. |
-| Phase 55 | Focus Mode expansion and mobile/desktop shell redesign | UI-heavy; likely broad visual review | Deeper Focus Mode, route rail/side-panel concepts, top-right Daily button consolidation. |
-| Phase 56 | UI/theme direction intake and design system planning | Planning/design first | Capture the user's unshared theme and frontend direction before touching theme proposals. |
+| Pre-Phase-55 handoff prep | Minimal-shell simplification and GPT-5.6-oriented handoff package | Source/CSS simplification plus documentation, after separate authorization | Strip nonessential visual ornament while preserving functionality; prepare handoff for later frontend/design work. |
+| Phase 55 | Focus Mode expansion and mobile/desktop shell redesign | UI-heavy; likely broad visual review | Deeper Focus Mode, route rail/side-panel concepts, top-right Daily button consolidation, after handoff prep. |
+| Phase 56 | UI/theme direction intake and design system planning | Planning/design first | Capture visual direction, inspiration sites, generated concept options if authorized, and design-system strategy. |
 | Phase 57 | Theme proposal/template modernization | Planning/source docs; possible assets later | Update old theme templates after shell/profile/social surfaces settle. |
 | Phase 58+ | Concrete themes and polish | Dedicated cosmetic implementation | Implement selected themes, assets, sounds, and full theme QA. |
+
+## Current Phase 51 Intake Update
+
+The user has accepted the account/Profile/player-identity scope direction for Phase 51 and does not currently want additional Phase 51 items beyond that scope.
+
+Phase 51 should:
+
+- avoid gameplay mechanics and backend gameplay persistence changes except to preserve accepted behavior;
+- focus on account/Profile/player identity and related Profile/Settings routing;
+- evaluate single public player name versus separate private/public profile names;
+- evaluate emoji/special-character player-name policy;
+- evaluate a compact player chip/menu if it reduces account-control confusion without beginning a broad shell redesign;
+- clarify Sign out, Settings, Profile, account-management, and Danger Zone placement;
+- preserve the accepted Phase 50 gameplay baseline.
+
+Phase 51 should not implement admin multiplayer queue visualization or backend observability UI. It may document a placeholder or later-phase concept if useful.
+
+Design-heavy homepage widgets, broad visual refresh, theme work, new UI toolkit adoption, and image-generation concept work should be routed to the later handoff/design process rather than Phase 51.
 
 ## Review Candidate Backup Loop
 
@@ -174,7 +200,8 @@ flowchart TB
     H --> I["Phase 52 private Practice expansion"]
     I --> J["Phase 53 stats/progression/public rating metadata"]
     J --> K["Phase 54 Live/Lobby identity polish"]
-    K --> L["Phase 55 deeper Focus Mode and shell redesign"]
+    K --> P["Pre-Phase-55 minimal-shell handoff prep"]
+    P --> L["Phase 55 deeper Focus Mode and shell redesign"]
     L --> M["Phase 56 UI/theme direction intake"]
     M --> N["Phase 57 theme template modernization"]
     N --> O["Phase 58+ concrete themes"]
