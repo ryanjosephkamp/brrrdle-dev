@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 51 is accepted and closed at commit `2edbe50aea68615a19255c36c6718d41c2671688`; Phase 52 Review Candidate materials live in [planning/phase-52/](phase-52/) and must be read before any Phase 52 backup, manual-review follow-up, or closure work.
+7. The active or next phase plan. Phase 51 is accepted and closed at commit `2edbe50aea68615a19255c36c6718d41c2671688`; Phase 52 manual review is reported passed and [planning/phase-52/](phase-52/) must be read before Phase 52 final acceptance closure or Phase 53 planning.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -51,7 +51,7 @@ For normal future work, read:
 - `planning/phase-49/`: Phase 49 planning brief, implementation plan, changelog, and review checklist for progression HUD/resource visibility, Focus Mode first slice, compact/mobile shell polish decisioning, and explicit storage/mobile-shell/gameplay gates.
 - `planning/phase-50/`: Phase 50 accepted closeout materials for the expanded macro-phase covering Solo persistence, Home-on-refresh, multiplayer review follow-ups, Profile account conveniences, Progression HUD click-through, and future-work routing with narrow gated stages.
 - `planning/phase-51/`: Phase 51 accepted closeout materials for account access, Profile simplification, player identity/menu design, source-only player-name policy, mobile account-menu fit, and related Profile/Settings routing decisions.
-- `planning/phase-52/`: Phase 52 Review Candidate materials for private Practice matchmaking expansion, including settings-aware unranked Practice OG/GO requests, existing private-request contract review, request lifecycle clarity, changelog, manual review checklist, and focused E2E requirements.
+- `planning/phase-52/`: Phase 52 manual-review accepted materials for private Practice matchmaking expansion, including settings-aware unranked Practice OG/GO requests, existing private-request contract review, request lifecycle clarity, changelog, manual review checklist, and focused E2E requirements.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
