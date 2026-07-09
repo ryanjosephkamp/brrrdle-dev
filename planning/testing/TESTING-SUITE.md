@@ -1,7 +1,7 @@
 # brrrdle Gameplay Testing Suite
 
 **Status**: Canonical Phase 24 testing strategy.
-**Updated**: 2026-07-03
+**Updated**: 2026-07-09
 **Primary focus**: Gameplay correctness for solo and multiplayer brrrdle.
 
 ## Purpose
@@ -21,6 +21,18 @@ handoff review may run after automated verification and before Git handoff. This
 captures local screenshots for human inspection under ignored artifacts such as
 `test-results/visual-review/<phase-or-stage>/`. It is review evidence, not a
 pass/fail pixel-diff visual regression suite.
+
+## Pre-Phase-55 Functional Shell Coverage
+
+The shell Review Candidate keeps behavioral assertions independent of replaceable presentation:
+
+- `e2e/gameplay/solo-og.spec.ts` directly covers Practice OG and Daily OG solve, Home-on-refresh, and explicit re-entry restoration.
+- `e2e/layout/functional-shell-accessibility.spec.ts` covers primary-route keyboard reachability, one main landmark, Focus recovery, authenticated mobile account-menu containment, and horizontal overflow.
+- `e2e/layout/mobile-scroll.spec.ts` remains the cross-route 390px scroll/overflow/effect-layer matrix.
+- Keyboard and game tiles expose semantic `data-state` values so correct/present/absent/unknown assertions do not depend on Tailwind classes.
+- The full Playwright gate remains mandatory because it exercises real authenticated multi-client Supabase behavior that screenshots and component tests cannot prove.
+
+The full shell gate on 2026-07-09 passed 132 Vitest files / 920 tests and 63 Playwright scenarios. One initial spectator identity-summary RPC 403 was treated as transient only after the exact focused scenario passed and the complete 63-scenario gate then passed cleanly.
 
 ## Test Layers
 

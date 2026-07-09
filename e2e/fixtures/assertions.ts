@@ -142,15 +142,21 @@ export async function expectPageCanScrollVertically(page: Page, minScrollableDis
 export async function expectPageCanScrollToEnd(page: Page): Promise<void> {
   const reached = await page.evaluate(async () => {
     const scrollingElement = document.scrollingElement ?? document.documentElement
-    const maxScrollY = Math.max(0, scrollingElement.scrollHeight - window.innerHeight)
-    window.scrollTo({ behavior: 'auto', top: maxScrollY })
+    const initialMaxScrollY = Math.max(0, scrollingElement.scrollHeight - window.innerHeight)
+    window.scrollTo({ behavior: 'auto', top: initialMaxScrollY })
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
-    const bottomReached = Math.abs(window.scrollY - maxScrollY) <= 2
+    const maxScrollY = Math.max(0, scrollingElement.scrollHeight - window.innerHeight)
+    if (Math.abs(window.scrollY - maxScrollY) > 2) {
+      window.scrollTo({ behavior: 'auto', top: maxScrollY })
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+    }
+    const settledMaxScrollY = Math.max(0, scrollingElement.scrollHeight - window.innerHeight)
+    const bottomReached = Math.abs(window.scrollY - settledMaxScrollY) <= 2
     window.scrollTo({ behavior: 'auto', top: 0 })
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
     return {
       bottomReached,
-      maxScrollY,
+      maxScrollY: settledMaxScrollY,
       topReached: window.scrollY <= 2,
     }
   })
@@ -179,14 +185,7 @@ export async function expectKeyboardState(page: Page, letter: string, state: 'ab
   const root = await multiplayerGame.count() > 0 ? multiplayerGame : page
   const key = root.getByRole('button', { name: new RegExp(`^Enter ${letter}$`, 'i') })
   await expect(key).toBeVisible()
-  const className = await key.getAttribute('class')
-  const marker = {
-    absent: 'bg-slate-950',
-    correct: 'bg-emerald-300',
-    present: 'bg-amber-300',
-    unknown: 'bg-slate-800',
-  }[state]
-  expect(className ?? '').toContain(marker)
+  await expect(key).toHaveAttribute('data-state', state)
 }
 
 export async function expectVisibleStatus(page: Page, text: RegExp | string): Promise<void> {

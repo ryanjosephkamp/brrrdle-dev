@@ -9,7 +9,7 @@ interface NavigationProps {
 
 export function Navigation({ routes, activeRouteId, onNavigate }: NavigationProps) {
   return (
-    <nav aria-label="Primary" className="flex flex-wrap gap-2 rounded-lg border border-white/10 bg-slate-950/60 p-1 shadow-inner shadow-white/5 lg:max-w-xl lg:justify-end">
+    <nav aria-label="Primary" className="flex flex-wrap gap-2 rounded-lg border border-white/10 bg-slate-950 p-1 lg:max-w-xl lg:justify-end">
       {routes.map((route) => {
         const isActive = route.id === activeRouteId
         return (

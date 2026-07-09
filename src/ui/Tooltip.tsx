@@ -85,7 +85,7 @@ export function Tooltip({ label, children, className }: TooltipProps) {
 
   const bubble = open ? (
     <span
-      className="pointer-events-none fixed z-[9999] max-h-[min(16rem,calc(100vh-2rem))] w-60 max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-y-auto rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-left text-xs font-normal leading-relaxed text-slate-200 opacity-100 shadow-xl shadow-slate-950/50 max-sm:w-auto max-sm:translate-x-0 max-sm:text-sm"
+      className="pointer-events-none fixed z-[100] max-h-[min(16rem,calc(100vh-2rem))] w-60 max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-y-auto rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-left text-xs font-normal leading-relaxed text-slate-200 opacity-100 max-sm:w-auto max-sm:translate-x-0 max-sm:text-sm"
       id={tooltipId}
       ref={bubbleRef}
       role="tooltip"

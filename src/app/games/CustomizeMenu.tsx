@@ -55,7 +55,7 @@ export function CustomizeMenu({
   const canSaveGoCountDefault = showGoCount && goPuzzleCount !== defaultGoPuzzleCount
 
   return (
-    <details className="brrrdle-customize-details group rounded-2xl border border-slate-700 bg-slate-950/60 p-4 text-sm text-slate-300 shadow-lg shadow-black/20">
+    <details className="brrrdle-customize-details group rounded-lg border border-slate-700 bg-slate-950 p-4 text-sm text-slate-300">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)]">
         <span className="text-base font-bold text-white">Customize</span>
         <span className="rounded-full border border-slate-600 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-100">
