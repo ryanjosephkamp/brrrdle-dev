@@ -8,6 +8,8 @@
  */
 
 export const PROFILE_DISPLAY_NAME_MAX_LENGTH = 50
+export const PROFILE_DISPLAY_NAME_ALLOWED_CHARACTERS_DESCRIPTION =
+  'letters, numbers, spaces, apostrophes, periods, underscores, or hyphens'
 
 /**
  * Allow-listed accent colors. Stored as user_metadata.accent_color. The UI
@@ -80,23 +82,45 @@ export function deriveInitials(source: { readonly displayName?: string; readonly
   return (parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)).toLocaleUpperCase()
 }
 
-/**
- * Trims and length-caps a candidate display name. Returns undefined if the
- * trimmed value is empty so callers can fall back to email.
- */
-export function normalizeDisplayName(candidate: unknown): string | undefined {
+const UNSAFE_PLAYER_NAME_CHARACTERS_PATTERN = /[\p{Cc}\p{Cf}\p{Co}\p{Cs}]/u
+const PLAYER_NAME_ALLOWED_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N}\p{M} ._'-]*$/u
+const PLAYER_NAME_HAS_WORD_CHARACTER_PATTERN = /[\p{L}\p{N}]/u
+
+export function getPlayerDisplayNameValidationMessage(
+  candidate: unknown,
+  label = 'Player name',
+): string | undefined {
   if (typeof candidate !== 'string') {
+    return `${label} must be text.`
+  }
+  const trimmed = candidate.trim()
+  if (!trimmed || trimmed.length > PROFILE_DISPLAY_NAME_MAX_LENGTH) {
+    return `${label} must be 1-${PROFILE_DISPLAY_NAME_MAX_LENGTH} characters.`
+  }
+  if (
+    UNSAFE_PLAYER_NAME_CHARACTERS_PATTERN.test(trimmed)
+    || !PLAYER_NAME_HAS_WORD_CHARACTER_PATTERN.test(trimmed)
+    || !PLAYER_NAME_ALLOWED_PATTERN.test(trimmed)
+  ) {
+    return `${label} can use ${PROFILE_DISPLAY_NAME_ALLOWED_CHARACTERS_DESCRIPTION}. Emoji, control characters, and symbols are not supported.`
+  }
+  return undefined
+}
+
+/**
+ * Trims a candidate player name after applying the shared safe-name policy.
+ * Returns undefined for empty or unsafe values so callers can fall back
+ * without saving unsupported identity text.
+ */
+export function normalizePlayerDisplayName(candidate: unknown): string | undefined {
+  if (getPlayerDisplayNameValidationMessage(candidate) !== undefined) {
     return undefined
   }
-  // Strip control characters that have no legitimate use in a display name.
-  // eslint-disable-next-line no-control-regex
-  const cleaned = candidate.replace(/[\u0000-\u001f\u007f]/gu, '').trim()
-  if (!cleaned) {
-    return undefined
-  }
-  return cleaned.length > PROFILE_DISPLAY_NAME_MAX_LENGTH
-    ? cleaned.slice(0, PROFILE_DISPLAY_NAME_MAX_LENGTH)
-    : cleaned
+  return (candidate as string).trim().replace(/ +/gu, ' ')
+}
+
+export function normalizeDisplayName(candidate: unknown): string | undefined {
+  return normalizePlayerDisplayName(candidate)
 }
 
 export function validateAccentColor(candidate: unknown): ProfileAccentColor {

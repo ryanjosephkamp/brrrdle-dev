@@ -50,6 +50,7 @@ For normal future work, read:
 - `planning/phase-48/`: Phase 48 planning brief and implementation plan for profile/public-profile/private-profile simplification, Profile/Settings account-management clarity, custom-code/private game routing, private Daily feasibility, ranked Daily contract decisioning, and early routing of the late Phase 47 mobile scroll-lag observation.
 - `planning/phase-49/`: Phase 49 planning brief, implementation plan, changelog, and review checklist for progression HUD/resource visibility, Focus Mode first slice, compact/mobile shell polish decisioning, and explicit storage/mobile-shell/gameplay gates.
 - `planning/phase-50/`: Phase 50 accepted closeout materials for the expanded macro-phase covering Solo persistence, Home-on-refresh, multiplayer review follow-ups, Profile account conveniences, Progression HUD click-through, and future-work routing with narrow gated stages.
+- `planning/phase-51/`: Phase 51 intake context, planning brief, implementation plan, changelog, and review checklist for account access, Profile simplification, player identity/menu design, source-only player-name policy, and related Profile/Settings routing decisions.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
@@ -81,6 +82,7 @@ For normal future work, read:
 - `planning/specs/pre-phase-25/`: narrow post-Phase-24, pre-Phase-25 bugfix specs.
 - `planning/specs/archive/`: earlier phase specs and historical planning artifacts.
 - `planning/history/`: long historical plans, changelogs, Vercel logs, and summaries.
+- `planning/handoffs/`: durable handoff blueprints and later handoff-package planning aids, including the GPT-5.6 minimal-shell handoff blueprint.
 - `planning/governance/`: guidance for active governance file locations.
 - `planning/governance/PROMPT-PACKAGE-STANDARD.md`: standard for Codex-generated prompt packages and next-step handoff prompts.
 - `planning/governance/PHASE-SCOPE-SIZING-GUIDE.md`: guidance for safely making future phases larger while keeping implementation stages narrow, gated, and verification-friendly.

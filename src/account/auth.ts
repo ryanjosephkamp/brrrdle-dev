@@ -1,9 +1,8 @@
 import type { User } from '@supabase/supabase-js'
 import type { BrrrdleSupabaseClient } from './supabaseClient'
 import {
-  PROFILE_ACCENT_COLORS,
-  PROFILE_DISPLAY_NAME_MAX_LENGTH,
   deriveProfileFromUser,
+  getPlayerDisplayNameValidationMessage,
   normalizeDisplayName,
   validateAccentColor,
   validateAvatarUrl,
@@ -413,10 +412,11 @@ export async function updateProfile(
 
   if (input.displayName !== undefined) {
     const normalized = normalizeDisplayName(input.displayName)
-    if (input.displayName !== '' && normalized === undefined) {
-      return { message: `Display name must be 1–${PROFILE_DISPLAY_NAME_MAX_LENGTH} characters.`, ok: false }
+    const validationMessage = getPlayerDisplayNameValidationMessage(input.displayName)
+    if (!normalized || validationMessage) {
+      return { message: validationMessage ?? 'Player name is not supported.', ok: false }
     }
-    data.display_name = normalized ?? null
+    data.display_name = normalized
   }
 
   if (input.accentColor !== undefined) {
@@ -451,7 +451,7 @@ export async function updateProfile(
 }
 
 /** Re-export for callers that want a typed set of allow-listed accents. */
-export { PROFILE_ACCENT_COLORS, PROFILE_DISPLAY_NAME_MAX_LENGTH }
+export { PROFILE_ACCENT_COLORS, PROFILE_DISPLAY_NAME_MAX_LENGTH } from './profile'
 export type { ProfileAccentColor, DerivedProfile } from './profile'
 
 /**

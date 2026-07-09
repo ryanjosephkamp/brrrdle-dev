@@ -42,11 +42,17 @@ describe('AccountBadge', () => {
         }}
         onOpenAuthModal={noop}
         onOpenProfile={noop}
+        onOpenSettings={noop}
+        onSignOut={noop}
       />,
     )
     expect(html).toContain('Ada Lovelace')
     expect(html).toContain('AL')
-    expect(html).toMatch(/aria-label="Open Profile tab for Ada Lovelace"/)
+    expect(html).toMatch(/aria-label="Open account menu for Ada Lovelace"/)
+    expect(html).toContain('role="menu"')
+    expect(html).toContain('>Profile</button>')
+    expect(html).toContain('>Settings</button>')
+    expect(html).toContain('>Sign out</button>')
   })
 
   it('uses the saved private accent color for the signed-in avatar', () => {
@@ -70,6 +76,7 @@ describe('AccountBadge', () => {
         }}
         onOpenAuthModal={noop}
         onOpenProfile={noop}
+        onOpenSettings={noop}
       />,
     )
 
@@ -86,6 +93,6 @@ describe('AccountBadge', () => {
       />,
     )
     // The badge falls back to label='Account' when no profile is present.
-    expect(html).toMatch(/aria-label="Open Profile tab for/)
+    expect(html).toMatch(/aria-label="Open account menu for/)
   })
 })

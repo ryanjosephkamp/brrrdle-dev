@@ -1,7 +1,9 @@
 import type { BrrrdleSupabaseClient } from './supabaseClient'
 import {
   PROFILE_ACCENT_COLORS,
+  PROFILE_DISPLAY_NAME_ALLOWED_CHARACTERS_DESCRIPTION,
   PROFILE_DISPLAY_NAME_MAX_LENGTH,
+  normalizePlayerDisplayName,
   type ProfileAccentColor,
 } from './profile'
 
@@ -118,7 +120,7 @@ function normalizePlainText(candidate: unknown, maxLength: number): string | und
 }
 
 export function normalizePublicProfileDisplayName(candidate: unknown): string | undefined {
-  return normalizePlainText(candidate, PROFILE_DISPLAY_NAME_MAX_LENGTH)
+  return normalizePlayerDisplayName(candidate)
 }
 
 export function normalizePublicProfileBio(candidate: unknown): string | undefined {
@@ -172,11 +174,14 @@ export function normalizePublicProfileUpdateInput(
 ): PublicProfileUpdateResult {
   const visibility = normalizePublicProfileVisibility(input.visibility)
   const displayName = normalizePublicProfileDisplayName(input.displayName)
+  if (input.displayName !== undefined && input.displayName.trim() !== '' && !displayName) {
+    return {
+      message: `Public player name must be 1-${PROFILE_DISPLAY_NAME_MAX_LENGTH} characters using ${PROFILE_DISPLAY_NAME_ALLOWED_CHARACTERS_DESCRIPTION}. Emoji, control characters, and symbols are not supported.`,
+      ok: false,
+    }
+  }
   if (visibility === 'public' && !displayName) {
     return { message: 'Add a public display name before making your profile public.', ok: false }
-  }
-  if (input.displayName !== undefined && input.displayName.trim() !== '' && !displayName) {
-    return { message: `Public display name must be 1-${PROFILE_DISPLAY_NAME_MAX_LENGTH} plain-text characters.`, ok: false }
   }
 
   const accentColor = normalizePublicProfileAccentColor(input.accentColor) ?? 'ice'
