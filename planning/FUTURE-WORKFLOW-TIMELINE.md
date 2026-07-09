@@ -30,6 +30,10 @@ Phase 53 implementation update, 2026-07-09: the Phase 53 Stats/progression/publi
 
 Phase 54 manual acceptance update, 2026-07-09: the user completed the hosted/manual Phase 54 Review Candidate checklist after PR #53 and reported that every item passes, with no direct Phase 54 follow-up. The next recommended gated action is the separately authorized Phase 54 Final Acceptance Closure and Backup. After closure, prepare a separate Phase 54 Golden Checkpoint prompt for the actual closure commit before beginning the already-routed Pre-Phase-55 minimal-shell and GPT-5.6 handoff-preparation planning.
 
+Phase 54 closure and checkpoint update, 2026-07-09: Phase 54 closed through PR #54 at `cc6a1e600a7e330140366d2ba2ab95fd1da11a75` and is protected by Golden Checkpoint tag `phase-54-golden-2026-07-09`. The next gated action is planning-only: a repository-wide functional-shell and GPT-5.6 SOL strategy review that captures a functionality-preservation inventory before any shell implementation, dependency choice, design generation, or handoff execution.
+
+Pre-Phase-55 strategy update, 2026-07-09: the repository audit recommends an in-place React/Vite semantic shell rather than a static-HTML rewrite, Next.js migration, or immediate UI toolkit adoption. The current planning package is `planning/handoffs/PRE-PHASE-55-FUNCTIONALITY-PRESERVATION-INVENTORY-2026-07-09.md`, `planning/handoffs/PRE-PHASE-55-FUNCTIONAL-SHELL-AND-GPT-56-SOL-STRATEGY-2026-07-09.md`, and `planning/handoffs/PRE-PHASE-55-FUNCTIONAL-SHELL-DECISION-LOG-2026-07-09.md`. The next recommended gate is bounded functional-shell implementation through Review Candidate only, beginning with characterization and test-gap closure. Shell acceptance/checkpointing, design inspiration, dependency adoption, and the GPT-5.6 SOL rebuild remain separate authorizations.
+
 The current recommendation is to make Phase 50 larger than recent phases only if it remains cohesive:
 
 - one urgent repair lane for Solo completion-state persistence;
@@ -46,13 +50,13 @@ The phase can be bigger. The stages should stay small.
 - Phase 51 account/Profile/player-identity work is complete, manually accepted, backed up, merged, branch-cleaned, and closed at commit `2edbe50aea68615a19255c36c6718d41c2671688`.
 - Phase 52 private Practice matchmaking expansion is complete, manually accepted, backed up, merged, branch-cleaned, and closed at commit `9f0096c839ac007d2717f2b7a0ba91541f18ed4d`.
 - Phase 53 stats/progression/public metadata work is complete, manually accepted, backed up, merged, branch-cleaned, and closed at commit `52b44d3e533baa200d57b36af6ea5d33c7ddde97`.
-- Phase 54 Live/Lobby identity and spectator-adjacent polish is manually accepted after Review Candidate PR #53 and is ready for separately authorized final acceptance closure.
+- Phase 54 Live/Lobby identity and spectator-adjacent polish is closed at `cc6a1e600a7e330140366d2ba2ab95fd1da11a75` and protected by Golden Checkpoint tag `phase-54-golden-2026-07-09`.
 - The original stable `brrrdle` repository remains untouched.
 - Latest Phase 50 closure record: `progress/PROGRESS-STEP-500.md`.
 - Latest Phase 51 closure record: `progress/PROGRESS-STEP-506.md`.
 - Latest Phase 52 acceptance-prep record: `progress/PROGRESS-STEP-509.md`.
 - Latest Phase 53 closure record: `progress/PROGRESS-STEP-512.md`.
-- Latest Phase 54 acceptance-preparation record: `progress/PROGRESS-STEP-515.md`.
+- Latest Phase 54 post-closure intake record: `progress/PROGRESS-STEP-516.md`.
 
 ## Current Problem To Prioritize
 
@@ -148,12 +152,13 @@ Route, but do not implement yet:
 | Phase 51 | Account access, Profile simplification, and player-chip/menu design | Complete | Closed at commit `2edbe50aea68615a19255c36c6718d41c2671688`. |
 | Phase 52 | Private Practice matchmaking expansion | Complete | Settings-aware unranked Practice OG/GO requests, custom Practice settings, inbox/outbox clarity, and E2E coverage; opt-out controls remain deferred. |
 | Phase 53 | Stats, progression transparency, and public rating/profile metadata | Complete | Closed at commit `52b44d3e533baa200d57b36af6ea5d33c7ddde97`. |
-| Phase 54 | Live/Lobby identity and spectator-adjacent polish | Manual review accepted; Final Acceptance Backup prepared | Authenticated participant profile links and return routing reuse existing contracts; Lobby and spectator identities remain display-only unless a separately authorized migration/RLS addendum is approved. After closure, create a Golden Checkpoint before handoff preparation. |
-| Pre-Phase-55 handoff prep | Minimal-shell simplification and GPT-5.6-oriented handoff package | Source/CSS simplification plus documentation, after separate authorization | Strip nonessential visual ornament while preserving functionality; prepare handoff for later frontend/design work. |
-| Phase 55 | Focus Mode expansion and mobile/desktop shell redesign | UI-heavy; likely broad visual review | Deeper Focus Mode, route rail/side-panel concepts, top-right Daily button consolidation, after handoff prep. |
-| Phase 56 | UI/theme direction intake and design system planning | Planning/design first | Capture visual direction, inspiration sites, generated concept options if authorized, and design-system strategy. |
-| Phase 57 | Theme proposal/template modernization | Planning/source docs; possible assets later | Update old theme templates after shell/profile/social surfaces settle. |
-| Phase 58+ | Concrete themes and polish | Dedicated cosmetic implementation | Implement selected themes, assets, sounds, and full theme QA. |
+| Phase 54 | Live/Lobby identity and spectator-adjacent polish | Complete | Closed at `cc6a1e600a7e330140366d2ba2ab95fd1da11a75`; Golden Checkpoint tag `phase-54-golden-2026-07-09`. |
+| Pre-Phase-55 strategy | Functional preservation and shell/handoff strategy | Complete - planning only | Recommends in-place React/Vite semantic reduction with characterization first. |
+| Functional Shell | Characterization, neutral shell, route/game simplification, performance hardening, Review Candidate | Next bounded implementation | No stack migration, dependency adoption, design generation, backup, or checkpoint in the implementation prompt. |
+| Shell Acceptance | Hosted manual review, same-phase repair, final acceptance, and Golden Checkpoint | Separate explicit gates | Produces the reversible redesign foundation. |
+| Design Direction | Inspiration analysis, concepts, `design.md`, and component/stack decision | Planning/design after shell checkpoint | Impeccable and image generation may be used when authorized; shadcn remains an option, not a default. |
+| GPT-5.6 SOL Rebuild | High-autonomy frontend rebuild with preserved contracts | Later implementation | Requires the shell checkpoint, preservation inventory, tests, design package, and Review Candidate loop. |
+| Later polish | Themes, assets, sounds, and product refinements | Dedicated later work | Keep distinct from the functional shell and initial rebuild. |
 
 ## Current Phase 51 Intake Update
 
