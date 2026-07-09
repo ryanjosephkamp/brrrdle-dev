@@ -66,6 +66,34 @@ describe('private match accepted-game projection', () => {
     expect(projection?.matchmakingRequestId).toBeUndefined()
   })
 
+  it('projects selected GO, Hard Mode, word-length, and time-control settings into the accepted game', () => {
+    const projection = createPrivateMatchGameProjection(privateMatchRequest({
+      goPuzzleCount: 5,
+      hardMode: true,
+      mode: 'go',
+      timeLimitMs: 300_000,
+      wordLength: 7,
+    }), {
+      defaultDifficulty: DEFAULT_DIFFICULTY_TIER,
+      id: 'private-game-go',
+      now: '2026-07-01T23:46:00.000Z',
+      seed: 41,
+    })
+
+    expect(projection).toMatchObject({
+      goPuzzleCount: 5,
+      hardMode: true,
+      id: 'private-game-go',
+      mode: 'go',
+      ranked: false,
+      scope: 'practice',
+      timeLimitMs: 300_000,
+      wordLength: 7,
+    })
+    expect(projection?.playerUserIds).toBeUndefined()
+    expect(projection?.dailyDateKey).toBeUndefined()
+  })
+
   it('refuses expired, non-opponent, and unsupported timed requests', () => {
     expect(createPrivateMatchGameProjection(privateMatchRequest({ expired: true }), {
       defaultDifficulty: DEFAULT_DIFFICULTY_TIER,

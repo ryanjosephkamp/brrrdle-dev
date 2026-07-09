@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { DEFAULT_GO_PUZZLE_COUNT } from '../game/constants'
+import type { GameMode } from '../game/types'
+import {
+  PRACTICE_MULTIPLAYER_TIME_LIMIT_OPTIONS,
+  type PracticeMultiplayerTimeLimitMs,
+} from '../multiplayer/multiplayer'
 import { Button, LoadingState, Panel } from '../ui'
 import { classNames } from '../ui/classNames'
 import {
@@ -8,9 +14,13 @@ import {
   type PublicProfileRepository,
 } from './publicProfile'
 import {
+  createPrivatePracticeRequestIdempotencyKey,
   getPrivateMatchRequestErrorMessage,
+  getPrivatePracticeRequestSettingsLabel,
   isOwnerPublicProfileEligibleForPrivateMatch,
+  normalizePrivatePracticeRequestSettings,
   PRIVATE_MATCH_REQUESTER_PUBLIC_PROFILE_REQUIRED_MESSAGE,
+  type PrivatePracticeRequestSettings,
 } from './publicProfilePrivateMatch'
 import type { MultiplayerRepository } from '../multiplayer/multiplayerRepository'
 
@@ -19,6 +29,13 @@ export type PublicProfilePageStatus = 'idle' | 'loading' | 'ready' | 'unavailabl
 type PrivateMatchActions = Pick<MultiplayerRepository, 'createPrivateMatchRequest'>
 type PublicProfilePageRepository = Pick<PublicProfileRepository, 'loadPublicProfile'> & Partial<Pick<PublicProfileRepository, 'loadMine'>>
 type PublicProfileAuthStatus = 'anonymous' | 'authenticated' | 'unconfigured'
+
+const DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS: PrivatePracticeRequestSettings = {
+  hardMode: false,
+  mode: 'og',
+  timeLimitMs: null,
+  wordLength: 5,
+}
 
 interface PublicProfilePageProps {
   readonly authStatus?: PublicProfileAuthStatus
@@ -34,6 +51,8 @@ interface PublicProfileCardProps {
   readonly privateMatchBusy?: boolean
   readonly privateMatchMessage?: string
   readonly privateMatchRequestsAvailable?: boolean
+  readonly privatePracticeSettings?: PrivatePracticeRequestSettings
+  readonly onPrivatePracticeSettingsChange?: (settings: PrivatePracticeRequestSettings) => void
   readonly onRequestPrivateMatch?: () => void
   readonly onBack?: () => void
   readonly profile?: PublicPlayerProfile
@@ -101,12 +120,19 @@ export function PublicProfileCard({
   privateMatchBusy = false,
   privateMatchMessage,
   privateMatchRequestsAvailable = false,
+  privatePracticeSettings = DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS,
+  onPrivatePracticeSettingsChange,
   onRequestPrivateMatch,
   onBack,
   profile,
   status,
 }: PublicProfileCardProps) {
   const updatedLabel = profile ? formatPublicProfileUpdatedAt(profile.updatedAt) : undefined
+  const canRequestPrivateMatch = authStatus === 'authenticated' && privateMatchRequestsAvailable && onRequestPrivateMatch
+  const privatePracticeSettingsLabel = getPrivatePracticeRequestSettingsLabel(privatePracticeSettings)
+  const updatePrivatePracticeSettings = (settings: PrivatePracticeRequestSettings) => {
+    onPrivatePracticeSettingsChange?.(settings)
+  }
 
   return (
     <section className="space-y-4" aria-labelledby="public-profile-title">
@@ -170,12 +196,99 @@ export function PublicProfileCard({
             <div className="rounded-lg border border-cyan-300/25 bg-cyan-300/10 p-4">
               <p className="font-bold text-cyan-50">Private Practice match</p>
               <p className="mt-1 text-xs leading-5 text-cyan-100">
-                Send an authenticated, unranked 5-letter OG Practice request. Private requests are visible only to the two signed-in players and never expose raw account ids.
+                Send an authenticated, unranked Practice request with the selected settings. Private requests are visible only to the two signed-in players and never expose raw account ids.
               </p>
-              {authStatus === 'authenticated' && privateMatchRequestsAvailable && onRequestPrivateMatch ? (
-                <Button className="mt-3" disabled={privateMatchBusy} onClick={onRequestPrivateMatch} size="sm" variant="primary">
-                  {privateMatchBusy ? 'Sending request' : 'Request Practice match'}
-                </Button>
+              {canRequestPrivateMatch ? (
+                <div className="mt-3 space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-1 text-xs font-semibold uppercase tracking-wide text-cyan-100">
+                      <span>Mode</span>
+                      <select
+                        aria-label="Private Practice mode"
+                        className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2 text-sm font-semibold normal-case tracking-normal text-cyan-50"
+                        disabled={privateMatchBusy}
+                        onChange={(event) => {
+                          const mode = event.currentTarget.value as GameMode
+                          updatePrivatePracticeSettings({
+                            ...privatePracticeSettings,
+                            goPuzzleCount: mode === 'go' ? privatePracticeSettings.goPuzzleCount ?? DEFAULT_GO_PUZZLE_COUNT : undefined,
+                            mode,
+                          })
+                        }}
+                        value={privatePracticeSettings.mode}
+                      >
+                        <option value="og">OG</option>
+                        <option value="go">GO</option>
+                      </select>
+                    </label>
+
+                    <label className="space-y-1 text-xs font-semibold uppercase tracking-wide text-cyan-100">
+                      <span>Word length</span>
+                      <input
+                        aria-label="Private Practice word length"
+                        className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2 text-sm font-semibold normal-case tracking-normal text-cyan-50"
+                        disabled={privateMatchBusy}
+                        inputMode="numeric"
+                        max={35}
+                        min={2}
+                        onChange={(event) => {
+                          updatePrivatePracticeSettings({
+                            ...privatePracticeSettings,
+                            wordLength: Number(event.currentTarget.value || 5),
+                          })
+                        }}
+                        type="number"
+                        value={privatePracticeSettings.wordLength}
+                      />
+                    </label>
+
+                    <label className="space-y-1 text-xs font-semibold uppercase tracking-wide text-cyan-100">
+                      <span>Time control</span>
+                      <select
+                        aria-label="Private Practice time control"
+                        className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2 text-sm font-semibold normal-case tracking-normal text-cyan-50"
+                        disabled={privateMatchBusy}
+                        onChange={(event) => {
+                          updatePrivatePracticeSettings({
+                            ...privatePracticeSettings,
+                            timeLimitMs: event.currentTarget.value === ''
+                              ? null
+                              : Number(event.currentTarget.value) as PracticeMultiplayerTimeLimitMs,
+                          })
+                        }}
+                        value={privatePracticeSettings.timeLimitMs ?? ''}
+                      >
+                        {PRACTICE_MULTIPLAYER_TIME_LIMIT_OPTIONS.map((option) => (
+                          <option key={option.value ?? 'none'} value={option.value ?? ''}>{option.label}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="flex min-h-12 items-center gap-2 rounded-lg border border-white/15 bg-black/25 px-3 py-2 text-sm font-semibold text-cyan-50">
+                      <input
+                        aria-label="Private Practice Hard Mode"
+                        checked={privatePracticeSettings.hardMode}
+                        disabled={privateMatchBusy}
+                        onChange={(event) => {
+                          updatePrivatePracticeSettings({
+                            ...privatePracticeSettings,
+                            hardMode: event.currentTarget.checked,
+                          })
+                        }}
+                        type="checkbox"
+                      />
+                      Hard Mode
+                    </label>
+                  </div>
+
+                  <p className="rounded-md border border-white/10 bg-black/20 p-2 text-xs font-semibold text-cyan-50">
+                    Current request: {privatePracticeSettingsLabel}
+                  </p>
+
+                  <Button disabled={privateMatchBusy} onClick={onRequestPrivateMatch} size="sm" variant="primary">
+                    {privateMatchBusy ? 'Sending request' : 'Request Practice match'}
+                  </Button>
+                </div>
               ) : (
                 <p className="mt-3 rounded-md border border-white/10 bg-black/20 p-2 text-xs text-cyan-100">
                   {authStatus === 'authenticated'
@@ -215,6 +328,7 @@ export function PublicProfilePage({
     readonly message?: string
     readonly publicProfileId?: string
   }>({ busy: false })
+  const [privatePracticeSettings, setPrivatePracticeSettings] = useState<PrivatePracticeRequestSettings>(DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS)
 
   useEffect(() => {
     if (!normalizedPublicProfileId || !repository) {
@@ -284,14 +398,21 @@ export function PublicProfilePage({
           return
         }
       }
+      const normalizedSettings = normalizePrivatePracticeRequestSettings(privatePracticeSettings)
+      if (!normalizedSettings.ok) {
+        setPrivateMatchState({
+          busy: false,
+          message: normalizedSettings.message,
+          publicProfileId: profile.publicProfileId,
+        })
+        return
+      }
+      const settings = normalizedSettings.settings
 
       const request = await privateMatchActions.createPrivateMatchRequest({
-        hardMode: false,
-        idempotencyKey: `phase40-private-request:create:${profile.publicProfileId}:${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
-        mode: 'og',
+        ...settings,
+        idempotencyKey: createPrivatePracticeRequestIdempotencyKey(profile.publicProfileId, settings),
         targetPublicProfileId: profile.publicProfileId,
-        timeLimitMs: null,
-        wordLength: 5,
       })
       setPrivateMatchState({
         busy: false,
@@ -316,6 +437,8 @@ export function PublicProfilePage({
       privateMatchBusy={privateMatchBusy}
       privateMatchMessage={privateMatchMessage}
       privateMatchRequestsAvailable={Boolean(privateMatchActions)}
+      privatePracticeSettings={privatePracticeSettings}
+      onPrivatePracticeSettingsChange={setPrivatePracticeSettings}
       onRequestPrivateMatch={() => { void requestPrivatePracticeMatch() }}
       onBack={onBack}
       profile={profile}

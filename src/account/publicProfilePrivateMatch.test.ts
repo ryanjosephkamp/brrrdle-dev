@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { OwnerPublicProfile } from './publicProfile'
 import {
+  createPrivatePracticeRequestIdempotencyKey,
   getPrivateMatchRequestErrorMessage,
+  getPrivatePracticeRequestSettingsLabel,
   isOwnerPublicProfileEligibleForPrivateMatch,
+  normalizePrivatePracticeRequestSettings,
   PRIVATE_MATCH_REQUESTER_PUBLIC_PROFILE_REQUIRED_MESSAGE,
+  PRIVATE_PRACTICE_REQUEST_IDEMPOTENCY_PREFIX,
 } from './publicProfilePrivateMatch'
 
 const ACTIVE_OWNER_PROFILE: OwnerPublicProfile = {
@@ -33,5 +37,54 @@ describe('private Practice public-profile eligibility', () => {
   it('normalizes requester profile RPC failures away from ranked Elo confusion', () => {
     expect(getPrivateMatchRequestErrorMessage(new Error('Unable to create private match request: Requester must have an active public profile.'))).toBe(PRIVATE_MATCH_REQUESTER_PUBLIC_PROFILE_REQUIRED_MESSAGE)
     expect(PRIVATE_MATCH_REQUESTER_PUBLIC_PROFILE_REQUIRED_MESSAGE).toContain('Ranked Elo is not required')
+  })
+})
+
+describe('private Practice request settings', () => {
+  it('normalizes the default profile-card request as unranked OG Practice', () => {
+    expect(normalizePrivatePracticeRequestSettings({})).toEqual({
+      ok: true,
+      settings: {
+        goPuzzleCount: undefined,
+        hardMode: false,
+        mode: 'og',
+        timeLimitMs: null,
+        wordLength: 5,
+      },
+    })
+  })
+
+  it('keeps selected GO, Hard Mode, word-length, and time-control settings together', () => {
+    const result = normalizePrivatePracticeRequestSettings({
+      hardMode: true,
+      mode: 'go',
+      timeLimitMs: '300000',
+      wordLength: '7',
+    })
+
+    expect(result).toEqual({
+      ok: true,
+      settings: {
+        goPuzzleCount: 5,
+        hardMode: true,
+        mode: 'go',
+        timeLimitMs: 300_000,
+        wordLength: 7,
+      },
+    })
+    if (result.ok) {
+      expect(getPrivatePracticeRequestSettingsLabel(result.settings)).toBe('GO, 7 letters, 5 puzzles, Hard Mode on, 5:00 per side')
+      expect(createPrivatePracticeRequestIdempotencyKey(
+        '22222222-2222-4222-8222-222222222222',
+        result.settings,
+        'nonce',
+      )).toBe(`${PRIVATE_PRACTICE_REQUEST_IDEMPOTENCY_PREFIX}:go:7:hard:300000:5:22222222-2222-4222-8222-222222222222:nonce`)
+    }
+  })
+
+  it('rejects unsupported private Practice request settings before RPC submission', () => {
+    expect(normalizePrivatePracticeRequestSettings({ mode: 'daily' })).toMatchObject({ ok: false })
+    expect(normalizePrivatePracticeRequestSettings({ wordLength: 36 })).toMatchObject({ ok: false })
+    expect(normalizePrivatePracticeRequestSettings({ timeLimitMs: 45_000 })).toMatchObject({ ok: false })
   })
 })

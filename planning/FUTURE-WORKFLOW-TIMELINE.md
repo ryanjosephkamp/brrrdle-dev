@@ -14,7 +14,11 @@ Forward-routing update, 2026-07-08: the user agrees with the Phase 51 account/Pr
 
 Phase 51 planning update, 2026-07-08: the canonical Phase 51 planning package is `planning/phase-51/PLANNING-BRIEF.md` and `planning/phase-51/IMPLEMENTATION-PLAN.md`. The next recommended gated action is bounded Phase 51 source/test implementation for account access, Profile simplification, source-only player-name policy, Profile/Settings account-management clarity, and a compact player chip/menu if it remains small and source-only.
 
-Phase 51 implementation update, 2026-07-08: the local Phase 51 account/Profile/player-identity Review Candidate is prepared in `planning/phase-51/CHANGELOG.md` and `planning/phase-51/REVIEW-CHECKLIST.md`. The next governed action is a separate Review Candidate GitHub Backup prompt so the user can perform hosted/manual review while keeping Phase 51 open for follow-up if needed.
+Phase 51 closure update, 2026-07-09: Phase 51 account/Profile/player-identity work was accepted by the user and closed through the governed Final Acceptance Backup at commit `2edbe50aea68615a19255c36c6718d41c2671688`. Use `planning/phase-51/CHANGELOG.md` and `planning/phase-51/REVIEW-CHECKLIST.md` as accepted closeout records.
+
+Phase 52 planning update, 2026-07-09: the canonical Phase 52 planning package is `planning/phase-52/PLANNING-BRIEF.md` and `planning/phase-52/IMPLEMENTATION-PLAN.md`. The next recommended gated action is bounded Phase 52 source/test implementation for private Practice matchmaking expansion: settings-aware unranked Practice OG/GO requests, word length, Hard Mode, supported time controls, GO puzzle-count handling, request lifecycle clarity, and focused real two-client E2E coverage. Admin/backend visualization, private Daily, ranked private challenges, opt-out/social graph work, and design-heavy shell work remain deferred.
+
+Phase 52 implementation update, 2026-07-09: the private Practice matchmaking expansion Review Candidate is prepared. The next recommended gated action is the Phase 52 Review Candidate Backup so the user can test the hosted/live candidate while Phase 52 remains open for manual review follow-up.
 
 The current recommendation is to make Phase 50 larger than recent phases only if it remains cohesive:
 
@@ -29,10 +33,12 @@ The phase can be bigger. The stages should stay small.
 - Phase 50 is complete, backed up, merged, branch-cleaned, manually reviewed, and captured with the Golden Checkpoint.
 - Current accepted Phase 50 closure commit: `a8f7fdeb0bfdfd5f25f68c7531588d65b87d7ede`.
 - Phase 50 Golden Checkpoint tag: `phase-50-golden-2026-07-08`.
-- Phase 51 account/Profile/player-identity implementation is prepared locally as a Review Candidate; the next gated action is the separate Review Candidate GitHub Backup if verification remains clean.
+- Phase 51 account/Profile/player-identity work is complete, manually accepted, backed up, merged, branch-cleaned, and closed at commit `2edbe50aea68615a19255c36c6718d41c2671688`.
+- Phase 52 private Practice matchmaking expansion is implemented as a Review Candidate; hosted/live manual review remains gated by the Phase 52 Review Candidate Backup prompt.
 - The original stable `brrrdle` repository remains untouched.
 - Latest Phase 50 closure record: `progress/PROGRESS-STEP-500.md`.
-- Latest Phase 51 planning record: `progress/PROGRESS-STEP-502.md`.
+- Latest Phase 51 closure record: `progress/PROGRESS-STEP-506.md`.
+- Latest Phase 52 implementation record: `progress/PROGRESS-STEP-508.md`.
 
 ## Current Problem To Prioritize
 
@@ -125,8 +131,8 @@ Route, but do not implement yet:
 | Phase | Recommended Focus | Implementation Level | Notes |
 | --- | --- | --- | --- |
 | Phase 50 | Solo completion-state persistence plus narrow review routing | Source/test for Solo bug; optional tiny UI convenience; documentation routing | Best next larger macro-phase if kept staged. |
-| Phase 51 | Account access, Profile simplification, and player-chip/menu design | Likely mixed source-only plus possible profile/RLS decision gates | Good home for Profile sign-out if not included in Phase 50, public-by-default profile decisions, and account popover design. |
-| Phase 52 | Private Practice matchmaking expansion | Likely contract-heavy; may need Supabase/RLS addenda | Multi-surface requests, GO, custom unranked Practice settings, inbox/outbox, opt-out controls. |
+| Phase 51 | Account access, Profile simplification, and player-chip/menu design | Complete | Closed at commit `2edbe50aea68615a19255c36c6718d41c2671688`. |
+| Phase 52 | Private Practice matchmaking expansion | Review Candidate prepared; hosted/manual review pending after backup | Settings-aware unranked Practice OG/GO requests, custom Practice settings, inbox/outbox clarity, and E2E coverage; opt-out controls remain deferred. |
 | Phase 53 | Stats, progression transparency, and public rating/profile metadata | Likely staged source plus possible storage/RLS decision gates | Solo/multiplayer stats clarity, cloud stats decisioning, HUD-to-Stats, public Elo/profile metadata. |
 | Phase 54 | Live/Lobby identity and spectator-adjacent polish | Likely source plus privacy gates | Clickable names, safe profile cards, ranked metadata, spectator preview routing. |
 | Pre-Phase-55 handoff prep | Minimal-shell simplification and GPT-5.6-oriented handoff package | Source/CSS simplification plus documentation, after separate authorization | Strip nonessential visual ornament while preserving functionality; prepare handoff for later frontend/design work. |
