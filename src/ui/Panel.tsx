@@ -10,15 +10,15 @@ interface PanelProps extends HTMLAttributes<HTMLElement> {
 }
 
 const toneClasses: Record<PanelTone, string> = {
-  default: 'border-white/10 bg-slate-950/75 shadow-slate-950/40',
-  accent: 'border-[var(--color-ice-300)]/40 bg-cyan-950/20 shadow-cyan-950/30',
-  muted: 'border-slate-700/70 bg-slate-950/75 shadow-slate-950/30',
-  danger: 'border-rose-300/30 bg-rose-950/20 shadow-rose-950/20',
+  default: 'border-white/10 bg-slate-950',
+  accent: 'border-[var(--color-ice-300)]/40 bg-cyan-950/20',
+  muted: 'border-slate-700 bg-slate-950',
+  danger: 'border-rose-300/30 bg-rose-950/20',
 }
 
 export function Panel({ as: Component = 'section', children, className, tone = 'default', ...props }: PanelProps) {
   return (
-    <Component className={classNames('min-w-0 rounded-lg border p-5 sm:p-6 sm:shadow-2xl sm:backdrop-blur-xl', toneClasses[tone], className)} {...props}>
+    <Component className={classNames('min-w-0 rounded-lg border p-5 sm:p-6', toneClasses[tone], className)} {...props}>
       {children}
     </Component>
   )

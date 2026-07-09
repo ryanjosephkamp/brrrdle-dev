@@ -62,7 +62,7 @@ export function SubtabBar<TSubtabId extends string>({ activeId, label, onSelect,
   }
 
   return (
-    <div aria-label={label} className="flex flex-wrap gap-2 rounded-lg border border-white/10 bg-slate-950/60 p-1 shadow-inner shadow-white/5" role="tablist">
+    <div aria-label={label} className="flex flex-wrap gap-2 rounded-lg border border-white/10 bg-slate-950 p-1" role="tablist">
       {options.map((option, index) => {
         const isActive = option.id === activeId
         const attentionDescriptionId = option.attention

@@ -12,11 +12,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const baseClasses =
-  'inline-flex min-h-10 min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal rounded-lg border text-center font-semibold leading-snug transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] disabled:cursor-not-allowed disabled:opacity-50 motion-safe:hover:-translate-y-0.5'
+  'inline-flex min-h-10 min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal rounded-md border text-center font-semibold leading-snug transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus-ring)] disabled:cursor-not-allowed disabled:opacity-50'
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'border-[var(--color-ice-200)] bg-[var(--color-ice-200)] text-slate-950 shadow-[0_0_28px_rgb(103_232_249/0.18)] hover:bg-white',
-  secondary: 'border-slate-700/80 bg-slate-950/80 text-slate-100 shadow-inner shadow-white/5 hover:border-[var(--color-ice-300)] hover:bg-slate-900 hover:text-white',
+  primary: 'border-[var(--color-ice-200)] bg-[var(--color-ice-200)] text-slate-950 hover:bg-white',
+  secondary: 'border-slate-700 bg-slate-950 text-slate-100 hover:border-[var(--color-ice-300)] hover:bg-slate-900 hover:text-white',
   ghost: 'border-transparent bg-transparent text-slate-200 hover:border-slate-700 hover:bg-slate-900/80 hover:text-white',
   danger: 'border-rose-300/70 bg-rose-400/15 text-rose-100 hover:border-rose-200 hover:bg-rose-400/25',
 }

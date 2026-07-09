@@ -2,1410 +2,347 @@
 
 :root {
   color-scheme: dark;
-  --color-polar-night: #020617;
-  --color-deep-ice: #07111f;
-  --color-aurora-glow: rgb(34 211 238 / 0.18);
-  --color-ice-100: #ecfeff;
-  --color-ice-200: #a5f3fc;
-  --color-ice-300: #67e8f9;
-  --color-focus-ring: #bae6fd;
-
-  /*
-   * Phase 16 — Mobile & Tablet Responsiveness design tokens.
-   *
-   * Tile and key sizes are expressed as clamps. The fluid middle uses container
-   * inline-size units (cqi) so sizing follows the actual panel/section width,
-   * not the raw viewport. When clamp(... cqi ...) resolves outside a CSS
-   * container, browsers treat cqi as 1% of the small viewport inline size,
-   * which is a sensible fallback and keeps pre-Phase-16 visuals intact.
-   */
-  --brrrdle-tile-min: 2rem;          /* 32px floor — preserves prior min-h-8 */
-  --brrrdle-tile-max: 4.25rem;       /* 68px ceiling — prevents iPad ballooning */
+  --color-polar-night: #05070c;
+  --color-deep-ice: #0b1018;
+  --color-aurora-glow: transparent;
+  --color-ice-100: #f4f7fa;
+  --color-ice-200: #c8d3dc;
+  --color-ice-300: #91a6b8;
+  --color-focus-ring: #d7e2ea;
+  --brrrdle-tile-min: 2rem;
+  --brrrdle-tile-max: 4.25rem;
   --brrrdle-tile-size: clamp(var(--brrrdle-tile-min), 14cqi, var(--brrrdle-tile-max));
   --brrrdle-tile-font: clamp(0.875rem, 6.5cqi, 1.625rem);
-
-  --brrrdle-key-min: 2.25rem;        /* 36px floor — ≥ Apple HIG touch target */
-  --brrrdle-key-max: 3.75rem;        /* 60px ceiling — keeps tablets balanced */
+  --brrrdle-key-min: 2.25rem;
+  --brrrdle-key-max: 3.75rem;
   --brrrdle-key-size: clamp(var(--brrrdle-key-min), 9cqi, var(--brrrdle-key-max));
   --brrrdle-key-font: clamp(0.75rem, 4.25cqi, 1.05rem);
   --brrrdle-key-action-font: clamp(0.625rem, 3.5cqi, 0.95rem);
-
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --brrrdle-line: rgb(148 163 184 / 0.24);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-html {
-  background: var(--color-polar-night);
-}
-
+* { box-sizing: border-box; }
+html { background: var(--color-polar-night); }
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100svh;
   background: var(--color-polar-night);
 }
+button, input, select, textarea { font: inherit; }
+::selection { background: var(--color-ice-200); color: var(--color-polar-night); }
 
-/*
- * Phase 21 — The Lunar Signal Deck *layout* is the permanent base, but its
- * heavy visual treatment (signal glow, animated canvas, scan grid, custom
- * cursor) is now a single opt-in surface theme. The default surface is a very
- * minimalist near-black backdrop; the original look is restored only when
- * `data-surface='lunar-signal'` is present (enabled in Phase 22).
- */
+/* Flatten legacy utility-heavy route surfaces without changing their markup. */
+[class*='shadow-'],
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-2xl,
+.shadow-inner { box-shadow: none !important; }
+[class*='backdrop-blur'] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+[class*='rounded-2xl'],
+[class*='rounded-3xl'] { border-radius: 0.5rem !important; }
+
+/* Functional shell: stable route semantics with deliberately neutral chrome. */
 .brrrdle-lunar-shell {
-  position: relative;
-  isolation: isolate;
-  overflow-x: hidden;
-  /* Minimalist default: a plain, calm near-black surface. */
-  background: var(--surface-base, #05070e);
-}
-
-.brrrdle-lunar-shell[data-surface='lunar-signal'] {
-  background:
-    radial-gradient(circle at var(--signal-x, 62%) var(--signal-y, 54%), color-mix(in srgb, var(--signal-color, #f5fbff), transparent 82%), transparent 24rem),
-    radial-gradient(circle at 14% 82%, rgb(255 77 69 / 0.14), transparent 22rem),
-    linear-gradient(135deg, #020207 0%, #060714 45%, #061318 100%);
-}
-
-.brrrdle-lunar-shell.is-dormant {
-  height: 100svh;
-  min-height: 100svh;
-  overflow: hidden;
-}
-
-@supports (height: 100dvh) {
-  .brrrdle-lunar-shell.is-dormant {
-    height: 100dvh;
-    min-height: 100dvh;
-  }
-}
-
-.brrrdle-lunar-canvas,
-.brrrdle-lunar-noise {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.brrrdle-lunar-canvas {
-  z-index: 0;
-  cursor: crosshair;
-}
-
-.brrrdle-lunar-noise {
-  z-index: 1;
-  pointer-events: none;
-  /* Minimalist default: a faint, static grid that fades toward the edges. */
-  background-image:
-    linear-gradient(rgb(255 255 255 / 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.022) 1px, transparent 1px);
-  background-size: 4rem 4rem;
-  mask-image: radial-gradient(circle at 50% -10%, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.28) 62%, transparent);
-}
-
-.brrrdle-lunar-shell[data-surface='lunar-signal'] .brrrdle-lunar-noise {
-  background-image:
-    linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.018) 1px, transparent 1px);
-  background-size: 5rem 5rem;
-  mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.12));
-  mix-blend-mode: screen;
-}
-
-.brrrdle-lunar-cursor {
-  position: fixed;
-  z-index: 60;
-  left: 0;
-  top: 0;
-  width: 3.5rem;
-  aspect-ratio: 1;
-  border: 1px solid rgb(255 255 255 / 0.54);
-  border-radius: 999px;
-  box-shadow:
-    0 0 1.6rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 48%),
-    inset 0 0 1rem rgb(255 255 255 / 0.08);
-  pointer-events: none;
-  transform: translate3d(calc(var(--signal-client-x, 62vw) - 50%), calc(var(--signal-client-y, 54vh) - 50%), 0);
-  will-change: transform;
-}
-
-.brrrdle-lunar-cursor::after {
-  content: '';
-  position: absolute;
-  inset: 42%;
-  border-radius: inherit;
-  background: white;
-  box-shadow: 0 0 1rem white;
+  min-width: 0;
+  overflow-x: clip;
+  background: var(--color-polar-night);
 }
 
 .brrrdle-lunar-interface {
-  position: relative;
-  z-index: 3;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
+  width: min(100%, 112rem);
   margin-inline: auto;
-  min-height: 100svh;
-  width: min(100%, 104rem);
-  padding: max(0.9rem, env(safe-area-inset-top)) max(0.9rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(0.9rem, env(safe-area-inset-left));
+  padding: clamp(0.75rem, 2vw, 1.5rem);
 }
 
 .brrrdle-lunar-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: minmax(11rem, auto) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.brrrdle-lunar-brand,
+.brrrdle-lunar-focus-toggle {
+  min-height: 2.75rem;
+  border: 1px solid var(--brrrdle-line);
+  border-radius: 0.5rem;
+  background: #080b12;
+  color: #f8fafc;
 }
 
 .brrrdle-lunar-brand {
   display: grid;
-  gap: 0.1rem;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 0.5rem;
-  background: rgb(3 3 10 / 0.72);
-  padding: 0.75rem 0.9rem;
-  color: white;
-  text-align: left;
-  box-shadow: 0 1.1rem 3rem rgb(0 0 0 / 0.38), 0 0 2.5rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 88%);
-  backdrop-filter: blur(18px);
+  justify-items: start;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
 }
-
-.brrrdle-lunar-brand span {
-  font-size: 1.9rem;
-  font-weight: 950;
-  line-height: 1;
+.brrrdle-lunar-brand span { font-size: 1.35rem; font-weight: 800; line-height: 1; }
+.brrrdle-lunar-brand small,
+.brrrdle-lunar-route-head p,
+.brrrdle-lunar-rail-button small {
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .brrrdle-lunar-focus-toggle {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  min-width: 6.25rem;
-  min-height: 2.75rem;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 0.5rem;
-  background: rgb(4 8 16 / 0.68);
-  color: white;
-  padding: 0.55rem 0.8rem;
-  font-size: 0.72rem;
-  font-weight: 950;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  box-shadow:
-    0 0.85rem 2.4rem rgb(0 0 0 / 0.25),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-  backdrop-filter: blur(16px);
-}
-
-.brrrdle-lunar-focus-toggle[aria-pressed='true'] {
-  border-color: color-mix(in srgb, var(--signal-color, #55f4ff), white 28%);
-  background: color-mix(in srgb, var(--signal-color, #55f4ff), black 78%);
-  box-shadow:
-    0 0.85rem 2.4rem rgb(0 0 0 / 0.22),
-    0 0 2.2rem color-mix(in srgb, var(--signal-color, #55f4ff), transparent 60%),
-    inset 0 1px 0 rgb(255 255 255 / 0.08);
-}
-
-.brrrdle-lunar-focus-toggle:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 3px;
-}
-
-.brrrdle-lunar-brand small,
-.brrrdle-lunar-command span,
-.brrrdle-lunar-route-head p,
-.brrrdle-lunar-rail-button small,
-.brrrdle-lunar-route-chip span {
-  color: rgb(255 255 255 / 0.58);
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.brrrdle-lunar-account-stack {
-  display: grid;
-  justify-items: end;
-  gap: 0.5rem;
-  max-width: 100%;
-}
-
-.brrrdle-lunar-account {
-  min-width: min(100%, 18rem);
-  max-width: 100%;
-}
-
-.brrrdle-lunar-daily-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: max-content;
-  border: 1px solid rgb(72 255 154 / 0.28);
-  border-radius: 0.5rem;
-  background: rgb(4 18 14 / 0.62);
-  color: rgb(202 255 227 / 0.86);
-  padding: 0.25rem 0.75rem;
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  box-shadow:
-    0 0.8rem 2.2rem rgb(0 0 0 / 0.22),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-  backdrop-filter: blur(16px);
-}
-
-.brrrdle-lunar-daily-status span {
-  width: 0.45rem;
-  aspect-ratio: 1;
-  border-radius: 999px;
-  background: #48ff9a;
-  box-shadow: 0 0 1rem #48ff9a;
-}
-
-.brrrdle-progression-hud {
-  display: grid;
-  gap: 0.42rem;
-  width: min(100%, 26rem);
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 0.5rem;
-  background: rgb(4 8 16 / 0.68);
-  color: white;
-  padding: 0.55rem 0.65rem;
-  box-shadow:
-    0 0.85rem 2.4rem rgb(0 0 0 / 0.28),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-  backdrop-filter: blur(16px);
-}
-
-.brrrdle-progression-hud-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.48rem;
-  margin: 0;
-}
-
-.brrrdle-progression-hud-summary div {
-  min-width: 0;
-}
-
-.brrrdle-progression-hud-summary dt {
-  overflow: hidden;
-  color: rgb(255 255 255 / 0.58);
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  line-height: 1.1;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.brrrdle-progression-hud-summary dd {
-  margin: 0.1rem 0 0;
-  overflow: hidden;
-  color: white;
-  font-size: 0.9rem;
-  font-weight: 950;
-  line-height: 1.1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.brrrdle-progression-hud-meter {
-  height: 0.32rem;
-  overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.12);
-  border-radius: 999px;
-  background: rgb(15 23 42 / 0.72);
-}
-
-.brrrdle-progression-hud-meter span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #55f4ff, #48ff9a);
-}
-
-.brrrdle-progression-hud p {
-  margin: 0;
-  overflow: hidden;
-  color: rgb(255 255 255 / 0.64);
-  font-size: 0.68rem;
-  font-weight: 800;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.brrrdle-progression-hud-action {
-  justify-self: start;
-  border: 1px solid rgb(85 244 255 / 0.34);
-  border-radius: 999px;
-  background: rgb(85 244 255 / 0.1);
-  color: white;
+  padding-inline: 0.85rem;
   cursor: pointer;
-  font-size: 0.64rem;
-  font-weight: 900;
-  line-height: 1.1;
-  padding: 0.28rem 0.55rem;
-  text-transform: uppercase;
+  font-weight: 700;
 }
-
-.brrrdle-progression-hud-action:hover {
-  background: rgb(85 244 255 / 0.18);
-}
-
-.brrrdle-progression-hud-action:focus-visible {
+.brrrdle-lunar-focus-toggle[aria-pressed='true'] { border-color: var(--color-ice-300); }
+.brrrdle-lunar-brand:focus-visible,
+.brrrdle-lunar-focus-toggle:focus-visible,
+.brrrdle-lunar-rail-button:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-interface {
-  padding-block-start: max(0.65rem, env(safe-area-inset-top));
-}
-
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-topbar {
-  gap: 0.65rem;
-  margin-bottom: 0.55rem;
-}
-
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-brand {
-  padding: 0.55rem 0.7rem;
-}
-
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-brand small,
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-route-head span,
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-progression-hud p {
-  display: none;
-}
-
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-progression-hud {
-  gap: 0.3rem;
-  padding: 0.45rem 0.55rem;
-}
-
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-rail {
-  gap: 0.38rem;
-}
-
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-rail-button {
-  padding: 0.5rem 0.62rem;
-}
-
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-route-head {
-  padding: 0.72rem 0.85rem;
-}
-
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-route-head h1 {
-  margin-top: 0.1rem;
-  font-size: 2.65rem;
-}
-
-.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-playfield {
-  box-shadow:
-    0 1rem 3rem rgb(0 0 0 / 0.38),
-    0 0 3rem color-mix(in srgb, var(--signal-color), transparent 82%),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-}
-
-.brrrdle-lunar-intro {
-  position: relative;
-  display: grid;
-  flex: 1 1 auto;
-  min-height: 0;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 0.5rem;
-}
-
-.brrrdle-lunar-intro::before,
-.brrrdle-lunar-intro::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-}
-
-.brrrdle-lunar-intro::before {
-  inset: 10% 5% auto;
-  height: 38%;
-  border: 1px solid rgb(255 255 255 / 0.08);
-  border-bottom: 0;
-  border-radius: 50% 50% 0 0;
-}
-
-.brrrdle-lunar-intro::after {
-  inset: auto 8% 8%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--signal-color, #f5fbff), white 22%), transparent);
-  box-shadow: 0 0 3rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 55%);
-}
-
-.brrrdle-lunar-hero {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  justify-items: center;
-  width: min(92vw, 58rem);
-  text-align: center;
-}
-
-.brrrdle-lunar-hero > span {
-  display: block;
-  max-width: 38rem;
-  color: rgb(255 255 255 / 0.72);
-  font-size: 0.98rem;
-  line-height: 1.65;
-}
-
-.brrrdle-lunar-command {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.45rem 1rem;
-  align-items: center;
-  margin-top: 2.2rem;
-  width: min(100%, 46rem);
-  min-height: 7rem;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 0.5rem;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.075), rgb(255 255 255 / 0.025)),
-    rgb(4 5 12 / 0.72);
-  color: white;
-  padding: 1.2rem 1.3rem;
-  text-align: left;
-  box-shadow:
-    0 1.4rem 5rem rgb(0 0 0 / 0.48),
-    0 0 4rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 82%),
-    inset 0 1px 0 rgb(255 255 255 / 0.08);
-  backdrop-filter: blur(22px);
-}
-
-.brrrdle-lunar-command strong {
-  grid-column: 1;
-  overflow-wrap: anywhere;
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 900;
-}
-
-.brrrdle-lunar-command small {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--signal-color, #f5fbff), black 72%);
-  color: white;
-  padding: 0.7rem 1rem;
-  font-size: 0.82rem;
-  font-weight: 900;
-}
-
-.brrrdle-lunar-dock {
-  position: absolute;
-  z-index: 4;
-  right: 1rem;
-  bottom: 1rem;
-  left: 1rem;
+.brrrdle-lunar-account-stack {
   display: flex;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.1rem;
-  scrollbar-width: none;
 }
-
-.brrrdle-lunar-dock::-webkit-scrollbar {
-  display: none;
-}
-
-.brrrdle-lunar-dock-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 2.85rem;
-  border: 1px solid rgb(255 255 255 / 0.13);
-  border-radius: 999px;
-  background: rgb(5 7 14 / 0.62);
-  color: white;
-  padding: 0.55rem 1rem;
-  font-size: 0.92rem;
-  font-weight: 900;
-  box-shadow: 0 0.8rem 2.5rem rgb(0 0 0 / 0.28);
-  backdrop-filter: blur(16px);
-}
-
-.brrrdle-lunar-dock-chip span,
-.brrrdle-lunar-rail-light {
-  flex: 0 0 auto;
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 999px;
-  background: var(--signal-color);
-  box-shadow: 0 0 1.5rem var(--signal-color);
-}
-
-.brrrdle-lunar-dock-chip span {
-  width: 0.6rem;
-  height: 0.6rem;
-}
-
-.brrrdle-lunar-dock-chip[aria-current='true'],
-.brrrdle-lunar-dock-chip:hover,
-.brrrdle-lunar-dock-chip:focus-visible {
-  border-color: color-mix(in srgb, var(--signal-color), white 34%);
-  background: color-mix(in srgb, var(--signal-color), black 78%);
-  outline: none;
-}
+.brrrdle-lunar-account { min-width: 0; max-width: 100%; }
 
 .brrrdle-lunar-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: minmax(10.5rem, 13rem) minmax(0, 1fr);
   align-items: start;
-  min-width: 0;
+  gap: 0.75rem;
 }
 
 .brrrdle-lunar-rail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  overflow-x: visible;
-  padding-bottom: 0.25rem;
-  scrollbar-width: none;
+  display: grid;
+  gap: 0.35rem;
+  position: sticky;
+  top: 0.75rem;
 }
-
-.brrrdle-lunar-rail::-webkit-scrollbar {
-  display: none;
-}
-
 .brrrdle-lunar-rail-button {
-  position: relative;
-  display: flex;
-  flex: 1 1 9.75rem;
-  min-width: 0;
+  display: grid;
+  grid-template-columns: 0.3rem minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.65rem;
-  overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 0.5rem;
-  background: rgb(5 7 14 / 0.62);
-  color: white;
-  padding: 0.65rem 0.75rem;
-  text-align: left;
-  box-shadow: 0 0.8rem 2.5rem rgb(0 0 0 / 0.28), inset 0 0 0 1px rgb(255 255 255 / 0.03);
-  backdrop-filter: blur(16px);
-}
-
-.brrrdle-lunar-rail-button::after {
-  content: '';
-  position: absolute;
-  inset: auto 0 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--signal-color), transparent);
-  opacity: 0.75;
-}
-
-.brrrdle-lunar-rail-button[aria-current='page'] {
-  border-color: color-mix(in srgb, var(--signal-color), white 30%);
-  background: color-mix(in srgb, var(--signal-color), black 82%);
-  box-shadow: 0 0 3rem color-mix(in srgb, var(--signal-color), transparent 54%);
-}
-
-.brrrdle-lunar-rail-button strong {
-  display: block;
-  font-size: 0.92rem;
-  line-height: 1.1;
-}
-
-.brrrdle-attention-badge {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.45rem;
-  max-width: 6rem;
-  min-height: 1.35rem;
-  overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.08);
-  color: white;
-  padding: 0.12rem 0.45rem;
-  font-size: 0.68rem;
-  font-weight: 950;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.brrrdle-attention-badge[data-tone='attention'] {
-  border-color: color-mix(in srgb, var(--signal-color, #55f4ff), white 24%);
-  background: color-mix(in srgb, var(--signal-color, #55f4ff), black 78%);
-}
-
-.brrrdle-attention-badge[data-tone='neutral'][data-active='true'] {
-  border-color: rgb(15 23 42 / 0.38);
-  background: rgb(15 23 42 / 0.14);
-  color: rgb(15 23 42);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
-}
-
-.brrrdle-attention-badge[data-tone='urgent'] {
-  border-color: rgb(255 255 255 / 0.36);
-  background: linear-gradient(135deg, rgb(255 77 69 / 0.86), rgb(255 102 212 / 0.72));
-  box-shadow: 0 0 1.4rem rgb(255 77 69 / 0.2);
-}
-
-.brrrdle-lunar-panel,
-.brrrdle-lunar-playfield {
-  min-width: 0;
-  overflow-wrap: break-word;
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 0.5rem;
-  background: linear-gradient(180deg, rgb(7 8 17 / 0.76), rgb(7 12 18 / 0.62));
-  box-shadow: 0 1.25rem 5rem rgb(0 0 0 / 0.42), inset 0 1px 0 rgb(255 255 255 / 0.06);
-  backdrop-filter: blur(22px);
-}
-
-.brrrdle-lunar-playfield {
-  overflow: hidden;
-  box-shadow:
-    0 1.5rem 6rem rgb(0 0 0 / 0.46),
-    0 0 5rem color-mix(in srgb, var(--signal-color), transparent 74%),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-}
-
-.brrrdle-lunar-route-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  min-width: 0;
-  border-bottom: 1px solid rgb(255 255 255 / 0.12);
-  padding: 1rem;
-}
-
-.brrrdle-lunar-route-head > div {
-  min-width: 0;
-}
-
-.brrrdle-lunar-route-head h1 {
-  margin-top: 0.2rem;
-  color: white;
-  font-size: 3.2rem;
-  font-weight: 950;
-  line-height: 0.94;
-}
-
-.brrrdle-lunar-route-head span {
-  display: block;
-  margin-top: 0.6rem;
-  max-width: 48rem;
-  color: rgb(255 255 255 / 0.72);
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-.brrrdle-lunar-live-chip {
-  flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--signal-color), white 22%);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--signal-color), black 76%);
-  color: white !important;
-  padding: 0.5rem 0.75rem;
-  box-shadow: 0 0 2.5rem color-mix(in srgb, var(--signal-color), transparent 58%);
-  font-size: 0.7rem !important;
-  font-weight: 950;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.brrrdle-lunar-route-meta {
-  display: flex;
-  flex: 0 1 26rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.45rem;
-  min-width: 0;
-}
-
-.brrrdle-lunar-route-chip {
-  display: inline-flex;
-  max-width: 11rem;
-  min-width: 0;
-  align-items: center;
-  gap: 0.45rem;
-  border: 1px solid rgb(255 255 255 / 0.1);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.045);
-  color: white;
-  padding: 0.45rem 0.65rem;
-  font-size: 0.75rem;
-  line-height: 1;
-}
-
-.brrrdle-lunar-route-chip strong {
-  min-width: 0;
-  overflow: hidden;
-  font-weight: 950;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.brrrdle-lunar-route-body {
-  min-width: 0;
-  padding: 1rem;
-  overflow-wrap: break-word;
-}
-
-.brrrdle-lunar-panel {
-  padding: 1rem;
-}
-
-.brrrdle-notification-center {
-  position: relative;
-  display: inline-block;
-  width: max-content;
-  max-width: min(100%, 26rem);
-  color: white;
-}
-
-.brrrdle-notification-summary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 0.55rem;
   width: 100%;
-  border: 1px solid rgb(255 255 255 / 0.13);
+  min-height: 3rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--brrrdle-line);
+  border-radius: 0.4rem;
+  background: #080b12;
+  color: #d8e0e8;
+  cursor: pointer;
+  text-align: left;
+}
+.brrrdle-lunar-rail-button:hover { border-color: #64748b; }
+.brrrdle-lunar-rail-button[aria-current='page'] {
+  border-color: var(--color-ice-300);
+  background: #111823;
+  color: #fff;
+}
+.brrrdle-lunar-rail-button > span:nth-child(2) { display: grid; min-width: 0; }
+.brrrdle-lunar-rail-button strong { overflow-wrap: anywhere; }
+.brrrdle-lunar-rail-light {
+  width: 0.3rem;
+  height: 1.35rem;
+  border-radius: 0.15rem;
+  background: #475569;
+}
+.brrrdle-lunar-rail-button[aria-current='page'] .brrrdle-lunar-rail-light { background: var(--color-ice-200); }
+
+.brrrdle-attention-badge {
+  display: inline-grid;
+  min-width: 1.45rem;
+  min-height: 1.45rem;
+  place-items: center;
+  padding-inline: 0.3rem;
+  border: 1px solid #64748b;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.055);
-  color: white;
-  padding: 0.38rem 0.48rem 0.38rem 0.7rem;
-  font-size: 0.82rem;
-  font-weight: 900;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.brrrdle-attention-badge[data-tone='urgent'] { border-color: #f87171; color: #fecaca; }
+.brrrdle-attention-badge[data-tone='attention'] { border-color: #fbbf24; color: #fde68a; }
+
+.brrrdle-lunar-playfield {
+  min-width: 0;
+  border: 1px solid var(--brrrdle-line);
+  border-radius: 0.5rem;
+  background: #080b12;
+}
+.brrrdle-lunar-route-head {
+  padding: clamp(0.9rem, 2vw, 1.3rem);
+  border-bottom: 1px solid var(--brrrdle-line);
+}
+.brrrdle-lunar-route-head p { margin: 0 0 0.25rem; }
+.brrrdle-lunar-route-head h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
+  line-height: 1.05;
+}
+.brrrdle-lunar-route-head span { display: block; margin-top: 0.45rem; color: #b5c0cc; line-height: 1.5; }
+.brrrdle-lunar-route-body { min-width: 0; padding: clamp(0.75rem, 2vw, 1.25rem); }
+
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-interface { width: min(100%, 94rem); }
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-brand small,
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-route-head span,
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-progression-hud p { display: none; }
+.brrrdle-lunar-shell.is-focus-mode .brrrdle-lunar-rail-button { min-height: 2.5rem; }
+
+/* Account, progression, notifications, and countdowns remain usable but flat. */
+.brrrdle-progression-hud {
+  display: grid;
+  min-width: min(18rem, 100%);
+  gap: 0.35rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--brrrdle-line);
+  border-radius: 0.5rem;
+  background: #080b12;
+}
+.brrrdle-progression-hud-summary { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0; }
+.brrrdle-progression-hud-summary div { display: flex; gap: 0.3rem; align-items: baseline; }
+.brrrdle-progression-hud-summary dt { color: #94a3b8; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
+.brrrdle-progression-hud-summary dd { margin: 0; color: #f8fafc; font-weight: 800; }
+.brrrdle-progression-hud-meter { overflow: hidden; height: 0.35rem; border: 1px solid #334155; border-radius: 0.2rem; background: #020617; }
+.brrrdle-progression-hud-meter span { display: block; height: 100%; background: var(--color-ice-300); }
+.brrrdle-progression-hud p { margin: 0; color: #94a3b8; font-size: 0.7rem; }
+.brrrdle-progression-hud-action {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: var(--color-ice-200);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0;
+}
+
+.brrrdle-notification-center { position: relative; min-width: 0; }
+.brrrdle-notification-summary {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--brrrdle-line);
+  border-radius: 0.5rem;
+  background: #080b12;
+  color: #f8fafc;
   cursor: pointer;
   list-style: none;
-  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
-
-.brrrdle-notification-summary::-webkit-details-marker {
-  display: none;
-}
-
-.brrrdle-notification-summary:hover,
-.brrrdle-notification-summary:focus-visible {
-  border-color: color-mix(in srgb, var(--signal-color, #f5fbff), white 34%);
-  background: color-mix(in srgb, var(--signal-color, #f5fbff), black 82%);
-  box-shadow: 0 0 1.6rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 68%);
-  outline: none;
-}
-
-.brrrdle-notification-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.6rem;
-  height: 1.35rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--signal-color, #f5fbff), transparent 78%);
-  color: white;
-  font-size: 0.72rem;
-  font-weight: 950;
-}
-
+.brrrdle-notification-summary::-webkit-details-marker { display: none; }
+.brrrdle-notification-count { display: inline-grid; min-width: 1.35rem; min-height: 1.35rem; place-items: center; border: 1px solid #64748b; border-radius: 999px; font-size: 0.7rem; }
 .brrrdle-notification-panel {
   position: absolute;
-  top: calc(100% + 0.5rem);
+  z-index: 50;
+  top: calc(100% + 0.4rem);
   right: 0;
-  z-index: 45;
-  width: min(92vw, 27rem);
-  max-height: min(70vh, 34rem);
+  width: min(28rem, calc(100vw - 1.5rem));
+  max-height: min(34rem, 75vh);
   overflow: auto;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  border-radius: 0.75rem;
-  background: rgb(3 6 18 / 0.94);
-  padding: 0.9rem;
-  text-align: left;
-  box-shadow: 0 1.35rem 3.5rem rgb(0 0 0 / 0.42), 0 0 2.8rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 86%);
-  backdrop-filter: blur(20px);
+  padding: 0.75rem;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  background: #080b12;
 }
-
-.brrrdle-notification-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid rgb(255 255 255 / 0.1);
-  padding-bottom: 0.7rem;
-}
-
-.brrrdle-notification-mark-all {
-  flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--signal-color, #f5fbff), white 18%);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--signal-color, #f5fbff), transparent 84%);
-  color: white;
-  padding: 0.38rem 0.62rem;
-  font-size: 0.74rem;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.brrrdle-notification-mark-all:hover,
-.brrrdle-notification-mark-all:focus-visible {
-  border-color: color-mix(in srgb, var(--signal-color, #f5fbff), white 38%);
-  outline: none;
-}
-
+.brrrdle-notification-header,
+.brrrdle-notification-item-header,
+.brrrdle-notification-actions { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.65rem; }
 .brrrdle-notification-header h2,
 .brrrdle-notification-item h3,
-.brrrdle-notification-empty h3 {
-  margin: 0;
-  color: white;
-  line-height: 1.2;
-}
-
+.brrrdle-notification-empty h3 { margin: 0; font-size: 0.9rem; }
 .brrrdle-notification-header p,
 .brrrdle-notification-item p,
-.brrrdle-notification-empty p {
-  margin: 0.25rem 0 0;
-  color: rgb(226 232 240 / 0.76);
-  font-size: 0.84rem;
-  line-height: 1.5;
-}
-
-.brrrdle-notification-list {
-  display: grid;
-  gap: 0.65rem;
-  margin: 0.8rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
+.brrrdle-notification-empty p { margin: 0.25rem 0 0; color: #aab6c3; font-size: 0.78rem; line-height: 1.45; }
+.brrrdle-notification-list { display: grid; gap: 0.5rem; margin-top: 0.65rem; }
 .brrrdle-notification-item,
-.brrrdle-notification-empty {
-  border: 1px solid rgb(255 255 255 / 0.1);
-  border-radius: 0.65rem;
-  background: rgb(255 255 255 / 0.045);
-  padding: 0.8rem;
-}
+.brrrdle-notification-empty { padding: 0.65rem; border: 1px solid var(--brrrdle-line); border-radius: 0.4rem; }
+.brrrdle-notification-time { color: #94a3b8; font-size: 0.68rem; }
+.brrrdle-notification-actions { justify-content: flex-start; margin-top: 0.55rem; }
+.brrrdle-notification-actions button,
+.brrrdle-notification-mark-all { border: 0; background: transparent; color: var(--color-ice-200); cursor: pointer; padding: 0; font-size: 0.72rem; font-weight: 700; }
+.brrrdle-notification-actions .brrrdle-notification-hide-action { color: #fda4af; }
 
-.brrrdle-notification-item-header {
-  display: flex;
+.brrrdle-daily-countdown-region { display: inline-flex; width: max-content; pointer-events: none; }
+.brrrdle-daily-countdown {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  margin-bottom: 0.45rem;
-  color: rgb(255 255 255 / 0.56);
-  font-size: 0.66rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.brrrdle-notification-time {
-  color: rgb(255 255 255 / 0.5) !important;
-  font-size: 0.74rem !important;
-}
-
-.brrrdle-notification-actions {
-  display: flex;
-  flex-wrap: wrap;
   gap: 0.45rem;
-  margin-top: 0.7rem;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--brrrdle-line);
+  border-radius: 0.5rem;
+  background: #080b12;
+  color: #f8fafc;
+  pointer-events: auto;
+  font-variant-numeric: tabular-nums;
 }
+.brrrdle-daily-countdown-dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--color-ice-300); }
+.brrrdle-daily-countdown-body { display: grid; line-height: 1.1; }
+.brrrdle-daily-countdown-label,
+.brrrdle-daily-countdown-deadline { color: #94a3b8; font-size: 0.58rem; font-weight: 700; text-transform: uppercase; }
+.brrrdle-daily-countdown-value { font-size: 0.82rem; font-weight: 800; }
+.brrrdle-daily-countdown[data-clamped='true'] { border-color: #f59e0b; }
+.brrrdle-daily-countdown[data-alerting='true'] { border-color: var(--color-ice-200); }
 
-.brrrdle-notification-actions button {
-  border: 1px solid rgb(255 255 255 / 0.13);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.06);
-  color: white;
-  padding: 0.36rem 0.62rem;
-  font-size: 0.76rem;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.brrrdle-notification-actions button:hover,
-.brrrdle-notification-actions button:focus-visible {
-  border-color: color-mix(in srgb, var(--signal-color, #f5fbff), white 34%);
-  outline: none;
-}
-
-.brrrdle-notification-actions .brrrdle-notification-hide-action {
-  border-color: rgb(255 255 255 / 0.08);
-  background: transparent;
-  color: rgb(226 232 240 / 0.72);
-}
+/* Gameplay sizing and the only essential motion feedback retained by the shell. */
+.brrrdle-solo-gameplay { container-type: inline-size; }
+@keyframes brrrdle-tile-pop { 0% { transform: scale(0.96); } 100% { transform: scale(1); } }
+@keyframes brrrdle-tile-reveal { 0% { transform: rotateX(0deg); } 50% { transform: rotateX(90deg); } 100% { transform: rotateX(0deg); } }
+@keyframes brrrdle-row-shake { 0%, 100% { transform: translateX(0); } 35% { transform: translateX(-0.2rem); } 70% { transform: translateX(0.2rem); } }
 
 .brrrdle-back-to-top {
   position: fixed;
-  inset-block-end: max(1rem, env(safe-area-inset-bottom));
-  inset-inline-end: max(1rem, env(safe-area-inset-right));
-  z-index: 44;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.8rem;
-  height: 2.8rem;
-  border: 1px solid color-mix(in srgb, var(--signal-color, #f5fbff), white 28%);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--signal-color, #f5fbff), black 72%);
-  color: white;
-  font-size: 1.2rem;
-  font-weight: 950;
-  line-height: 1;
-  box-shadow: 0 1rem 2.6rem rgb(0 0 0 / 0.42), 0 0 1.6rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 72%);
-  cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  z-index: 40;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid #64748b;
+  border-radius: 50%;
+  background: #080b12;
+  color: #f8fafc;
 }
-
-.brrrdle-back-to-top[data-lifted="true"] {
-  inset-block-end: max(5rem, calc(env(safe-area-inset-bottom) + 5rem));
-}
-
-.brrrdle-back-to-top:hover,
-.brrrdle-back-to-top:focus-visible {
-  border-color: color-mix(in srgb, var(--signal-color, #f5fbff), white 52%);
-  box-shadow: 0 1.1rem 2.8rem rgb(0 0 0 / 0.46), 0 0 2rem color-mix(in srgb, var(--signal-color, #f5fbff), transparent 62%);
-  outline: none;
-  transform: translateY(-1px);
-}
-
-.brrrdle-customize-details summary::-webkit-details-marker {
-  display: none;
-}
-
-@media (width >= 1024px) {
-  .brrrdle-lunar-grid {
-    grid-template-columns: minmax(10rem, 13rem) minmax(0, 1fr);
-  }
-
-  .brrrdle-lunar-rail {
-    position: sticky;
-    top: 1rem;
-    display: grid;
-    flex-wrap: nowrap;
-    overflow: visible;
-    padding-bottom: 0;
-  }
-
-  .brrrdle-lunar-rail-button {
-    flex: 0 0 auto;
-  }
-
-  .brrrdle-lunar-playfield {
-    min-height: calc(100svh - 7.25rem);
-  }
-
-}
-
-@media (width >= 1024px) and (width < 1280px) {
-  .brrrdle-lunar-interface {
-    padding-inline: max(0.7rem, env(safe-area-inset-left)) max(0.7rem, env(safe-area-inset-right));
-  }
-
-  .brrrdle-lunar-grid {
-    grid-template-columns: minmax(8.5rem, 11rem) minmax(0, 1fr);
-    gap: 0.75rem;
-  }
-
-  .brrrdle-lunar-route-head h1 {
-    font-size: clamp(2.25rem, 4vw, 3rem);
-  }
-
-  .brrrdle-lunar-route-head span {
-    font-size: 0.86rem;
-  }
-
-  .brrrdle-lunar-panel {
-    padding: 0.85rem;
-  }
-}
-
-@media (width < 900px) {
-  .brrrdle-lunar-hero {
-    align-self: end;
-    margin-bottom: clamp(7.25rem, 14svh, 10.5rem);
-  }
-}
-
-@media (width < 720px) {
-  .brrrdle-lunar-shell[data-surface='lunar-signal'] {
-    background: linear-gradient(160deg, #020207 0%, #060714 48%, #061318 100%);
-  }
-
-  .brrrdle-lunar-canvas,
-  .brrrdle-lunar-noise {
-    display: none;
-  }
-
-  .brrrdle-lunar-cursor {
-    display: none;
-  }
-
-  .brrrdle-lunar-interface {
-    padding: max(0.65rem, env(safe-area-inset-top)) max(0.65rem, env(safe-area-inset-right)) max(0.8rem, env(safe-area-inset-bottom)) max(0.65rem, env(safe-area-inset-left));
-  }
-
-  .brrrdle-lunar-topbar {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 0.55rem;
-    margin-bottom: 0.55rem;
-  }
-
-  .brrrdle-lunar-brand {
-    padding: 0.55rem 0.65rem;
-  }
-
-  .brrrdle-lunar-focus-toggle {
-    width: 100%;
-    min-height: 2.4rem;
-    padding: 0.45rem 0.65rem;
-  }
-
-  .brrrdle-lunar-brand span {
-    font-size: clamp(1.38rem, 7vw, 1.72rem);
-  }
-
-  .brrrdle-lunar-brand small,
-  .brrrdle-lunar-daily-status {
-    font-size: 0.58rem;
-  }
-
-  .brrrdle-lunar-account {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .brrrdle-lunar-account-stack {
-    justify-items: stretch;
-    max-width: 100%;
-  }
-
-  .brrrdle-lunar-account-stack > * {
-    max-width: 100%;
-  }
-
-  .brrrdle-progression-hud {
-    width: 100%;
-  }
-
-  .brrrdle-notification-center,
-  .brrrdle-notification-summary {
-    width: 100%;
-  }
-
-  .brrrdle-notification-panel {
-    right: auto;
-    left: 0;
-    width: min(calc(100vw - 1.3rem), 27rem);
-    max-height: min(72vh, 32rem);
-  }
-
-  .brrrdle-back-to-top {
-    inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
-    inset-inline-end: max(0.75rem, env(safe-area-inset-right));
-    width: 2.55rem;
-    height: 2.55rem;
-  }
-
-  .brrrdle-back-to-top[data-lifted="true"] {
-    inset-block-end: max(12rem, calc(env(safe-area-inset-bottom) + 12rem));
-  }
-
-  .brrrdle-lunar-daily-status {
-    width: 100%;
-    padding: 0.22rem 0.55rem;
-  }
-
-  .brrrdle-lunar-intro {
-    min-height: 0;
-  }
-
-  .brrrdle-lunar-hero {
-    margin-bottom: clamp(8rem, 15svh, 9.75rem);
-  }
-
-  .brrrdle-lunar-hero > span {
-    font-size: 0.86rem;
-    line-height: 1.5;
-  }
-
-  .brrrdle-lunar-command {
-    grid-template-columns: minmax(0, 1fr);
-    margin-top: 1rem;
-    min-height: 5rem;
-    padding: 0.9rem;
-  }
-
-  .brrrdle-lunar-command strong {
-    font-size: 1.15rem;
-  }
-
-  .brrrdle-lunar-command small {
-    grid-column: 1;
-    grid-row: auto;
-    width: max-content;
-    padding: 0.48rem 0.75rem;
-  }
-
-  .brrrdle-lunar-dock {
-    right: 0.55rem;
-    bottom: 0.55rem;
-    left: 0.55rem;
-    gap: 0.35rem;
-    justify-content: flex-start;
-  }
-
-  .brrrdle-lunar-dock-chip {
-    min-height: 2.3rem;
-    padding: 0.4rem 0.7rem;
-    font-size: 0.78rem;
-  }
-
-  .brrrdle-lunar-route-head {
-    flex-direction: column;
-  }
-
-  .brrrdle-lunar-route-meta {
-    justify-content: flex-start;
-    width: 100%;
-  }
-
-  .brrrdle-lunar-route-head h1 {
-    font-size: 2.25rem;
-  }
-
-  .brrrdle-lunar-brand,
-  .brrrdle-lunar-focus-toggle,
-  .brrrdle-lunar-daily-status,
-  .brrrdle-lunar-command,
-  .brrrdle-lunar-dock-chip,
-  .brrrdle-lunar-rail-button,
-  .brrrdle-lunar-panel,
-  .brrrdle-lunar-playfield,
-  .brrrdle-lunar-account button,
-  .brrrdle-lunar-account [role='menu'],
-  .brrrdle-progression-hud,
-  .brrrdle-progression-hud-action,
-  .brrrdle-notification-panel,
-  .brrrdle-notification-summary,
-  .brrrdle-back-to-top,
-  .brrrdle-daily-countdown {
-    box-shadow: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  .brrrdle-lunar-rail-button[aria-current='page'] {
-    box-shadow: none;
-  }
-
-  .shadow,
-  .shadow-sm,
-  .shadow-md,
-  .shadow-lg,
-  .shadow-xl,
-  .shadow-2xl,
-  .shadow-inner {
-    box-shadow: none !important;
-  }
-
-  .backdrop-blur,
-  .backdrop-blur-sm,
-  .backdrop-blur-md,
-  .backdrop-blur-lg,
-  .backdrop-blur-xl,
-  .backdrop-blur-2xl {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-  }
-}
-
-@media (width < 768px) {
-  .brrrdle-word-explorer-mobile-row {
-    contain: layout paint;
-  }
-
-  .brrrdle-word-explorer-mobile-row button {
-    box-shadow: none;
-  }
-}
-
-/* Phase 45.6 — Solo gameplay keeps the active board/status and keyboard closer
- * together on mobile without changing desktop gameplay density. */
-.brrrdle-solo-gameplay {
-  container-type: inline-size;
-}
-
-@media (width < 520px) {
-  .brrrdle-solo-gameplay {
-    --brrrdle-tile-max: 3.55rem;
-    --brrrdle-tile-font: clamp(0.8125rem, 6cqi, 1.4rem);
-    --brrrdle-key-max: 3.25rem;
-    --brrrdle-key-font: clamp(0.7rem, 4cqi, 0.95rem);
-    --brrrdle-key-action-font: clamp(0.6rem, 3.35cqi, 0.85rem);
-  }
-
-  .brrrdle-solo-gameplay [data-gameplay-autocenter-target='solo-keyboard'] {
-    scroll-margin-block-start: 6rem;
-    scroll-margin-block-end: max(2.75rem, calc(env(safe-area-inset-bottom) + 1rem));
-  }
-
-  .brrrdle-solo-post-guess-controls {
-    gap: 0.8rem;
-  }
-}
-
-@media (width < 420px) and (height < 740px) {
-  .brrrdle-solo-gameplay {
-    --brrrdle-tile-max: 3.25rem;
-    --brrrdle-key-min: 2rem;
-    --brrrdle-key-max: 3rem;
-  }
-}
-
-@media (width < 420px) and (height < 740px) {
-  .brrrdle-lunar-daily-status {
-    min-height: 1.45rem;
-  }
-
-  .brrrdle-lunar-intro {
-    min-height: 0;
-  }
-
-  .brrrdle-lunar-hero {
-    margin-bottom: 7.75rem;
-  }
-
-  .brrrdle-lunar-hero > span {
-    font-size: 0.78rem;
-  }
-
-  .brrrdle-lunar-command {
-    min-height: 4.45rem;
-  }
-}
-
-/* Phase 21 — Mode-card accent overlay (the only surviving rule from the
- * Phase 20 prism layout exploration; the card base styling is Tailwind
- * utilities applied inline in App.tsx). */
-.brrrdle-prism-mode-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent, rgb(186 255 0 / 0.18), transparent) top / 100% 1px no-repeat,
-    radial-gradient(circle at 80% 10%, rgb(255 107 214 / 0.16), transparent 12rem);
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-::selection {
-  background: var(--color-ice-200);
-  color: var(--color-polar-night);
-}
-
-/*
- * Phase 19.5 — Light theming foundation. Each non-default theme swaps ONLY the
- * accent/border tokens (ice scale + focus ring + aurora glow) via a data-theme
- * attribute the theme module sets on <html>. Layout and the tile-state colors
- * (correct/present/absent) are intentionally untouched, so contrast minima and
- * gameplay legibility are preserved across themes. The default ('icy') theme
- * removes the attribute and uses the base :root tokens above.
- */
-:root[data-theme='classic'] {
-  --color-aurora-glow: rgb(34 197 94 / 0.18);
-  --color-ice-100: #f0fdf4;
-  --color-ice-200: #bbf7d0;
-  --color-ice-300: #4ade80;
-  --color-focus-ring: #bbf7d0;
-}
-
-:root[data-theme='neon'] {
-  --color-aurora-glow: rgb(217 70 239 / 0.2);
-  --color-ice-100: #fdf4ff;
-  --color-ice-200: #f0abfc;
-  --color-ice-300: #e879f9;
-  --color-focus-ring: #f5d0fe;
-}
-
-:root[data-theme='country-flag'] {
-  --color-aurora-glow: rgb(239 68 68 / 0.18);
-  --color-ice-100: #eff6ff;
-  --color-ice-200: #bfdbfe;
-  --color-ice-300: #93c5fd;
-  --color-focus-ring: #fecaca;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.001ms !important;
-  }
-}
-
-@keyframes brrrdle-tile-pop {
-  0% { transform: scale(0.92); }
-  70% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-@keyframes brrrdle-tile-reveal {
-  0% { transform: rotateX(0deg); }
-  50% { transform: rotateX(90deg); }
-  100% { transform: rotateX(0deg); }
-}
-
-@keyframes brrrdle-row-shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-0.25rem); }
-  40%, 80% { transform: translateX(0.25rem); }
-}
-
-/*
- * Phase 22 — Daily countdown indicator, reset alert, and dev Simulate Time tool.
- *
- * Theme-ready by design: all colors flow through dedicated `--brrrdle-countdown-*`
- * variables that default to the shared accent tokens, so any current or future
- * theme can restyle the countdown by overriding these variables (and the
- * `[data-alerting]` / `[data-clamped]` data-attribute hooks) without touching
- * the component markup. Non-intrusive and mobile-friendly: small pills mounted
- * in the top account stack, clear of the primary navigation.
- */
-:root {
-  --brrrdle-countdown-bg: rgb(2 6 23 / 0.82);
-  --brrrdle-countdown-border: var(--color-ice-300);
-  --brrrdle-countdown-label: var(--color-ice-200);
-  --brrrdle-countdown-value: #ffffff;
-  --brrrdle-countdown-dot: var(--color-ice-300);
-  --brrrdle-countdown-glow: var(--color-aurora-glow);
-}
+.brrrdle-back-to-top[data-lifted='true'] { bottom: max(4rem, calc(env(safe-area-inset-bottom) + 4rem)); }
+.brrrdle-customize-details summary::-webkit-details-marker { display: none; }
+.brrrdle-word-explorer-mobile-row { contain: layout paint; }
+
+/* Developer-only time controls remain available without production effects. */
+.brrrdle-sim-time { position: fixed; z-index: 80; left: max(0.75rem, env(safe-area-inset-left)); bottom: max(0.75rem, env(safe-area-inset-bottom)); display: grid; gap: 0.5rem; }
+.brrrdle-sim-time-fab { width: 2.5rem; height: 2.5rem; border: 1px solid #64748b; border-radius: 50%; background: #080b12; color: #e2e8f0; cursor: pointer; }
+.brrrdle-sim-time-fab[data-active='true'] { border-color: #f59e0b; color: #fbbf24; }
+.brrrdle-sim-time-panel { display: grid; width: min(20rem, calc(100vw - 1.5rem)); gap: 0.6rem; padding: 0.8rem; border: 1px solid #475569; border-radius: 0.5rem; background: #080b12; color: #e2e8f0; font-size: 0.8rem; }
+.brrrdle-sim-time-header,
+.brrrdle-sim-time-actions { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+.brrrdle-sim-time-header button { border: 0; background: transparent; color: #94a3b8; cursor: pointer; }
+.brrrdle-sim-time-readout,
+.brrrdle-sim-time-field { display: grid; gap: 0.2rem; }
+.brrrdle-sim-time-readout span[data-active='true'] { color: #fbbf24; font-weight: 700; }
+.brrrdle-sim-time-field input { padding: 0.35rem 0.5rem; border: 1px solid #475569; border-radius: 0.35rem; background: #020617; color: #e2e8f0; }
+.brrrdle-sim-time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
+.brrrdle-sim-time-grid button,
+.brrrdle-sim-time-actions button { min-height: 2rem; border: 1px solid #475569; border-radius: 0.35rem; background: #0f172a; color: #e2e8f0; cursor: pointer; font-size: 0.75rem; }
+.brrrdle-sim-time-actions button[data-variant='reset']:not(:disabled) { border-color: #f59e0b; color: #fbbf24; }
+.brrrdle-sim-time-actions button:disabled { cursor: not-allowed; opacity: 0.5; }
+.brrrdle-calendar-mode-button { font-size: 0.44rem; }
 
 .brrrdle-visually-hidden {
   position: absolute;
@@ -1420,220 +357,49 @@ textarea {
   border: 0;
 }
 
-.brrrdle-daily-countdown-region {
-  display: inline-flex;
-  justify-content: flex-end;
-  width: max-content;
-  pointer-events: none;
+:root[data-theme='classic'] { --color-ice-100: #f0fdf4; --color-ice-200: #bbf7d0; --color-ice-300: #4ade80; --color-focus-ring: #bbf7d0; }
+:root[data-theme='neon'] { --color-ice-100: #fdf4ff; --color-ice-200: #f0abfc; --color-ice-300: #e879f9; --color-focus-ring: #f5d0fe; }
+:root[data-theme='country-flag'] { --color-ice-100: #eff6ff; --color-ice-200: #bfdbfe; --color-ice-300: #93c5fd; --color-focus-ring: #fecaca; }
+
+@media (width < 900px) {
+  .brrrdle-lunar-topbar { grid-template-columns: minmax(0, 1fr) auto; }
+  .brrrdle-lunar-account-stack { grid-column: 1 / -1; justify-content: flex-start; }
+  .brrrdle-lunar-grid { grid-template-columns: 1fr; }
+  .brrrdle-lunar-rail {
+    position: static;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .brrrdle-lunar-rail-button { min-height: 2.7rem; }
 }
 
-.brrrdle-daily-countdown {
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.7rem;
-  border-radius: 9999px;
-  border: 1px solid color-mix(in srgb, var(--brrrdle-countdown-border) 55%, transparent);
-  background: var(--brrrdle-countdown-bg);
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.35);
-  color: var(--brrrdle-countdown-value);
-  font-variant-numeric: tabular-nums;
-  backdrop-filter: blur(6px);
-  transition: border-color 150ms ease, box-shadow 200ms ease, transform 150ms ease;
+@media (width < 640px) {
+  .brrrdle-lunar-interface { padding: 0.6rem; }
+  .brrrdle-lunar-topbar { gap: 0.5rem; }
+  .brrrdle-lunar-brand span { font-size: 1.15rem; }
+  .brrrdle-lunar-account-stack { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .brrrdle-lunar-account-stack > * { max-width: 100%; }
+  .brrrdle-progression-hud { min-width: 0; width: 100%; }
+  .brrrdle-lunar-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.3rem; }
+  .brrrdle-lunar-rail-button { grid-template-columns: 0.25rem minmax(0, 1fr) auto; gap: 0.35rem; padding: 0.4rem; }
+  .brrrdle-lunar-rail-button small { display: none; }
+  .brrrdle-lunar-route-head h1 { font-size: 1.5rem; }
+  .brrrdle-notification-panel { position: fixed; top: 0.75rem; right: 0.75rem; left: 0.75rem; width: auto; }
+  .brrrdle-solo-gameplay { --brrrdle-tile-max: 3.55rem; --brrrdle-key-max: 3.25rem; --brrrdle-key-font: clamp(0.7rem, 4cqi, 0.95rem); --brrrdle-key-action-font: clamp(0.6rem, 3.35cqi, 0.85rem); }
+  .brrrdle-solo-gameplay [data-gameplay-autocenter-target='solo-keyboard'] { scroll-margin-block-start: 5rem; scroll-margin-block-end: max(2.75rem, calc(env(safe-area-inset-bottom) + 1rem)); }
+  .brrrdle-calendar-mode-button { font-size: 0.56rem; }
 }
 
-.brrrdle-daily-countdown:hover,
-.brrrdle-daily-countdown:focus-visible {
-  border-color: var(--brrrdle-countdown-border);
-  outline: none;
-  transform: translateY(-1px);
-}
-
-.brrrdle-daily-countdown:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-focus-ring);
-}
-
-.brrrdle-daily-countdown-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-  background: var(--brrrdle-countdown-dot);
-  box-shadow: 0 0 8px var(--brrrdle-countdown-dot);
-}
-
-.brrrdle-daily-countdown-body {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.1;
-}
-
-.brrrdle-daily-countdown-label {
-  font-size: 0.6rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--brrrdle-countdown-label);
-}
-
-.brrrdle-daily-countdown-value {
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.brrrdle-daily-countdown-deadline {
-  font-size: 0.58rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: color-mix(in srgb, var(--brrrdle-countdown-value) 72%, transparent);
-}
-
-.brrrdle-daily-countdown[data-clamped='true'] {
-  border-color: color-mix(in srgb, #f59e0b 60%, transparent);
-}
-
-.brrrdle-daily-countdown[data-alerting='true'] {
-  border-color: var(--brrrdle-countdown-border);
-  animation: brrrdle-daily-reset-glow 1.6s ease-in-out infinite;
+@media (width < 440px) {
+  .brrrdle-lunar-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .brrrdle-lunar-focus-toggle { padding-inline: 0.6rem; }
+  .brrrdle-solo-gameplay { --brrrdle-tile-max: 3.25rem; --brrrdle-key-min: 2rem; --brrrdle-key-max: 3rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .brrrdle-daily-countdown[data-alerting='true'] {
-    animation: none;
-    box-shadow: 0 0 0 2px var(--brrrdle-countdown-border), 0 6px 20px rgb(0 0 0 / 0.35);
-  }
-}
-
-@keyframes brrrdle-daily-reset-glow {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brrrdle-countdown-glow) 70%, transparent), 0 6px 20px rgb(0 0 0 / 0.35); }
-  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--brrrdle-countdown-glow) 10%, transparent), 0 6px 24px rgb(0 0 0 / 0.4); }
-}
-
-/* Developer-only Simulate Time tool (never rendered in production builds). */
-.brrrdle-sim-time {
-  position: fixed;
-  inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
-  inset-inline-start: max(0.75rem, env(safe-area-inset-left));
-  z-index: 80;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.brrrdle-sim-time-fab {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 9999px;
-  border: 1px solid rgb(148 163 184 / 0.5);
-  background: rgb(2 6 23 / 0.85);
-  color: #e2e8f0;
-  font-size: 1.1rem;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.4);
-  cursor: pointer;
-}
-
-.brrrdle-sim-time-fab[data-active='true'] {
-  border-color: #f59e0b;
-  color: #fbbf24;
-}
-
-.brrrdle-sim-time-panel {
-  width: min(20rem, calc(100vw - 1.5rem));
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  padding: 0.9rem;
-  border-radius: 0.85rem;
-  border: 1px solid rgb(148 163 184 / 0.4);
-  background: rgb(2 6 23 / 0.94);
-  color: #e2e8f0;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
-  font-size: 0.8rem;
-}
-
-.brrrdle-sim-time-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.brrrdle-sim-time-header button {
-  background: none;
-  border: none;
-  color: #94a3b8;
-  font-size: 1.1rem;
-  cursor: pointer;
-}
-
-.brrrdle-sim-time-readout {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.brrrdle-sim-time-readout span[data-active='true'] {
-  color: #fbbf24;
-  font-weight: 600;
-}
-
-.brrrdle-sim-time-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.brrrdle-sim-time-field input {
-  border-radius: 0.5rem;
-  border: 1px solid rgb(71 85 105 / 0.8);
-  background: #020617;
-  color: #e2e8f0;
-  padding: 0.35rem 0.5rem;
-}
-
-.brrrdle-sim-time-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.35rem;
-}
-
-.brrrdle-sim-time-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.brrrdle-sim-time-grid button,
-.brrrdle-sim-time-actions button {
-  flex: 1 1 auto;
-  border-radius: 0.5rem;
-  border: 1px solid rgb(71 85 105 / 0.8);
-  background: rgb(15 23 42 / 0.9);
-  color: #e2e8f0;
-  padding: 0.4rem 0.5rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-}
-
-.brrrdle-sim-time-actions button[data-variant='reset']:not(:disabled) {
-  border-color: #f59e0b;
-  color: #fbbf24;
-}
-
-.brrrdle-sim-time-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.brrrdle-calendar-mode-button {
-  font-size: 0.44rem;
-}
-
-@media (min-width: 640px) {
-  .brrrdle-calendar-mode-button {
-    font-size: 0.56rem;
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
   }
 }

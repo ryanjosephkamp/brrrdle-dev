@@ -131,11 +131,12 @@ function GuessGrid({ session }: { readonly session: PuzzleSessionState }) {
             <div
               aria-label={`Row ${rowIndex + 1}, tile ${tileIndex + 1}${tile.letter ? `, ${tile.letter}` : ''}`}
               className={classNames(
-                '@container flex aspect-square items-center justify-center rounded-xl border font-black uppercase shadow-inner shadow-slate-950/20',
+                '@container flex aspect-square items-center justify-center rounded-md border font-black uppercase',
                 tileStateClasses[tile.state],
                 tile.state === 'current' ? 'motion-safe:animate-[brrrdle-tile-pop_180ms_ease-out]' : undefined,
                 tile.isSubmitted ? 'motion-safe:animate-[brrrdle-tile-reveal_360ms_ease-out]' : undefined,
               )}
+              data-state={tile.state}
               key={`${rowIndex}-${tileIndex}`}
               role="gridcell"
               style={{ fontSize: 'clamp(0.625rem, 50cqi, 1.75rem)' }}
