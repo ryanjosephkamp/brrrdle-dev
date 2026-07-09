@@ -1,10 +1,16 @@
 # GPT-5.6 Minimal-Shell Handoff Blueprint - 2026-07-08
 
-**Status:** Living planning blueprint for a future handoff-preparation phase.
+**Status:** Historical/living blueprint. The source-evidenced 2026-07-09 preservation inventory, strategy, and decision log are the current detailed planning package.
 **Repository:** `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`.
 **Authority:** Supporting planning artifact only. Current user instructions, `CONSTITUTION.md`, `BRRRDLE-SPEC.md`, active phase plans, and future prompt packages remain higher authority.
 
 This document records the user's current intention to prepare `brrrdle-dev` for a future GPT-5.6-oriented frontend/design handoff after the near-term account/profile/social-readiness phases are complete. It does not authorize source/runtime implementation, UI stripping, tests, migrations, Supabase remote work, deployment configuration changes, Git/GitHub actions, release work, public tunneling, image generation, new dependencies, skill installation, Phase 51 implementation, or work in the original stable `brrrdle` repository.
+
+Current detailed planning:
+
+- `PRE-PHASE-55-FUNCTIONALITY-PRESERVATION-INVENTORY-2026-07-09.md`
+- `PRE-PHASE-55-FUNCTIONAL-SHELL-AND-GPT-56-SOL-STRATEGY-2026-07-09.md`
+- `PRE-PHASE-55-FUNCTIONAL-SHELL-DECISION-LOG-2026-07-09.md`
 
 ## User Goal
 
