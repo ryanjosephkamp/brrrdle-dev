@@ -8,6 +8,22 @@
 
 This document gives a single forward-looking view of the work currently routed after Phase 49. It is meant to help decide whether Phase 50 should become a larger macro-phase while keeping individual stages narrow, reviewable, and verification-friendly.
 
+## Active Post-Shell Routing - 2026-07-10
+
+The accepted functional shell is protected by Final Acceptance commit `ef2349ac53f8d02959d759615d85cfa85190beb9`, annotated tag `pre-phase-55-functional-shell-golden-2026-07-10`, and its GitHub Release. The user subsequently directed the project to complete remaining non-design foundations before design direction and the GPT-5.6 SOL rebuild.
+
+The canonical intake is `planning/handoffs/POST-SHELL-FOUNDATION-EXPANSION-INTAKE-2026-07-10.md`.
+
+| Phase | Current Focus | Status |
+| --- | --- | --- |
+| 55 | Ranked Daily Multiplayer OG/GO plus narrow private Practice request status/direct routing | Planned; next implementation phase. |
+| 56 | Private request center, notification integration, opt-out preference, individual blocking, and anti-spam limits | Routed; separate contract and migration audit required. |
+| 57 | Coin marketplace and consumables restricted to Solo Practice | Routed; separate progression/cloud/gameplay audit required. |
+| 58 | Design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff | Preserved from the displaced Phase 55 plan; deferred until foundation acceptance. |
+| 59 | GPT-5.6 SOL frontend rebuild | Deferred behind accepted Phase 58 design/handoff. |
+
+This routing supersedes older statements in this historical document that name Phase 55 as the design phase or Phase 56 as the rebuild. Those statements remain as historical rationale only.
+
 Closure update, 2026-07-08: Phase 50 was expanded into the macro-phase recommended here, iterated through the Review Candidate Backup Loop, manually accepted by the user, closed through the separately authorized Final Acceptance Backup, and captured with the Phase 50 Golden Checkpoint. Use the Phase 50 sections of this document as historical rationale and workflow guidance, not as an active Phase 50 prompt.
 
 Forward-routing update, 2026-07-08: the user agrees with the Phase 51 account/Profile/player-identity direction and wants admin/backend visualization deferred. The user also wants a future GPT-5.6-oriented handoff-preparation step after the near-term foundation phases and before the deeper UI/theme work. That handoff step should strip visual ornamentation toward a minimal, terminal-like, fully playable shell while preserving all features and backend/gameplay behavior. The living blueprint is `planning/handoffs/GPT-56-MINIMAL-SHELL-HANDOFF-BLUEPRINT-2026-07-08.md`.
