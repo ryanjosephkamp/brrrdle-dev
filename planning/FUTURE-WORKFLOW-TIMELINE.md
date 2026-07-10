@@ -36,6 +36,8 @@ Pre-Phase-55 strategy update, 2026-07-09: the repository audit recommends an in-
 
 Pre-Phase-55 shell implementation update, 2026-07-09: the in-place low-ornament React/Vite functional-shell Review Candidate is prepared with preservation-mapped tests, a comprehensive manual checklist, and local visual/performance evidence. The shell removes the decorative command-center renderer and expensive shared presentation while preserving product/backend contracts. The next recommended gate is a separately authorized Review Candidate GitHub Backup for hosted/manual review while Pre-Phase-55 shell work remains open. Shell acceptance/checkpointing, design inspiration, dependency adoption, and GPT-5.6 SOL redesign execution remain unauthorized.
 
+Pre-Phase-55 final acceptance and Phase 55 planning update, 2026-07-09: the user reported that all 62 functional-shell manual-review items pass. The governed Final Acceptance Backup containing this record closes and backs up the shell; the next protected action is a separately authorized Golden Checkpoint for the exact closure commit. Phase 55 is planned as Design Direction and GPT-5.6 SOL Handoff Preparation: inspiration analysis, distinct concepts, accepted `design.md`, evidence-backed component/stack decision, performance/accessibility budgets, and a Phase 56 rebuild handoff. Production frontend redesign remains Phase 56 work and cannot begin before the shell checkpoint and Phase 55 design gates.
+
 The current recommendation is to make Phase 50 larger than recent phases only if it remains cohesive:
 
 - one urgent repair lane for Solo completion-state persistence;
@@ -156,10 +158,10 @@ Route, but do not implement yet:
 | Phase 53 | Stats, progression transparency, and public rating/profile metadata | Complete | Closed at commit `52b44d3e533baa200d57b36af6ea5d33c7ddde97`. |
 | Phase 54 | Live/Lobby identity and spectator-adjacent polish | Complete | Closed at `cc6a1e600a7e330140366d2ba2ab95fd1da11a75`; Golden Checkpoint tag `phase-54-golden-2026-07-09`. |
 | Pre-Phase-55 strategy | Functional preservation and shell/handoff strategy | Complete - planning only | Recommends in-place React/Vite semantic reduction with characterization first. |
-| Functional Shell | Characterization, neutral shell, route/game simplification, performance hardening, Review Candidate | Next bounded implementation | No stack migration, dependency adoption, design generation, backup, or checkpoint in the implementation prompt. |
-| Shell Acceptance | Hosted manual review, same-phase repair, final acceptance, and Golden Checkpoint | Separate explicit gates | Produces the reversible redesign foundation. |
-| Design Direction | Inspiration analysis, concepts, `design.md`, and component/stack decision | Planning/design after shell checkpoint | Impeccable and image generation may be used when authorized; shadcn remains an option, not a default. |
-| GPT-5.6 SOL Rebuild | High-autonomy frontend rebuild with preserved contracts | Later implementation | Requires the shell checkpoint, preservation inventory, tests, design package, and Review Candidate loop. |
+| Functional Shell | Characterization, neutral shell, route/game simplification, performance hardening, Review Candidate | Complete - accepted and backed up | All 62 hosted manual-review items passed; the Final Acceptance Backup records closure. |
+| Shell Acceptance | Golden Checkpoint for the Final Acceptance merge commit | Next protected action | Produces the exact reversible redesign foundation. |
+| Phase 55 | Design direction and GPT-5.6 SOL handoff preparation | Planned after shell checkpoint | Inspiration analysis, distinct concepts, `design.md`, component/stack decision, budgets, and Phase 56 work packets; no production source changes. |
+| Phase 56 | GPT-5.6 SOL high-autonomy frontend rebuild | Later implementation | Requires the shell checkpoint, preservation inventory, accepted Phase 55 design package, and Review Candidate loop. |
 | Later polish | Themes, assets, sounds, and product refinements | Dedicated later work | Keep distinct from the functional shell and initial rebuild. |
 
 ## Current Phase 51 Intake Update
@@ -227,11 +229,11 @@ flowchart TB
     H --> I["Phase 52 private Practice expansion"]
     I --> J["Phase 53 stats/progression/public rating metadata"]
     J --> K["Phase 54 Live/Lobby identity polish"]
-    K --> P["Pre-Phase-55 minimal-shell handoff prep"]
-    P --> L["Phase 55 deeper Focus Mode and shell redesign"]
-    L --> M["Phase 56 UI/theme direction intake"]
-    M --> N["Phase 57 theme template modernization"]
-    N --> O["Phase 58+ concrete themes"]
+    K --> P["Pre-Phase-55 functional shell"]
+    P --> SA["Shell final acceptance and Golden Checkpoint"]
+    SA --> L["Phase 55 design direction and SOL handoff"]
+    L --> M["Phase 56 GPT-5.6 SOL frontend rebuild"]
+    M --> N["Phase 57+ themes, assets, sounds, and refinements"]
 ```
 
 ## Items Safe To Consider For A Larger Phase 50
