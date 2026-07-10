@@ -1,172 +1,151 @@
-# Phase 55 Design Direction And GPT-5.6 SOL Handoff Implementation Plan
+# Phase 55 Ranked Daily Multiplayer And Private Request Routing Implementation Plan
 
-> **For agentic workers:** Use the repository's planning, product-design, Impeccable, image-generation, and verification capabilities only within the stage authorization currently active. Production source changes remain Phase 56 work.
+> **For agentic workers:** Follow this plan in order. Keep the accepted functional shell and all current gameplay/persistence behavior protected. Use focused characterization before shared-contract edits and stop at the migration-application gate.
 
-**Goal:** Produce an approved, distinctive, implementation-ready design contract and GPT-5.6 SOL handoff for a high-autonomy frontend rebuild while preserving the accepted functional shell as the reversible source of truth.
+**Goal:** Implement ranked Daily OG/GO and immediate private Practice request routing with trusted backend authority, real two-client verification, and no frontend redesign.
 
-**Architecture:** Treat the Golden Checkpoint shell as the behavioral baseline. Phase 55 operates in tracked planning/design artifacts and concept assets, not production runtime code. It maps each proposed visual or information-architecture change back to preserved capabilities, decides the component strategy from evidence, and hands Phase 56 a staged source plan with explicit rollback and verification gates.
-
-**Tech stack baseline:** React 19, Vite 8, TypeScript 6, semantic HTML, existing `src/ui/` primitives, Supabase, Vitest, Playwright. Alternatives may be recommended but not installed or implemented in Phase 55.
+**Architecture:** Extend the existing asynchronous ranked Practice queue, trusted finalization, trusted settlement, rating, public leaderboard, and Daily claim architecture with an explicit Daily-ranked dimension. Do not create a parallel browser-trusted competitive path. Reuse the existing private Practice request RPCs for the routing slice.
 
 ## Global Constraints
 
-- Work only in `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`; do not touch stable `brrrdle`.
-- Do not begin until the functional shell has a verified Final Acceptance commit and Golden Checkpoint tag/release.
-- Preserve every capability and sensitivity boundary in `PRE-PHASE-55-FUNCTIONALITY-PRESERVATION-INVENTORY-2026-07-09.md`.
-- Do not modify `src/`, `api/`, `e2e/`, tests, migrations, package manifests, lockfiles, deployment configuration, or remote state.
-- Do not install shadcn, a framework, a font package, an icon package, or any other dependency during this phase.
-- Do not use inspiration as a cloning brief. Extract principles and interaction patterns; maintain an original brrrdle identity.
-- Do not put copyrighted page captures or generated concepts into production assets during Phase 55.
-- Do not expose credentials, raw answers, private profile/account data, internal identifiers, auth state, or remote payloads in artifacts or concepts.
+- Work only in `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev`; never touch stable `brrrdle`.
+- Verify the functional-shell Golden Checkpoint before source edits.
+- Preserve the accepted shell presentation, performance, accessibility, mobile fit, and route behavior.
+- Preserve unranked Daily Multiplayer, ranked Practice, private Practice, Live, spectator, Solo, cloud persistence, scoring, forfeit, timeout, and FIFO behavior.
+- Do not change the Elo formula, K-factors, provisional thresholds, general scoring formulas, rewards, consumables, or progression.
+- Do not implement private Daily, request center/blocking/preferences, service-worker push, social features, design work, dependencies, or framework migration.
+- No browser client may directly write rating profiles, rating transactions, trusted match results, queue pair authority, or Daily claim authority.
+- Keep answers, seeds, serialized sessions, player sessions, raw auth ids, and private request data out of public payloads and logs.
+- One writer at a time owns high-conflict surfaces in `src/multiplayer/`, `src/app/App.tsx`, Supabase migrations, leaderboard code, and progress records.
 
-## Current Implementation Review
+## Current Supabase Guidance Applied To The Plan
 
-### Product And Interaction Contract
+- Keep queue/request reads participant-scoped and narrowly filtered. Supabase notes that Postgres Changes authorization is evaluated for each subscribed user and can become a database bottleneck, so Phase 55 must not add a broad unfiltered request or queue subscription: <https://supabase.com/docs/guides/realtime/postgres-changes>.
+- Keep RLS predicates simple and indexed on user, status, date, scope, and bucket fields used by the new paths: <https://supabase.com/features/row-level-security>.
+- Any view used for public leaderboard exposure must preserve the approved allowlist and use invoker-safe behavior where applicable: <https://supabase.com/docs/guides/database/tables>.
+- Every `security definer` RPC must authenticate `auth.uid()`, validate participant ownership, restrict `search_path`, and expose only the minimum grant surface: <https://supabase.com/docs/guides/troubleshooting/do-i-need-to-expose-security-definer-functions-in-row-level-security-policies-iI0uOw>.
 
-1. `PRODUCT.md` defines a focused, dependable, playful word-game tool with gameplay clarity ahead of decoration, mobile-first workflows, stable progress, and purposeful motion/sound.
-2. The functionality-preservation inventory identifies application, account, Solo, multiplayer, competitive, spectator, supporting, accessibility, and privacy capabilities that must survive redesign.
-3. The accepted shell is deliberately neutral. It is an architectural starting point, not the intended visual identity.
+## Stage 55.0 - Baseline, Characterization, And Contract Matrix
 
-### Frontend Structure
+1. Verify clean `main`, `origin/main`, Final Acceptance commit, Golden tag, and Release.
+2. Read the constitution, product spec, Phase 48 ranked Daily addendum, Phase 50 FIFO migration, Phase 52 private-request plan, current Supabase docs, and this plan.
+3. Map the exact source, SQL, test, and UI ownership for Daily claims, ranked queue lifecycle, trusted settlement, deterministic Daily answers, public leaderboard metadata, Daily controls, and private request routing.
+4. Add or identify characterization tests proving current ranked Practice, unranked Daily, FIFO repeat-opponent, and private request behavior before source changes.
+5. Record the intended Supabase project identifier through existing safe configuration without printing credentials or environment values.
 
-1. `src/ui/` supplies Button, Panel, Navigation, SubtabBar, Dialog, Tooltip, StatusState, ToastRegion, Keyboard, and sharing primitives. Phase 56 can evolve these as the primary design-system seam.
-2. `src/app/App.tsx` owns broad route and state integration. `src/app/LunarSignalStage.tsx` now supplies semantic chrome and Focus Mode behavior. Both are high-conflict integration surfaces.
-3. `src/multiplayer/MultiplayerPanel.tsx` and its workspace/game/live/lobby/active children are dense operational surfaces requiring staged redesign and real multi-client verification.
-4. Game boards and keyboards expose semantic `data-state` attributes, allowing design changes without coupling browser tests to replaceable CSS classes.
-5. `src/theme/theme.ts` and `src/theme/surface.ts` are typed seams, but Phase 55 must decide whether the redesigned product uses one strong default identity, selectable themes, or a restrained token architecture before adding new variants.
+**Gate:** Stop if the Golden Checkpoint is inconsistent, the intended project cannot be safely identified, or current remote migration history differs from the local migration ledger.
 
-### Performance And Verification Baseline
+## Stage 55.1 - Ranked Daily Contract Tests First
 
-1. The accepted shell reports 83.75 kB CSS and 967.78 kB main JavaScript minified, with no mobile horizontal overflow, backdrop-filter layers, shadows, or sticky elements in the required 390px route matrix.
-2. Baseline verification is 920 Vitest tests and 63 Playwright scenarios, including real temporary-account Supabase-backed multiplayer paths.
-3. Phase 56 must preserve semantic state and behavior assertions, console/network guards, temporary-account cleanup, mobile overflow coverage, and real two-client E2E.
+Add failing tests for the approved contract before implementation:
 
-## Planned Artifacts
+- eligibility accepts Daily only for authenticated async ranked OG/GO with five letters, no clock, canonical GO count, valid UTC date, and Hard Mode boolean;
+- Practice and Daily requests cannot match each other;
+- Daily requests require matching date, mode, Hard Mode, and Daily rating bucket;
+- FIFO selection remains oldest compatible request first and permits immediate repeat opponents;
+- Daily OG and GO map to distinct rating/storage buckets from Practice;
+- four independent Daily claim lanes exist per user/date;
+- duplicate claim in the same lane is idempotent only for the same source and rejected for a different source;
+- ranked and unranked Daily answer namespaces differ deterministically for OG and every GO puzzle;
+- scoring/settlement eligibility accepts the new Daily buckets without changing Elo math;
+- public leaderboard parsing accepts only the new approved buckets and remains privacy-safe;
+- malformed scope/date/settings/payloads fail closed.
 
-- `planning/phase-55/DESIGN-INTAKE.md`
-- `planning/phase-55/INSPIRATION-ANALYSIS.md`
-- `planning/phase-55/CONCEPT-REVIEW.md`
-- `planning/phase-55/design.md`
-- `planning/phase-55/FRONTEND-STACK-DECISION.md`
-- `planning/phase-55/PHASE-56-REBUILD-HANDOFF.md`
-- `planning/phase-55/REVIEW-CHECKLIST.md`
-- approved concept assets under `planning/phase-55/concepts/`
-- progress/changelog records and an ignored Review Candidate prompt package
+Run the smallest focused Vitest sets after each test group. Confirm new expectations fail for the intended reason before source changes.
 
-## Stage 55.0 - Checkpoint Preflight And Design Intake
+## Stage 55.2 - Additive Supabase Migration Artifact
 
-**Goal:** Bind all later work to the exact accepted shell and capture the user's direction without invention.
+Create one additive Phase 55 migration with focused SQL contract tests or migration inspection coverage. It must:
 
-- Verify local `main`, `origin/main`, the Final Acceptance commit, Golden Checkpoint annotated tag, and GitHub Release all identify the same accepted shell tree.
-- Read the preservation inventory, strategy, decision log, shell performance report, checklist, `PRODUCT.md`, current theme seams, and historical proposals.
-- Create `DESIGN-INTAKE.md` containing supplied inspiration URLs/screenshots, desired qualities, anti-goals, preferred density, motion/sound preferences, mobile priorities, brand language, and any absolute constraints.
-- Record unknowns explicitly. Do not fabricate missing user preferences.
+1. Add a normalized claim lane or ranked dimension to `multiplayer_daily_claims` and replace the uniqueness contract so ranked/unranked OG/GO can each be claimed once per UTC day.
+2. Backfill existing rows as unranked without dropping valid claims.
+3. Extend claim RPCs/triggers so unranked existing games remain compatible and ranked Daily claims are authoritative.
+4. Add Daily-ranked queue validation for scope, fixed length, no clock, current UTC date, mode, Hard Mode, rating bucket, and oldest-compatible FIFO indexing.
+5. Extend trusted finalization to create a Daily-ranked async game with server-validated participants, date, fixed settings, queue ids, and rating bucket.
+6. Extend trusted settlement and rating-profile/transaction authority to the new Daily buckets without changing rating math.
+7. Extend the public leaderboard RPC allowlist for ranked Daily OG/GO only.
+8. Preserve participant-only reads, RLS, grants, `security definer` auth checks, and restricted search paths.
+9. Include rollback notes and remote probes.
 
-**Gate:** Stop if the Golden Checkpoint cannot be verified or if design inputs conflict with preserved functionality, privacy, accessibility, or performance requirements.
+Do not apply the migration remotely in this stage. Stop and create a separate exact migration-application continuation prompt after the local diff, tests, and project-target preflight are clean.
 
-## Stage 55.1 - Evidence-Based Product And Design Audit
+## Stage 55.3 - Domain, Repository, And Answer Namespace
 
-**Goal:** Diagnose the accepted shell as a game product before proposing aesthetics.
+After the local migration contract is stable:
 
-- Audit Home, Solo, Multiplayer, Calendar, History, Stats, Leaderboard, Words, Profile, Settings, Help, About, Feedback, and authorized Admin surfaces on desktop and mobile.
-- Use the Impeccable and product-design audit workflows for hierarchy, density, navigation, accessibility, interaction feedback, responsive behavior, content rhythm, and consistency.
-- Analyze each user-supplied reference for transferable principles: information hierarchy, typography, color, spacing, controls, motion, game feedback, mobile behavior, and data visualization.
-- Distinguish inspiration from direct imitation and document accessibility or performance risks in each reference.
-- Map every recommendation to preservation inventory IDs and classify it as presentation-only, information-architecture, interaction, content, or potentially contract-affecting.
+- add ranked Daily bucket identifiers and safe parser/storage mappings in `rating.ts`;
+- generalize ranked eligibility in `matchmaking.ts` and `scoring.ts` while retaining Practice constraints;
+- add a ranked dimension to Daily answer selection so ranked/unranked answers are deterministic but distinct;
+- extend repository input/result types and RPC adapters for Daily date/scope/buckets;
+- keep idempotency keys scoped by user, Daily date, mode, Hard Mode, and ranked Daily lane without embedding private values;
+- preserve stale-response guards and empty-response recovery behavior;
+- update leaderboard/public-profile metadata view models to label ranked Daily separately.
 
-**Gate:** Contract-affecting recommendations are deferred unless separately planned; Phase 55 concepts may not assume backend/game changes.
+Run focused domain/repository tests after each logical slice.
 
-## Stage 55.2 - Distinct Concept Directions
+## Stage 55.4 - Lightweight Ranked Daily UI
 
-**Goal:** Explore meaningful alternatives before selecting a system.
+Update Daily Multiplayer with the smallest shell-consistent controls:
 
-- Produce three or four concept directions with different layout, typography, palette, control, motion, and data-visualization approaches. Avoid palette-only variants.
-- Include representative desktop and mobile concepts for Home, active Solo gameplay, Multiplayer workspace/gameplay, Stats/Leaderboard, and Profile/Settings.
-- Preserve recognizably interactive controls, game-state colors, readable boards/keyboards, accessible focus, result/definition clarity, and mobile reachability.
-- Use image generation only for separately authorized concept work and disclose generated assets as concepts, not implementation promises.
-- Create `CONCEPT-REVIEW.md` comparing distinctiveness, usability, implementation cost, bundle risk, accessibility, responsive fit, and compatibility with the current architecture.
+- OG/GO selection;
+- unranked/ranked selection;
+- Hard Mode toggle visible only when ranked is selected;
+- no word-length, GO-count, difficulty, or clock controls;
+- clear UTC eligibility/claimed/queued/matched/error states;
+- queue cancel/check/recovery behavior consistent with ranked Practice;
+- direct entry into the finalized game;
+- distinct labels for ranked versus unranked current games and History/Leaderboard metadata.
 
-**Gate:** Stop for explicit user concept selection or synthesis direction. Do not finalize `design.md` or begin production implementation merely because one concept scores highest.
+Retain all existing unranked Daily behavior. Add component tests for controls, disabled states, error recovery, mobile fit, semantic statuses, and no answer/private-id exposure. Do not redesign the Multiplayer workspace.
 
-## Stage 55.3 - `design.md` And Frontend Stack Decision
+## Stage 55.5 - Immediate Private Request Routing
 
-**Goal:** Turn the selected direction into enforceable implementation guidance.
+Extend the existing public-profile request flow without creating a new inbox:
 
-- Create `design.md` with brand/product principles, information hierarchy, layout rules, typography, palette, spacing, shape, iconography, controls, boards/keyboards, status/error/result feedback, data visualization, responsive rules, accessibility, motion/sound, content voice, and anti-patterns.
-- Define stable semantic tokens and component contracts without hard-coding implementation to a library prematurely.
-- Create `FRONTEND-STACK-DECISION.md` comparing:
-  - evolved bespoke primitives;
-  - selective shadcn adoption;
-  - another evidence-backed component system;
-  - any proposed framework change.
-- Require measurable benefit, incremental adoption, bundle impact, accessibility behavior, migration cost, test impact, and rollback path for every nontrivial stack change.
-- Default to React/Vite and incremental primitive evolution unless evidence establishes a stronger option.
+1. Keep the created request object/id in profile-page state after successful send.
+2. Show a direct `Go to Practice Multiplayer` action immediately.
+3. While the requester remains on the same profile, refresh only that participant's relevant request at a restrained cadence or through an already-approved participant-scoped subscription.
+4. Guard every asynchronous response by profile id, request id, viewer session, and request version so refocus/rerender cannot restore stale state.
+5. Show requested, created, declined, cancelled, and expired states.
+6. On created, show `Enter private match` and navigate to the exact created game.
+7. Stop polling/subscription work after terminal state or unmount.
 
-**Gate:** User accepts `design.md` and the component/stack decision before the rebuild handoff is considered final.
+Add helper, component, route, and focused browser tests. Do not add blocking, opt-out settings, new notification storage, or push behavior.
 
-## Stage 55.4 - Phase 56 Rebuild Architecture And Work Packets
+## Stage 55.6 - Remote Migration Gate And Real E2E
 
-**Goal:** Make the redesign executable at high autonomy without weakening ownership or verification.
+After source, unit, component, build, typecheck, and migration-diff checks are clean:
 
-- Create a route-to-component map and divide Phase 56 into cohesive slices: tokens/primitives, global chrome/navigation, ordinary routes, Solo gameplay, Multiplayer, data-rich surfaces, accessibility/performance hardening, and integration.
-- Keep one writer at a time for `src/app/App.tsx`, `src/index.css`, `src/app/LunarSignalStage.tsx`, and `src/multiplayer/MultiplayerPanel.tsx`.
-- Define a characterization-before-edit rule for any untested behavior and focused verification after every integrated slice.
-- Map preservation inventory IDs and E2E scenarios to each work packet.
-- Define rollback points and Review Candidate backups between major integrated slices when a hosted review would materially reduce risk.
-- Specify which existing tests may change because they encode cosmetic presentation and which behavioral assertions are protected.
+- generate a dedicated Phase 55 remote migration and continuation prompt naming the exact migration file, expected project, probes, rollback conditions, and cleanup;
+- stop before remote application until the user activates that prompt;
+- after authorization, apply only the exact reviewed migration to the verified intended project;
+- probe functions, constraints, indexes, RLS/grants, claim lanes, queue status, settlement, and public leaderboard output without printing private data;
+- run real temporary-account two-client E2E for ranked Daily OG and GO, including both Hard Mode settings where practical;
+- prove four independent claim lanes, ranked/unranked answer separation, FIFO matching, repeat-opponent compatibility, first turn, completion, trusted settlement, rating display, public metadata, refresh/re-entry, and cleanup;
+- run the private request route flow with requester and target contexts through created/declined paths.
 
-## Stage 55.5 - GPT-5.6 SOL Handoff Package
+Delete all temporary users, queue rows, games, claims, requests, rating/result test rows, and browser artifacts created by the tests.
 
-**Goal:** Give the rebuild agent enough context and autonomy to execute without guessing.
+## Stage 55.7 - Full Regression And Review Candidate
 
-The handoff must include:
+Run sequentially from a clean test environment:
 
-- exact Golden Checkpoint commit, tag, release, and rollback instructions;
-- current product digest and full preservation inventory;
-- accepted `design.md`, concepts, inspiration analysis, and anti-patterns;
-- source architecture, high-conflict files, privacy boundaries, and Supabase non-goals;
-- accepted stack/component decision and dependency authorization boundaries;
-- performance and accessibility budgets;
-- complete test commands, real E2E requirements, cleanup rules, and known transient-failure policy;
-- staged work packets, integration order, stop conditions, and Review Candidate loop;
-- explicit authority to improve the frontend boldly while preserving protected contracts.
+1. focused changed-area Vitest and Playwright;
+2. ranked Practice OG/GO FIFO and repeat-opponent regressions;
+3. unranked Daily OG/GO claim and gameplay regressions;
+4. private Practice create/accept/decline/cancel/direct-entry regressions;
+5. Solo Daily/Practice persistence regressions;
+6. spectator/privacy regressions;
+7. shell desktop/tablet/390px/narrow-mobile no-overflow and scroll checks;
+8. `npm run lint`;
+9. `npm run test`;
+10. a fresh full `npm run test:e2e` after any focused retries;
+11. `npm run build`;
+12. `npx tsc -p tsconfig.api.json --noEmit`;
+13. `git diff --check` and repository hygiene scans.
 
-## Stage 55.6 - Verification, Review Candidate, And Stop
-
-- Validate all tracked Markdown links and referenced artifact paths.
-- Check that every preservation-inventory category appears in the Phase 56 work/test map.
-- Check that every concept claim is traceable to user intake, repository evidence, or clearly labeled agent recommendation.
-- Confirm no secrets, private data, raw answers, hidden environment values, or production payloads appear in text or images.
-- Run `git diff --check`, quote-aware CSV validation if progress changes, non-printing/credential/private-data scans, ignored-artifact checks, and `git status --short --branch`.
-- Do not rerun the full application suite for documentation-only changes unless source/runtime files changed unexpectedly; verify the checkpoint's recorded suite instead.
-- Create a Phase 55 manual review checklist and an ignored Review Candidate Backup prompt only after documentation verification is clean.
-- Stop for user review. Do not begin Phase 56.
-
-## Phase 56 Verification Contract
-
-The handoff must require Phase 56 to run, at minimum:
-
-- focused unit/component tests after every design-system and route slice;
-- responsive browser verification at desktop, tablet, 390px, and a narrow mobile width;
-- keyboard-only, focus, dialog/menu/tab, status-region, reduced-motion, contrast, and no-horizontal-overflow checks;
-- all Solo Daily/Practice OG/GO solve, persistence, refresh, and re-entry E2E;
-- all Practice/Daily/private/ranked/spectator multiplayer E2E with real temporary accounts and remote cleanup;
-- `npm run lint`;
-- `npm run test`;
-- a fresh full `npm run test:e2e` after any focused retries;
-- `npm run build`;
-- `npx tsc -p tsconfig.api.json --noEmit`;
-- before/after CSS, JavaScript, route-render, and mobile-scroll evidence;
-- full hygiene, artifact, port, and process cleanup checks;
-- a comprehensive hosted manual Review Candidate loop before final acceptance.
+If clean, update the Phase 55 changelog/checklist/timeline/index/progress, create the ignored Review Candidate GitHub Backup prompt, and stop for explicit backup authorization and hosted manual review.
 
 ## Stop Conditions
 
-Stop and report if:
-
-- the accepted shell checkpoint is missing or does not match the expected tree;
-- supplied references require copying a protected design or asset;
-- a concept depends on gameplay/backend/Supabase behavior changes;
-- a new dependency or framework is treated as pre-approved;
-- design work exposes private data or weakens accessibility/performance budgets;
-- the phase drifts into production source implementation, deployment, Git/GitHub actions, or stable-repository work.
+Stop and report before expanding scope if migration history or project identity is uncertain; ranked Daily would require an Elo formula change or answer/private-data exposure; claim separation requires destructive data loss; current ranked Practice, unranked Daily, Solo, private Practice, or shell behavior would change beyond the approved contract; verification remains failing after focused diagnosis; or the work would require a dependency/framework change, private Daily, request center/blocking, consumables, design work, deployment config, release, or stable-repository edits.

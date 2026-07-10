@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 54 is accepted, closed, and checkpointed; the Pre-Phase-55 functional shell is accepted and closed through its Final Acceptance Backup and awaits its Golden Checkpoint; Phase 55 design/handoff planning is under [planning/phase-55/](phase-55/).
+7. The active or next phase plan. Phase 54 and the Pre-Phase-55 functional shell are accepted, closed, and checkpointed. Phase 55 ranked Daily/private-request-routing planning is under [planning/phase-55/](phase-55/); Phases 56-57 contain routed foundation briefs; the displaced design/SOL handoff plan is preserved under Phase 58.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -54,8 +54,11 @@ For normal future work, read:
 - `planning/phase-52/`: Phase 52 accepted closeout materials for private Practice matchmaking expansion, including settings-aware unranked Practice OG/GO requests, existing private-request contract review, request lifecycle clarity, changelog, manual review checklist, and focused E2E requirements.
 - `planning/phase-53/`: Phase 53 accepted closeout materials for Stats clarity, progression transparency, cloud-sync provenance copy, local multiplayer performance summaries, and privacy-safe public rating/profile metadata, including planning brief, implementation plan, changelog, and manual review checklist.
 - `planning/phase-54/`: Phase 54 accepted closeout materials for participant-owned Live/Active public-profile links, source-aware profile return routing, static Lobby/spectator identity boundaries, focused spectator preservation, protected-contract routing, changelog, and manual review checklist; closed at `cc6a1e600a7e330140366d2ba2ab95fd1da11a75` and checkpointed by `phase-54-golden-2026-07-09`.
-- `planning/pre-phase-55/`: accepted functional-shell changelog, performance report, and comprehensive preservation-mapped manual review checklist; Final Acceptance closure is recorded, while the separate Golden Checkpoint remains pending.
-- `planning/phase-55/`: planned design-direction and GPT-5.6 SOL handoff phase, including the planning brief and detailed implementation plan; execution begins only after the accepted shell Golden Checkpoint.
+- `planning/pre-phase-55/`: accepted functional-shell changelog, performance report, and comprehensive preservation-mapped manual review checklist; Final Acceptance commit `ef2349ac53f8d02959d759615d85cfa85190beb9` is protected by Golden Checkpoint `pre-phase-55-functional-shell-golden-2026-07-10`.
+- `planning/phase-55/`: planned ranked Daily Multiplayer OG/GO and narrow private Practice request routing phase, including the reviewed contract and implementation plan.
+- `planning/phase-56/`: routed Private Request Center, notification, preferences, blocking, and anti-spam foundation brief.
+- `planning/phase-57/`: routed Solo-Practice-only marketplace and consumables foundation brief.
+- `planning/phase-58/`: preserved design-direction and GPT-5.6 SOL handoff planning, deferred until the foundation phases are accepted; the actual frontend rebuild is routed to Phase 59.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
