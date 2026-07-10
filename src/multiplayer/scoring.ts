@@ -1,6 +1,7 @@
 import type { GameMode, PlayScope } from '../game/types'
 import { getMultiplayerSessionForPlayer, type MultiplayerGame, type MultiplayerMove, type MultiplayerPlayerId, type MultiplayerSerializedSession } from './multiplayer'
 import {
+  getRankedDailyRatingBucket,
   getRankedPracticeRatingBucket,
   getRatingBucket,
   isTimedPracticeRatingBucket,
@@ -153,15 +154,25 @@ function winnerReason(game: MultiplayerGame, players: readonly MultiplayerPlayer
   return 'points'
 }
 
-export function getCompetitiveRatingEligibility(game: Pick<MultiplayerGame, 'customGameCode' | 'mode' | 'ranked' | 'ratingBucket' | 'scope' | 'timeLimitMs'>): CompetitiveRatingEligibility {
+export function getCompetitiveRatingEligibility(game: Pick<MultiplayerGame, 'customGameCode' | 'dailyDateKey' | 'mode' | 'ranked' | 'ratingBucket' | 'scope' | 'timeLimitMs' | 'wordLength'>): CompetitiveRatingEligibility {
   if (game.ranked !== true) {
     return { eligible: false, reason: 'Unranked matches do not affect rating.' }
   }
   if (game.customGameCode) {
     return { eligible: false, reason: 'Ranked custom games are deferred.' }
   }
-  if (game.scope !== 'practice') {
-    return { eligible: false, reason: 'Daily ranked multiplayer is deferred.' }
+  if (game.scope === 'daily') {
+    const expectedBucket = getRankedDailyRatingBucket(game.mode)
+    if (!game.dailyDateKey) {
+      return { eligible: false, reason: 'Daily ranked rating requires a UTC date key.' }
+    }
+    if (game.wordLength !== 5 || game.timeLimitMs !== null) {
+      return { eligible: false, reason: 'Daily ranked rating requires five-letter puzzles without a clock.' }
+    }
+    if (game.ratingBucket && game.ratingBucket !== expectedBucket) {
+      return { eligible: false, reason: 'Ranked Daily rating bucket does not match its game mode.' }
+    }
+    return { eligible: true, reason: 'Eligible for Daily ranked rating.' }
   }
   const expectedBucket = getRankedPracticeRatingBucket(game.mode, game.timeLimitMs)
   if (!expectedBucket) {
@@ -182,7 +193,10 @@ export function projectMultiplayerPerformance(game: MultiplayerGame): Multiplaye
   }
   const lastMove = game.moves[game.moves.length - 1]
   const status: MultiplayerResultStatus = game.status === 'expired' ? 'expired' : 'completed'
-  const bucket = game.ratingBucket ?? getRankedPracticeRatingBucket(game.mode, game.timeLimitMs) ?? getRatingBucket(game.mode)
+  const bucket = game.ratingBucket
+    ?? (game.scope === 'daily' && game.ranked === true
+      ? getRankedDailyRatingBucket(game.mode)
+      : getRankedPracticeRatingBucket(game.mode, game.timeLimitMs) ?? getRatingBucket(game.mode))
   const ratingEligibility = getCompetitiveRatingEligibility(game)
   const scoredPlayers = game.players.map((player): MultiplayerPlayerPerformance => {
     const moves = game.moves.filter((move) => move.playerId === player.id)

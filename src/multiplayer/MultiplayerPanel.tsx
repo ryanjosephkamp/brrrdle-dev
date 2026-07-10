@@ -33,6 +33,7 @@ import { createMultiplayerProfileSummary, type MultiplayerProfileSummary } from 
 import { normalizeCompetitiveMultiplayerState, upsertCustomGameLobby, type MultiplayerCompetitiveState } from './competitiveMultiplayer'
 import { MultiplayerGameSurface } from './MultiplayerGameSurface'
 import {
+  getRankedDailyRatingBucket,
   getRatingBucket,
   normalizeRankedPracticeTimeLimitMs,
   TIMED_RANKED_PRACTICE_TIME_LIMIT_MS,
@@ -65,6 +66,7 @@ import {
   getRankedQueueActiveRequestId,
   getRecoverableRankedQueueGame,
   mergeFinalizedRankedGameIntoLocalState,
+  resolveFinalizedRankedQueueGame,
   type RankedQueueRefreshTrigger,
   shouldAutoRefreshRankedQueue,
   shouldShowRankedQueueBusyForRefresh,
@@ -72,6 +74,7 @@ import {
 import {
   buildFinalizedRankedGameFromStatus,
   buildRankedQueueRequestInput,
+  getRankedQueueCreationIdempotencyKey,
   getRankedQueueFinalizationIdempotencyKey,
   withRankedQueueExpiry,
 } from './multiplayerPanelRankedQueue'
@@ -767,10 +770,14 @@ export function MultiplayerPanel({
   const onlineReady = authStatus === 'authenticated' && Boolean(viewerUserId)
   const canLoadPrivateMatchRequests = scope === 'practice' && onlineReady && Boolean(privateMatchActions)
   const dailyClaimedForMode = scope === 'daily'
-    ? hasDailyMultiplayerParticipation(normalized, dailyDateKey, mode, viewerUserId)
+    ? hasDailyMultiplayerParticipation(normalized, dailyDateKey, mode, viewerUserId, matchKind === 'ranked')
     : false
   const existingDailyClaim = scope === 'daily' && viewerUserId
-    ? visibleGames.find((game) => game.mode === mode && getViewerMultiplayerPlayerId(game, viewerUserId))
+    ? visibleGames.find((game) => (
+        game.mode === mode
+        && (game.ranked === true) === (matchKind === 'ranked')
+        && getViewerMultiplayerPlayerId(game, viewerUserId)
+      ))
     : undefined
   const selectGame = useCallback((gameId: string) => {
     setInternalSelectedGameId(gameId)
@@ -882,7 +889,13 @@ export function MultiplayerPanel({
   const joiningWouldClaimDuplicateDaily = Boolean(
     selectedGame
       && selectedGame.scope === 'daily'
-      && hasDailyMultiplayerParticipation(normalized, selectedGame.dailyDateKey, selectedGame.mode, viewerUserId),
+      && hasDailyMultiplayerParticipation(
+        normalized,
+        selectedGame.dailyDateKey,
+        selectedGame.mode,
+        viewerUserId,
+        selectedGame.ranked === true,
+      ),
   )
   const canSubmitSelectedGame = Boolean(
     selectedGame
@@ -892,16 +905,18 @@ export function MultiplayerPanel({
       && selectedGame.currentTurn === viewerPlayerId
       && !readOnly,
   )
-  const rankedTimeLimitMs = matchKind === 'ranked' ? normalizeRankedPracticeTimeLimitMs(timeLimitMs) : null
+  const rankedTimeLimitMs = matchKind === 'ranked' && scope === 'practice'
+    ? normalizeRankedPracticeTimeLimitMs(timeLimitMs)
+    : null
   const timeLimitOptions = matchKind === 'ranked'
     ? RANKED_PRACTICE_TIME_LIMIT_OPTIONS
     : PRACTICE_MULTIPLAYER_TIME_LIMIT_OPTIONS
   const selectedTimeLimitValue = timeLimitOptions.some((option) => option.value === timeLimitMs) ? timeLimitMs ?? '' : ''
   const rankedQueueUnavailableReason = matchKind === 'ranked'
-    ? scope !== 'practice'
-      ? 'Daily ranked matchmaking is deferred.'
-      : rankedTimeLimitMs === undefined
+    ? scope === 'practice' && rankedTimeLimitMs === undefined
         ? 'Ranked Practice supports only no clock or the five-minute clock.'
+        : scope === 'daily' && !dailyDateKey
+          ? 'Ranked Daily requires the current UTC date.'
         : !rankedQueueActions
           ? 'Ranked queue requires authenticated Supabase multiplayer.'
           : undefined
@@ -971,7 +986,7 @@ export function MultiplayerPanel({
     })
     const idempotencyKey = getRankedQueueFinalizationIdempotencyKey(status)
     if (!game || !idempotencyKey) {
-      throw new Error('Unable to build a valid ranked Practice game from queue status.')
+      throw new Error('Unable to build a valid ranked multiplayer game from queue status.')
     }
     let finalization: RankedQueueFinalizationResult
     try {
@@ -998,9 +1013,20 @@ export function MultiplayerPanel({
     if (finalization.gameId !== game.id) {
       throw new Error('Ranked queue finalization returned an unexpected game id.')
     }
-    upsertFinalizedRankedGame(game)
+    const durableGame = finalization.idempotent
+      ? await loadRecoverableRankedQueueGame(status.matchedGameId)
+      : undefined
+    const gameToOpen = resolveFinalizedRankedQueueGame({
+      built: game,
+      durable: durableGame,
+      idempotent: finalization.idempotent,
+    })
+    if (!gameToOpen) {
+      throw new Error('Ranked match was already finalized, but its durable game is unavailable.')
+    }
+    upsertFinalizedRankedGame(gameToOpen)
     setRankedQueue({
-      matchedGameId: game.id,
+      matchedGameId: gameToOpen.id,
       message: finalization.idempotent
         ? 'Ranked match already finalized. Opening the durable game.'
         : 'Ranked match created. Opening the durable game.',
@@ -1015,28 +1041,32 @@ export function MultiplayerPanel({
     const queueHardMode = override?.hardMode ?? hardMode
     const queueTimeLimitMs = override ? override.timeLimitMs ?? null : timeLimitMs
     const requestInput = buildRankedQueueRequestInput({
+      dailyDateKey: scope === 'daily' ? dailyDateKey : undefined,
       hardMode: queueHardMode,
       mode: queueMode,
+      scope,
       timeLimitMs: queueTimeLimitMs,
       wordLength: queueWordLength,
     })
-    const unavailableReason = scope !== 'practice'
-      ? 'Daily ranked matchmaking is deferred.'
-      : !requestInput
-        ? 'Ranked Practice supports only no clock or the five-minute clock.'
+    const unavailableReason = !requestInput
+      ? scope === 'daily'
+        ? 'Ranked Daily requires a valid current UTC date, five letters, and no clock.'
+        : 'Ranked Practice supports only no clock or the five-minute clock.'
       : !rankedQueueActions
         ? 'Ranked queue requires authenticated Supabase multiplayer.'
         : undefined
     if (!rankedQueueActions || !viewerUserId || !requestInput || unavailableReason) {
       setRankedQueue({
-        message: unavailableReason ?? 'Sign in to enter ranked Practice matchmaking.',
+        message: unavailableReason ?? 'Sign in to enter ranked matchmaking.',
         status: 'error',
       })
       return
     }
     rankedQueueMutationVersionRef.current += 1
     setRankedQueue({
-      message: requestInput.timeLimitMs
+      message: scope === 'daily'
+        ? 'Creating ranked Daily queue request.'
+        : requestInput.timeLimitMs
         ? 'Creating timed ranked queue request.'
         : 'Creating ranked queue request.',
       status: 'idle',
@@ -1044,12 +1074,17 @@ export function MultiplayerPanel({
     setRankedQueueBusy(true)
     let createdRequestId: string | undefined
     try {
-      const request = await rankedQueueActions.createRankedQueueRequest(withRankedQueueExpiry(requestInput))
+      const request = await rankedQueueActions.createRankedQueueRequest(withRankedQueueExpiry({
+        ...requestInput,
+        idempotencyKey: getRankedQueueCreationIdempotencyKey(requestInput, viewerUserId),
+      }))
       createdRequestId = request.requestId
       const claim = await rankedQueueActions.claimRankedQueuePair({ requestId: request.requestId })
       if (claim.requestStatus !== 'matched' || !claim.matchedGameId) {
         setRankedQueue({
-          message: requestInput.timeLimitMs
+          message: scope === 'daily'
+            ? 'Ranked Daily queue request created. Waiting for a compatible signed-in rival.'
+            : requestInput.timeLimitMs
             ? 'Timed ranked queue request created. Waiting for a compatible signed-in rival.'
             : 'Ranked queue request created. Waiting for a compatible signed-in rival.',
           requestId: request.requestId,
@@ -1418,7 +1453,9 @@ export function MultiplayerPanel({
       return
     }
     const ranked = matchKind === 'ranked' && authStatus === 'authenticated' && Boolean(viewerUserId)
-    const ratingBucket = ranked ? getRatingBucket(mode) : undefined
+    const ratingBucket = ranked
+      ? scope === 'daily' ? getRankedDailyRatingBucket(mode) : getRatingBucket(mode)
+      : undefined
     if (ranked) {
       void enterRankedQueue()
       return
@@ -1448,7 +1485,7 @@ export function MultiplayerPanel({
       dailyDateKey,
       difficulty: defaultDifficulty,
       goPuzzleCount: defaultGoPuzzleCount,
-      hardMode: scope === 'practice' ? hardMode : undefined,
+      hardMode: scope === 'practice' || ranked ? hardMode : undefined,
       mode,
       playerProfiles: viewerProfile ? { 'player-one': viewerProfile } : undefined,
       playerUserIds: viewerUserId ? { 'player-one': viewerUserId } : undefined,
@@ -1938,10 +1975,26 @@ export function MultiplayerPanel({
                 </label>
               </>
             ) : (
-              <div className="min-w-0">
-                <p className="font-semibold text-cyan-100">UTC day</p>
-                <p className="break-words">{dailyDateKey}</p>
-              </div>
+              <>
+                <div className="min-w-0">
+                  <p className="font-semibold text-cyan-100">UTC day</p>
+                  <p className="break-words">{dailyDateKey}</p>
+                </div>
+                {matchKind === 'ranked' ? (
+                  <label className="grid min-w-0 gap-2 rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 font-semibold text-cyan-100">
+                    <span>Hard Mode</span>
+                    <span className="flex items-center gap-2 text-sm text-slate-200">
+                      <input
+                        checked={hardMode}
+                        className="h-4 w-4 rounded border-slate-500 bg-slate-950 text-cyan-300"
+                        onChange={(event) => setHardMode(event.target.checked)}
+                        type="checkbox"
+                      />
+                      {hardMode ? 'On' : 'Off'}
+                    </span>
+                  </label>
+                ) : null}
+              </>
             )}
             <div className="min-w-0">
               <p className="font-semibold text-cyan-100">Difficulty</p>
@@ -1951,7 +2004,9 @@ export function MultiplayerPanel({
           <Button className="min-h-14 w-full px-4" disabled={!canCreate} onClick={createGame} variant="primary">
             {canCreate
               ? matchKind === 'ranked'
-                ? rankedTimeLimitMs === TIMED_RANKED_PRACTICE_TIME_LIMIT_MS ? 'Enter timed ranked queue' : 'Enter ranked queue'
+                ? scope === 'daily'
+                  ? 'Enter ranked Daily queue'
+                  : rankedTimeLimitMs === TIMED_RANKED_PRACTICE_TIME_LIMIT_MS ? 'Enter timed ranked queue' : 'Enter ranked queue'
                 : 'Open multiplayer match'
               : rankedQueueBusy
                 ? 'Ranked queue working'
@@ -1977,14 +2032,17 @@ export function MultiplayerPanel({
                 Ranked is signed-in Practice only. Choose no clock for the current ranked track or 5 minutes for the separate timed ranked track. The queue matches mode, word length, Hard Mode, rating bucket, and ranked time control, then pairs the oldest compatible queued rival first.
               </p>
               <p className="mt-1">
-                Points decide the match result first. Elo changes afterward only after trusted settlement confirms durable ranked evidence. Daily ranked and ranked custom-code games remain deferred.
+                Points decide the match result first. Elo changes afterward only after trusted settlement confirms server-authorized ranked evidence. Ranked Daily uses separate OG and GO rating buckets with fixed five-letter, no-clock settings. Ranked custom-code games remain deferred.
               </p>
             </details>
           ) : (
             <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-50">
-              <p className="font-bold uppercase tracking-wide">Daily ranked deferred</p>
+              <p className="font-bold uppercase tracking-wide">Ranked Daily v1</p>
               <p className="mt-1">
-                Daily Multiplayer stays asynchronous, five-letter, UTC-day keyed, claim-safe, and unrated while ranked launches through Practice first.
+                Daily Multiplayer stays asynchronous, five-letter, UTC-day keyed, and clock-free. Separate ranked and unranked answer and claim lanes let each signed-in player complete OG and GO once in each lane per UTC day.
+              </p>
+              <p className="mt-1">
+                Ranked matchmaking separates OG/GO and Hard Mode settings, then pairs the oldest compatible queued rival first. Hard Mode shares the same Daily rating bucket.
               </p>
             </div>
           )}
@@ -2048,7 +2106,7 @@ export function MultiplayerPanel({
                     onClick={() => { selectGame(game.id); setLocalMessage(undefined); onGameplayAutoCenterRequest?.() }}
                     variant={game.id === selectedGame?.id ? 'primary' : 'secondary'}
                   >
-                    {game.mode.toUpperCase()} · {game.status}
+                    {game.ranked ? 'Ranked' : 'Unranked'} {game.mode.toUpperCase()} · {game.status}
                   </Button>
                 ))}
               </div>
@@ -2069,7 +2127,7 @@ export function MultiplayerPanel({
                     onClick={() => { selectGame(game.id); setLocalMessage(undefined); onGameplayAutoCenterRequest?.() }}
                     variant={game.id === selectedGame?.id ? 'primary' : 'secondary'}
                   >
-                    {game.mode.toUpperCase()} · {game.status}
+                    {game.ranked ? 'Ranked' : 'Unranked'} {game.mode.toUpperCase()} · {game.status}
                   </Button>
                 ))}
               </div>
@@ -2185,7 +2243,7 @@ export function MultiplayerPanel({
                 ))}
               </div>
               {selectedGame.ranked ? (
-                <p className="text-xs text-violet-100">Points decide this result. Elo updates only after trusted settlement confirms authenticated durable ranked evidence; local preview, spectator, custom, Daily, and unsupported timed Practice rows stay unrated.</p>
+                <p className="text-xs text-violet-100">Points decide this result. Elo updates only after trusted settlement confirms authenticated server-authorized ranked evidence; local preview, spectator, custom, unranked Daily, and unsupported timed Practice rows stay unrated.</p>
               ) : null}
             </div>
           ) : null}

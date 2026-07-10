@@ -1,5 +1,6 @@
 import { deleteE2eUser, type E2eUser } from './testUsers'
 import {
+  cleanupRankedDailyMultiplayerForUsers,
   deleteOrphanedQueuedRankedQueueRows,
   deleteMultiplayerRowsForUsers,
   deletePrivateMatchRequestsForUsers,
@@ -12,6 +13,7 @@ import {
 export interface CleanupSummary {
   readonly multiplayerRowsDeleted: number
   readonly privateMatchRequestsDeleted: number
+  readonly rankedDailyAuthorityRowsDeleted: number
   readonly rankedQueueRowsDeleted: number
   readonly rankedRatingRowsDeleted: number
   readonly usersDeleted: number
@@ -27,6 +29,7 @@ let staleCleanupPromise: Promise<StaleCleanupSummary> | undefined
 
 export async function cleanupE2eRun(users: readonly E2eUser[]): Promise<CleanupSummary> {
   const userIds = users.map((user) => user.id)
+  const rankedDailyAuthorityRowsDeleted = await cleanupRankedDailyMultiplayerForUsers(userIds)
   const privateMatchRequestsDeleted = await deletePrivateMatchRequestsForUsers(userIds)
   const rankedQueueRowsDeleted = await deleteRankedQueueRowsForUsers(userIds)
   const rankedRatingRowsDeleted = await deleteRankedRatingRowsForUsers(userIds)
@@ -43,6 +46,7 @@ export async function cleanupE2eRun(users: readonly E2eUser[]): Promise<CleanupS
   return {
     multiplayerRowsDeleted,
     privateMatchRequestsDeleted,
+    rankedDailyAuthorityRowsDeleted,
     rankedQueueRowsDeleted,
     rankedRatingRowsDeleted,
     usersDeleted,
@@ -50,7 +54,10 @@ export async function cleanupE2eRun(users: readonly E2eUser[]): Promise<CleanupS
 }
 
 export async function cleanupStaleE2eArtifactsOnce(): Promise<StaleCleanupSummary> {
-  staleCleanupPromise ??= cleanupStaleE2eArtifacts()
+  staleCleanupPromise ??= cleanupStaleE2eArtifacts().catch((error: unknown) => {
+    staleCleanupPromise = undefined
+    throw error
+  })
   return staleCleanupPromise
 }
 

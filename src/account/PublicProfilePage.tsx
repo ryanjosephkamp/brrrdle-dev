@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_GO_PUZZLE_COUNT } from '../game/constants'
 import type { GameMode } from '../game/types'
-import type { PublicRankedLeaderboardRepository } from '../leaderboards/publicRankedLeaderboard'
+import {
+  PUBLIC_RANKED_LEADERBOARD_BUCKETS,
+  type PublicRankedLeaderboardRepository,
+} from '../leaderboards/publicRankedLeaderboard'
 import {
   PRACTICE_MULTIPLAYER_TIME_LIMIT_OPTIONS,
   type PracticeMultiplayerTimeLimitMs,
@@ -27,14 +30,45 @@ import {
   createPublicProfileRatingMetadata,
   type PublicProfileRatingMetadata,
 } from './publicProfileRatingMetadata'
-import type { MultiplayerRepository } from '../multiplayer/multiplayerRepository'
+import type {
+  MultiplayerRepository,
+  PrivateMatchRequestResult,
+} from '../multiplayer/multiplayerRepository'
 
 export type PublicProfilePageStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error'
 export type PublicProfileRatingMetadataStatus = 'idle' | 'loading' | 'ready' | 'error'
 
-type PrivateMatchActions = Pick<MultiplayerRepository, 'createPrivateMatchRequest'>
+type PrivateMatchActions = Pick<MultiplayerRepository, 'createPrivateMatchRequest' | 'listPrivateMatchRequests'>
 type PublicProfilePageRepository = Pick<PublicProfileRepository, 'loadPublicProfile'> & Partial<Pick<PublicProfileRepository, 'loadMine'>>
 type PublicProfileAuthStatus = 'anonymous' | 'authenticated' | 'unconfigured'
+
+const PRIVATE_MATCH_REQUEST_POLL_INTERVAL_MS = 5_000
+
+function isPrivateMatchRequestTerminal(request: PrivateMatchRequestResult): boolean {
+  return request.expired || request.requestStatus !== 'requested'
+}
+
+function formatPrivateMatchRequestLifecycleMessage(request: PrivateMatchRequestResult): string {
+  switch (request.requestStatus) {
+    case 'created':
+      return 'Private Practice match created.'
+    case 'declined':
+      return 'Private Practice request declined.'
+    case 'cancelled':
+      return 'Private Practice request cancelled.'
+    case 'expired':
+      return 'Private Practice request expired.'
+    case 'requested':
+      return request.expired ? 'Private Practice request expired.' : 'Private Practice request pending.'
+  }
+}
+
+function findPrivateMatchRequestById(
+  requests: readonly PrivateMatchRequestResult[],
+  requestId: string,
+): PrivateMatchRequestResult | undefined {
+  return requests.find((request) => request.requestId === requestId)
+}
 
 const DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS: PrivatePracticeRequestSettings = {
   hardMode: false,
@@ -43,11 +77,14 @@ const DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS: PrivatePracticeRequestSettings 
   wordLength: 5,
 }
 
-interface PublicProfilePageProps {
+export interface PublicProfilePageProps {
   readonly authStatus?: PublicProfileAuthStatus
   readonly backLabel?: string
   readonly privateMatchActions?: PrivateMatchActions
+  readonly privateMatchViewerSessionKey?: string
   readonly onBack?: () => void
+  readonly onEnterPrivateMatch?: (gameId: string) => void
+  readonly onGoToPracticeMultiplayer?: () => void
   readonly publicProfileId?: string
   readonly publicRankedLeaderboardRepository?: PublicRankedLeaderboardRepository
   readonly repository?: PublicProfilePageRepository
@@ -59,9 +96,12 @@ interface PublicProfileCardProps {
   readonly errorMessage?: string
   readonly privateMatchBusy?: boolean
   readonly privateMatchMessage?: string
+  readonly privateMatchRequest?: PrivateMatchRequestResult
   readonly privateMatchRequestsAvailable?: boolean
   readonly privatePracticeSettings?: PrivatePracticeRequestSettings
   readonly onPrivatePracticeSettingsChange?: (settings: PrivatePracticeRequestSettings) => void
+  readonly onEnterPrivateMatch?: (gameId: string) => void
+  readonly onGoToPracticeMultiplayer?: () => void
   readonly onRequestPrivateMatch?: () => void
   readonly onBack?: () => void
   readonly profile?: PublicPlayerProfile
@@ -131,9 +171,12 @@ export function PublicProfileCard({
   errorMessage,
   privateMatchBusy = false,
   privateMatchMessage,
+  privateMatchRequest,
   privateMatchRequestsAvailable = false,
   privatePracticeSettings = DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS,
   onPrivatePracticeSettingsChange,
+  onEnterPrivateMatch,
+  onGoToPracticeMultiplayer,
   onRequestPrivateMatch,
   onBack,
   profile,
@@ -144,6 +187,9 @@ export function PublicProfileCard({
   const updatedLabel = profile ? formatPublicProfileUpdatedAt(profile.updatedAt) : undefined
   const canRequestPrivateMatch = authStatus === 'authenticated' && privateMatchRequestsAvailable && onRequestPrivateMatch
   const privatePracticeSettingsLabel = getPrivatePracticeRequestSettingsLabel(privatePracticeSettings)
+  const effectivePrivateMatchMessage = privateMatchMessage ?? (privateMatchRequest
+    ? formatPrivateMatchRequestLifecycleMessage(privateMatchRequest)
+    : undefined)
   const updatePrivatePracticeSettings = (settings: PrivatePracticeRequestSettings) => {
     onPrivatePracticeSettingsChange?.(settings)
   }
@@ -208,19 +254,19 @@ export function PublicProfileCard({
             </dl>
 
             <div className="rounded-lg border border-white/10 bg-black/25 p-4">
-              <p className="font-bold text-white">Public ranked Practice metadata</p>
+              <p className="font-bold text-white">Public ranked multiplayer metadata</p>
               <p className="mt-1 text-xs leading-5 text-slate-400">
-                These rows are derived only from the public ranked Practice leaderboard. They are not private Solo stats, full match history, queue internals, or raw account data.
+                These rows are derived only from public ranked Practice and Daily leaderboards. They are not private Solo stats, full match history, queue internals, or raw account data.
               </p>
               {authStatus !== 'authenticated' ? (
                 <p className="mt-3 rounded-md border border-white/10 bg-black/25 p-3 text-xs text-slate-300">
-                  Sign in to view public ranked Practice metadata for visible public profiles.
+                  Sign in to view public ranked multiplayer metadata for visible public profiles.
                 </p>
               ) : ratingMetadataStatus === 'loading' ? (
-                <LoadingState label="Loading public ranked Practice metadata..." />
+                <LoadingState label="Loading public ranked multiplayer metadata..." />
               ) : ratingMetadataStatus === 'error' ? (
                 <p className="mt-3 rounded-md border border-rose-300/30 bg-rose-950/20 p-3 text-xs text-rose-100" role="alert">
-                  Unable to load public ranked Practice metadata right now.
+                  Unable to load public ranked multiplayer metadata right now.
                 </p>
               ) : ratingMetadata.length > 0 ? (
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -260,7 +306,7 @@ export function PublicProfileCard({
                 </div>
               ) : (
                 <p className="mt-3 rounded-md border border-white/10 bg-black/25 p-3 text-xs text-slate-300">
-                  No public ranked Practice metadata is visible for this player yet.
+                  No public ranked multiplayer metadata is visible for this player yet.
                 </p>
               )}
             </div>
@@ -368,10 +414,30 @@ export function PublicProfileCard({
                     : 'Sign in to send private Practice match requests.'}
                 </p>
               )}
-              {privateMatchMessage ? (
+              {effectivePrivateMatchMessage ? (
                 <p className="mt-3 rounded-md border border-white/10 bg-black/20 p-2 font-semibold text-cyan-50" role="status">
-                  {privateMatchMessage}
+                  {effectivePrivateMatchMessage}
                 </p>
+              ) : null}
+              {privateMatchRequest ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {onGoToPracticeMultiplayer ? (
+                    <Button onClick={onGoToPracticeMultiplayer} size="sm" variant="secondary">
+                      Go to Practice Multiplayer
+                    </Button>
+                  ) : null}
+                  {privateMatchRequest.requestStatus === 'created'
+                    && privateMatchRequest.createdGameId
+                    && onEnterPrivateMatch ? (
+                      <Button
+                        onClick={() => onEnterPrivateMatch(privateMatchRequest.createdGameId!)}
+                        size="sm"
+                        variant="primary"
+                      >
+                        Enter private match
+                      </Button>
+                    ) : null}
+                </div>
               ) : null}
             </div>
           </div>
@@ -385,7 +451,10 @@ export function PublicProfilePage({
   authStatus = 'unconfigured',
   backLabel,
   privateMatchActions,
+  privateMatchViewerSessionKey,
   onBack,
+  onEnterPrivateMatch,
+  onGoToPracticeMultiplayer,
   publicProfileId,
   publicRankedLeaderboardRepository,
   repository,
@@ -399,9 +468,22 @@ export function PublicProfilePage({
   }>({ status: 'unavailable' })
   const [privateMatchState, setPrivateMatchState] = useState<{
     readonly busy: boolean
-    readonly message?: string
+    readonly errorMessage?: string
     readonly publicProfileId?: string
-  }>({ busy: false })
+    readonly request?: PrivateMatchRequestResult
+    readonly requestVersion: number
+    readonly viewerSessionKey?: string
+  }>({
+    busy: false,
+    requestVersion: 0,
+    viewerSessionKey: privateMatchViewerSessionKey,
+  })
+  const privateMatchRequestVersionRef = useRef(0)
+  const privateMatchContextRef = useRef({
+    authStatus,
+    publicProfileId: normalizedPublicProfileId,
+    viewerSessionKey: privateMatchViewerSessionKey,
+  })
   const [privatePracticeSettings, setPrivatePracticeSettings] = useState<PrivatePracticeRequestSettings>(DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS)
   const [ratingMetadataResult, setRatingMetadataResult] = useState<{
     readonly metadata: readonly PublicProfileRatingMetadata[]
@@ -442,6 +524,21 @@ export function PublicProfilePage({
     }
   }, [normalizedPublicProfileId, repository])
 
+  useLayoutEffect(() => {
+    const requestVersion = privateMatchRequestVersionRef.current + 1
+    privateMatchRequestVersionRef.current = requestVersion
+    privateMatchContextRef.current = {
+      authStatus,
+      publicProfileId: normalizedPublicProfileId,
+      viewerSessionKey: privateMatchViewerSessionKey,
+    }
+    setPrivateMatchState({
+      busy: false,
+      requestVersion,
+      viewerSessionKey: privateMatchViewerSessionKey,
+    })
+  }, [authStatus, normalizedPublicProfileId, privateMatchViewerSessionKey])
+
   useEffect(() => {
     const profile = loadResult.status === 'ready' && loadResult.publicProfileId === normalizedPublicProfileId
       ? loadResult.profile
@@ -451,16 +548,15 @@ export function PublicProfilePage({
     }
 
     let cancelled = false
-    void Promise.all([
-      publicRankedLeaderboardRepository.loadRankedPracticeLeaderboard({ bucket: 'multiplayer:og', limit: 100 }),
-      publicRankedLeaderboardRepository.loadRankedPracticeLeaderboard({ bucket: 'multiplayer:go', limit: 100 }),
-    ])
-      .then(([ogRows, goRows]) => {
+    void Promise.all(PUBLIC_RANKED_LEADERBOARD_BUCKETS.map((bucket) => (
+      publicRankedLeaderboardRepository.loadRankedPracticeLeaderboard({ bucket, limit: 100 })
+    )))
+      .then((rowsByBucket) => {
         if (cancelled) {
           return
         }
         setRatingMetadataResult({
-          metadata: createPublicProfileRatingMetadata([...ogRows, ...goRows], profile.publicProfileId),
+          metadata: createPublicProfileRatingMetadata(rowsByBucket.flat(), profile.publicProfileId),
           publicProfileId: profile.publicProfileId,
           status: 'ready',
         })
@@ -488,10 +584,17 @@ export function PublicProfilePage({
       : 'loading'
   const profile = status === 'ready' ? loadResult.profile : undefined
   const errorMessage = status === 'error' ? loadResult.errorMessage : undefined
-  const privateMatchMessage = privateMatchState.publicProfileId === profile?.publicProfileId
-    ? privateMatchState.message
+  const privateMatchStateMatchesViewer = privateMatchState.publicProfileId === profile?.publicProfileId
+    && privateMatchState.viewerSessionKey === privateMatchViewerSessionKey
+  const privateMatchRequest = privateMatchStateMatchesViewer
+    ? privateMatchState.request
     : undefined
-  const privateMatchBusy = privateMatchState.publicProfileId === profile?.publicProfileId
+  const privateMatchMessage = privateMatchStateMatchesViewer
+    ? privateMatchState.errorMessage ?? (privateMatchRequest
+      ? formatPrivateMatchRequestLifecycleMessage(privateMatchRequest)
+      : undefined)
+    : undefined
+  const privateMatchBusy = privateMatchStateMatchesViewer
     ? privateMatchState.busy
     : false
   const ratingMetadataStatus: PublicProfileRatingMetadataStatus = authStatus !== 'authenticated' || !profile || !publicRankedLeaderboardRepository
@@ -503,23 +606,117 @@ export function PublicProfilePage({
     ? ratingMetadataResult.metadata
     : []
 
+  useEffect(() => {
+    const request = privateMatchState.publicProfileId === normalizedPublicProfileId
+      && privateMatchState.viewerSessionKey === privateMatchViewerSessionKey
+      ? privateMatchState.request
+      : undefined
+    if (
+      authStatus !== 'authenticated'
+      || !privateMatchActions
+      || !request
+      || isPrivateMatchRequestTerminal(request)
+    ) {
+      return undefined
+    }
+
+    let cancelled = false
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const requestId = request.requestId
+    const requestVersion = privateMatchState.requestVersion
+    const targetPublicProfileId = privateMatchState.publicProfileId
+    const viewerSessionKey = privateMatchState.viewerSessionKey
+    const contextIsCurrent = () => (
+      !cancelled
+      && privateMatchRequestVersionRef.current === requestVersion
+      && privateMatchContextRef.current.publicProfileId === targetPublicProfileId
+      && privateMatchContextRef.current.viewerSessionKey === viewerSessionKey
+      && privateMatchContextRef.current.authStatus === 'authenticated'
+    )
+
+    const scheduleNextRefresh = () => {
+      if (contextIsCurrent()) {
+        timeoutId = setTimeout(() => { void refreshRequest() }, PRIVATE_MATCH_REQUEST_POLL_INTERVAL_MS)
+      }
+    }
+    const refreshRequest = async () => {
+      try {
+        const requests = await privateMatchActions.listPrivateMatchRequests({ limit: 50 })
+        if (!contextIsCurrent()) {
+          return
+        }
+        const nextRequest = findPrivateMatchRequestById(requests, requestId)
+        if (nextRequest) {
+          setPrivateMatchState((current) => (
+            current.requestVersion === requestVersion
+              && current.publicProfileId === targetPublicProfileId
+              && current.viewerSessionKey === viewerSessionKey
+              && current.request?.requestId === requestId
+              ? { ...current, request: nextRequest }
+              : current
+          ))
+          if (isPrivateMatchRequestTerminal(nextRequest)) {
+            return
+          }
+        }
+      } catch {
+        // Keep the last participant-safe state and retry at the normal restrained cadence.
+      }
+      scheduleNextRefresh()
+    }
+
+    scheduleNextRefresh()
+    return () => {
+      cancelled = true
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [
+    authStatus,
+    normalizedPublicProfileId,
+    privateMatchActions,
+    privateMatchState.publicProfileId,
+    privateMatchState.request,
+    privateMatchState.requestVersion,
+    privateMatchState.viewerSessionKey,
+    privateMatchViewerSessionKey,
+  ])
+
   const requestPrivatePracticeMatch = async () => {
     if (!profile || authStatus !== 'authenticated' || !privateMatchActions) {
       return
     }
+    const targetPublicProfileId = profile.publicProfileId
+    const viewerSessionKey = privateMatchViewerSessionKey
+    const requestVersion = privateMatchRequestVersionRef.current + 1
+    privateMatchRequestVersionRef.current = requestVersion
+    const contextIsCurrent = () => (
+      privateMatchRequestVersionRef.current === requestVersion
+      && privateMatchContextRef.current.publicProfileId === targetPublicProfileId
+      && privateMatchContextRef.current.viewerSessionKey === viewerSessionKey
+      && privateMatchContextRef.current.authStatus === 'authenticated'
+    )
     setPrivateMatchState({
       busy: true,
-      publicProfileId: profile.publicProfileId,
+      publicProfileId: targetPublicProfileId,
+      requestVersion,
+      viewerSessionKey,
     })
     try {
       let requesterProfile: OwnerPublicProfile | undefined
       if (repository?.loadMine) {
         requesterProfile = await repository.loadMine()
+        if (!contextIsCurrent()) {
+          return
+        }
         if (!isOwnerPublicProfileEligibleForPrivateMatch(requesterProfile)) {
           setPrivateMatchState({
             busy: false,
-            message: PRIVATE_MATCH_REQUESTER_PUBLIC_PROFILE_REQUIRED_MESSAGE,
-            publicProfileId: profile.publicProfileId,
+            errorMessage: PRIVATE_MATCH_REQUESTER_PUBLIC_PROFILE_REQUIRED_MESSAGE,
+            publicProfileId: targetPublicProfileId,
+            requestVersion,
+            viewerSessionKey,
           })
           return
         }
@@ -528,8 +725,10 @@ export function PublicProfilePage({
       if (!normalizedSettings.ok) {
         setPrivateMatchState({
           busy: false,
-          message: normalizedSettings.message,
-          publicProfileId: profile.publicProfileId,
+          errorMessage: normalizedSettings.message,
+          publicProfileId: targetPublicProfileId,
+          requestVersion,
+          viewerSessionKey,
         })
         return
       }
@@ -537,21 +736,29 @@ export function PublicProfilePage({
 
       const request = await privateMatchActions.createPrivateMatchRequest({
         ...settings,
-        idempotencyKey: createPrivatePracticeRequestIdempotencyKey(profile.publicProfileId, settings),
-        targetPublicProfileId: profile.publicProfileId,
+        idempotencyKey: createPrivatePracticeRequestIdempotencyKey(targetPublicProfileId, settings),
+        targetPublicProfileId,
       })
+      if (!contextIsCurrent()) {
+        return
+      }
       setPrivateMatchState({
         busy: false,
-        message: request.requestStatus === 'requested'
-          ? 'Private Practice match request sent. You can review outgoing requests in Practice Multiplayer.'
-          : `Private Practice match request is ${request.requestStatus}.`,
-        publicProfileId: profile.publicProfileId,
+        publicProfileId: targetPublicProfileId,
+        request,
+        requestVersion,
+        viewerSessionKey,
       })
     } catch (error) {
+      if (!contextIsCurrent()) {
+        return
+      }
       setPrivateMatchState({
         busy: false,
-        message: getPrivateMatchRequestErrorMessage(error),
-        publicProfileId: profile.publicProfileId,
+        errorMessage: getPrivateMatchRequestErrorMessage(error),
+        publicProfileId: targetPublicProfileId,
+        requestVersion,
+        viewerSessionKey,
       })
     }
   }
@@ -563,9 +770,12 @@ export function PublicProfilePage({
       errorMessage={errorMessage}
       privateMatchBusy={privateMatchBusy}
       privateMatchMessage={privateMatchMessage}
+      privateMatchRequest={privateMatchRequest}
       privateMatchRequestsAvailable={Boolean(privateMatchActions)}
       privatePracticeSettings={privatePracticeSettings}
       onPrivatePracticeSettingsChange={setPrivatePracticeSettings}
+      onEnterPrivateMatch={onEnterPrivateMatch}
+      onGoToPracticeMultiplayer={onGoToPracticeMultiplayer}
       onRequestPrivateMatch={() => { void requestPrivatePracticeMatch() }}
       onBack={onBack}
       profile={profile}

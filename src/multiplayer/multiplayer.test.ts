@@ -20,7 +20,7 @@ import {
   joinMultiplayerGame,
   submitMultiplayerGuess,
 } from './multiplayer'
-import { createDailyMultiplayerGoSetup } from './dailyMultiplayer'
+import { createDailyMultiplayerGoSetup, createDailyMultiplayerOgSetup } from './dailyMultiplayer'
 
 describe('multiplayer foundation', () => {
   it('creates a daily multiplayer game with a UTC date key and deadline', () => {
@@ -33,6 +33,20 @@ describe('multiplayer foundation', () => {
     expect(game.dailyDateKey).toBe('2026-05-26')
     expect(game.deadlineAt).toBe('2026-05-27T00:00:00.000Z')
     expect(game.wordLength).toBe(5)
+  })
+
+  it.each([7, 10] as const)('preserves a configured %i-puzzle chain for unranked Daily GO', (goPuzzleCount) => {
+    const game = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      dailyDateKey: '2026-06-04',
+      goPuzzleCount,
+      mode: 'go',
+      ranked: false,
+      scope: 'daily',
+    })
+
+    expect(game.goPuzzleCount).toBe(goPuzzleCount)
+    expect(getMultiplayerAnswerWords(game)).toHaveLength(goPuzzleCount)
   })
 
   it('submits a winning og turn and records the move history', () => {
@@ -123,6 +137,62 @@ describe('multiplayer foundation', () => {
     expect(state.games.map((game) => game.mode).sort()).toEqual(['go', 'og'])
     expect(hasDailyMultiplayerParticipation(state, '2026-06-04', 'og', 'user-1')).toBe(true)
     expect(hasDailyMultiplayerParticipation(state, '2026-06-04', 'go', 'user-1')).toBe(true)
+  })
+
+  it('allows independent ranked and unranked Daily claims for each mode', () => {
+    const games = [
+      createMultiplayerGame({ dailyDateKey: '2026-06-04', mode: 'og', playerUserIds: { 'player-one': 'user-1' }, ranked: false, scope: 'daily' }),
+      createMultiplayerGame({ dailyDateKey: '2026-06-04', hardMode: true, mode: 'og', playerUserIds: { 'player-one': 'user-1' }, ranked: true, ratingBucket: 'multiplayer:og:daily:v1', scope: 'daily' }),
+      createMultiplayerGame({ dailyDateKey: '2026-06-04', mode: 'go', playerUserIds: { 'player-one': 'user-1' }, ranked: false, scope: 'daily' }),
+      createMultiplayerGame({ dailyDateKey: '2026-06-04', mode: 'go', playerUserIds: { 'player-one': 'user-1' }, ranked: true, ratingBucket: 'multiplayer:go:daily:v1', scope: 'daily' }),
+    ]
+    const state = games.reduce(addMultiplayerGame, createEmptyMultiplayerState())
+
+    expect(state.games).toHaveLength(4)
+    expect(hasDailyMultiplayerParticipation(state, '2026-06-04', 'og', 'user-1', false)).toBe(true)
+    expect(hasDailyMultiplayerParticipation(state, '2026-06-04', 'og', 'user-1', true)).toBe(true)
+    expect(hasDailyMultiplayerParticipation(state, '2026-06-04', 'go', 'user-1', false)).toBe(true)
+    expect(hasDailyMultiplayerParticipation(state, '2026-06-04', 'go', 'user-1', true)).toBe(true)
+  })
+
+  it('enables Hard Mode only for ranked Daily and uses the ranked answer namespace', () => {
+    const ranked = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      dailyDateKey: '2026-06-04',
+      hardMode: true,
+      mode: 'og',
+      ranked: true,
+      ratingBucket: 'multiplayer:og:daily:v1',
+      scope: 'daily',
+    })
+    const unranked = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      dailyDateKey: '2026-06-04',
+      hardMode: true,
+      mode: 'og',
+      ranked: false,
+      scope: 'daily',
+    })
+    const rankedSetup = createDailyMultiplayerOgSetup(new Date('2026-06-04T12:00:00.000Z'), DEFAULT_DIFFICULTY_TIER, true)
+    const rankedGo = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      dailyDateKey: '2026-06-04',
+      goPuzzleCount: 7,
+      mode: 'go',
+      ranked: true,
+      ratingBucket: 'multiplayer:go:daily:v1',
+      scope: 'daily',
+    })
+
+    expect(ranked.hardMode).toBe(true)
+    expect(getMultiplayerSessionForPlayer(ranked, 'player-one').session.hardMode).toBe(true)
+    expect(ranked.serializedSession.mode).toBe('og')
+    expect(ranked.serializedSession.mode === 'og' ? ranked.serializedSession.session.answer : '').toBe(rankedSetup.answer)
+    expect(unranked.hardMode).toBe(false)
+    expect(getMultiplayerSessionForPlayer(unranked, 'player-one').session.hardMode).toBe(false)
+    expect(getMultiplayerAnswerWords(ranked)).not.toEqual(getMultiplayerAnswerWords(unranked))
+    expect(rankedGo.goPuzzleCount).toBe(5)
+    expect(getMultiplayerAnswerWords(rankedGo)).toHaveLength(5)
   })
 
   it('rejects multiplayer turns from the wrong player seat', () => {

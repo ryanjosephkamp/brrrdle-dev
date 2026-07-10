@@ -8,6 +8,8 @@ import {
   calculateExpectedScore,
   createEmptyRatingState,
   createInitialRatingProfile,
+  getRankedDailyRatingBucket,
+  getRankedDailyStorageBucket,
   getRankedPracticeRatingBucket,
   getRankedPracticeStorageBucket,
   getMultiplayerRankBand,
@@ -33,6 +35,10 @@ describe('multiplayer rating model', () => {
     expect(getRankedPracticeRatingBucket('go', TIMED_RANKED_PRACTICE_TIME_LIMIT_MS)).toBe('multiplayer:go:timed:v1')
     expect(getRankedPracticeRatingBucket('og', 30_000)).toBeUndefined()
     expect(getRankedPracticeStorageBucket('multiplayer:og:timed:v1')).toBe('async:og:timed:v1')
+    expect(getRankedDailyRatingBucket('og')).toBe('multiplayer:og:daily:v1')
+    expect(getRankedDailyRatingBucket('go')).toBe('multiplayer:go:daily:v1')
+    expect(getRankedDailyStorageBucket('multiplayer:og:daily:v1')).toBe('async:og:daily:v1')
+    expect(getRankedDailyStorageBucket('multiplayer:go:daily:v1')).toBe('async:go:daily:v1')
   })
 
   it('normalizes only the canonical timed Practice ranked clock', () => {
@@ -82,6 +88,8 @@ describe('multiplayer rating model', () => {
     expect(normalizeRatingBucket('async:og:timed:v1')).toBe('multiplayer:og:timed:v1')
     expect(normalizeRatingBucket('multiplayer:go:timed:v1')).toBe('multiplayer:go:timed:v1')
     expect(parseRatingBucket('async:go:timed:v1')).toBe('multiplayer:go:timed:v1')
+    expect(parseRatingBucket('async:og:daily:v1')).toBe('multiplayer:og:daily:v1')
+    expect(parseRatingBucket('multiplayer:go:daily:v1')).toBe('multiplayer:go:daily:v1')
 
     const profile = normalizeRatingProfile({
       bucket: 'async:og',

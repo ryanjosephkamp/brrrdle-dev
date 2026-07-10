@@ -46,6 +46,11 @@ test.describe('Private matchmaking @multiplayer', () => {
     const session = await createTwoClientSession(browser)
 
     try {
+      // Ranked Daily leaderboard buckets are introduced by the unapplied Phase 55 migration.
+      // Keep this pre-migration route test focused on the already-deployed private-request RPCs.
+      await session.host.page.route('**/rest/v1/rpc/get_public_ranked_leaderboard', async (route) => {
+        await route.fulfill({ body: '[]', contentType: 'application/json', status: 200 })
+      })
       await Promise.all([
         upsertPublicProfileForUser(session.host.user, 'cyan'),
         upsertPublicProfileForUser(session.rival.user, 'rose'),
@@ -56,7 +61,8 @@ test.describe('Private matchmaking @multiplayer', () => {
       await expect(session.host.page.getByText(session.rival.user.displayName)).toBeVisible({ timeout: 30_000 })
       await expect(session.host.page.getByText(/Send an authenticated, unranked Practice request with the selected settings/i)).toBeVisible()
       await session.host.page.getByRole('button', { name: /^Request Practice match$/i }).click()
-      await expect(session.host.page.getByText(/Private Practice match request sent/i)).toBeVisible({ timeout: 30_000 })
+      await expect(session.host.page.getByText(/Private Practice request pending/i)).toBeVisible({ timeout: 30_000 })
+      await expect(session.host.page.getByRole('button', { name: /^Go to Practice Multiplayer$/i })).toBeVisible()
 
       await navigateToPracticeMultiplayer(session.rival.page)
       const rivalRequests = session.rival.page.getByTestId('private-match-requests')
@@ -74,7 +80,8 @@ test.describe('Private matchmaking @multiplayer', () => {
       await expect(session.rival.page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-game-id', createdRow.id, { timeout: 30_000 })
       await expect(session.rival.page.getByTestId('multiplayer-selected-game')).toHaveAttribute('data-status', 'playing')
 
-      await navigateToPracticeMultiplayer(session.host.page)
+      await expect(session.host.page.getByText(/Private Practice match created/i)).toBeVisible({ timeout: 30_000 })
+      await session.host.page.getByRole('button', { name: /^Enter private match$/i }).click()
       const hostRequests = session.host.page.getByTestId('private-match-requests')
       await expect(hostRequests).toContainText('0 active', { timeout: 30_000 })
       await expect(hostRequests).toContainText(/No active private match requests\./i)
@@ -148,7 +155,7 @@ test.describe('Private matchmaking @multiplayer', () => {
       await session.host.page.getByLabel(/^Private Practice time control$/i).selectOption('300000')
       await expect(session.host.page.getByText(/Current request: GO, 7 letters, 5 puzzles, Hard Mode on, 5:00 per side/i)).toBeVisible()
       await session.host.page.getByRole('button', { name: /^Request Practice match$/i }).click()
-      await expect(session.host.page.getByText(/Private Practice match request sent/i)).toBeVisible({ timeout: 30_000 })
+      await expect(session.host.page.getByText(/Private Practice request pending/i)).toBeVisible({ timeout: 30_000 })
 
       await navigateToPracticeMultiplayer(session.rival.page)
       const rivalRequests = session.rival.page.getByTestId('private-match-requests')

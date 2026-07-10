@@ -39,7 +39,7 @@ async function expectPrivateRequestCount(page: Page, count: number): Promise<voi
 async function sendPrivatePracticeRequest(page: Page, targetPublicProfileId: string): Promise<void> {
   await openPublicProfileRoute(page, targetPublicProfileId)
   await page.getByRole('button', { name: /^Request Practice match$/i }).click()
-  await expect(page.getByText(/Private Practice match request sent/i)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/Private Practice request pending/i)).toBeVisible({ timeout: 30_000 })
 }
 
 test.describe('Multiplayer reliability characterization @multiplayer', () => {

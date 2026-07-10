@@ -12,6 +12,7 @@ import {
   MULTIPLAYER_STORAGE_KEY,
   createLocalStorageMultiplayerRepository,
   createSupabaseMultiplayerRepository,
+  isTrustedRankedSettlementCandidate,
   isTrustedRankedPracticeSettlementCandidate,
   loadAuthenticatedLiveSpectatorRows,
   loadPublicLiveSpectatorRows,
@@ -629,7 +630,7 @@ describe('multiplayer repository seam', () => {
 
     const settlement = await repository.settleRankedGame(submitted.game!)
 
-    expect(rpc).toHaveBeenCalledWith('settle_ranked_async_multiplayer_match', {
+    expect(rpc).toHaveBeenCalledWith('settle_ranked_async_multiplayer_match_v2', {
       p_game_id: game.id,
       p_idempotency_key: `phase27-ranked-v1:async:${game.id}:async:og`,
     })
@@ -678,12 +679,66 @@ describe('multiplayer repository seam', () => {
 
     const settlement = await repository.settleRankedGame(submitted.game!)
 
-    expect(rpc).toHaveBeenCalledWith('settle_ranked_async_multiplayer_match', {
+    expect(rpc).toHaveBeenCalledWith('settle_ranked_async_multiplayer_match_v2', {
       p_game_id: game.id,
       p_idempotency_key: `phase33-ranked-timed-v1:async:${game.id}:async:og:timed:v1`,
     })
     expect(settlement?.transactions).toHaveLength(2)
     expect(settlement?.transactions[0].bucket).toBe('multiplayer:og:timed:v1')
+  })
+
+  it('settles queue-backed terminal ranked Daily games in their separate rating bucket', async () => {
+    const rpc = vi.fn(async () => ({
+      data: [
+        createTrustedSettlementRow({
+          bucket: 'async:og:daily:v1',
+          match_result_id: 'phase55-result-game-1',
+        }),
+        createTrustedSettlementRow({
+          bucket: 'async:og:daily:v1',
+          match_result_id: 'phase55-result-game-1',
+          new_rating: 1180,
+          old_rating: 1200,
+          opponent_user_id: 'user-1',
+          outcome: 'loss',
+          rating_delta: -20,
+          user_id: 'user-2',
+        }),
+      ],
+      error: null,
+    }))
+    const game = createMultiplayerGame({
+      dailyDateKey: '2026-07-10',
+      matchmakingRequestId: 'queue-request-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'user-1', 'player-two': 'user-2' },
+      ranked: true,
+      ratingBucket: 'multiplayer:og:daily:v1',
+      scope: 'daily',
+      seed: 1,
+      wordLength: 5,
+    })
+    const submitted = submitMultiplayerGuess({ games: [game] }, {
+      gameId: game.id,
+      guess: getMultiplayerAnswerWords(game)[0],
+      playerId: 'player-one',
+    })
+    const terminal = submitted.game!
+    const repository = createSupabaseMultiplayerRepository({
+      client: { rpc } as unknown as BrrrdleSupabaseClient,
+      userId: 'user-1',
+    })
+
+    expect(isTrustedRankedSettlementCandidate(terminal)).toBe(true)
+    expect(isTrustedRankedPracticeSettlementCandidate(terminal)).toBe(false)
+    const settlement = await repository.settleRankedGame(terminal)
+
+    expect(rpc).toHaveBeenCalledWith('settle_ranked_async_multiplayer_match_v2', {
+      p_game_id: game.id,
+      p_idempotency_key: `phase55-ranked-daily-v1:async:${game.id}:async:og:daily:v1`,
+    })
+    expect(settlement?.transactions).toHaveLength(2)
+    expect(settlement?.transactions[0].bucket).toBe('multiplayer:og:daily:v1')
   })
 
   it('does not call the trusted settlement RPC for ineligible games', async () => {
@@ -803,6 +858,66 @@ describe('multiplayer repository seam', () => {
     expect(rpc).toHaveBeenCalledTimes(1)
   })
 
+  it('creates fixed-settings ranked Daily queue requests through the trusted RPC', async () => {
+    const rpc = vi.fn(async () => ({
+      data: [createRankedQueueRequestRow({
+        daily_date_key: '2026-07-10',
+        mode: 'go',
+        rating_bucket: 'async:go:daily:v1',
+        scope: 'daily',
+      })],
+      error: null,
+    }))
+    const repository = createSupabaseMultiplayerRepository({
+      client: { rpc } as unknown as BrrrdleSupabaseClient,
+      userId: 'user-1',
+    })
+
+    const request = await repository.createRankedQueueRequest({
+      dailyDateKey: '2026-07-10',
+      hardMode: true,
+      idempotencyKey: 'phase55-ranked-daily-v1:queue:user-1:2026-07-10:go:true',
+      mode: 'go',
+      scope: 'daily',
+      wordLength: 5,
+    })
+
+    expect(rpc).toHaveBeenCalledWith('create_ranked_async_matchmaking_request_v2', {
+      p_daily_date_key: '2026-07-10',
+      p_expires_at: null,
+      p_hard_mode: true,
+      p_idempotency_key: 'phase55-ranked-daily-v1:queue:user-1:2026-07-10:go:true',
+      p_mode: 'go',
+      p_scope: 'daily',
+      p_time_limit_ms: null,
+      p_word_length: 5,
+    })
+    expect(request).toMatchObject({
+      dailyDateKey: '2026-07-10',
+      ratingBucket: 'multiplayer:go:daily:v1',
+      requestStatus: 'queued',
+      scope: 'daily',
+      wordLength: 5,
+    })
+  })
+
+  it('rejects malformed ranked Daily queue settings before RPC', async () => {
+    const rpc = vi.fn()
+    const repository = createSupabaseMultiplayerRepository({
+      client: { rpc } as unknown as BrrrdleSupabaseClient,
+      userId: 'user-1',
+    })
+
+    for (const input of [
+      { dailyDateKey: '', mode: 'og' as const, scope: 'daily' as const, wordLength: 5 },
+      { dailyDateKey: '2026-07-10', mode: 'og' as const, scope: 'daily' as const, timeLimitMs: 300_000, wordLength: 5 },
+      { dailyDateKey: '2026-07-10', mode: 'og' as const, scope: 'daily' as const, wordLength: 6 },
+    ]) {
+      await expect(repository.createRankedQueueRequest(input)).rejects.toThrow('Ranked Daily requires a valid UTC date, five letters, and no clock.')
+    }
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
   it('claims, reads status, and finalizes ranked Practice queue games through trusted RPCs', async () => {
     const game = createMultiplayerGame({
       hardMode: true,
@@ -826,10 +941,10 @@ describe('multiplayer repository seam', () => {
           error: null,
         }
       }
-      if (name === 'get_ranked_async_matchmaking_status') {
+      if (name === 'get_ranked_async_matchmaking_status_v2') {
         return { data: [createRankedQueueStatusRow()], error: null }
       }
-      if (name === 'finalize_ranked_async_matchmaking_game') {
+      if (name === 'finalize_ranked_async_matchmaking_game_v2') {
         return { data: [createRankedQueueFinalizationRow()], error: null }
       }
       return { data: null, error: { message: `Unexpected RPC ${name}` } }
@@ -859,10 +974,10 @@ describe('multiplayer repository seam', () => {
       p_matched_game_id: null,
       p_request_id: 'queue-request-1',
     })
-    expect(rpc).toHaveBeenCalledWith('get_ranked_async_matchmaking_status', {
+    expect(rpc).toHaveBeenCalledWith('get_ranked_async_matchmaking_status_v2', {
       p_request_id: 'queue-request-1',
     })
-    expect(rpc).toHaveBeenCalledWith('finalize_ranked_async_matchmaking_game', {
+    expect(rpc).toHaveBeenCalledWith('finalize_ranked_async_matchmaking_game_v2', {
       p_game_projection: game,
       p_idempotency_key: 'phase27-ranked-v1:finalize:ranked-game-1',
       p_matched_game_id: 'ranked-game-1',
@@ -901,6 +1016,43 @@ describe('multiplayer repository seam', () => {
       })
 
       await expect(repository.getRankedQueueStatus('queue-request-1')).rejects.toThrow('Unable to parse ranked queue status result.')
+    }
+  })
+
+  it('parses only fixed-settings ranked Daily queue status rows with matching date and buckets', async () => {
+    const validRow = createRankedQueueStatusRow({
+      daily_date_key: '2026-07-10',
+      mode: 'go',
+      rating_bucket: 'async:go:daily:v1',
+      scope: 'daily',
+      time_limit_ms: null,
+      word_length: 5,
+    })
+    const repository = createSupabaseMultiplayerRepository({
+      client: { rpc: vi.fn(async () => ({ data: [validRow], error: null })) } as unknown as BrrrdleSupabaseClient,
+      userId: 'user-1',
+    })
+
+    await expect(repository.getRankedQueueStatus('queue-request-1')).resolves.toMatchObject({
+      dailyDateKey: '2026-07-10',
+      mode: 'go',
+      ratingBucket: 'multiplayer:go:daily:v1',
+      scope: 'daily',
+      wordLength: 5,
+    })
+
+    for (const row of [
+      createRankedQueueStatusRow({ daily_date_key: null, rating_bucket: 'async:og:daily:v1', scope: 'daily' }),
+      createRankedQueueStatusRow({ daily_date_key: '2026-07-10', mode: null, rating_bucket: 'async:og:daily:v1', scope: 'daily' }),
+      createRankedQueueStatusRow({ daily_date_key: '2026-07-10', rating_bucket: 'async:og', scope: 'daily' }),
+      createRankedQueueStatusRow({ daily_date_key: '2026-07-10', rating_bucket: 'async:og:daily:v1', scope: 'daily', time_limit_ms: 300_000 }),
+      createRankedQueueStatusRow({ daily_date_key: '2026-07-10', rating_bucket: 'async:og:daily:v1', scope: 'daily', word_length: 6 }),
+    ]) {
+      const invalidRepository = createSupabaseMultiplayerRepository({
+        client: { rpc: vi.fn(async () => ({ data: [row], error: null })) } as unknown as BrrrdleSupabaseClient,
+        userId: 'user-1',
+      })
+      await expect(invalidRepository.getRankedQueueStatus('queue-request-1')).rejects.toThrow('Unable to parse ranked queue status result.')
     }
   })
 
@@ -1442,6 +1594,107 @@ describe('multiplayer repository seam', () => {
     expect((inserts.async_multiplayer_games[0] as { readonly rating_bucket: string }).rating_bucket).toBe('async:og')
     expect((inserts.async_multiplayer_games[0] as { readonly projection: typeof ownedGame }).projection.ratingBucket).toBe('multiplayer:og')
     expect(new Set(fromMock.mock.calls.map(([table]) => table))).toEqual(new Set(['async_multiplayer_games']))
+  })
+
+  it('routes ranked Daily mutations through server authority instead of table updates', async () => {
+    const serverProjection: { current?: unknown } = {}
+    const rpc = vi.fn(async (name: string) => {
+      if (name === 'save_ranked_daily_async_multiplayer_action') {
+        return { data: [{ game_projection: serverProjection.current }], error: null }
+      }
+      return { data: null, error: { message: `Unexpected RPC ${name}` } }
+    })
+    const from = vi.fn(() => ({
+      select: vi.fn(() => ({ order: vi.fn(async () => ({ data: [], error: null })) })),
+      update: vi.fn(() => ({ eq: vi.fn(async () => ({ error: null })) })),
+      upsert: vi.fn(async () => ({ error: null })),
+    }))
+    const game = createMultiplayerGame({
+      dailyDateKey: '2026-07-10',
+      matchmakingRequestId: 'queue-request-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'user-1', 'player-two': 'user-2' },
+      ranked: true,
+      ratingBucket: 'multiplayer:og:daily:v1',
+      scope: 'daily',
+    })
+    const submitted = submitMultiplayerGuess({ games: [game] }, {
+      gameId: game.id,
+      guess: getMultiplayerAnswerWords(game)[0],
+      playerId: 'player-one',
+    }).game!
+    serverProjection.current = submitted
+    const repository = createSupabaseMultiplayerRepository({
+      client: { from, rpc } as unknown as BrrrdleSupabaseClient,
+      userId: 'user-1',
+    })
+
+    await repository.save({ games: [game] })
+    await repository.save({ games: [submitted] })
+
+    expect(rpc).toHaveBeenCalledWith('save_ranked_daily_async_multiplayer_action', {
+      p_action_id: submitted.moves[0].id,
+      p_expected_move_count: 0,
+      p_expected_version: 0,
+      p_forfeit: false,
+      p_game_id: submitted.id,
+      p_guess: submitted.moves[0].guess,
+    })
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it('rehydrates answerless ranked Daily server projections from canonical date settings', async () => {
+    const game = createMultiplayerGame({
+      createdAt: '2026-07-10T12:00:00.000Z',
+      dailyDateKey: '2026-07-10',
+      matchmakingRequestId: 'phase55-ranked-daily-v1:finalize:game-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'user-1', 'player-two': 'user-2' },
+      ranked: true,
+      ratingBucket: 'multiplayer:og:daily:v1',
+      scope: 'daily',
+      id: 'game-1',
+    })
+    const submitted = submitMultiplayerGuess({ games: [game] }, {
+      gameId: game.id,
+      guess: getMultiplayerAnswerWords(game)[0],
+      now: '2026-07-10T12:01:00.000Z',
+      playerId: 'player-one',
+    }).game!
+    const {
+      playerSessions: omittedPlayerSessions,
+      serializedSession: omittedSerializedSession,
+      ...answerlessProjection
+    } = submitted
+    void omittedPlayerSessions
+    void omittedSerializedSession
+    const from = vi.fn(() => ({
+      select: vi.fn(() => ({
+        order: vi.fn(async () => ({
+          data: [{
+            created_at: submitted.createdAt,
+            projection: { ...answerlessProjection, authorityVersion: 1 },
+            updated_at: submitted.updatedAt,
+          }],
+          error: null,
+        })),
+      })),
+    }))
+    const repository = createSupabaseMultiplayerRepository({
+      client: {
+        from,
+        rpc: vi.fn(async () => ({ data: '2026-07-10T12:01:00.000Z', error: null })),
+      } as unknown as BrrrdleSupabaseClient,
+      userId: 'user-1',
+    })
+
+    const snapshot = await repository.load()
+    const restored = snapshot.state.games[0]
+
+    expect(restored?.authorityVersion).toBe(1)
+    expect(restored?.moves).toEqual(submitted.moves)
+    expect(restored?.status).toBe('won')
+    expect(getMultiplayerAnswerWords(restored!)).toEqual(getMultiplayerAnswerWords(game))
   })
 
   it('saves canonical timed ranked games with the timed storage rating bucket', async () => {

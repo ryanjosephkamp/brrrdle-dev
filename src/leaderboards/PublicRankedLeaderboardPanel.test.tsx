@@ -40,8 +40,8 @@ describe('PublicRankedLeaderboardView', () => {
       />,
     )
 
-    expect(html).toContain('Ranked Practice leaderboard')
-    expect(html).toContain('Sign in to view public ranked Practice leaderboards')
+    expect(html).toContain('Ranked multiplayer leaderboard')
+    expect(html).toContain('Sign in to view public ranked multiplayer leaderboards')
     expect(html).toContain('authenticated-only')
   })
 
@@ -69,7 +69,7 @@ describe('PublicRankedLeaderboardView', () => {
     expect(unavailable).toContain('Supabase is not configured')
     expect(loading).toContain('Loading public ranked leaderboard')
     expect(error).toContain('Unable to load the public ranked leaderboard right now')
-    expect(empty).toContain('No public ranked Practice rows yet')
+    expect(empty).toContain('No public ranked multiplayer rows yet')
     for (const html of [unavailable, loading, error, empty]) {
       expect(html).not.toContain('email')
       expect(html).not.toContain('user_id')
@@ -79,7 +79,7 @@ describe('PublicRankedLeaderboardView', () => {
     }
   })
 
-  it('renders OG/GO bucket filters, row limits, rank bands, and public-safe leaderboard rows', () => {
+  it('renders Practice/Daily OG/GO bucket filters, row limits, rank bands, and public-safe leaderboard rows', () => {
     const html = renderToStaticMarkup(
       <PublicRankedLeaderboardView
         authStatus="authenticated"
@@ -92,8 +92,10 @@ describe('PublicRankedLeaderboardView', () => {
 
     expect(html).not.toContain('All buckets')
     expect(html).not.toContain('All ranked Practice buckets')
-    expect(html).toContain('OG')
-    expect(html).toContain('GO')
+    expect(html).toContain('Practice OG')
+    expect(html).toContain('Practice GO')
+    expect(html).toContain('Daily OG')
+    expect(html).toContain('Daily GO')
     expect(html).toContain('Top 25')
     expect(html).toContain('Top 50')
     expect(html).toContain('Top 100')
@@ -165,6 +167,6 @@ describe('PublicRankedLeaderboardPanel', () => {
   it('does not call for a repository in the signed-out static render path', () => {
     const html = renderToStaticMarkup(<PublicRankedLeaderboardPanel authStatus="anonymous" />)
 
-    expect(html).toContain('Sign in to view public ranked Practice leaderboards')
+    expect(html).toContain('Sign in to view public ranked multiplayer leaderboards')
   })
 })

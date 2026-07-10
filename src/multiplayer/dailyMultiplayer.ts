@@ -123,6 +123,33 @@ function multiplayerAnswerIndex(dateKey: string, answerCount: number, family: 'g
   return (baseIndex + offset) % answerCount
 }
 
+function rankedMultiplayerAnswerIndex(
+  dateKey: string,
+  answers: readonly { readonly word: string }[],
+  family: 'go' | 'og',
+  puzzleCount: number,
+): number {
+  if (answers.length < 2) {
+    throw new Error('At least two answer candidates are required to separate ranked and unranked daily multiplayer.')
+  }
+
+  const unrankedIndex = multiplayerAnswerIndex(dateKey, answers.length, family)
+  const initialDisplacement = 1 + (hashString(`${dateKey}:${family}:multiplayer:ranked`) % (answers.length - 1))
+  for (let attempt = 0; attempt < answers.length - 1; attempt += 1) {
+    const displacement = 1 + ((initialDisplacement - 1 + attempt) % (answers.length - 1))
+    const candidateIndex = (unrankedIndex + displacement) % answers.length
+    const avoidsEveryCollision = Array.from({ length: puzzleCount }, (_, offset) => (
+      answers[(candidateIndex + offset) % answers.length]!.word
+      !== answers[(unrankedIndex + offset) % answers.length]!.word
+    )).every(Boolean)
+    if (avoidsEveryCollision) {
+      return candidateIndex
+    }
+  }
+
+  throw new Error('Unable to select distinct ranked daily multiplayer answers.')
+}
+
 function answerSequence(answers: readonly { readonly word: string }[], seedIndex: number, puzzleCount: GoPuzzleCount): readonly string[] {
   if (answers.length < 1) {
     throw new Error('At least one answer candidate is required for daily multiplayer.')
@@ -133,13 +160,16 @@ function answerSequence(answers: readonly { readonly word: string }[], seedIndex
 export function createDailyMultiplayerOgSetup(
   date = new Date(),
   difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER,
+  ranked = false,
 ): OgPuzzleSetup {
   const repository = getWordRepository({ difficulty, length: DAILY_WORD_LENGTH, mode: 'og', scope: 'daily' })
   if (!repository.ok) {
     throw new Error(repository.message)
   }
   const dateKey = getDailyDateKey(date)
-  const index = multiplayerAnswerIndex(dateKey, repository.answers.length, 'og')
+  const index = ranked
+    ? rankedMultiplayerAnswerIndex(dateKey, repository.answers, 'og', 1)
+    : multiplayerAnswerIndex(dateKey, repository.answers.length, 'og')
   return {
     answer: repository.answers[index]!.word,
     dateKey,
@@ -152,13 +182,16 @@ export function createDailyMultiplayerGoSetup(
   date = new Date(),
   difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER,
   puzzleCount: GoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT,
+  ranked = false,
 ): GoSessionSetup {
   const repository = getWordRepository({ difficulty, length: DAILY_WORD_LENGTH, mode: 'go', scope: 'daily' })
   if (!repository.ok) {
     throw new Error(repository.message)
   }
   const dateKey = getDailyDateKey(date)
-  const seedIndex = multiplayerAnswerIndex(dateKey, repository.answers.length, 'go')
+  const seedIndex = ranked
+    ? rankedMultiplayerAnswerIndex(dateKey, repository.answers, 'go', puzzleCount)
+    : multiplayerAnswerIndex(dateKey, repository.answers.length, 'go')
   const answers = answerSequence(repository.answers, seedIndex, puzzleCount)
   const priorAnswers: string[] = []
   const puzzles = answers.map((answer) => {

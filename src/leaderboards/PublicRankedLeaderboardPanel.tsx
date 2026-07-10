@@ -114,7 +114,7 @@ function PublicRankedLeaderboardRows({
   return (
     <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/25">
       <table className="min-w-full divide-y divide-white/10 text-left text-sm text-slate-200">
-        <caption className="sr-only">Public ranked Practice leaderboard rows</caption>
+        <caption className="sr-only">Public ranked multiplayer leaderboard rows</caption>
         <thead className="bg-white/5 text-xs uppercase tracking-wide text-slate-400">
           <tr>
             <th className="px-3 py-3 font-semibold" scope="col">Rank</th>
@@ -187,9 +187,9 @@ export function PublicRankedLeaderboardView({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">public leaderboard</p>
-          <h3 id="public-ranked-leaderboard-title" className="text-2xl font-bold text-white">Ranked Practice leaderboard</h3>
+          <h3 id="public-ranked-leaderboard-title" className="text-2xl font-bold text-white">Ranked multiplayer leaderboard</h3>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-            Signed-in players can view opt-in public profiles ranked by trusted Practice Elo. Private, hidden, suspended, or zero-game profiles are omitted.
+            Signed-in players can view opt-in public profiles ranked by trusted Practice or Daily Elo. Private, hidden, suspended, or zero-game profiles are omitted.
           </p>
         </div>
         <Button disabled={!isSignedIn || status === 'loading'} onClick={onRefresh} size="sm" variant="secondary">
@@ -247,7 +247,7 @@ export function PublicRankedLeaderboardView({
 
       {authStatus === 'anonymous' ? (
         <p className="rounded-lg border border-white/10 bg-black/30 p-4 text-sm text-slate-300">
-          Sign in to view public ranked Practice leaderboards. This first version is authenticated-only.
+          Sign in to view public ranked multiplayer leaderboards. This view is authenticated-only.
         </p>
       ) : null}
 
@@ -261,7 +261,7 @@ export function PublicRankedLeaderboardView({
 
       {isSignedIn && status !== 'loading' && status !== 'error' && viewRows.length === 0 ? (
         <p className="rounded-lg border border-white/10 bg-black/30 p-4 text-sm leading-6 text-slate-300">
-          No public ranked Practice rows yet. Players appear after opting into a public profile and completing ranked Practice games.
+          No public ranked multiplayer rows yet. Players appear after opting into a public profile and completing ranked Practice or Daily games.
         </p>
       ) : null}
 

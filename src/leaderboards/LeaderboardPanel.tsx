@@ -29,7 +29,7 @@ export function LeaderboardPanel({
         <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--color-ice-200)]">competitive hub</p>
         <h2 id="leaderboard-title" className="text-3xl font-bold text-white">Leaderboard</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-          Public ranked Practice leaderboards and competitive multiplayer ratings live here. Local gameplay history stays in Stats.
+          Public ranked Practice and Daily leaderboards and competitive multiplayer ratings live here. Local gameplay history stays in Stats.
         </p>
       </div>
 

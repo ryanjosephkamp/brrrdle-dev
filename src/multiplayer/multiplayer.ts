@@ -65,6 +65,7 @@ export type MultiplayerSerializedSession =
   | { readonly mode: 'go'; readonly session: SerializedGoSession }
 
 export interface MultiplayerGame {
+  readonly authorityVersion?: number
   readonly createdAt: string
   readonly currentTurn: MultiplayerPlayerId
   readonly customGameCode?: string
@@ -419,11 +420,17 @@ function normalizeGame(value: unknown): MultiplayerGame | undefined {
     ? serializedSession.session.answer.length
     : serializedSession.session.puzzles[0]?.answer.length ?? 5
   const playerProfiles = normalizeMultiplayerProfileMap<MultiplayerPlayerId>(record.playerProfiles, ['player-one', 'player-two'])
-  const hardMode = record.scope === 'practice' && (record.hardMode === true || getSessionHardMode(serializedSession))
+  const allowsHardMode = record.scope === 'practice' || (record.scope === 'daily' && record.ranked === true)
+  const hardMode = allowsHardMode && (record.hardMode === true || getSessionHardMode(serializedSession))
   const playerSessions = normalizePlayerSessions(record.playerSessions, serializedSession, hardMode)
-  const timeLimitMs = normalizePracticeTimeLimitMs(record.timeLimitMs)
+  const timeLimitMs = record.scope === 'practice' ? normalizePracticeTimeLimitMs(record.timeLimitMs) : null
   const timeRemainingMs = normalizeTimeRemaining(record.timeRemainingMs, timeLimitMs)
   return {
+    authorityVersion: typeof record.authorityVersion === 'number'
+      && Number.isInteger(record.authorityVersion)
+      && record.authorityVersion >= 0
+      ? record.authorityVersion
+      : undefined,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString(),
     currentTurn: record.currentTurn === 'player-two' ? 'player-two' : 'player-one',
     customGameCode: typeof record.customGameCode === 'string' ? record.customGameCode : undefined,
@@ -491,16 +498,16 @@ export function canCreateMultiplayerGame(state: MultiplayerState, userId?: strin
   return getActiveMultiplayerGames(state, userId).length < MAX_MULTIPLAYER_GAMES
 }
 
-function createInitialSession(input: Required<Pick<CreateMultiplayerGameInput, 'difficulty' | 'goPuzzleCount' | 'mode' | 'scope' | 'seed' | 'wordLength'>> & { readonly dailyDateKey?: string; readonly hardMode: boolean }): MultiplayerSerializedSession {
+function createInitialSession(input: Required<Pick<CreateMultiplayerGameInput, 'difficulty' | 'goPuzzleCount' | 'mode' | 'scope' | 'seed' | 'wordLength'>> & { readonly dailyDateKey?: string; readonly hardMode: boolean; readonly ranked: boolean }): MultiplayerSerializedSession {
   if (input.mode === 'og') {
     const setup = input.scope === 'daily'
-      ? createDailyMultiplayerOgSetup(dateKeyToLocalDate(input.dailyDateKey ?? getUtcDailyDateKey()), input.difficulty)
+      ? createDailyMultiplayerOgSetup(dateKeyToLocalDate(input.dailyDateKey ?? getUtcDailyDateKey()), input.difficulty, input.ranked)
       : createPracticeOgSetup(input.wordLength, input.seed, input.difficulty)
     return { mode: 'og', session: serializeOgSession(createOgSession(setup, input.hardMode)) }
   }
 
   const setup = input.scope === 'daily'
-    ? createDailyMultiplayerGoSetup(dateKeyToLocalDate(input.dailyDateKey ?? getUtcDailyDateKey()), input.difficulty, input.goPuzzleCount)
+    ? createDailyMultiplayerGoSetup(dateKeyToLocalDate(input.dailyDateKey ?? getUtcDailyDateKey()), input.difficulty, input.goPuzzleCount, input.ranked)
     : createPracticeGoSetup(input.wordLength, input.seed, input.difficulty, input.goPuzzleCount)
   return { mode: 'go', session: serializeGoSession(createGoSession(setup, input.hardMode)) }
 }
@@ -511,12 +518,14 @@ export function createMultiplayerGame(input: CreateMultiplayerGameInput): Multip
   const isOnlineWaitingGame = Boolean(input.playerUserIds?.['player-one'] && !input.playerUserIds?.['player-two'])
   const playerProfiles = input.playerProfiles
   const timeLimitMs = input.scope === 'practice' ? normalizePracticeTimeLimitMs(input.timeLimitMs) : null
-  const hardMode = input.scope === 'practice' && input.hardMode === true
+  const ranked = input.ranked === true
+  const hardMode = (input.scope === 'practice' || (input.scope === 'daily' && ranked)) && input.hardMode === true
   const normalizedInput = {
     difficulty: input.difficulty ?? DEFAULT_DIFFICULTY_TIER,
-    goPuzzleCount: input.goPuzzleCount ?? DEFAULT_GO_PUZZLE_COUNT,
+    goPuzzleCount: input.scope === 'daily' && ranked ? DEFAULT_GO_PUZZLE_COUNT : input.goPuzzleCount ?? DEFAULT_GO_PUZZLE_COUNT,
     hardMode,
     mode: input.mode,
+    ranked,
     scope: input.scope,
     seed: input.seed ?? Date.parse(createdAt),
     wordLength: input.scope === 'daily' ? 5 : input.wordLength ?? 5,
@@ -524,6 +533,7 @@ export function createMultiplayerGame(input: CreateMultiplayerGameInput): Multip
   }
   const serializedSession = createInitialSession(normalizedInput)
   return {
+    authorityVersion: input.scope === 'daily' && ranked ? 0 : undefined,
     createdAt,
     currentTurn: 'player-one',
     customGameCode: input.customGameCode,
@@ -546,7 +556,7 @@ export function createMultiplayerGame(input: CreateMultiplayerGameInput): Multip
       { id: 'player-one', label: profileLabel(playerProfiles?.['player-one'], isOnlineWaitingGame ? 'Host' : 'You') },
       { id: 'player-two', label: profileLabel(playerProfiles?.['player-two'], 'Rival') },
     ],
-    ranked: input.ranked === true,
+    ranked,
     ratingBucket: input.ratingBucket,
     scope: input.scope,
     seed: normalizedInput.seed,
@@ -605,6 +615,7 @@ export function hasDailyMultiplayerParticipation(
   dateKey: string | undefined,
   mode: GameMode,
   userId: string | undefined,
+  ranked = false,
 ): boolean {
   if (!dateKey || !userId) {
     return false
@@ -613,6 +624,7 @@ export function hasDailyMultiplayerParticipation(
     game.scope === 'daily'
     && game.dailyDateKey === dateKey
     && game.mode === mode
+    && (game.ranked === true) === ranked
     && !(game.status === 'cancelled' && game.playerUserIds?.['player-one'] === userId && !game.playerUserIds?.['player-two'])
     && (game.playerUserIds?.['player-one'] === userId || game.playerUserIds?.['player-two'] === userId)
   ))
@@ -641,6 +653,7 @@ export function joinMultiplayerGame(
     game.dailyDateKey,
     game.mode,
     input.userId,
+    game.ranked === true,
   )) {
     return { error: 'You already claimed today\'s Daily Multiplayer game for this mode.', game, state: normalized }
   }
@@ -679,7 +692,7 @@ export function addMultiplayerGame(state: MultiplayerState, game: MultiplayerGam
   if (
     game.scope === 'daily'
     && ownerUserId
-    && hasDailyMultiplayerParticipation(normalized, game.dailyDateKey, game.mode, ownerUserId)
+    && hasDailyMultiplayerParticipation(normalized, game.dailyDateKey, game.mode, ownerUserId, game.ranked === true)
   ) {
     return normalized
   }
@@ -716,11 +729,11 @@ export function cancelMultiplayerGame(state: MultiplayerState, input: CancelMult
 function getValidGuesses(game: MultiplayerGame): ReadonlySet<string> {
   if (game.mode === 'og') {
     return game.scope === 'daily'
-      ? createDailyMultiplayerOgSetup(dateKeyToLocalDate(game.dailyDateKey ?? getUtcDailyDateKey()), game.difficulty).validGuesses
+      ? createDailyMultiplayerOgSetup(dateKeyToLocalDate(game.dailyDateKey ?? getUtcDailyDateKey()), game.difficulty, game.ranked === true).validGuesses
       : createPracticeOgSetup(game.wordLength, game.seed, game.difficulty).validGuesses
   }
   return game.scope === 'daily'
-    ? createDailyMultiplayerGoSetup(dateKeyToLocalDate(game.dailyDateKey ?? getUtcDailyDateKey()), game.difficulty, game.goPuzzleCount ?? DEFAULT_GO_PUZZLE_COUNT).validGuesses
+    ? createDailyMultiplayerGoSetup(dateKeyToLocalDate(game.dailyDateKey ?? getUtcDailyDateKey()), game.difficulty, game.goPuzzleCount ?? DEFAULT_GO_PUZZLE_COUNT, game.ranked === true).validGuesses
     : createPracticeGoSetup(game.wordLength, game.seed, game.difficulty, game.goPuzzleCount ?? DEFAULT_GO_PUZZLE_COUNT).validGuesses
 }
 
@@ -817,12 +830,13 @@ function getSharedPuzzleGuesses(game: MultiplayerGame, puzzleIndex: number): rea
     .map((move): GuessResult => ({ guess: move.guess, tiles: move.tiles }))
 }
 
-function validateSharedPracticeHardModeGuess(
+function validateSharedHardModeGuess(
   game: MultiplayerGame,
   serializedSession: MultiplayerSerializedSession,
   guess: string,
 ): string | undefined {
-  if (game.scope !== 'practice' || !game.hardMode || !getSessionHardMode(serializedSession)) {
+  const supportsHardMode = game.scope === 'practice' || (game.scope === 'daily' && game.ranked === true)
+  if (!supportsHardMode || !game.hardMode || !getSessionHardMode(serializedSession)) {
     return undefined
   }
   const sharedGuesses = getSharedPuzzleGuesses(game, getMovePuzzleIndex(serializedSession))
@@ -968,7 +982,7 @@ export function submitMultiplayerGuess(state: MultiplayerState, input: SubmitMul
   if (getSessionStatus(playerSession) !== 'playing') {
     return { error: 'This player has already finished their board.', game: clocked, state: normalized }
   }
-  const sharedHardModeError = validateSharedPracticeHardModeGuess(clocked, playerSession, input.guess)
+  const sharedHardModeError = validateSharedHardModeGuess(clocked, playerSession, input.guess)
   if (sharedHardModeError) {
     return { error: sharedHardModeError, game: clocked, state: normalized }
   }

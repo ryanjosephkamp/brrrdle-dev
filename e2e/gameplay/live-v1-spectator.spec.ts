@@ -51,7 +51,7 @@ async function expectParticipantPublicProfileAndReturn(page: Page, opponentDispl
   await expect(profileButton).toBeVisible({ timeout: 30_000 })
   await profileButton.click()
   await expect(page.getByRole('heading', { name: /^Player profile$/i })).toBeVisible()
-  await expect(page.getByText(/^Public ranked Practice metadata$/i)).toBeVisible()
+  await expect(page.getByText(/^Public ranked multiplayer metadata$/i)).toBeVisible()
   await page.getByRole('button', { name: /^Back to Multiplayer$/i }).click()
   await expect(page.getByRole('tab', { name: /^Live$/i })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Resume live game$/i })).toBeVisible()

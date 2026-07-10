@@ -137,6 +137,18 @@ export function mergeFinalizedRankedGameIntoLocalState(
   ]
 }
 
+export function resolveFinalizedRankedQueueGame({
+  built,
+  durable,
+  idempotent,
+}: {
+  readonly built: MultiplayerGame
+  readonly durable: MultiplayerGame | undefined
+  readonly idempotent: boolean
+}): MultiplayerGame | undefined {
+  return idempotent ? durable : built
+}
+
 export function getRecoverableRankedQueueGame({
   currentGames,
   matchedGameId,
@@ -150,7 +162,7 @@ export function getRecoverableRankedQueueGame({
     return undefined
   }
   const game = currentGames.find((entry) => entry.id === matchedGameId)
-  if (!game || !game.ranked || game.scope !== 'practice' || game.status === 'cancelled') {
+  if (!game || !game.ranked || (game.scope !== 'practice' && game.scope !== 'daily') || game.status === 'cancelled') {
     return undefined
   }
   return getViewerMultiplayerPlayerId(game, viewerUserId) ? game : undefined

@@ -142,7 +142,7 @@ describe('competitive multiplayer settlement', () => {
     expect(settledAgain.rating.profiles).toEqual(settled.rating.profiles)
   })
 
-  it('records local-preview and deferred Daily results without rating movement', () => {
+  it('records local-preview and queue-backed ranked Daily results without browser-authoritative rating movement', () => {
     const previewGame = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
       mode: 'og',
@@ -161,9 +161,11 @@ describe('competitive multiplayer settlement', () => {
     const dailyGame = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
       dailyDateKey: '2026-06-04',
+      matchmakingRequestId: 'daily-queue-request-1',
       mode: 'og',
       playerUserIds: { 'player-one': 'user-a', 'player-two': 'user-b' },
       ranked: true,
+      ratingBucket: 'multiplayer:og:daily:v1',
       scope: 'daily',
       seed: 1,
       wordLength: 5,
@@ -177,11 +179,11 @@ describe('competitive multiplayer settlement', () => {
 
     const settled = settleMultiplayerStateResults(createEmptyCompetitiveMultiplayerState(), {
       games: [previewSubmitted.game!, dailyTerminal],
-    }, authenticated)
+    }, authenticated, { applyLocalRating: false })
 
     expect(settled.results).toHaveLength(2)
     expect(settled.results.find((result) => result.sourceMatchId === previewGame.id)?.ranked).toBe(true)
-    expect(settled.results.find((result) => result.sourceMatchId === dailyGame.id)?.ranked).toBe(false)
+    expect(settled.results.find((result) => result.sourceMatchId === dailyGame.id)?.ranked).toBe(true)
     expect(settled.rating.transactions).toHaveLength(0)
   })
 })

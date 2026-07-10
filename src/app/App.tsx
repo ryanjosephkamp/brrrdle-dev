@@ -52,7 +52,7 @@ import {
   expireStaleDailyMultiplayerGames,
   expireTimedOutPracticeMultiplayerGames,
   getViewerMultiplayerPlayerId,
-  isTrustedRankedPracticeSettlementCandidate,
+  isTrustedRankedSettlementCandidate,
   loadMultiplayerState,
   applyTrustedSettlementResult,
   joinMultiplayerGame,
@@ -382,7 +382,7 @@ export function AboutBrrrdlePanel() {
           <div className="rounded-lg border border-white/10 bg-black/30 p-3">
             <p className="font-semibold text-cyan-100">Public surfaces</p>
             <p className="mt-1">
-              Leaderboards show eligible public ranked Practice rows. Public profile links use approved public fields only, Stats separates private local play from aggregate site totals, History keeps completed results browsable, and public or guest Live spectator surfaces stay read-only with Daily spectator access excluded.
+              Leaderboards show eligible public ranked Practice and ranked Daily rows. Public profile links use approved public fields only, Stats separates private local play from aggregate site totals, History keeps completed results browsable, and public or guest Live spectator surfaces stay read-only with Daily spectator access excluded.
             </p>
           </div>
         </div>
@@ -399,7 +399,7 @@ export function AboutBrrrdlePanel() {
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-100">Ranked transparency</p>
             <h3 id="ranked-elo-about-title" className="text-2xl font-bold text-white">How Elo is calculated</h3>
             <p>
-              Ranked Practice is signed-in Practice only. Untimed ranked and canonical five-minute timed ranked use separate rating buckets. Daily ranked, custom ranked games, and unsupported timers remain deferred, and public leaderboards are display-only surfaces separate from Elo authority.
+              Ranked matchmaking is signed-in only. Untimed Practice, canonical five-minute Practice, and ranked Daily OG/GO use separate rating buckets. Ranked Daily uses fixed five-letter, no-clock OG and GO queues; custom ranked games and unsupported timers remain deferred. Public leaderboards are display-only surfaces separate from Elo authority.
             </p>
           </div>
 
@@ -437,7 +437,7 @@ export function AboutBrrrdlePanel() {
           </div>
 
           <p className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-cyan-50">
-            Match points decide the match result first. Elo movement happens afterward only when trusted settlement confirms durable ranked Practice evidence against your rival's rating. Local previews, spectators, custom games, Daily games, unsupported timed Practice games, guest games, corrupt evidence, and unranked games do not move Elo.
+            Match points decide the match result first. Elo movement happens afterward only when trusted settlement confirms server-authorized ranked Practice or ranked Daily evidence against your rival's rating. Local previews, spectators, custom games, unranked Daily games, unsupported timed Practice games, guest games, corrupt evidence, and other unranked games do not move Elo.
           </p>
         </section>
       </Panel>
@@ -992,7 +992,17 @@ function RoutePanel({
         authStatus={authState.status}
         backLabel={backToMultiplayer ? 'Back to Multiplayer' : undefined}
         privateMatchActions={privateMatchActions}
+        privateMatchViewerSessionKey={authState.user?.id}
         onBack={() => onSelectRoute(backToMultiplayer ? 'multiplayer' : 'leaderboard')}
+        onEnterPrivateMatch={(gameId) => {
+          onSelectMultiplayerGame(gameId)
+          onMultiplayerSubtabChange('practice')
+          onSelectRoute('multiplayer')
+        }}
+        onGoToPracticeMultiplayer={() => {
+          onMultiplayerSubtabChange('practice')
+          onSelectRoute('multiplayer')
+        }}
         publicProfileId={selectedPublicProfileId}
         publicRankedLeaderboardRepository={publicRankedLeaderboardRepository}
         repository={publicProfileRepository}
@@ -1684,7 +1694,7 @@ function AppInner() {
       return
     }
     for (const game of nextMultiplayer.games) {
-      if (!isTrustedRankedPracticeSettlementCandidate(game)) {
+      if (!isTrustedRankedSettlementCandidate(game)) {
         continue
       }
       if (trustedRankedSettlementCompletedRef.current.has(game.id)) {

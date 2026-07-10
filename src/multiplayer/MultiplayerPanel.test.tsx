@@ -35,6 +35,7 @@ import {
   getMultiplayerPlayerDisplayLabel,
   getRankedQueueActiveRequestId,
   getRecoverableRankedQueueGame,
+  resolveFinalizedRankedQueueGame,
   shouldShowRankedQueueBusyForRefresh,
   shouldAutoRefreshRankedQueue,
 } from './multiplayerPanelRouting'
@@ -555,7 +556,32 @@ describe('MultiplayerPanel', () => {
     })
   })
 
-  it('recovers only viewer-owned ranked Practice games after a broken finalization response', () => {
+  it('opens the durable game instead of a client-built projection after idempotent finalization', () => {
+    const built = createMultiplayerGame({
+      dailyDateKey: '2026-07-10',
+      id: 'ranked-daily-1',
+      matchmakingRequestId: 'queue-request-1',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      ranked: true,
+      ratingBucket: 'multiplayer:og:daily:v1',
+      scope: 'daily',
+    })
+    const durable = { ...built, currentTurn: 'player-two' as const, moves: [{
+      createdAt: '2026-07-10T12:00:00.000Z',
+      guess: 'crane',
+      id: 'move-1',
+      playerId: 'player-one' as const,
+      puzzleIndex: 0,
+      tiles: [],
+    }] }
+
+    expect(resolveFinalizedRankedQueueGame({ built, durable, idempotent: true })).toBe(durable)
+    expect(resolveFinalizedRankedQueueGame({ built, durable: undefined, idempotent: true })).toBeUndefined()
+    expect(resolveFinalizedRankedQueueGame({ built, durable, idempotent: false })).toBe(built)
+  })
+
+  it('recovers only viewer-owned ranked Practice or Daily games after a broken finalization response', () => {
     const recoverableGame = createMultiplayerGame({
       id: 'ranked-practice-1',
       matchmakingRequestId: 'queue-request-1',
@@ -576,6 +602,16 @@ describe('MultiplayerPanel', () => {
       id: 'cancelled-ranked-practice-1',
       status: 'cancelled' as const,
     }
+    const rankedDailyGame = createMultiplayerGame({
+      dailyDateKey: '2026-07-10',
+      id: 'ranked-daily-1',
+      matchmakingRequestId: 'queue-request-daily-1',
+      mode: 'go',
+      playerUserIds: { 'player-one': 'host-user', 'player-two': 'rival-user' },
+      ranked: true,
+      ratingBucket: 'multiplayer:go:daily:v1',
+      scope: 'daily',
+    })
 
     expect(getRecoverableRankedQueueGame({
       currentGames: [recoverableGame],
@@ -587,6 +623,11 @@ describe('MultiplayerPanel', () => {
       matchedGameId: recoverableGame.id,
       viewerUserId: 'spectator-user',
     })).toBeUndefined()
+    expect(getRecoverableRankedQueueGame({
+      currentGames: [rankedDailyGame],
+      matchedGameId: rankedDailyGame.id,
+      viewerUserId: 'rival-user',
+    })).toBe(rankedDailyGame)
     expect(getRecoverableRankedQueueGame({
       currentGames: [unrankedGame],
       matchedGameId: unrankedGame.id,
@@ -967,7 +1008,7 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('How is Elo calculated?')
     expect(html).toContain('Choose no clock for the current ranked track or 5 minutes for the separate timed ranked track.')
     expect(html).toContain('pairs the oldest compatible queued rival first')
-    expect(html).toContain('Daily ranked and ranked custom-code games remain deferred.')
+    expect(html).toContain('Ranked Daily uses separate OG and GO rating buckets with fixed five-letter, no-clock settings.')
     expect(html).toContain('Points decide the match result first. Elo changes afterward only after trusted settlement')
     expect(html).not.toContain('<option value="custom">Custom code</option>')
     expect(html).not.toContain('Each ranked bucket starts at 1200')
@@ -1064,7 +1105,7 @@ describe('MultiplayerPanel', () => {
     expect(html).toContain('Join multiplayer match')
   })
 
-  it('does not show Practice Hard Mode lobby controls for Daily Multiplayer', () => {
+  it('keeps Daily controls fixed while advertising the separate ranked Daily queue', () => {
     const html = renderToStaticMarkup(
       <MultiplayerPanel
         authStatus="authenticated"
@@ -1078,8 +1119,12 @@ describe('MultiplayerPanel', () => {
       />,
     )
 
-    expect(html).not.toContain('Hard Mode')
+    expect(html).not.toContain('<span>Hard Mode</span>')
     expect(html).not.toContain('Time per side')
+    expect(html).not.toContain('Length')
+    expect(html).toContain('Ranked Daily v1')
+    expect(html).toContain('Separate ranked and unranked answer and claim lanes')
+    expect(html).not.toContain('Daily ranked deferred')
   })
 
   it.each(['practice', 'daily'] as const)('keeps a completed %s go surface visible briefly before terminal definitions', (scope) => {

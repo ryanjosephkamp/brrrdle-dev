@@ -32,7 +32,9 @@ export interface PublicRankedLeaderboardViewRow {
 }
 
 const PUBLIC_RANKED_LEADERBOARD_BUCKET_LABELS: Record<PublicRankedLeaderboardBucket, string> = {
+  'multiplayer:go:daily:v1': 'GO ranked Daily',
   'multiplayer:go': 'GO ranked Practice',
+  'multiplayer:og:daily:v1': 'OG ranked Daily',
   'multiplayer:og': 'OG ranked Practice',
 }
 
@@ -42,12 +44,22 @@ export const PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS: readonly PublicRankedLead
   {
     bucket: 'multiplayer:og',
     description: 'Show OG ranked Practice rows only.',
-    label: 'OG',
+    label: 'Practice OG',
   },
   {
     bucket: 'multiplayer:go',
     description: 'Show GO ranked Practice rows only.',
-    label: 'GO',
+    label: 'Practice GO',
+  },
+  {
+    bucket: 'multiplayer:og:daily:v1',
+    description: 'Show OG ranked Daily rows only.',
+    label: 'Daily OG',
+  },
+  {
+    bucket: 'multiplayer:go:daily:v1',
+    description: 'Show GO ranked Daily rows only.',
+    label: 'Daily GO',
   },
 ]
 

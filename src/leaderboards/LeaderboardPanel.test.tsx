@@ -10,9 +10,9 @@ describe('LeaderboardPanel', () => {
     )
 
     expect(html).toContain('Leaderboard')
-    expect(html).toContain('Public ranked Practice leaderboards and competitive multiplayer ratings live here')
-    expect(html).toContain('Ranked Practice leaderboard')
-    expect(html).toContain('Sign in to view public ranked Practice leaderboards')
+    expect(html).toContain('Public ranked Practice and Daily leaderboards and competitive multiplayer ratings live here')
+    expect(html).toContain('Ranked multiplayer leaderboard')
+    expect(html).toContain('Sign in to view public ranked multiplayer leaderboards')
     expect(html).toContain('Competitive multiplayer')
     expect(html).toContain('No rated results yet')
     expect(html).toContain('public leaderboards are display-only')

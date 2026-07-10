@@ -38,7 +38,7 @@ describe('multiplayer scoring projections', () => {
     expect(createRatedEvidenceFromPerformance(performance!, { authenticated: true, durableResult: true }).playerResults).toHaveLength(2)
   })
 
-  it('rates canonical timed Practice ranked separately while keeping deferred categories unrated', () => {
+  it('rates canonical Practice and Daily ranked buckets while keeping unsupported categories unrated', () => {
     const practiceRanked = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
       mode: 'og',
@@ -51,9 +51,11 @@ describe('multiplayer scoring projections', () => {
     const dailyRanked = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',
       dailyDateKey: '2026-06-04',
+      hardMode: true,
       mode: 'og',
       playerUserIds: { 'player-one': 'user-a', 'player-two': 'user-b' },
       ranked: true,
+      ratingBucket: 'multiplayer:og:daily:v1',
       scope: 'daily',
       seed: 1,
       wordLength: 5,
@@ -96,6 +98,18 @@ describe('multiplayer scoring projections', () => {
       status: 'lost' as const,
       winnerId: 'player-one' as const,
     }
+    const dailyWithClock = {
+      ...terminalDaily,
+      timeLimitMs: 300_000 as const,
+    }
+    const dailyWithWrongLength = {
+      ...terminalDaily,
+      wordLength: 6,
+    }
+    const dailyWithWrongBucket = {
+      ...terminalDaily,
+      ratingBucket: 'multiplayer:og' as const,
+    }
     const terminalTimed = {
       ...timedPracticeRanked,
       endedAt: '2026-06-04T12:01:00.000Z',
@@ -130,8 +144,16 @@ describe('multiplayer scoring projections', () => {
       bucket: 'multiplayer:og:timed:v1',
       ranked: true,
     })
+    expect(getCompetitiveRatingEligibility(dailyRanked)).toMatchObject({
+      eligible: true,
+      reason: 'Eligible for Daily ranked rating.',
+    })
+    expect(projectMultiplayerPerformance(terminalDaily)).toMatchObject({
+      bucket: 'multiplayer:og:daily:v1',
+      ranked: true,
+    })
 
-    for (const terminalGame of [terminalDaily, terminalTimed, terminalCustom, mismatchedTimedBucket]) {
+    for (const terminalGame of [dailyWithClock, dailyWithWrongLength, dailyWithWrongBucket, terminalTimed, terminalCustom, mismatchedTimedBucket]) {
       const performance = projectMultiplayerPerformance(terminalGame)
       expect(performance?.ranked).toBe(false)
       expect(createRatedEvidenceFromPerformance(performance!, { authenticated: true, durableResult: true }).ranked).toBe(false)

@@ -37,7 +37,7 @@ function serialize(metadata: readonly PublicProfileRatingMetadata[]): string {
 }
 
 describe('createPublicProfileRatingMetadata', () => {
-  it('derives safe public ranked Practice labels for a public profile', () => {
+  it('derives safe public ranked Practice and Daily labels for a public profile', () => {
     const metadata = createPublicProfileRatingMetadata([
       row(),
       row({
@@ -52,6 +52,16 @@ describe('createPublicProfileRatingMetadata', () => {
         rank: 12,
         rating: 1205,
         wins: 1,
+      }),
+      row({
+        bucket: 'multiplayer:og:daily:v1',
+        publicProfileId: PROFILE_ID,
+        rank: 6,
+      }),
+      row({
+        bucket: 'multiplayer:go:daily:v1',
+        publicProfileId: PROFILE_ID,
+        rank: 7,
       }),
       row({
         displayName: 'Other Player',
@@ -82,6 +92,14 @@ describe('createPublicProfileRatingMetadata', () => {
         rankLabel: '#12',
         ratingLabel: '1205',
         recordLabel: '1-1-0',
+      }),
+      expect.objectContaining({
+        bucketLabel: 'OG ranked Daily',
+        rankLabel: '#6',
+      }),
+      expect.objectContaining({
+        bucketLabel: 'GO ranked Daily',
+        rankLabel: '#7',
       }),
     ])
     expect(serialized).not.toContain(PROFILE_ID)

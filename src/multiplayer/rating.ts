@@ -2,8 +2,11 @@ import type { GameMode } from '../game/types'
 
 export type UntimedRatingBucketId = `multiplayer:${GameMode}`
 export type TimedPracticeRatingBucketId = `multiplayer:${GameMode}:timed:v1`
-export type RatingBucketId = UntimedRatingBucketId | TimedPracticeRatingBucketId
+export type DailyRatingBucketId = `multiplayer:${GameMode}:daily:v1`
+export type RankedPracticeRatingBucketId = TimedPracticeRatingBucketId | UntimedRatingBucketId
+export type RatingBucketId = DailyRatingBucketId | RankedPracticeRatingBucketId
 export type RankedPracticeStorageBucketId = 'async:go' | 'async:go:timed:v1' | 'async:og' | 'async:og:timed:v1'
+export type RankedDailyStorageBucketId = 'async:go:daily:v1' | 'async:og:daily:v1'
 export type RatingOutcome = 'win' | 'loss' | 'draw'
 export type MultiplayerRankBandId =
   | 'bronze'
@@ -96,6 +99,10 @@ export function getTimedPracticeRatingBucket(mode: GameMode): TimedPracticeRatin
   return `multiplayer:${mode}:timed:v1`
 }
 
+export function getRankedDailyRatingBucket(mode: GameMode): DailyRatingBucketId {
+  return `multiplayer:${mode}:daily:v1`
+}
+
 export function normalizeRankedPracticeTimeLimitMs(value: unknown): number | null | undefined {
   if (value === null || value === undefined) {
     return null
@@ -109,7 +116,7 @@ export function normalizeRankedPracticeTimeLimitMs(value: unknown): number | nul
   return value === TIMED_RANKED_PRACTICE_TIME_LIMIT_MS ? TIMED_RANKED_PRACTICE_TIME_LIMIT_MS : undefined
 }
 
-export function getRankedPracticeRatingBucket(mode: GameMode, timeLimitMs?: number | null): RatingBucketId | undefined {
+export function getRankedPracticeRatingBucket(mode: GameMode, timeLimitMs?: number | null): RankedPracticeRatingBucketId | undefined {
   const normalizedTimeLimitMs = normalizeRankedPracticeTimeLimitMs(timeLimitMs)
   if (normalizedTimeLimitMs === undefined) {
     return undefined
@@ -123,7 +130,7 @@ export function isTimedPracticeRatingBucket(bucket: RatingBucketId): bucket is T
   return bucket.endsWith(':timed:v1')
 }
 
-export function getRankedPracticeStorageBucket(bucket: RatingBucketId): RankedPracticeStorageBucketId {
+export function getRankedPracticeStorageBucket(bucket: RankedPracticeRatingBucketId): RankedPracticeStorageBucketId {
   if (bucket === 'multiplayer:go') {
     return 'async:go'
   }
@@ -134,6 +141,10 @@ export function getRankedPracticeStorageBucket(bucket: RatingBucketId): RankedPr
     return 'async:og:timed:v1'
   }
   return 'async:og'
+}
+
+export function getRankedDailyStorageBucket(bucket: DailyRatingBucketId): RankedDailyStorageBucketId {
+  return bucket === 'multiplayer:go:daily:v1' ? 'async:go:daily:v1' : 'async:og:daily:v1'
 }
 
 export const MULTIPLAYER_RANK_BANDS: readonly MultiplayerRankBand[] = [
@@ -171,6 +182,12 @@ export function parseRatingBucket(value: unknown): RatingBucketId | undefined {
   }
   if (value === 'multiplayer:go:timed:v1' || value === 'async:go:timed:v1') {
     return 'multiplayer:go:timed:v1'
+  }
+  if (value === 'multiplayer:og:daily:v1' || value === 'async:og:daily:v1') {
+    return 'multiplayer:og:daily:v1'
+  }
+  if (value === 'multiplayer:go:daily:v1' || value === 'async:go:daily:v1') {
+    return 'multiplayer:go:daily:v1'
   }
   return undefined
 }
