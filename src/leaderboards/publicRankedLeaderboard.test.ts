@@ -46,7 +46,7 @@ describe('public ranked leaderboard query normalization', () => {
     })
   })
 
-  it('allows only public ranked Practice buckets', () => {
+  it('allows only approved public ranked Practice and Daily buckets', () => {
     expect(normalizePublicRankedLeaderboardQuery({ bucket: 'multiplayer:go', limit: 25, offset: 10 })).toEqual({
       ok: true,
       value: {
@@ -54,6 +54,14 @@ describe('public ranked leaderboard query normalization', () => {
         limit: 25,
         offset: 10,
       },
+    })
+    expect(normalizePublicRankedLeaderboardQuery({ bucket: 'multiplayer:og:daily:v1' })).toMatchObject({
+      ok: true,
+      value: { bucket: 'multiplayer:og:daily:v1' },
+    })
+    expect(normalizePublicRankedLeaderboardQuery({ bucket: 'multiplayer:go:daily:v1' })).toMatchObject({
+      ok: true,
+      value: { bucket: 'multiplayer:go:daily:v1' },
     })
     expect(normalizePublicRankedLeaderboardQuery({ bucket: 'async:og' as never })).toMatchObject({ ok: false })
     expect(normalizePublicRankedLeaderboardQuery({ bucket: 'daily:og' as never })).toMatchObject({ ok: false })
@@ -111,6 +119,31 @@ describe('public ranked leaderboard DTO parsing', () => {
       peakRating: 1205,
       provisional: true,
     })
+  })
+
+  it('parses ranked Daily rows without broadening the public payload', () => {
+    expect(parsePublicRankedLeaderboardRow({
+      ...LEADERBOARD_ROW,
+      bucket: 'multiplayer:og:daily:v1',
+      leaderboard_key: 'ranked-daily-v1',
+    })).toMatchObject({
+      bucket: 'multiplayer:og:daily:v1',
+      publicProfileId: PUBLIC_PROFILE_ID,
+    })
+    expect(parsePublicRankedLeaderboardRow({
+      ...LEADERBOARD_ROW,
+      bucket: 'multiplayer:go:daily:v1',
+      leaderboard_key: 'ranked-daily-v1',
+    })).toMatchObject({ bucket: 'multiplayer:go:daily:v1' })
+    expect(parsePublicRankedLeaderboardRow({
+      ...LEADERBOARD_ROW,
+      bucket: 'multiplayer:og:daily:v1',
+      leaderboard_key: 'ranked-practice-v1',
+    })).toBeUndefined()
+    expect(parsePublicRankedLeaderboardRow({
+      ...LEADERBOARD_ROW,
+      leaderboard_key: 'ranked-daily-v1',
+    })).toBeUndefined()
   })
 
   it('rejects corrupt buckets, invalid timestamps, and impossible aggregates', () => {

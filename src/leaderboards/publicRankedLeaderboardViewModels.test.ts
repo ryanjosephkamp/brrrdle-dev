@@ -33,11 +33,18 @@ const ROW: PublicRankedLeaderboardRow = {
 describe('public ranked leaderboard view models', () => {
   it('formats approved buckets and rating deltas for display', () => {
     expect(DEFAULT_PUBLIC_RANKED_LEADERBOARD_BUCKET).toBe('multiplayer:og')
-    expect(PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS.map((option) => option.label)).toEqual(['OG', 'GO'])
+    expect(PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS.map((option) => option.label)).toEqual([
+      'Practice OG',
+      'Practice GO',
+      'Daily OG',
+      'Daily GO',
+    ])
     expect(PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS.some((option) => option.label === 'All buckets')).toBe(false)
     expect(PUBLIC_RANKED_LEADERBOARD_BUCKET_OPTIONS.some((option) => option.bucket === null)).toBe(false)
     expect(formatPublicRankedLeaderboardBucket('multiplayer:og')).toBe('OG ranked Practice')
     expect(formatPublicRankedLeaderboardBucket('multiplayer:go')).toBe('GO ranked Practice')
+    expect(formatPublicRankedLeaderboardBucket('multiplayer:og:daily:v1')).toBe('OG ranked Daily')
+    expect(formatPublicRankedLeaderboardBucket('multiplayer:go:daily:v1')).toBe('GO ranked Daily')
     expect(formatPublicRankedLeaderboardDelta(18)).toBe('+18')
     expect(formatPublicRankedLeaderboardDelta(0)).toBe('0')
     expect(formatPublicRankedLeaderboardDelta(-12)).toBe('-12')

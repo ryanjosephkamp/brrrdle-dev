@@ -54,6 +54,12 @@ interface RatingProfileReferenceRow {
   readonly user_id?: string
 }
 
+interface RankedDailyAuthorityCleanupRow {
+  readonly action_rows_deleted?: number
+  readonly authority_rows_deleted?: number
+  readonly reservation_rows_deleted?: number
+}
+
 export function createAnonSupabaseClient(): SupabaseClient {
   const env = getE2eEnv()
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -87,6 +93,29 @@ export function createAdminSupabaseClient(): SupabaseClient {
       persistSession: false,
     },
   })
+}
+
+export async function cleanupRankedDailyMultiplayerForUsers(userIds: readonly string[]): Promise<number> {
+  if (userIds.length === 0) {
+    return 0
+  }
+
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin.rpc('cleanup_ranked_daily_multiplayer_for_users', {
+    p_user_ids: [...userIds],
+  })
+  if (error) {
+    throw new Error(`Unable to delete temporary ranked Daily authority rows: ${error.message}`)
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as RankedDailyAuthorityCleanupRow | null
+  if (!row) {
+    throw new Error('Ranked Daily authority cleanup returned no result.')
+  }
+  const counts = [row.action_rows_deleted, row.authority_rows_deleted, row.reservation_rows_deleted]
+  if (counts.some((value) => !Number.isInteger(value) || (value ?? -1) < 0)) {
+    throw new Error('Ranked Daily authority cleanup returned invalid counts.')
+  }
+  return counts.reduce((total, value) => total + (value ?? 0), 0)
 }
 
 export async function deletePrivateMatchRequestsForUsers(userIds: readonly string[]): Promise<number> {

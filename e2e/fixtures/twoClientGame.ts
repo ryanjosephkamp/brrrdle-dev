@@ -36,26 +36,35 @@ export async function createTwoClientSession(browser: Browser): Promise<TwoClien
   await signInThroughUi(rivalPage, rivalUser)
 
   let cleaned = false
+  let cleanupPromise: Promise<CleanupSummary> | undefined
   async function cleanup(): Promise<CleanupSummary> {
     if (cleaned) {
       return {
         multiplayerRowsDeleted: 0,
         privateMatchRequestsDeleted: 0,
+        rankedDailyAuthorityRowsDeleted: 0,
         rankedQueueRowsDeleted: 0,
         rankedRatingRowsDeleted: 0,
         usersDeleted: 0,
       }
     }
-    cleaned = true
-    await Promise.allSettled([
-      expectNoConsoleFailures(hostConsoleFailures),
-      expectNoConsoleFailures(rivalConsoleFailures),
-    ])
-    await Promise.allSettled([
-      hostContext.close(),
-      rivalContext.close(),
-    ])
-    return cleanupE2eRun([hostUser, rivalUser])
+    cleanupPromise ??= (async () => {
+      await Promise.allSettled([
+        expectNoConsoleFailures(hostConsoleFailures),
+        expectNoConsoleFailures(rivalConsoleFailures),
+      ])
+      await Promise.allSettled([
+        hostContext.close(),
+        rivalContext.close(),
+      ])
+      const summary = await cleanupE2eRun([hostUser, rivalUser])
+      cleaned = true
+      return summary
+    })().catch((error: unknown) => {
+      cleanupPromise = undefined
+      throw error
+    })
+    return cleanupPromise
   }
 
   return {

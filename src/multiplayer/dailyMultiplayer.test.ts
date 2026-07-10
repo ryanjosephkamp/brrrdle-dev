@@ -20,6 +20,24 @@ describe('daily multiplayer helpers', () => {
     expect(go.puzzles[0].answer).not.toBe(og.answer)
   })
 
+  it('keeps ranked Daily answers deterministic and separate from unranked answers', () => {
+    const date = new Date('2026-06-04T12:00:00.000Z')
+    const unrankedOg = createDailyMultiplayerOgSetup(date, DEFAULT_DIFFICULTY_TIER, false)
+    const rankedOg = createDailyMultiplayerOgSetup(date, DEFAULT_DIFFICULTY_TIER, true)
+    const repeatedRankedOg = createDailyMultiplayerOgSetup(date, DEFAULT_DIFFICULTY_TIER, true)
+    const unrankedGo = createDailyMultiplayerGoSetup(date, DEFAULT_DIFFICULTY_TIER, 5, false)
+    const rankedGo = createDailyMultiplayerGoSetup(date, DEFAULT_DIFFICULTY_TIER, 5, true)
+
+    expect(rankedOg.answer).toBe(repeatedRankedOg.answer)
+    expect(rankedOg.answer).not.toBe(unrankedOg.answer)
+    expect(rankedGo.puzzles.map((puzzle) => puzzle.answer)).not.toEqual(
+      unrankedGo.puzzles.map((puzzle) => puzzle.answer),
+    )
+    for (let index = 0; index < rankedGo.puzzles.length; index += 1) {
+      expect(rankedGo.puzzles[index]?.answer).not.toBe(unrankedGo.puzzles[index]?.answer)
+    }
+  })
+
   it('sanitizes rival profile summaries before they enter match projections', () => {
     const summary = createMultiplayerProfileSummary({
       accentColor: '#67e8f9',

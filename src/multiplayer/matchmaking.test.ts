@@ -52,30 +52,90 @@ describe('multiplayer matchmaking', () => {
     expect(isMatchmakingCompatible(left, sameUser, new Date('2026-06-04T12:00:01.000Z'))).toBe(false)
   })
 
-  it('keeps Daily ranked matchmaking deferred', () => {
+  it('matches only compatible current-day ranked Daily requests', () => {
+    const now = new Date('2026-06-04T23:59:00.000Z')
     const left = createMatchmakingRequest({
       createdAt: '2026-06-04T12:00:00.000Z',
       dailyDateKey: '2026-06-04',
+      hardMode: true,
       mode: 'og',
+      ranked: true,
       scope: 'daily',
       userId: 'user-a',
+      wordLength: 5,
     })
     const right = createMatchmakingRequest({
       createdAt: '2026-06-04T12:00:00.000Z',
       dailyDateKey: '2026-06-04',
+      hardMode: true,
       mode: 'og',
+      ranked: true,
       scope: 'daily',
       userId: 'user-b',
+      wordLength: 5,
     })
 
-    expect(left.ranked).toBe(false)
-    expect(right.ranked).toBe(false)
-    expect(getRankedMatchmakingEligibility({ ranked: true, scope: 'daily' })).toMatchObject({
-      eligible: false,
-      reason: 'Daily ranked matchmaking is deferred.',
+    expect(left.ranked).toBe(true)
+    expect(right.ranked).toBe(true)
+    expect(left.ratingBucket).toBe('multiplayer:og:daily:v1')
+    expect(left.wordLength).toBe(5)
+    expect(left.timeLimitMs).toBeUndefined()
+    expect(getRankedMatchmakingEligibility({
+      dailyDateKey: '2026-06-04',
+      hardMode: true,
+      mode: 'og',
+      now,
+      ranked: true,
+      scope: 'daily',
+      timeLimitMs: null,
+      wordLength: 5,
+    })).toMatchObject({
+      eligible: true,
+      reason: 'Eligible for Daily ranked matchmaking.',
     })
-    expect(isMatchmakingCompatible(left, right, new Date('2026-06-04T23:59:00.000Z'))).toBe(false)
+    expect(isMatchmakingCompatible(left, right, now)).toBe(true)
     expect(isMatchmakingCompatible(left, right, new Date('2026-06-05T00:01:00.000Z'))).toBe(false)
+    expect(isMatchmakingCompatible(left, { ...right, hardMode: false }, new Date('2026-06-04T23:59:00.000Z'))).toBe(false)
+    expect(isMatchmakingCompatible(left, { ...right, scope: 'practice' }, new Date('2026-06-04T23:59:00.000Z'))).toBe(false)
+    expect(isMatchmakingCompatible(left, { ...right, timeLimitMs: 300_000 }, new Date('2026-06-04T23:59:00.000Z'))).toBe(false)
+    expect(isMatchmakingCompatible(left, { ...right, wordLength: 6 }, new Date('2026-06-04T23:59:00.000Z'))).toBe(false)
+    expect(isMatchmakingCompatible(left, { ...right, ratingBucket: 'multiplayer:og' }, new Date('2026-06-04T23:59:00.000Z'))).toBe(false)
+  })
+
+  it('fails Daily ranked eligibility closed without current canonical settings evidence', () => {
+    const eligible = {
+      dailyDateKey: '2026-06-04',
+      hardMode: false,
+      mode: 'og' as const,
+      now: new Date('2026-06-04T12:00:00.000Z'),
+      ranked: true,
+      scope: 'daily' as const,
+      timeLimitMs: null,
+      wordLength: 5,
+    }
+
+    expect(getRankedMatchmakingEligibility(eligible).eligible).toBe(true)
+    expect(getRankedMatchmakingEligibility({ ...eligible, dailyDateKey: undefined }).eligible).toBe(false)
+    expect(getRankedMatchmakingEligibility({ ...eligible, dailyDateKey: '2026-06-03' }).eligible).toBe(false)
+    expect(getRankedMatchmakingEligibility({ ...eligible, hardMode: undefined }).eligible).toBe(false)
+    expect(getRankedMatchmakingEligibility({ ...eligible, wordLength: undefined }).eligible).toBe(false)
+    expect(getRankedMatchmakingEligibility({ ...eligible, timeLimitMs: 300_000 }).eligible).toBe(false)
+    expect(getRankedMatchmakingEligibility({ ...eligible, mode: 'go', goPuzzleCount: undefined }).eligible).toBe(false)
+    expect(getRankedMatchmakingEligibility({ ...eligible, mode: 'go', goPuzzleCount: 7 }).eligible).toBe(false)
+    expect(getRankedMatchmakingEligibility({ ...eligible, mode: 'go', goPuzzleCount: 5 }).eligible).toBe(true)
+  })
+
+  it('does not manufacture missing ranked Daily eligibility evidence', () => {
+    const request = createMatchmakingRequest({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      ranked: true,
+      scope: 'daily',
+      userId: 'user-a',
+    })
+
+    expect(request.ranked).toBe(false)
+    expect(request.ratingBucket).toBe('multiplayer:og')
   })
 
   it('supports only canonical five-minute timed Practice ranked matchmaking', () => {
@@ -131,14 +191,14 @@ describe('multiplayer matchmaking', () => {
     expect(isMatchmakingCompatible(left, unsupportedTimer, new Date('2026-06-04T12:00:01.000Z'))).toBe(false)
   })
 
-  it('selects the closest compatible queued opponent and marks both matched', () => {
-    const left = createMatchmakingRequest({ id: 'left', mode: 'og', rating: 1300, scope: 'practice', userId: 'user-a' })
-    const close = createMatchmakingRequest({ id: 'close', mode: 'og', rating: 1320, scope: 'practice', userId: 'user-b' })
-    const far = createMatchmakingRequest({ id: 'far', mode: 'og', rating: 1500, scope: 'practice', userId: 'user-c' })
+  it('selects the oldest compatible queued opponent and marks both matched', () => {
+    const left = createMatchmakingRequest({ createdAt: '2026-06-04T12:00:02.000Z', id: 'left', mode: 'og', rating: 1300, scope: 'practice', userId: 'user-a' })
+    const close = createMatchmakingRequest({ createdAt: '2026-06-04T12:00:01.000Z', id: 'close', mode: 'og', rating: 1320, scope: 'practice', userId: 'user-b' })
+    const older = createMatchmakingRequest({ createdAt: '2026-06-04T12:00:00.000Z', id: 'older', mode: 'og', rating: 1380, scope: 'practice', userId: 'user-c' })
 
-    const selection = findBestMatchForRequest(left, [far, close], new Date(left.createdAt))
-    expect(selection?.right.id).toBe('close')
-    expect(markMatched([left, close, far], selection!).filter((request) => request.status === 'matched').map((request) => request.id)).toEqual(['left', 'close'])
+    const selection = findBestMatchForRequest(left, [close, older], new Date(left.createdAt))
+    expect(selection?.right.id).toBe('older')
+    expect(markMatched([left, close, older], selection!).filter((request) => request.status === 'matched').map((request) => request.id)).toEqual(['left', 'older'])
   })
 
   it('does not match expired or corrupt queue rows', () => {

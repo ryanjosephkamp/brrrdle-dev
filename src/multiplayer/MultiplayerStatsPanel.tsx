@@ -15,8 +15,10 @@ interface MultiplayerStatsPanelProps {
 
 const BUCKET_LABELS: Record<RatingBucketId, string> = {
   'multiplayer:go': 'Ranked Practice GO',
+  'multiplayer:go:daily:v1': 'Ranked Daily GO',
   'multiplayer:go:timed:v1': 'Timed Ranked Practice GO',
   'multiplayer:og': 'Ranked Practice OG',
+  'multiplayer:og:daily:v1': 'Ranked Daily OG',
   'multiplayer:og:timed:v1': 'Timed Ranked Practice OG',
 }
 
@@ -78,7 +80,7 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state, viewerUserId }: M
             <div>
               <h4 className="text-lg font-bold text-white">Ranked Elo</h4>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300">
-                Rating buckets are separate Elo tracks for ranked Practice OG and ranked Practice GO. The full formula and ranked Practice boundaries live in About.
+                Rating buckets are separate Elo tracks for ranked Practice and ranked Daily OG/GO. The full formula and ranked boundaries live in About.
               </p>
             </div>
             {onOpenEloAbout ? (
@@ -86,7 +88,7 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state, viewerUserId }: M
             ) : null}
           </div>
           <p className="text-xs leading-5 text-slate-400">
-            Only eligible ranked Practice games affect Elo. Daily ranked, custom ranked, and unsupported timed Practice rows stay unrated; public leaderboards are display-only.
+            Only eligible ranked Practice and ranked Daily games affect Elo. Custom ranked and unsupported timed Practice rows stay unrated; public leaderboards are display-only.
             {' '}
             Rank bands are display labels for current Elo ranges and do not affect matchmaking or settlement.
           </p>
@@ -116,7 +118,7 @@ export function MultiplayerStatsPanel({ onOpenEloAbout, state, viewerUserId }: M
             </div>
           ) : (
             <p className="rounded-lg border border-white/10 bg-black/30 p-3">
-              No rated results yet. Ranked matches need two authenticated players, Practice queue finalization, and a confirmed ranked result before Elo changes.
+              No rated results yet. Ranked matches need two authenticated players, trusted queue finalization, and a confirmed ranked result before Elo changes.
             </p>
           )}
         </Panel>

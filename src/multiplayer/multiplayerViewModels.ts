@@ -532,7 +532,15 @@ function toLobbyRowViewModel(
 ): MultiplayerLobbyRowViewModel {
   const canCancel = canViewerCancelMultiplayerGame(game, viewerUserId)
   const viewerPlayerId = getViewerMultiplayerPlayerId(game, viewerUserId)
-  const claimBlocked = !viewerPlayerId && game.scope === 'daily' && hasDailyMultiplayerParticipation(state, game.dailyDateKey, game.mode, viewerUserId)
+  const claimBlocked = !viewerPlayerId
+    && game.scope === 'daily'
+    && hasDailyMultiplayerParticipation(
+      state,
+      game.dailyDateKey,
+      game.mode,
+      viewerUserId,
+      game.ranked === true,
+    )
   const canJoin = canViewerJoinMultiplayerGame(game, viewerUserId) && !claimBlocked
 
   return {

@@ -1,6 +1,8 @@
 import type { GameMode, PlayScope } from '../game/types'
+import { DEFAULT_GO_PUZZLE_COUNT } from '../game/constants'
 import { getUtcDailyDateKey } from '../daily'
 import {
+  getRankedDailyRatingBucket,
   getRankedPracticeRatingBucket,
   getRatingBucket,
   normalizeRankedPracticeTimeLimitMs,
@@ -13,6 +15,7 @@ export interface MatchmakingRequest {
   readonly createdAt: string
   readonly dailyDateKey?: string
   readonly expiresAt?: string
+  readonly goPuzzleCount?: number
   readonly hardMode?: boolean
   readonly id: string
   readonly mode: GameMode
@@ -37,6 +40,7 @@ export interface MatchmakingSelection {
 export interface CreateMatchmakingRequestInput {
   readonly createdAt?: string
   readonly dailyDateKey?: string
+  readonly goPuzzleCount?: number
   readonly hardMode?: boolean
   readonly id?: string
   readonly mode: GameMode
@@ -49,9 +53,15 @@ export interface CreateMatchmakingRequestInput {
 }
 
 export interface RankedMatchmakingEligibilityInput {
+  readonly dailyDateKey?: string
+  readonly goPuzzleCount?: number
+  readonly hardMode?: boolean
+  readonly mode?: GameMode
+  readonly now?: Date
   readonly ranked?: boolean
   readonly scope: PlayScope
   readonly timeLimitMs?: number | null
+  readonly wordLength?: number
 }
 
 export interface RankedMatchmakingEligibility {
@@ -91,8 +101,31 @@ export function getRankedMatchmakingEligibility(input: RankedMatchmakingEligibil
   if (input.ranked === false) {
     return { eligible: false, reason: 'Unranked matchmaking request.' }
   }
-  if (input.scope !== 'practice') {
-    return { eligible: false, reason: 'Daily ranked matchmaking is deferred.' }
+  if (input.scope === 'daily') {
+    const now = input.now ?? new Date()
+    const currentDailyDateKey = Number.isFinite(now.getTime()) ? getUtcDailyDateKey(now) : undefined
+    if (!currentDailyDateKey || input.dailyDateKey !== currentDailyDateKey) {
+      return { eligible: false, reason: 'Daily ranked matchmaking requires the current UTC date.' }
+    }
+    if (input.timeLimitMs !== null && input.timeLimitMs !== undefined) {
+      return { eligible: false, reason: 'Daily ranked matchmaking does not support a clock.' }
+    }
+    if (input.wordLength !== 5) {
+      return { eligible: false, reason: 'Daily ranked matchmaking uses five-letter puzzles.' }
+    }
+    if (typeof input.hardMode !== 'boolean') {
+      return { eligible: false, reason: 'Daily ranked matchmaking requires an explicit Hard Mode setting.' }
+    }
+    if (input.mode !== 'og' && input.mode !== 'go') {
+      return { eligible: false, reason: 'Daily ranked matchmaking requires a supported mode.' }
+    }
+    if (input.mode === 'go' && input.goPuzzleCount !== DEFAULT_GO_PUZZLE_COUNT) {
+      return { eligible: false, reason: 'Daily ranked GO uses the canonical puzzle count.' }
+    }
+    if (input.mode === 'og' && input.goPuzzleCount !== undefined) {
+      return { eligible: false, reason: 'Daily ranked OG does not use a GO puzzle count.' }
+    }
+    return { eligible: true, reason: 'Eligible for Daily ranked matchmaking.' }
   }
   const rankedTimeLimitMs = normalizeRankedPracticeTimeLimitMs(input.timeLimitMs)
   if (rankedTimeLimitMs === undefined) {
@@ -122,17 +155,28 @@ export function createMatchmakingRequest(input: CreateMatchmakingRequestInput): 
     : undefined
   const timeLimitMs = input.scope === 'practice' ? normalizePracticeTimeLimitMs(input.timeLimitMs) : undefined
   const rankedEligibility = getRankedMatchmakingEligibility({
+    dailyDateKey: input.scope === 'daily' ? input.dailyDateKey : undefined,
+    goPuzzleCount: input.scope === 'daily' ? input.goPuzzleCount : undefined,
+    hardMode: input.scope === 'daily' ? input.hardMode : undefined,
+    mode: input.scope === 'daily' ? input.mode : undefined,
+    now: new Date(createdAt),
     ranked: input.ranked !== false,
     scope: input.scope,
-    timeLimitMs: input.scope === 'practice' ? input.timeLimitMs : null,
+    timeLimitMs: input.timeLimitMs,
+    wordLength: input.wordLength,
   })
   const ratingBucket = rankedEligibility.eligible
-    ? getRankedPracticeRatingBucket(input.mode, input.scope === 'practice' ? input.timeLimitMs : null) ?? getRatingBucket(input.mode)
+    ? input.scope === 'daily'
+      ? getRankedDailyRatingBucket(input.mode)
+      : getRankedPracticeRatingBucket(input.mode, input.timeLimitMs) ?? getRatingBucket(input.mode)
     : getRatingBucket(input.mode)
   return {
     createdAt,
     dailyDateKey,
-    hardMode: input.scope === 'practice' ? input.hardMode === true : undefined,
+    goPuzzleCount: input.mode === 'go' ? input.goPuzzleCount : undefined,
+    hardMode: input.scope === 'practice' || (input.scope === 'daily' && rankedEligibility.eligible)
+      ? input.hardMode === true
+      : undefined,
     id: input.id ?? createId(`matchmaking-multiplayer-${input.mode}`),
     mode: input.mode,
     rating: normalizeRatingSnapshot(input.rating),
@@ -142,7 +186,7 @@ export function createMatchmakingRequest(input: CreateMatchmakingRequestInput): 
     status: 'queued',
     timeLimitMs,
     userId: input.userId,
-    wordLength: input.scope === 'practice' ? input.wordLength : undefined,
+    wordLength: input.scope === 'daily' ? 5 : input.wordLength,
   }
 }
 
@@ -153,7 +197,7 @@ export function isMatchmakingCompatible(left: MatchmakingRequest, right: Matchma
   if (!left.ranked || !right.ranked || left.userId === right.userId) {
     return false
   }
-  if (!getRankedMatchmakingEligibility(left).eligible || !getRankedMatchmakingEligibility(right).eligible) {
+  if (!getRankedMatchmakingEligibility({ ...left, now }).eligible || !getRankedMatchmakingEligibility({ ...right, now }).eligible) {
     return false
   }
   if (left.mode !== right.mode || left.scope !== right.scope || left.ratingBucket !== right.ratingBucket) {
@@ -162,6 +206,21 @@ export function isMatchmakingCompatible(left: MatchmakingRequest, right: Matchma
   if (left.scope === 'daily') {
     const currentDaily = getUtcDailyDateKey(now)
     if (left.dailyDateKey !== right.dailyDateKey || left.dailyDateKey !== currentDaily) {
+      return false
+    }
+    if (left.wordLength !== 5 || right.wordLength !== 5 || left.timeLimitMs !== undefined || right.timeLimitMs !== undefined) {
+      return false
+    }
+    if (left.ratingBucket !== getRankedDailyRatingBucket(left.mode)) {
+      return false
+    }
+    if (left.mode === 'go' && (left.goPuzzleCount !== DEFAULT_GO_PUZZLE_COUNT || right.goPuzzleCount !== DEFAULT_GO_PUZZLE_COUNT)) {
+      return false
+    }
+    if (left.mode === 'og' && (left.goPuzzleCount !== undefined || right.goPuzzleCount !== undefined)) {
+      return false
+    }
+    if ((left.hardMode === true) !== (right.hardMode === true)) {
       return false
     }
   }
@@ -180,8 +239,7 @@ export function isMatchmakingCompatible(left: MatchmakingRequest, right: Matchma
   if (isExpired(right.expiresAt, now)) {
     return false
   }
-  const gap = Math.abs(normalizeRatingSnapshot(left.rating) - normalizeRatingSnapshot(right.rating))
-  return gap <= Math.max(getSearchBand(left, now), getSearchBand(right, now))
+  return true
 }
 
 export function findBestMatchForRequest(request: MatchmakingRequest, candidates: readonly MatchmakingRequest[], now = new Date()): MatchmakingSelection | undefined {
@@ -190,11 +248,11 @@ export function findBestMatchForRequest(request: MatchmakingRequest, candidates:
     .map((candidate) => ({
       left: request,
       ratingGap: Math.abs(request.rating - candidate.rating),
-      reason: 'Compatible ranked match.',
+      reason: 'Compatible FIFO ranked match.',
       right: candidate,
       searchBand: Math.max(getSearchBand(request, now), getSearchBand(candidate, now)),
     }))
-    .sort((left, right) => left.ratingGap - right.ratingGap || left.right.createdAt.localeCompare(right.right.createdAt))[0]
+    .sort((left, right) => left.right.createdAt.localeCompare(right.right.createdAt) || left.right.id.localeCompare(right.right.id))[0]
 }
 
 export function markMatched(requests: readonly MatchmakingRequest[], selection: MatchmakingSelection): readonly MatchmakingRequest[] {

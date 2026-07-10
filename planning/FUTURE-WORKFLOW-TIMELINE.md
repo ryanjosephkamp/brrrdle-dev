@@ -16,7 +16,7 @@ The canonical intake is `planning/handoffs/POST-SHELL-FOUNDATION-EXPANSION-INTAK
 
 | Phase | Current Focus | Status |
 | --- | --- | --- |
-| 55 | Ranked Daily Multiplayer OG/GO plus narrow private Practice request status/direct routing | Planned; next implementation phase. |
+| 55 | Ranked Daily Multiplayer OG/GO plus narrow private Practice request status/direct routing | Review Candidate prepared; hosted backup/manual review pending. |
 | 56 | Private request center, notification integration, opt-out preference, individual blocking, and anti-spam limits | Routed; separate contract and migration audit required. |
 | 57 | Coin marketplace and consumables restricted to Solo Practice | Routed; separate progression/cloud/gameplay audit required. |
 | 58 | Design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff | Preserved from the displaced Phase 55 plan; deferred until foundation acceptance. |

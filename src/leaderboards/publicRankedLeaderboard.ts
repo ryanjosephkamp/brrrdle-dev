@@ -9,12 +9,21 @@ import type { BrrrdleSupabaseClient } from '../account/supabaseClient'
 import type { ProfileAccentColor } from '../account/profile'
 
 export const PUBLIC_RANKED_LEADERBOARD_KEY = 'ranked-practice-v1' as const
-export const PUBLIC_RANKED_LEADERBOARD_BUCKETS = ['multiplayer:og', 'multiplayer:go'] as const
+export const PUBLIC_RANKED_DAILY_LEADERBOARD_KEY = 'ranked-daily-v1' as const
+export const PUBLIC_RANKED_LEADERBOARD_BUCKETS = [
+  'multiplayer:og',
+  'multiplayer:go',
+  'multiplayer:og:daily:v1',
+  'multiplayer:go:daily:v1',
+] as const
 export const PUBLIC_RANKED_LEADERBOARD_DEFAULT_LIMIT = 50
 export const PUBLIC_RANKED_LEADERBOARD_MAX_LIMIT = 100
 export const PUBLIC_RANKED_LEADERBOARD_MAX_OFFSET = 1000
 
 export type PublicRankedLeaderboardBucket = (typeof PUBLIC_RANKED_LEADERBOARD_BUCKETS)[number]
+export type PublicRankedLeaderboardKey =
+  | typeof PUBLIC_RANKED_LEADERBOARD_KEY
+  | typeof PUBLIC_RANKED_DAILY_LEADERBOARD_KEY
 
 export interface PublicRankedLeaderboardRow {
   readonly accentColor: ProfileAccentColor
@@ -26,7 +35,7 @@ export interface PublicRankedLeaderboardRow {
   readonly gamesPlayed: number
   readonly latestRatingDelta: number
   readonly latestRatingMovementAt?: string
-  readonly leaderboardKey: typeof PUBLIC_RANKED_LEADERBOARD_KEY
+  readonly leaderboardKey: PublicRankedLeaderboardKey
   readonly leaderboardUpdatedAt: string
   readonly losses: number
   readonly peakRating: number
@@ -202,6 +211,10 @@ export function normalizePublicRankedLeaderboardBucket(value: unknown): PublicRa
     : undefined
 }
 
+function getExpectedLeaderboardKey(bucket: PublicRankedLeaderboardBucket): PublicRankedLeaderboardKey {
+  return bucket.endsWith(':daily:v1') ? PUBLIC_RANKED_DAILY_LEADERBOARD_KEY : PUBLIC_RANKED_LEADERBOARD_KEY
+}
+
 export function normalizePublicRankedLeaderboardQuery(
   query: PublicRankedLeaderboardQuery = {},
 ): NormalizedPublicRankedLeaderboardQuery {
@@ -272,8 +285,7 @@ export function parsePublicRankedLeaderboardRow(value: unknown): PublicRankedLea
   const leaderboardUpdatedAt = parseRequiredTimestamp(value, 'leaderboard_updated_at')
 
   if (
-    leaderboardKey !== PUBLIC_RANKED_LEADERBOARD_KEY
-    || rank === undefined
+    rank === undefined
     || rank < 1
     || !bucket
     || !publicProfileId
@@ -299,6 +311,7 @@ export function parsePublicRankedLeaderboardRow(value: unknown): PublicRankedLea
     || peakRating < rating
     || !profileUpdatedAt
     || !leaderboardUpdatedAt
+    || leaderboardKey !== getExpectedLeaderboardKey(bucket)
   ) {
     return undefined
   }

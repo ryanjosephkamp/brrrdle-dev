@@ -19,5 +19,19 @@ export function selectScopedProgressMultiplayerState(
     return input.currentMultiplayerState
   }
 
+  const nextAuthenticatedUserId = input.nextScope.kind === 'authenticated'
+    ? input.nextScope.userId
+    : undefined
+  if (
+    nextAuthenticatedUserId
+    && input.currentMultiplayerState.games.length > 0
+    && input.currentMultiplayerState.games.every((game) => (
+      game.playerUserIds?.['player-one'] === nextAuthenticatedUserId
+      || game.playerUserIds?.['player-two'] === nextAuthenticatedUserId
+    ))
+  ) {
+    return input.currentMultiplayerState
+  }
+
   return input.nextProgress.multiplayer ?? createEmptyMultiplayerState()
 }

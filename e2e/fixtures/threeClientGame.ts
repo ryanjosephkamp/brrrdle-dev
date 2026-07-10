@@ -21,6 +21,7 @@ export interface ThreeClientSession {
 const EMPTY_CLEANUP_SUMMARY: CleanupSummary = {
   multiplayerRowsDeleted: 0,
   privateMatchRequestsDeleted: 0,
+  rankedDailyAuthorityRowsDeleted: 0,
   rankedQueueRowsDeleted: 0,
   rankedRatingRowsDeleted: 0,
   usersDeleted: 0,
@@ -48,22 +49,30 @@ export async function createThreeClientSession(browser: Browser): Promise<ThreeC
   const third = await createActor(browser, 'third', runId)
 
   let cleaned = false
+  let cleanupPromise: Promise<CleanupSummary> | undefined
   async function cleanup(): Promise<CleanupSummary> {
     if (cleaned) {
       return EMPTY_CLEANUP_SUMMARY
     }
-    cleaned = true
-    await Promise.allSettled([
-      expectNoConsoleFailures(host.consoleFailures),
-      expectNoConsoleFailures(rival.consoleFailures),
-      expectNoConsoleFailures(third.consoleFailures),
-    ])
-    await Promise.allSettled([
-      host.context.close(),
-      rival.context.close(),
-      third.context.close(),
-    ])
-    return cleanupE2eRun([host.user, rival.user, third.user])
+    cleanupPromise ??= (async () => {
+      await Promise.allSettled([
+        expectNoConsoleFailures(host.consoleFailures),
+        expectNoConsoleFailures(rival.consoleFailures),
+        expectNoConsoleFailures(third.consoleFailures),
+      ])
+      await Promise.allSettled([
+        host.context.close(),
+        rival.context.close(),
+        third.context.close(),
+      ])
+      const summary = await cleanupE2eRun([host.user, rival.user, third.user])
+      cleaned = true
+      return summary
+    })().catch((error: unknown) => {
+      cleanupPromise = undefined
+      throw error
+    })
+    return cleanupPromise
   }
 
   return {

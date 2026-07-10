@@ -1,13 +1,18 @@
 import type { BrrrdleSupabaseClient } from '../account/supabaseClient'
-import type { DifficultyTier } from '../data'
+import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../data'
+import { DEFAULT_GO_PUZZLE_COUNT } from '../game/constants'
 import type { GameMode, PlayScope, TileResult } from '../game/types'
 import {
+  createMultiplayerGame,
   createEmptyMultiplayerState,
   normalizeMultiplayerState,
+  submitMultiplayerGuess,
   type MultiplayerGame,
   type MultiplayerState,
 } from './multiplayer'
 import {
+  getRankedDailyRatingBucket,
+  getRankedDailyStorageBucket,
   getRankedPracticeRatingBucket,
   getRankedPracticeStorageBucket,
   normalizeRankedPracticeTimeLimitMs,
@@ -261,15 +266,18 @@ export type RankedQueueRequestStatus = 'queued' | 'matched' | 'cancelled' | 'exp
 export type RankedQueueViewerSeat = 'player-one' | 'player-two'
 
 export interface CreateRankedQueueRequestInput {
+  readonly dailyDateKey?: string
   readonly expiresAt?: string
   readonly hardMode?: boolean
   readonly idempotencyKey?: string
   readonly mode: GameMode
+  readonly scope?: PlayScope
   readonly timeLimitMs?: number | null
   readonly wordLength: number
 }
 
 export interface RankedQueueRequestResult {
+  readonly dailyDateKey?: string
   readonly expiresAt?: string
   readonly hardMode: boolean
   readonly queuedAt: string
@@ -277,6 +285,7 @@ export interface RankedQueueRequestResult {
   readonly ratingSnapshot: number
   readonly requestId: string
   readonly requestStatus: RankedQueueRequestStatus
+  readonly scope?: PlayScope
   readonly timeLimitMs?: number
   readonly wordLength: number
 }
@@ -299,6 +308,7 @@ export interface RankedQueueClaimResult {
 }
 
 export interface RankedQueueStatusResult {
+  readonly dailyDateKey?: string
   readonly hardMode?: boolean
   readonly matchedAt?: string
   readonly matchedGameId?: string
@@ -948,9 +958,17 @@ function parseRankedQueueTimeLimitMs(value: unknown): { readonly ok: true; reado
   return normalizedTimeLimitMs === null ? { ok: true } : { ok: true, value: normalizedTimeLimitMs }
 }
 
-function isRankedQueueBucketCompatible(mode: GameMode | undefined, bucket: RatingBucketId | undefined, timeLimitMs: number | undefined): boolean {
+function isRankedQueueBucketCompatible(
+  scope: PlayScope | undefined,
+  mode: GameMode | undefined,
+  bucket: RatingBucketId | undefined,
+  timeLimitMs: number | undefined,
+): boolean {
   if (!mode || !bucket) {
     return true
+  }
+  if (scope === 'daily') {
+    return timeLimitMs === undefined && getRankedDailyRatingBucket(mode) === bucket
   }
   return getRankedPracticeRatingBucket(mode, timeLimitMs ?? null) === bucket
 }
@@ -1005,6 +1023,9 @@ function parseRankedQueueRequestRow(row: unknown): RankedQueueRequestResult | un
   const requestId = getString(row, 'request_id')
   const requestStatus = parseRankedQueueRequestStatus(row.request_status)
   const ratingBucket = parseRankedQueueBucket(row.rating_bucket)
+  const mode = parseMode(row.mode)
+  const scope = parseScope(row.scope)
+  const dailyDateKey = normalizeDailyDateKey(row.daily_date_key)
   const timeLimitMs = parseRankedQueueTimeLimitMs(row.time_limit_ms)
   const ratingSnapshot = getIntegerLike(row, 'rating_snapshot')
   const hardMode = getBoolean(row, 'hard_mode')
@@ -1013,10 +1034,12 @@ function parseRankedQueueRequestRow(row: unknown): RankedQueueRequestResult | un
   if (
     !requestId || !requestStatus || !ratingBucket || !timeLimitMs.ok
     || ratingSnapshot === undefined || hardMode === undefined || !wordLength || !queuedAt
+    || !isRankedQueueContractCompatible({ dailyDateKey, mode, ratingBucket, scope, timeLimitMs: timeLimitMs.value, wordLength })
   ) {
     return undefined
   }
   return {
+    dailyDateKey,
     expiresAt: getString(row, 'expires_at'),
     hardMode,
     queuedAt,
@@ -1024,6 +1047,7 @@ function parseRankedQueueRequestRow(row: unknown): RankedQueueRequestResult | un
     ratingSnapshot,
     requestId,
     requestStatus,
+    scope,
     timeLimitMs: timeLimitMs.value,
     wordLength,
   }
@@ -1063,15 +1087,22 @@ function parseRankedQueueStatusRow(row: unknown): RankedQueueStatusResult | unde
   const requestStatus = parseRankedQueueRequestStatus(row.request_status)
   const queuedAt = getString(row, 'queued_at')
   const mode = parseMode(row.mode)
+  const scope = parseScope(row.scope)
+  const dailyDateKey = normalizeDailyDateKey(row.daily_date_key)
   const ratingBucket = parseRankedQueueBucket(row.rating_bucket)
   const timeLimitMs = parseRankedQueueTimeLimitMs(row.time_limit_ms)
   if (!requestId || !requestStatus || !queuedAt) {
     return undefined
   }
-  if (!timeLimitMs.ok || !isRankedQueueBucketCompatible(mode, ratingBucket, timeLimitMs.value)) {
+  const wordLength = getPositiveInteger(row, 'word_length')
+  if (
+    !timeLimitMs.ok
+    || !isRankedQueueContractCompatible({ dailyDateKey, mode, ratingBucket, scope, timeLimitMs: timeLimitMs.value, wordLength })
+  ) {
     return undefined
   }
   return {
+    dailyDateKey,
     hardMode: getBoolean(row, 'hard_mode'),
     matchedAt: getString(row, 'matched_at'),
     matchedGameId: getString(row, 'matched_game_id'),
@@ -1083,11 +1114,45 @@ function parseRankedQueueStatusRow(row: unknown): RankedQueueStatusResult | unde
     ratingBucket,
     requestId,
     requestStatus,
-    scope: parseScope(row.scope),
+    scope,
     timeLimitMs: timeLimitMs.value,
     viewerSeat: parseRankedQueueViewerSeat(row.viewer_seat),
-    wordLength: getPositiveInteger(row, 'word_length'),
+    wordLength,
   }
+}
+
+function normalizeDailyDateKey(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return undefined
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value ? undefined : value
+}
+
+function isRankedQueueContractCompatible(input: {
+  readonly dailyDateKey?: string
+  readonly mode?: GameMode
+  readonly ratingBucket?: RatingBucketId
+  readonly scope?: PlayScope
+  readonly timeLimitMs?: number
+  readonly wordLength?: number
+}): boolean {
+  if (input.scope === 'daily') {
+    return Boolean(input.dailyDateKey)
+      && Boolean(input.mode)
+      && Boolean(input.ratingBucket)
+      && input.wordLength === 5
+      && input.timeLimitMs === undefined
+      && isRankedQueueBucketCompatible('daily', input.mode, input.ratingBucket, input.timeLimitMs)
+  }
+  if (input.scope === 'practice') {
+    return input.dailyDateKey === undefined
+      && Boolean(input.mode)
+      && Boolean(input.ratingBucket)
+      && isRankedQueueBucketCompatible('practice', input.mode, input.ratingBucket, input.timeLimitMs)
+  }
+  return input.dailyDateKey === undefined
+    && isRankedQueueBucketCompatible(undefined, input.mode, input.ratingBucket, input.timeLimitMs)
 }
 
 function parseRankedQueueFinalizationRow(row: unknown): RankedQueueFinalizationResult | undefined {
@@ -1709,25 +1774,36 @@ export async function loadPublicLiveSpectatorRows(
   return normalizePublicLiveSpectatorRows(data)
 }
 
-function getExpectedRankedPracticeRatingBucket(game: Pick<MultiplayerGame, 'mode' | 'ratingBucket' | 'timeLimitMs'>): RatingBucketId | null {
+type RankedStorageBucketId = RankedPracticeStorageBucketId | 'async:go:daily:v1' | 'async:og:daily:v1'
+
+function getStorageRatingBucket(game: MultiplayerGame): RankedStorageBucketId | null {
+  if (game.ranked !== true) {
+    return null
+  }
+  if (game.scope === 'daily') {
+    const expectedBucket = getRankedDailyRatingBucket(game.mode)
+    if (game.ratingBucket && game.ratingBucket !== expectedBucket) {
+      return null
+    }
+    return getRankedDailyStorageBucket(expectedBucket)
+  }
   const expectedBucket = getRankedPracticeRatingBucket(game.mode, game.timeLimitMs)
   if (!expectedBucket || (game.ratingBucket && game.ratingBucket !== expectedBucket)) {
     return null
   }
-  return expectedBucket
+  return getRankedPracticeStorageBucket(expectedBucket)
 }
 
-function getStorageRatingBucket(game: MultiplayerGame): RankedPracticeStorageBucketId | null {
-  if (game.ranked !== true) {
-    return null
-  }
-  const expectedBucket = getExpectedRankedPracticeRatingBucket(game)
-  return expectedBucket ? getRankedPracticeStorageBucket(expectedBucket) : null
-}
-
-export function isTrustedRankedPracticeSettlementCandidate(game: MultiplayerGame): boolean {
+export function isTrustedRankedSettlementCandidate(game: MultiplayerGame): boolean {
+  const scopeEligible = game.scope === 'practice'
+    || (
+      game.scope === 'daily'
+      && normalizeDailyDateKey(game.dailyDateKey) !== undefined
+      && game.wordLength === 5
+      && game.timeLimitMs == null
+    )
   return game.ranked === true
-    && game.scope === 'practice'
+    && scopeEligible
     && !game.customGameCode
     && (game.status === 'won' || game.status === 'lost')
     && typeof game.matchmakingRequestId === 'string'
@@ -1738,12 +1814,20 @@ export function isTrustedRankedPracticeSettlementCandidate(game: MultiplayerGame
     && getStorageRatingBucket(game) !== null
 }
 
+export function isTrustedRankedPracticeSettlementCandidate(game: MultiplayerGame): boolean {
+  return game.scope === 'practice' && isTrustedRankedSettlementCandidate(game)
+}
+
 function getTrustedSettlementIdempotencyKey(game: MultiplayerGame): string | undefined {
   const bucket = getStorageRatingBucket(game)
   if (!bucket) {
     return undefined
   }
-  const namespace = bucket.includes(':timed:v1') ? 'phase33-ranked-timed-v1' : 'phase27-ranked-v1'
+  const namespace = game.scope === 'daily'
+    ? 'phase55-ranked-daily-v1'
+    : bucket.includes(':timed:v1')
+      ? 'phase33-ranked-timed-v1'
+      : 'phase27-ranked-v1'
   return `${namespace}:async:${game.id}:${bucket}`
 }
 
@@ -1774,8 +1858,118 @@ function gameToRow(game: MultiplayerGame, userId: string) {
   }
 }
 
+function hydrateRankedDailyProjection(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) {
+    return value
+  }
+  const record = value as Record<string, unknown>
+  if (
+    record.ranked !== true
+    || record.scope !== 'daily'
+    || (record.mode !== 'og' && record.mode !== 'go')
+    || typeof record.dailyDateKey !== 'string'
+    || typeof record.id !== 'string'
+    || typeof record.playerUserIds !== 'object'
+    || record.playerUserIds === null
+    || record.serializedSession !== undefined
+  ) {
+    return value
+  }
+  const playerUserIds = record.playerUserIds as Record<string, unknown>
+  if (typeof playerUserIds['player-one'] !== 'string' || typeof playerUserIds['player-two'] !== 'string') {
+    return value
+  }
+  const ratingBucket = record.ratingBucket === 'multiplayer:og:daily:v1'
+    || record.ratingBucket === 'multiplayer:go:daily:v1'
+    ? record.ratingBucket
+    : undefined
+  if (!ratingBucket) {
+    return value
+  }
+
+  const createdAt = typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString()
+  const initial = createMultiplayerGame({
+    createdAt,
+    dailyDateKey: record.dailyDateKey,
+    difficulty: DEFAULT_DIFFICULTY_TIER,
+    goPuzzleCount: record.mode === 'go' ? DEFAULT_GO_PUZZLE_COUNT : undefined,
+    hardMode: record.hardMode === true,
+    id: record.id,
+    matchmakingRequestId: typeof record.matchmakingRequestId === 'string' ? record.matchmakingRequestId : undefined,
+    mode: record.mode,
+    playerUserIds: {
+      'player-one': playerUserIds['player-one'],
+      'player-two': playerUserIds['player-two'],
+    },
+    ranked: true,
+    ratingBucket,
+    scope: 'daily',
+    wordLength: 5,
+  })
+  let hydrated = normalizeMultiplayerState({
+    games: [{
+      ...initial,
+      playerProfiles: record.playerProfiles,
+      players: record.players,
+    }],
+  }).games[0]
+  if (!hydrated) {
+    return value
+  }
+
+  const rawMoves = Array.isArray(record.moves) ? record.moves : []
+  for (const rawMove of rawMoves) {
+    if (typeof rawMove !== 'object' || rawMove === null) {
+      return value
+    }
+    const move = rawMove as Record<string, unknown>
+    if (
+      typeof move.id !== 'string'
+      || typeof move.createdAt !== 'string'
+      || typeof move.guess !== 'string'
+      || (move.playerId !== 'player-one' && move.playerId !== 'player-two')
+      || typeof move.puzzleIndex !== 'number'
+    ) {
+      return value
+    }
+    const submitted = submitMultiplayerGuess({ games: [hydrated] }, {
+      gameId: hydrated.id,
+      guess: move.guess,
+      now: move.createdAt,
+      playerId: move.playerId,
+    })
+    if (submitted.error || !submitted.game) {
+      return value
+    }
+    const canonicalMove = submitted.game.moves.at(-1)
+    if (!canonicalMove || canonicalMove.puzzleIndex !== move.puzzleIndex) {
+      return value
+    }
+    hydrated = {
+      ...submitted.game,
+      moves: [
+        ...submitted.game.moves.slice(0, -1),
+        { ...canonicalMove, createdAt: move.createdAt, id: move.id },
+      ],
+    }
+  }
+
+  return {
+    ...hydrated,
+    authorityVersion: typeof record.authorityVersion === 'number' ? record.authorityVersion : hydrated.moves.length,
+    currentTurn: record.currentTurn,
+    deadlineAt: record.deadlineAt,
+    endedAt: record.endedAt,
+    forfeitedPlayerId: record.forfeitedPlayerId,
+    matchmakingRequestId: record.matchmakingRequestId,
+    status: record.status,
+    updatedAt: record.updatedAt,
+    winnerId: record.winnerId,
+  }
+}
+
 function rowToGame(row: MultiplayerGameRow): MultiplayerGame | undefined {
-  return normalizeMultiplayerState({ games: [row.projection] }).games[0]
+  return normalizeMultiplayerState({ games: [hydrateRankedDailyProjection(row.projection)] }).games[0]
 }
 
 function removePrivateMatchAcceptPlayerUserIds(game: MultiplayerGame): MultiplayerGame {
@@ -1826,6 +2020,103 @@ async function saveMultiplayerGameRows(client: BrrrdleSupabaseClient, rows: read
   if (updateRows.length > 0) {
     await updateMultiplayerGameRows(client, updateRows)
   }
+}
+
+function isRankedDailyGameRow(row: ReturnType<typeof gameToRow>): boolean {
+  return row.ranked === true
+    && row.scope === 'daily'
+    && (row.rating_bucket === 'async:og:daily:v1' || row.rating_bucket === 'async:go:daily:v1')
+}
+
+interface RankedDailyGameChange {
+  readonly next: MultiplayerGame
+  readonly previous?: MultiplayerGame
+}
+
+function rankedDailyMovesHavePrefix(previous: MultiplayerGame, next: MultiplayerGame): boolean {
+  return previous.moves.every((move, index) => JSON.stringify(move) === JSON.stringify(next.moves[index]))
+}
+
+function getRankedDailyViewerPlayerId(
+  game: MultiplayerGame,
+  userId: string,
+): 'player-one' | 'player-two' | undefined {
+  if (game.playerUserIds?.['player-one'] === userId) {
+    return 'player-one'
+  }
+  if (game.playerUserIds?.['player-two'] === userId) {
+    return 'player-two'
+  }
+  return undefined
+}
+
+async function saveRankedDailyGameRows(
+  client: BrrrdleSupabaseClient,
+  changes: readonly RankedDailyGameChange[],
+  userId: string,
+): Promise<ReadonlyMap<string, MultiplayerGame>> {
+  const canonicalGames = new Map<string, MultiplayerGame>()
+  for (const change of changes) {
+    const { next } = change
+    let previous = change.previous
+    if (!previous) {
+      if (next.moves.length === 0 && next.status === 'playing') {
+        continue
+      }
+      previous = await loadExistingGameForUpdate(client, next.id)
+      if (!previous) {
+        throw new Error('Ranked Daily action is missing its previous durable game state.')
+      }
+    }
+    if (!rankedDailyMovesHavePrefix(previous, next)) {
+      throw new Error('Ranked Daily move history must remain append-only.')
+    }
+
+    const expectedVersion = previous.authorityVersion ?? previous.moves.length
+    let actionId: string
+    let guess: string | null = null
+    let forfeit = false
+    if (next.moves.length === previous.moves.length + 1) {
+      const move = next.moves.at(-1)
+      if (!move) {
+        throw new Error('Ranked Daily move action is missing.')
+      }
+      actionId = move.id
+      guess = move.guess
+    } else if (
+      next.moves.length === previous.moves.length
+      && (next.status === 'cancelled' || next.forfeitedPlayerId === getRankedDailyViewerPlayerId(next, userId))
+    ) {
+      actionId = `phase55-ranked-daily-v1:${next.id}:forfeit:${userId}:${expectedVersion}`
+      forfeit = true
+    } else if (JSON.stringify(previous) === JSON.stringify(next)) {
+      continue
+    } else {
+      throw new Error('Ranked Daily save accepts exactly one guess or one owned forfeit.')
+    }
+
+    const { data, error } = await client.rpc('save_ranked_daily_async_multiplayer_action', {
+      p_action_id: actionId,
+      p_expected_move_count: previous.moves.length,
+      p_expected_version: expectedVersion,
+      p_forfeit: forfeit,
+      p_game_id: next.id,
+      p_guess: guess,
+    })
+    if (error) {
+      throw new Error(`Unable to save ranked Daily multiplayer action: ${error.message}`)
+    }
+    const row = Array.isArray(data) ? data[0] : data
+    const projection = typeof row === 'object' && row !== null
+      ? (row as { readonly game_projection?: unknown }).game_projection
+      : undefined
+    const canonical = rowToGame({ projection })
+    if (!canonical || canonical.id !== next.id) {
+      throw new Error('Unable to parse the server-authorized ranked Daily game.')
+    }
+    canonicalGames.set(canonical.id, canonical)
+  }
+  return canonicalGames
 }
 
 function isStaleIncomingGame(existing: MultiplayerGame | undefined, incoming: MultiplayerGame | undefined): boolean {
@@ -1929,24 +2220,35 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
       }
       const previousGames = new Map(snapshot.state.games.map((game) => [game.id, game]))
       snapshot = createSnapshot(state, snapshot.version + 1)
-      const rows = snapshot.state.games
+      const changedGames = snapshot.state.games
         .filter((game) => game.playerUserIds?.['player-one'] === userId || game.playerUserIds?.['player-two'] === userId)
         .filter((game) => hasGameProjectionChanged(previousGames.get(game.id), game))
+      const rankedDailyChanges = changedGames
+        .filter((game) => isRankedDailyGameRow(gameToRow(game, userId)))
+        .map((game) => ({ next: game, previous: previousGames.get(game.id) }))
+      const rows = changedGames
         .map((game) => gameToRow(game, userId))
-      await saveMultiplayerGameRows(client, rows.filter((row) => row.host_user_id === userId))
-      await updateMultiplayerGameRows(client, rows.filter((row) => row.host_user_id !== userId))
+      const ordinaryRows = rows.filter((row) => !isRankedDailyGameRow(row))
+      const canonicalRankedDailyGames = await saveRankedDailyGameRows(client, rankedDailyChanges, userId)
+      await saveMultiplayerGameRows(client, ordinaryRows.filter((row) => row.host_user_id === userId))
+      await updateMultiplayerGameRows(client, ordinaryRows.filter((row) => row.host_user_id !== userId))
+      if (canonicalRankedDailyGames.size > 0) {
+        snapshot = createSnapshot({
+          games: snapshot.state.games.map((game) => canonicalRankedDailyGames.get(game.id) ?? game),
+        }, snapshot.version, snapshot.serverNow)
+      }
       publish()
       return snapshot
     },
     settleRankedGame: async (game) => {
-      if (!isTrustedRankedPracticeSettlementCandidate(game)) {
+      if (!isTrustedRankedSettlementCandidate(game)) {
         return undefined
       }
       const idempotencyKey = getTrustedSettlementIdempotencyKey(game)
       if (!idempotencyKey) {
         return undefined
       }
-      const { data, error } = await client.rpc('settle_ranked_async_multiplayer_match', {
+      const { data, error } = await client.rpc('settle_ranked_async_multiplayer_match_v2', {
         p_game_id: game.id,
         p_idempotency_key: idempotencyKey,
       })
@@ -1960,6 +2262,27 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
       return { transactions }
     },
     createRankedQueueRequest: async (input) => {
+      const scope = input.scope ?? 'practice'
+      if (scope === 'daily') {
+        const dailyDateKey = normalizeDailyDateKey(input.dailyDateKey)
+        if (!dailyDateKey || input.wordLength !== 5 || (input.timeLimitMs !== null && input.timeLimitMs !== undefined)) {
+          throw new Error('Ranked Daily requires a valid UTC date, five letters, and no clock.')
+        }
+        const { data, error } = await client.rpc('create_ranked_async_matchmaking_request_v2', {
+          p_daily_date_key: dailyDateKey,
+          p_expires_at: input.expiresAt ?? null,
+          p_hard_mode: input.hardMode === true,
+          p_idempotency_key: input.idempotencyKey ?? null,
+          p_mode: input.mode,
+          p_scope: 'daily',
+          p_time_limit_ms: null,
+          p_word_length: 5,
+        })
+        if (error) {
+          throw new Error(`Unable to create ranked queue request: ${error.message}`)
+        }
+        return parseSingleRpcRow(data, parseRankedQueueRequestRow, 'Unable to parse ranked queue request result.')
+      }
       const timeLimitMs = normalizeRankedPracticeTimeLimitMs(input.timeLimitMs)
       if (timeLimitMs === undefined) {
         throw new Error('Timed Practice ranked supports only the canonical five-minute clock.')
@@ -1998,7 +2321,7 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
       return parseSingleRpcRow(data, parseRankedQueueClaimRow, 'Unable to parse ranked queue claim result.')
     },
     getRankedQueueStatus: async (requestId) => {
-      const { data, error } = await client.rpc('get_ranked_async_matchmaking_status', {
+      const { data, error } = await client.rpc('get_ranked_async_matchmaking_status_v2', {
         p_request_id: requestId,
       })
       if (error) {
@@ -2007,7 +2330,7 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
       return parseSingleRpcRow(data, parseRankedQueueStatusRow, 'Unable to parse ranked queue status result.')
     },
     finalizeRankedQueueGame: async (input) => {
-      const { data, error } = await client.rpc('finalize_ranked_async_matchmaking_game', {
+      const { data, error } = await client.rpc('finalize_ranked_async_matchmaking_game_v2', {
         p_game_projection: input.game,
         p_idempotency_key: input.idempotencyKey ?? null,
         p_matched_game_id: input.matchedGameId,
