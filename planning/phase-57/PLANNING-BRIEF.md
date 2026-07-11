@@ -1,6 +1,6 @@
 # Phase 57 Planning Brief - Solo Practice Marketplace And Consumables
 
-**Status:** Implementation-ready; execution remains separately gated.
+**Status:** Accepted and closed after hosted manual review on 2026-07-11.
 **Date:** 2026-07-11.
 
 Phase 57 should complete a lightweight coin marketplace and consumable inventory/use contract, building on the existing `revealOneLetter` and `removeIncorrectLetters` helpers where suitable.

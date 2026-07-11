@@ -67,3 +67,9 @@ This is a bounded source/test follow-up. It does not change Marketplace pricing,
 - Verification passed 16 focused domain/component tests, 4 guest browser scenarios, 2 authenticated authority/browser scenarios, lint, build, API typecheck, all 998 unit tests, and all 74 authority-enabled E2E scenarios. Temporary authenticated E2E users/data were cleaned by the existing fixture.
 
 Phase 57 remains open for a separately authorized Review Candidate backup and hosted/manual review.
+
+## Final acceptance - 2026-07-11
+
+The user completed the hosted manual-review checklist after refined Review Candidate PR #64 and reported that every item passes with no known bug or regression. Phase 57 is accepted and closed. The retained final evidence is 998 unit tests, lint, build, API typecheck, 16 focused domain/component tests, four guest browser scenarios, two disposable-account authority/browser scenarios with cleanup, a clean 74/74 authority-enabled Playwright run, exact 38/38 migration-history equality, unchanged catalog fingerprints, and the previously verified authority/privacy/concurrency probes.
+
+The next protected sequence is a Phase 57 Final Acceptance documentation backup followed by a Golden Checkpoint for that exact accepted commit. A separate planning-only optimization audit may then refresh the functionality-preservation inventory and evaluate whether the accepted shell can become lighter without changing any product, gameplay, backend, persistence, privacy, economy, rating, or Supabase contract.
