@@ -1,6 +1,6 @@
 # Phase 56 Planning Brief - Private Request Center And Anti-Spam
 
-**Status:** Local implementation prepared; remote migration and real E2E remain separately gated.
+**Status:** Accepted and closed after hosted manual review on 2026-07-11.
 **Date:** 2026-07-10.
 
 Phase 56 should add participant-owned incoming/outgoing private Practice request management, lifecycle notifications, direct game entry, private-request preferences, individual blocks, and server-enforced anti-spam limits while preserving the functional shell.

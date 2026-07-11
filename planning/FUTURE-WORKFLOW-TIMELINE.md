@@ -17,14 +17,16 @@ The canonical intake is `planning/handoffs/POST-SHELL-FOUNDATION-EXPANSION-INTAK
 | Phase | Current Focus | Status |
 | --- | --- | --- |
 | 55 | Ranked Daily Multiplayer OG/GO plus narrow private Practice request status/direct routing | Complete; hosted manual review accepted after PR #59. |
-| 56 | Private request center, notification integration, opt-out preference, individual blocking, and anti-spam limits | Local implementation prepared; exact migration application and real E2E pending. |
-| 57 | Coin marketplace and consumables restricted to Solo Practice | Routed; separate progression/cloud/gameplay audit required. |
+| 56 | Private request center, notification integration, opt-out preference, individual blocking, and anti-spam limits | Accepted and closed after PR #61 hosted review. |
+| 57 | Coin marketplace and consumables restricted to Solo Practice | Implementation-ready; separate execution and remote-migration gates required. |
 | 58 | Design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff | Preserved from the displaced Phase 55 plan; deferred until foundation acceptance. |
 | 59 | GPT-5.6 SOL frontend rebuild | Deferred behind accepted Phase 58 design/handoff. |
 
 This routing supersedes older statements in this historical document that name Phase 55 as the design phase or Phase 56 as the rebuild. Those statements remain as historical rationale only.
 
 Phase 55 closure update, 2026-07-10: the user reported that every hosted manual-review item passes after Review Candidate PR #59. Phase 55 is closed through the Final Acceptance documentation backup. Phase 56 planning confirms an additive server-enforced request-preference/block/duplicate-limit contract plus a lightweight request center and lifecycle notification integration; implementation remains separately gated.
+
+Phase 56 closure update, 2026-07-11: the user reported that all hosted manual-review items pass after Review Candidate PR #61. Phase 56 is accepted and closed. Phase 57 is next and is limited to a lightweight marketplace plus consumables purchasable with existing coins and usable only in Solo Practice; Daily and all Multiplayer lanes remain consumable-free.
 
 Closure update, 2026-07-08: Phase 50 was expanded into the macro-phase recommended here, iterated through the Review Candidate Backup Loop, manually accepted by the user, closed through the separately authorized Final Acceptance Backup, and captured with the Phase 50 Golden Checkpoint. Use the Phase 50 sections of this document as historical rationale and workflow guidance, not as an active Phase 50 prompt.
 
