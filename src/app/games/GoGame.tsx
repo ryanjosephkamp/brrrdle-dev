@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
+import { DEFAULT_DIFFICULTY_TIER, useWordListPreparation, type DifficultyTier } from '../../data'
 import { DEFAULT_GO_PUZZLE_COUNT, type GoPuzzleCount } from '../../game/constants'
 import { createSoloCloudSessionKey, type CompletedGameInput, type GoResumeSlot, type ResumeCapture, type SoloCloudMutation, type SoloCloudMutationEventInput } from '../../account'
 import { createAccountPracticeSeed } from '../../account/practiceSeeds'
@@ -38,6 +38,7 @@ import { CustomizeMenu } from './CustomizeMenu'
 import { getSoloGoSolvedTransition, type SoloGoSolvedTransition } from './goTransitions'
 import { createGoGameSessionKey } from './soloSessionKeys'
 import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
+import { WordListPreparationPanel } from './WordListPreparationPanel'
 
 interface GoGameProps {
   readonly coins: number
@@ -794,10 +795,17 @@ export function GoGame({ coins, consumables = { removeIncorrectLetters: 0, revea
     () => pastDailyDateKey ? dateKeyToLocalDate(pastDailyDateKey) : getActiveDailyDate(),
     [pastDailyDateKey],
   )
+  const requiredWordLength = scope === 'daily' ? 5 : practiceLength
+  const preparation = useWordListPreparation(scope, requiredWordLength)
   const setup = useMemo(
-    () => scope === 'daily' ? createDailyGoSetup(dailyDate, difficulty, goPuzzleCount) : createPracticeGoSetup(practiceLength, practiceSeed, difficulty, goPuzzleCount),
-    [dailyDate, difficulty, goPuzzleCount, practiceLength, practiceSeed, scope],
+    () => preparation.isReady
+      ? (scope === 'daily' ? createDailyGoSetup(dailyDate, difficulty, goPuzzleCount) : createPracticeGoSetup(practiceLength, practiceSeed, difficulty, goPuzzleCount))
+      : undefined,
+    [dailyDate, difficulty, goPuzzleCount, practiceLength, practiceSeed, preparation.isReady, scope],
   )
+  if (!setup) {
+    return <WordListPreparationPanel error={preparation.error} onRetry={preparation.retry} />
+  }
   const sessionKey = createGoGameSessionKey({
     activeResume,
     difficulty,

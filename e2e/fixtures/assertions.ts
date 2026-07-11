@@ -1,5 +1,18 @@
 import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
+import rawLength5 from '../../src/latest/words_length_5.json' with { type: 'json' }
+import {
+  prepareBundledWordList,
+  setWordListImporterForTests,
+} from '../../src/data/loadWordList.js'
+
+// Browser E2E helpers also exercise synchronous domain setup in the worker.
+// Prepare the canonical five-letter payload once per worker before those helpers run.
+setWordListImporterForTests(async (length) => length === 5 ? rawLength5 : undefined)
+const e2eWordList = await prepareBundledWordList('practice', 5)
+if (!e2eWordList.ok) {
+  throw new Error(`Unable to prepare the E2E word-list fixture: ${e2eWordList.reason}`)
+}
 
 export interface ScrollDiagnostics {
   readonly clientHeight: number

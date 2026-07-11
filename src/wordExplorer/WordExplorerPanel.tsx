@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Dialog, Panel } from '../ui'
 import { DefinitionPanel } from '../definitions'
 import { DIFFICULTY_TIERS, getDifficultyTierMeta, isDifficultyTier, type DifficultyTier } from '../data/difficulty'
+import { useWordListPreparation } from '../data/useWordListPreparation'
 import { buildWordRequestIssueUrl } from '../lib/githubIssue'
 import {
   DEFAULT_WORD_EXPLORER_LENGTH,
@@ -48,10 +49,17 @@ export function WordExplorerPanel() {
   const [pageIndex, setPageIndex] = useState(0)
   const [copiedWord, setCopiedWord] = useState<string | undefined>(undefined)
   const [definitionWord, setDefinitionWord] = useState<string | undefined>(undefined)
-  const bundledEntries = useMemo(() => loadWordExplorerEntries(length), [length])
+  const preparation = useWordListPreparation('practice', length)
+  const bundledEntries = useMemo(
+    () => preparation.isReady ? loadWordExplorerEntries(length) : [],
+    [length, preparation.isReady],
+  )
   const [liveLoad, setLiveLoad] = useState<{ readonly length: number; readonly result: WordExplorerLoadResult } | undefined>(undefined)
 
   useEffect(() => {
+    if (!preparation.isReady) {
+      return undefined
+    }
     let isMounted = true
     void loadWordExplorerEntriesFromLive(length).then((result) => {
       if (isMounted) {
@@ -61,11 +69,15 @@ export function WordExplorerPanel() {
     return () => {
       isMounted = false
     }
-  }, [length])
+  }, [length, preparation.isReady])
 
   const effectiveLoad = liveLoad?.length === length
     ? liveLoad.result
-    : { entries: bundledEntries, source: 'bundled' as const, message: 'Checking live word list…' }
+    : {
+        entries: bundledEntries,
+        source: 'bundled' as const,
+        message: preparation.error ?? (preparation.isReady ? 'Checking live word list…' : 'Preparing the selected word length…'),
+      }
   const entries = effectiveLoad.entries
   const filtered = useMemo(
     () => filterAndSortEntries(entries, { searchTerm, showAnswers, showValidGuesses, difficulty: difficultyFilter }, { field: sortField, direction: sortDirection }),
@@ -192,6 +204,7 @@ export function WordExplorerPanel() {
           Showing {filtered.length} of {entries.length} {length}-letter word{entries.length === 1 ? '' : 's'} from {effectiveLoad.source === 'live' ? 'the live manifest' : 'bundled fallback data'}.
           {effectiveLoad.message ? ` ${effectiveLoad.message}` : ''}
         </p>
+        {preparation.error ? <Button onClick={preparation.retry} size="sm" variant="primary">Retry word data</Button> : null}
         {filtered.length > 0 ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700/70 bg-slate-950/70 p-3">
             <p className="text-xs text-slate-300">

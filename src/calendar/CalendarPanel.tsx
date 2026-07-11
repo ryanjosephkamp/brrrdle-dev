@@ -20,12 +20,12 @@ import type { GoPuzzleCount } from '../game/constants'
 import type { GameMode } from '../game/types'
 import { Button, Dialog, Panel } from '../ui'
 import {
-  MultiplayerPanel,
   hasDailyMultiplayerGame,
   type MultiplayerState,
   type MultiplayerCompetitiveState,
   type MultiplayerProfileSummary,
 } from '../multiplayer'
+import { MultiplayerPanel } from '../multiplayer/MultiplayerPanel'
 import { GoGame } from '../app/games/GoGame'
 import { OgGame } from '../app/games/OgGame'
 import {

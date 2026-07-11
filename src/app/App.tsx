@@ -1,15 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createAccountPracticeSeed, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSupabaseSoloCloudProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, mergeSoloCloudSessionsIntoProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection, type SoloCloudMutation, type SoloCloudProgressRepository } from '../account'
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
+import type { OgGame as OgGameComponent } from './games/OgGame'
+import type { GoGame as GoGameComponent } from './games/GoGame'
+import type { CalendarPanel as CalendarPanelComponent } from '../calendar/CalendarPanel'
+import type { SoloWorkspace as SoloWorkspaceComponent } from '../solo/SoloWorkspace'
+import type { MultiplayerPanel as MultiplayerPanelComponent } from '../multiplayer/MultiplayerPanel'
+import type { MultiplayerWorkspace as MultiplayerWorkspaceComponent } from '../multiplayer/MultiplayerWorkspace'
+import type { MarketplacePanel as MarketplacePanelComponent } from '../marketplace/MarketplacePanel'
+import type { HistoryWorkspace as HistoryWorkspaceComponent } from '../history/HistoryWorkspace'
+import type { StatsDashboard as StatsDashboardComponent } from '../stats/StatsDashboard'
+import type { LeaderboardPanel as LeaderboardPanelComponent } from '../leaderboards/LeaderboardPanel'
+import type { PublicProfilePage as PublicProfilePageComponent } from '../account/PublicProfilePage'
+import type { Settings as SettingsComponent } from '../account/Settings'
+import type { AdminPanel as AdminPanelComponent } from '../admin/AdminPanel'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createAccountPracticeSeed, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSupabaseSoloCloudProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, mergeSoloCloudSessionsIntoProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection, type SoloCloudMutation, type SoloCloudProgressRepository } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { applyEconomyCommand, calculateCoinAward, createEconomySnapshot, type ConsumableType, type EconomyCommand } from '../progression'
 import { createSupabaseEconomyRepository, toEconomySnapshot, type EconomyRepository } from '../account/economyRepository'
-import { MarketplacePanel } from '../marketplace'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
-import { AdminPanel, createSupabaseAdminOperationalDashboardRepository, type AdminOperationalDashboardRepository } from '../admin'
-import { StatsDashboard, createSupabasePublicSiteStatsRepository, type PublicSiteStatsRepository } from '../stats'
-import { LeaderboardPanel, createSupabasePublicRankedLeaderboardRepository, type PublicRankedLeaderboardRepository } from '../leaderboards'
-import { WordExplorerPanel } from '../wordExplorer'
+import { createSupabaseAdminOperationalDashboardRepository, type AdminOperationalDashboardRepository } from '../admin'
+import { createSupabasePublicSiteStatsRepository, type PublicSiteStatsRepository } from '../stats'
+import { createSupabasePublicRankedLeaderboardRepository, type PublicRankedLeaderboardRepository } from '../leaderboards'
 import { HelpPanel } from '../help'
 import { FeedbackPanel } from '../feedback'
 import { SoundProvider, useSound } from '../sound'
@@ -63,19 +74,13 @@ import {
   normalizeCompetitiveMultiplayerState,
   saveMultiplayerState,
   settleMultiplayerStateResults,
-  MultiplayerPanel,
-  MultiplayerWorkspace,
   type MultiplayerRepository,
   type MultiplayerState,
   type MultiplayerProfileSummary,
   type MultiplayerCompetitiveState,
   type AuthenticatedLiveSpectatorGame,
 } from '../multiplayer'
-import { GoGame } from './games/GoGame'
-import { OgGame } from './games/OgGame'
-import { CalendarPanel, type CalendarLaunchRequest } from '../calendar'
-import { HistoryWorkspace } from '../history/HistoryWorkspace'
-import { SoloWorkspace } from '../solo/SoloWorkspace'
+import type { CalendarLaunchRequest } from '../calendar'
 import { isSoloActiveGameKey, type SoloActiveGameKey, type SoloMode, type SoloScope } from '../solo/soloViewModels'
 import { createRouteAttentionMap, createWorkspaceAttentionMap, type WorkspaceAttentionMap } from './attentionViewModels'
 import { selectScopedProgressMultiplayerState } from './scopedProgressMultiplayerState'
@@ -92,10 +97,68 @@ import { BackToTopButton } from './BackToTopButton'
 import { GAMEPLAY_AUTOCENTER_TARGETS, scheduleGameplayAutoCenter } from './gameplayAutoCenter'
 import { LunarSignalStage } from './LunarSignalStage'
 import { ProgressionHud } from './ProgressionHud'
+import { createRetryableLazyRoute } from './RetryableLazyRoute'
 import { getPrimaryNavigationRoutes, getRouteById, type AppRoute, type AppRouteId } from './routes'
 import { DEFAULT_NAVIGATION_STATE, loadNavigationState, saveNavigationState, type HistoryFilters, type LegacyPracticeMode, type MultiplayerSubtabId, type NavigationState, type PublicProfileReturnRoute, type SoloSubtabId } from './navigationState'
 
 type PracticeMode = LegacyPracticeMode
+
+const OgGame = createRetryableLazyRoute<ComponentProps<typeof OgGameComponent>>(
+  () => import('./games/OgGame').then((module) => ({ default: module.OgGame })),
+  'Solo OG',
+)
+const GoGame = createRetryableLazyRoute<ComponentProps<typeof GoGameComponent>>(
+  () => import('./games/GoGame').then((module) => ({ default: module.GoGame })),
+  'Solo GO',
+)
+const CalendarPanel = createRetryableLazyRoute<ComponentProps<typeof CalendarPanelComponent>>(
+  () => import('../calendar/CalendarPanel').then((module) => ({ default: module.CalendarPanel })),
+  'Calendar',
+)
+const SoloWorkspace = createRetryableLazyRoute<ComponentProps<typeof SoloWorkspaceComponent>>(
+  () => import('../solo/SoloWorkspace').then((module) => ({ default: module.SoloWorkspace })),
+  'Solo',
+)
+const MultiplayerPanel = createRetryableLazyRoute<ComponentProps<typeof MultiplayerPanelComponent>>(
+  () => import('../multiplayer/MultiplayerPanel').then((module) => ({ default: module.MultiplayerPanel })),
+  'Multiplayer game',
+)
+const MultiplayerWorkspace = createRetryableLazyRoute<ComponentProps<typeof MultiplayerWorkspaceComponent>>(
+  () => import('../multiplayer/MultiplayerWorkspace').then((module) => ({ default: module.MultiplayerWorkspace })),
+  'Multiplayer',
+)
+const MarketplacePanel = createRetryableLazyRoute<ComponentProps<typeof MarketplacePanelComponent>>(
+  () => import('../marketplace/MarketplacePanel').then((module) => ({ default: module.MarketplacePanel })),
+  'Marketplace',
+)
+const HistoryWorkspace = createRetryableLazyRoute<ComponentProps<typeof HistoryWorkspaceComponent>>(
+  () => import('../history/HistoryWorkspace').then((module) => ({ default: module.HistoryWorkspace })),
+  'History',
+)
+const WordExplorerPanel = createRetryableLazyRoute<Record<string, never>>(
+  () => import('../wordExplorer/WordExplorerPanel').then((module) => ({ default: module.WordExplorerPanel })),
+  'Word Explorer',
+)
+const StatsDashboard = createRetryableLazyRoute<ComponentProps<typeof StatsDashboardComponent>>(
+  () => import('../stats/StatsDashboard').then((module) => ({ default: module.StatsDashboard })),
+  'Stats',
+)
+const LeaderboardPanel = createRetryableLazyRoute<ComponentProps<typeof LeaderboardPanelComponent>>(
+  () => import('../leaderboards/LeaderboardPanel').then((module) => ({ default: module.LeaderboardPanel })),
+  'Leaderboard',
+)
+const PublicProfilePage = createRetryableLazyRoute<ComponentProps<typeof PublicProfilePageComponent>>(
+  () => import('../account/PublicProfilePage').then((module) => ({ default: module.PublicProfilePage })),
+  'Public profile',
+)
+const Settings = createRetryableLazyRoute<ComponentProps<typeof SettingsComponent>>(
+  () => import('../account/Settings').then((module) => ({ default: module.Settings })),
+  'Settings',
+)
+const AdminPanel = createRetryableLazyRoute<ComponentProps<typeof AdminPanelComponent>>(
+  () => import('../admin/AdminPanel').then((module) => ({ default: module.AdminPanel })),
+  'Admin',
+)
 type RankedQueueActions = Pick<
   MultiplayerRepository,
   'cancelRankedQueueRequest'

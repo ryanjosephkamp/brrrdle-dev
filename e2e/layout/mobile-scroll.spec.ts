@@ -183,10 +183,14 @@ test.describe('mobile scroll and layout regression harness @layout', () => {
     await chooseSoloPracticeMode(page, 'og')
     await installScrollIntoViewCounter(page)
     await page.evaluate(() => window.scrollTo(0, 0))
+    const soloRegion = page.getByRole('region', { name: /Practice og puzzle/i })
+    await expect(soloRegion.getByText(/6 attempts remaining/i)).toBeVisible()
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()))
+    }))
     await page.keyboard.type(getWrongPracticeOgGuess())
     await page.keyboard.press('Enter')
 
-    const soloRegion = page.getByRole('region', { name: /Practice og puzzle/i })
     await expect(soloRegion.getByText(/5 attempts remaining/i)).toBeVisible()
     await expectNoAppScrollIntoView(page)
     await expectNoHorizontalOverflow(page)
