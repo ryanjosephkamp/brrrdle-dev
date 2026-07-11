@@ -1,7 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createAccountPracticeSeed, createDefaultGuestProgress } from '../../src/account'
-import { createPracticeGoSetup, createPracticeOgSetup } from '../../src/game'
+import { createDefaultGuestProgress } from '../../src/account'
 import { expectNoConsoleFailures, installConsoleGuards } from '../fixtures/assertions'
 import { cleanupE2eRun } from '../fixtures/cleanup'
 import { chooseSoloPracticeMode, navigateToSoloPractice } from '../fixtures/gameActions'
@@ -255,11 +254,15 @@ test.describe.serial('Phase 57 signed-in economy authority @solo @practice', () 
       await chooseSoloPracticeMode(og.page, 'og')
       const ogGame = og.page.getByRole('region', { name: /Practice og puzzle/i })
       await ogGame.getByRole('button', { name: /Reveal letter \(2\)/i }).click()
-      await expect(ogGame.getByText(/^Revealed: 1:/i)).toBeVisible()
+      const ogRevealText = ogGame.getByText(/^Revealed:/i)
+      await expect(ogRevealText).toBeVisible()
+      const ogRevealMatch = (await ogRevealText.textContent())?.match(/(\d+):\s*([A-Z])/i)
+      expect(ogRevealMatch).toBeTruthy()
+      await expect(ogGame.getByRole('gridcell', { name: new RegExp(`^Row 1, tile ${ogRevealMatch![1]}, ${ogRevealMatch![2]}$`, 'i') })).toHaveAttribute('data-state', 'correct')
       await ogGame.getByRole('button', { name: /Remove incorrect letters \(2\)/i }).click()
-      const ogAnswer = createPracticeOgSetup(5, createAccountPracticeSeed('og', user.id, 0)).answer.toLocaleLowerCase('en-US')
-      const ogRemoved = [...'abcdefghijklmnopqrstuvwxyz'].find((letter) => !ogAnswer.includes(letter))!
-      await expect(ogGame.getByRole('button', { name: new RegExp(`^Enter ${ogRemoved}$`, 'i') })).toBeDisabled()
+      await expect(ogGame.getByText(/^Removed 5 incorrect keyboard letters\.$/i)).toBeVisible()
+      const ogRemovedLabels = await ogGame.locator('section[aria-label="Keyboard"] button[aria-label^="Enter "]:disabled').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
+      expect(ogRemovedLabels).toHaveLength(5)
 
       const restoreOgContext = await browser.newContext({ viewport: { height: 844, width: 390 } })
       contexts.push(restoreOgContext)
@@ -267,17 +270,17 @@ test.describe.serial('Phase 57 signed-in economy authority @solo @practice', () 
       await navigateToSoloPractice(restoreOg.page)
       await chooseSoloPracticeMode(restoreOg.page, 'og')
       const restoredOgGame = restoreOg.page.getByRole('region', { name: /Practice og puzzle/i })
-      await expect(restoredOgGame.getByText(/^Revealed: 1:/i)).toBeVisible({ timeout: 20_000 })
-      await expect(restoredOgGame.getByRole('button', { name: new RegExp(`^Enter ${ogRemoved}$`, 'i') })).toBeDisabled()
+      await expect(restoredOgGame.getByText(/^Revealed:/i)).toBeVisible({ timeout: 20_000 })
+      for (const label of ogRemovedLabels) await expect(restoredOgGame.getByRole('button', { name: label! })).toBeDisabled()
 
       await chooseSoloPracticeMode(restoreOg.page, 'go')
       const goGame = restoreOg.page.getByRole('region', { name: /Practice go chain/i })
       await goGame.getByRole('button', { name: /Reveal letter \(1\)/i }).click()
-      await expect(goGame.getByText(/^Revealed: 1:/i)).toBeVisible()
+      await expect(goGame.getByText(/^Revealed:/i)).toBeVisible()
       await goGame.getByRole('button', { name: /Remove incorrect letters \(1\)/i }).click()
-      const goAnswer = createPracticeGoSetup(5, createAccountPracticeSeed('go', user.id, 0)).puzzles[0]!.answer.toLocaleLowerCase('en-US')
-      const goRemoved = [...'abcdefghijklmnopqrstuvwxyz'].find((letter) => !goAnswer.includes(letter))!
-      await expect(goGame.getByRole('button', { name: new RegExp(`^Enter ${goRemoved}$`, 'i') })).toBeDisabled()
+      await expect(goGame.getByText(/^Removed 5 incorrect keyboard letters\.$/i)).toBeVisible()
+      const goRemovedLabels = await goGame.locator('section[aria-label="Keyboard"] button[aria-label^="Enter "]:disabled').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')))
+      expect(goRemovedLabels).toHaveLength(5)
 
       const restoreGoContext = await browser.newContext({ viewport: { height: 844, width: 390 } })
       contexts.push(restoreGoContext)
@@ -285,8 +288,8 @@ test.describe.serial('Phase 57 signed-in economy authority @solo @practice', () 
       await navigateToSoloPractice(restoreGo.page)
       await chooseSoloPracticeMode(restoreGo.page, 'go')
       const restoredGoGame = restoreGo.page.getByRole('region', { name: /Practice go chain/i })
-      await expect(restoredGoGame.getByText(/^Revealed: 1:/i)).toBeVisible({ timeout: 20_000 })
-      await expect(restoredGoGame.getByRole('button', { name: new RegExp(`^Enter ${goRemoved}$`, 'i') })).toBeDisabled()
+      await expect(restoredGoGame.getByText(/^Revealed:/i)).toBeVisible({ timeout: 20_000 })
+      for (const label of goRemovedLabels) await expect(restoredGoGame.getByRole('button', { name: label! })).toBeDisabled()
 
       await restoreGo.page.getByRole('tab', { name: /^Daily Solo$/i }).click()
       await expect(restoreGo.page.getByText('Solo Practice tools')).toHaveCount(0)

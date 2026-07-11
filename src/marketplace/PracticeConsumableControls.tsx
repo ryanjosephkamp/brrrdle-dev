@@ -19,7 +19,7 @@ export function PracticeConsumableControls({ consumables, disabled = false, effe
         <Button disabled={disabled || consumables.revealOneLetter < 1} onClick={() => onUse('revealOneLetter')} variant="secondary">
           Reveal letter ({consumables.revealOneLetter})
         </Button>
-        <Button disabled={disabled || consumables.removeIncorrectLetters < 1 || effects.removedLetters.length > 0} onClick={() => onUse('removeIncorrectLetters')} variant="secondary">
+        <Button disabled={disabled || consumables.removeIncorrectLetters < 1} onClick={() => onUse('removeIncorrectLetters')} variant="secondary">
           Remove incorrect letters ({consumables.removeIncorrectLetters})
         </Button>
       </div>

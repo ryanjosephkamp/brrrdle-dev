@@ -174,7 +174,10 @@ describe('Practice Solo account boundaries', () => {
     expect(html).toContain('Reveal letter (3)')
     expect(html).toContain('Remove incorrect letters (2)')
     expect(html).toContain('Revealed: 1: A')
+    expect(html).toMatch(/aria-label="Row 2, tile 1, a"[^>]*data-state="correct"/)
+    expect(html).toMatch(/aria-label="Enter A"[^>]*data-state="correct"/)
     expect(html).toMatch(/aria-label="Enter Z"[^>]*disabled=""/)
+    expect(html.match(/<button[^>]*>Remove incorrect letters \(2\)<\/button>/)?.[0]).not.toContain(' disabled=""')
   })
 
   it('renders owned consumables in Practice GO and restores effects for the active puzzle only', () => {
@@ -195,6 +198,8 @@ describe('Practice Solo account boundaries', () => {
 
     expect(html).toContain('Reveal letter (4)')
     expect(html).toContain('Revealed: 2: B')
+    expect(html).toMatch(/aria-label="Row 2, tile 2, b"[^>]*data-state="correct"/)
+    expect(html).toMatch(/aria-label="Enter B"[^>]*data-state="correct"/)
     expect(html).toMatch(/aria-label="Enter X"[^>]*disabled=""/)
   })
 })
