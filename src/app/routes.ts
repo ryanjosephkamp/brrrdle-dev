@@ -1,6 +1,6 @@
 import type { GameMode, PlayScope } from '../game/types'
 
-export type AppRouteId = 'home' | 'solo' | 'calendar' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'leaderboard' | 'word-explorer' | 'profile' | 'public-profile' | 'feedback' | 'definitions' | 'stats' | 'help' | 'settings' | 'about' | 'admin'
+export type AppRouteId = 'home' | 'solo' | 'calendar' | 'marketplace' | 'og-daily' | 'go-daily' | 'practice' | 'multiplayer' | 'history' | 'leaderboard' | 'word-explorer' | 'profile' | 'public-profile' | 'feedback' | 'definitions' | 'stats' | 'help' | 'settings' | 'about' | 'admin'
 
 export interface AppRoute {
   readonly id: AppRouteId
@@ -78,6 +78,13 @@ export const APP_ROUTES = [
     shortLabel: 'Multiplayer',
     description: 'Play Daily and Practice Multiplayer, resume active games, browse lobbies, and check Live v1.',
     navigationGroup: 'play',
+  },
+  {
+    id: 'marketplace',
+    label: 'Marketplace',
+    shortLabel: 'Market',
+    description: 'Buy coin-funded consumables for Solo Practice games.',
+    navigationGroup: 'support',
   },
   {
     id: 'history',
@@ -172,6 +179,7 @@ export const PRIMARY_NAVIGATION_ROUTE_IDS = [
   'solo',
   'multiplayer',
   'calendar',
+  'marketplace',
   'history',
   'stats',
   'leaderboard',

@@ -28,7 +28,8 @@ import {
 } from '../../game'
 import { clearDailyGoStoredSession, loadDailyGoStoredSession, saveDailyGoStoredSession } from '../../game/storage/dailyGoStorage'
 import { dateKeyToLocalDate, getActiveDailyDate } from '../../daily'
-import { calculatePayToContinueCost } from '../../progression'
+import { calculatePayToContinueCost, createInitialConsumableEffects, removePracticeIncorrectLetters, revealNextPracticeLetter, type ConsumableEffects, type ConsumableType } from '../../progression'
+import { PracticeConsumableControls } from '../../marketplace'
 import { Button, Keyboard, Panel, ShareButton } from '../../ui'
 import { useSound } from '../../sound'
 import { classNames } from '../../ui/classNames'
@@ -40,6 +41,7 @@ import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEv
 
 interface GoGameProps {
   readonly coins: number
+  readonly consumables?: Readonly<Record<ConsumableType, number>>
   readonly defaultDifficulty?: DifficultyTier
   readonly defaultGoPuzzleCount?: GoPuzzleCount
   readonly defaultHardMode?: boolean
@@ -50,7 +52,8 @@ interface GoGameProps {
   readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
   readonly onSaveGoPuzzleCountDefault?: (count: GoPuzzleCount) => void
-  readonly onSpendCoins: (amount: number) => boolean
+  readonly onConsumeConsumable?: (type: ConsumableType, operationId: string) => boolean | Promise<boolean>
+  readonly onSpendCoins: (amount: number, operationId?: string) => boolean | Promise<boolean>
   readonly onAdvancePracticeSeed?: () => void
   readonly practiceSeedCounter?: number
   readonly practiceSeedUserId?: string
@@ -179,6 +182,7 @@ function hasSubmittedGoGuess(session: GoSessionState, setup: GoSessionSetup): bo
 
 function GoGameSession({
   coins,
+  consumables,
   defaultDifficulty,
   defaultGoPuzzleCount,
   defaultHardMode,
@@ -196,6 +200,7 @@ function GoGameSession({
   pastDailyDateKey,
   onSaveDifficultyDefault,
   onSaveGoPuzzleCountDefault,
+  onConsumeConsumable,
   onSpendCoins,
   practiceLength,
   practiceLengths,
@@ -205,6 +210,7 @@ function GoGameSession({
   setup,
 }: {
   readonly coins: number
+  readonly consumables: Readonly<Record<ConsumableType, number>>
   readonly defaultDifficulty: DifficultyTier
   readonly defaultGoPuzzleCount: GoPuzzleCount
   readonly defaultHardMode: boolean
@@ -222,7 +228,8 @@ function GoGameSession({
   readonly pastDailyDateKey?: string
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
   readonly onSaveGoPuzzleCountDefault?: (count: GoPuzzleCount) => void
-  readonly onSpendCoins: (amount: number) => boolean
+  readonly onConsumeConsumable?: (type: ConsumableType, operationId: string) => boolean | Promise<boolean>
+  readonly onSpendCoins: (amount: number, operationId?: string) => boolean | Promise<boolean>
   readonly practiceLength: number
   readonly practiceLengths: readonly number[]
   readonly practiceSeed: number
@@ -238,9 +245,13 @@ function GoGameSession({
   })
   const suppressInitialCompletionReportRef = useRef(Boolean(restoreFrom) && session.status !== 'playing')
   const [continuationMessage, setContinuationMessage] = useState<string>()
+  const [consumableEffectsByPuzzle, setConsumableEffectsByPuzzle] = useState<Readonly<Record<string, ConsumableEffects>>>(() => Object.fromEntries(
+    Object.entries(restoreFrom?.consumableEffectsByPuzzle ?? {}).map(([key, effects]) => [key, createInitialConsumableEffects(effects)]),
+  ))
   const [solvedTransition, setSolvedTransition] = useState<SoloGoSolvedTransition | undefined>()
   const [showDefinitions, setShowDefinitions] = useState(true)
   const currentPuzzle = session.puzzles[session.currentPuzzleIndex]
+  const consumableEffects = createInitialConsumableEffects(consumableEffectsByPuzzle[String(session.currentPuzzleIndex)])
   const transitionPuzzle = solvedTransition ? session.puzzles[solvedTransition.puzzleIndex] : undefined
   const displayPuzzle = transitionPuzzle ?? currentPuzzle
   const displayPuzzleIndex = solvedTransition?.puzzleIndex ?? session.currentPuzzleIndex
@@ -268,7 +279,7 @@ function GoGameSession({
   const hardModeLocked = scope === 'practice'
     ? customizeLocked
     : session.puzzles.some((puzzle) => puzzle.guesses.length > 0)
-  const emitSoloCloudMutation = useCallback((nextSession: GoSessionState, event: SoloCloudMutationEventInput) => {
+  const emitSoloCloudMutation = useCallback((nextSession: GoSessionState, event: SoloCloudMutationEventInput, effectsByPuzzle = consumableEffectsByPuzzle) => {
     onSoloCloudMutation?.({
       ...(scope === 'daily' && setup.dateKey ? { dailyDateKey: setup.dateKey } : {}),
       difficulty,
@@ -278,7 +289,7 @@ function GoGameSession({
       mode: 'go',
       ...(scope === 'practice' ? { practiceSeed } : {}),
       scope,
-      serializedSession: serializeGoSession(nextSession),
+      serializedSession: { ...serializeGoSession(nextSession), consumableEffectsByPuzzle: effectsByPuzzle },
       sessionKey: createSoloCloudSessionKey({
         ...(scope === 'daily' && setup.dateKey ? { dailyDateKey: setup.dateKey } : {}),
         difficulty,
@@ -290,13 +301,13 @@ function GoGameSession({
       }),
       wordLength: nextSession.wordLength,
     })
-  }, [difficulty, goPuzzleCount, onSoloCloudMutation, practiceSeed, scope, setup.dateKey])
-  const scheduleSoloCloudMutation = useCallback((nextSession: GoSessionState, event: SoloCloudMutationEventInput) => {
+  }, [consumableEffectsByPuzzle, difficulty, goPuzzleCount, onSoloCloudMutation, practiceSeed, scope, setup.dateKey])
+  const scheduleSoloCloudMutation = useCallback((nextSession: GoSessionState, event: SoloCloudMutationEventInput, effectsByPuzzle = consumableEffectsByPuzzle) => {
     if (!onSoloCloudMutation) {
       return
     }
-    window.setTimeout(() => emitSoloCloudMutation(nextSession, event), 0)
-  }, [emitSoloCloudMutation, onSoloCloudMutation])
+    window.setTimeout(() => emitSoloCloudMutation(nextSession, event, effectsByPuzzle), 0)
+  }, [consumableEffectsByPuzzle, emitSoloCloudMutation, onSoloCloudMutation])
 
   useEffect(() => {
     if (scope !== 'daily' || !setup.dateKey || !pastDailyDateKey) {
@@ -332,10 +343,10 @@ function GoGameSession({
       goPuzzleCount,
       mode: 'go',
       scope,
-      serializedSession: serializeGoSession(session),
+      serializedSession: { ...serializeGoSession(session), consumableEffectsByPuzzle },
       wordLength: session.wordLength,
     })
-  }, [difficulty, goPuzzleCount, onResumeCapture, scope, session])
+  }, [consumableEffectsByPuzzle, difficulty, goPuzzleCount, onResumeCapture, scope, session])
 
   useEffect(() => {
     if (session.status === 'playing') {
@@ -377,6 +388,10 @@ function GoGameSession({
     }
     setSession((currentSession) => {
       if (input.type === 'letter') {
+        if (consumableEffects.removedLetters.includes(input.value.toLocaleLowerCase('en-US'))) {
+          setContinuationMessage(`${input.value.toLocaleUpperCase('en-US')} was removed for this puzzle.`)
+          return currentSession
+        }
         return enterGoLetter(currentSession, input.value)
       }
 
@@ -415,16 +430,38 @@ function GoGameSession({
       }
       return nextSession
     })
-  }, [scheduleSoloCloudMutation, sound])
+  }, [consumableEffects.removedLetters, scheduleSoloCloudMutation, sound])
 
   useKeyboardInput({ disabled: keyboardDisabled || isSolvedTransitionActive, onInput: handleInput })
 
-  const handlePayToContinue = useCallback(() => {
+  const handleUseConsumable = useCallback(async (type: ConsumableType) => {
+    if (scope !== 'practice' || session.status !== 'playing' || isSolvedTransitionActive || !onConsumeConsumable) {
+      return
+    }
+    const result = type === 'revealOneLetter'
+      ? revealNextPracticeLetter(currentPuzzle.answer, consumableEffects)
+      : removePracticeIncorrectLetters(currentPuzzle.answer, consumableEffects)
+    if (!result.ok) {
+      setContinuationMessage(type === 'revealOneLetter' ? 'Every letter is already revealed.' : 'Incorrect letters are already removed.')
+      return
+    }
+    const operationId = `consume:practice:go:${practiceSeed}:${session.currentPuzzleIndex}:${type}:${result.effects.revealedHints.length}:${result.effects.removedLetters.length}`
+    if (!await onConsumeConsumable(type, operationId)) {
+      setContinuationMessage('This consumable is not available in your inventory.')
+      return
+    }
+    const nextEffectsByPuzzle = { ...consumableEffectsByPuzzle, [String(session.currentPuzzleIndex)]: result.effects }
+    setConsumableEffectsByPuzzle(nextEffectsByPuzzle)
+    scheduleSoloCloudMutation(session, { consumableType: type, eventType: 'consumable_use', puzzleIndex: session.currentPuzzleIndex }, nextEffectsByPuzzle)
+    setContinuationMessage(type === 'revealOneLetter' ? 'Revealed one letter.' : 'Incorrect keyboard letters were removed.')
+  }, [consumableEffects, consumableEffectsByPuzzle, currentPuzzle.answer, isSolvedTransitionActive, onConsumeConsumable, practiceSeed, scheduleSoloCloudMutation, scope, session])
+
+  const handlePayToContinue = useCallback(async () => {
     if (session.status !== 'lost') {
       return
     }
 
-    if (!onSpendCoins(continuationCost)) {
+    if (!await onSpendCoins(continuationCost, `spend:${scope}:go:${setup.dateKey ?? practiceSeed}:continue:${session.currentPuzzleIndex}:${currentPuzzle.continuationCount + 1}`)) {
       setContinuationMessage(`You need ${continuationCost} coins to continue this puzzle.`)
       return
     }
@@ -441,14 +478,14 @@ function GoGameSession({
       return nextSession
     })
     setContinuationMessage(`Spent ${continuationCost} coins for one more attempt.`)
-  }, [continuationCost, onSpendCoins, scheduleSoloCloudMutation, session.status])
+  }, [continuationCost, currentPuzzle.continuationCount, onSpendCoins, practiceSeed, scheduleSoloCloudMutation, scope, session.currentPuzzleIndex, session.status, setup.dateKey])
 
-  const handleReveal = useCallback(() => {
+  const handleReveal = useCallback(async () => {
     if (!canReveal) {
       return
     }
 
-    if (!onSpendCoins(revealCost)) {
+    if (!await onSpendCoins(revealCost, `spend:practice:go:${practiceSeed}:reveal:${session.currentPuzzleIndex}`)) {
       setContinuationMessage(`You need ${revealCost} coins to reveal this answer.`)
       return
     }
@@ -466,7 +503,7 @@ function GoGameSession({
       return nextSession
     })
     setContinuationMessage(`Revealed the answer: ${revealedAnswer}. This puzzle counts as a loss.`)
-  }, [canReveal, currentPuzzle.answer, onSpendCoins, revealCost, scheduleSoloCloudMutation])
+  }, [canReveal, currentPuzzle.answer, onSpendCoins, practiceSeed, revealCost, scheduleSoloCloudMutation, session.currentPuzzleIndex])
 
   const handleRevealAfterLoss = useCallback(() => {
     if (!canPayToContinue) {
@@ -611,7 +648,7 @@ function GoGameSession({
             tabIndex={-1}
             {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard }}
           >
-            <Keyboard disabled={session.status !== 'playing' || isSolvedTransitionActive} letterStates={letterStates} onInput={handleInput} />
+            <Keyboard disabled={session.status !== 'playing' || isSolvedTransitionActive} disabledLetters={scope === 'practice' ? consumableEffects.removedLetters : undefined} letterStates={letterStates} onInput={handleInput} />
           </div>
           {hasPostGuessControls ? (
             <div className="order-2 flex flex-col gap-4 md:order-1">
@@ -620,6 +657,10 @@ function GoGameSession({
             </div>
           ) : null}
         </div>
+
+        {scope === 'practice' ? (
+          <PracticeConsumableControls consumables={consumables} disabled={session.status !== 'playing' || isSolvedTransitionActive} effects={consumableEffects} onUse={handleUseConsumable} />
+        ) : null}
 
 
         {showEndState ? (
@@ -673,7 +714,7 @@ function GoGameSession({
   )
 }
 
-export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultGoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSoloCloudMutation, onSaveDifficultyDefault, onSaveGoPuzzleCountDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: GoGameProps) {
+export function GoGame({ coins, consumables = { removeIncorrectLetters: 0, revealOneLetter: 0 }, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultGoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onConsumeConsumable, onGameComplete, onResumeCapture, onSoloCloudMutation, onSaveDifficultyDefault, onSaveGoPuzzleCountDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: GoGameProps) {
   const [initialPracticeResume] = useState(() => initialResume?.scope === 'practice' ? initialResume : undefined)
   const initialDailyResume = initialResume?.scope === 'daily' ? initialResume : undefined
   // Practice resume captures are written on every input. Treat the incoming
@@ -715,6 +756,7 @@ export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
     <GoGameSession
       key={sessionKey}
       coins={coins}
+      consumables={consumables}
       defaultDifficulty={defaultDifficulty}
       defaultGoPuzzleCount={defaultGoPuzzleCount}
       defaultHardMode={defaultHardMode}
@@ -725,6 +767,7 @@ export function GoGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
       onGameComplete={onGameComplete}
       onGoPuzzleCountChange={(count) => { setResumeConsumed(true); setGoPuzzleCount(count) }}
       onMarkDailyUnlocked={onMarkDailyUnlocked}
+      onConsumeConsumable={onConsumeConsumable}
       onPracticeLengthChange={(length) => { setResumeConsumed(true); setPracticeLength(length) }}
       onPracticeSeedChange={() => {
         setResumeConsumed(true)

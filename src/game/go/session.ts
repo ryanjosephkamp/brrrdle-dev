@@ -11,6 +11,7 @@ import {
 } from '../session'
 import { getGuessResult } from '../tileStates'
 import type { GameStatus } from '../types'
+import type { ConsumableEffects } from '../../progression/consumables'
 
 export interface GoPuzzleSetup {
   readonly answer: string
@@ -46,6 +47,7 @@ export interface SerializedGoSession {
   readonly hardMode: boolean
   readonly priorAnswers: readonly string[]
   readonly revealedAnswer?: boolean
+  readonly consumableEffectsByPuzzle?: Readonly<Record<string, ConsumableEffects>>
   readonly puzzles: readonly {
     readonly answer: string
     readonly continuationCount: number

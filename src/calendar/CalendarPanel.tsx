@@ -64,7 +64,7 @@ export interface CalendarPanelProps {
   readonly onGameComplete: (input: CompletedGameInput) => void
   readonly onResumeCapture: (capture: ResumeCapture) => void
   readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
-  readonly onSpendCoins: (amount: number) => boolean
+  readonly onSpendCoins: (amount: number, operationId?: string) => boolean | Promise<boolean>
   readonly onMultiplayerChange: (state: MultiplayerState) => void
   readonly onCompetitiveMultiplayerChange?: (state: MultiplayerCompetitiveState) => void
   readonly onMarkPastDailyUnlocked: (mode: GameMode, dateKey: string) => void
@@ -264,11 +264,11 @@ export function CalendarPanel({
     }
   }, [multiplayer, launchDailyMultiplayer, multiplayerDailyDateKey])
 
-  const confirmUnlock = useCallback(() => {
+  const confirmUnlock = useCallback(async () => {
     if (!pendingUnlock) {
       return
     }
-    if (!onSpendCoins(PAST_DAILY_UNLOCK_COST)) {
+    if (!await onSpendCoins(PAST_DAILY_UNLOCK_COST, `spend:past-daily:${pendingUnlock.mode}:${pendingUnlock.dateKey}`)) {
       return
     }
     const { mode, dateKey } = pendingUnlock

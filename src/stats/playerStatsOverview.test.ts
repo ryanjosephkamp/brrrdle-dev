@@ -8,6 +8,8 @@ function progression(overrides: Partial<GuestProgressionState> = {}): GuestProgr
   return {
     coins: 125,
     consumables: { removeIncorrectLetters: 0, revealOneLetter: 0 },
+    economyOperationIds: [],
+    economyRevision: 0,
     level: 1,
     xp: 150,
     ...overrides,

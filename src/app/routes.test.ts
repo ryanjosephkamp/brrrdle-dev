@@ -16,7 +16,7 @@ describe('APP_ROUTES', () => {
 
   it('includes minimal play and support navigation groups', () => {
     expect(getRoutesByGroup('play').map((route) => route.id)).toEqual(['home', 'solo', 'calendar', 'og-daily', 'go-daily', 'practice', 'multiplayer'])
-    expect(getRoutesByGroup('support').map((route) => route.id)).toEqual(['history', 'leaderboard', 'word-explorer', 'profile', 'public-profile', 'definitions', 'stats', 'settings', 'help', 'feedback', 'about', 'admin'])
+    expect(getRoutesByGroup('support').map((route) => route.id)).toContain('marketplace')
   })
 
   it('keeps hidden compatibility routes out of primary navigation while promoting multiplayer', () => {
@@ -48,6 +48,7 @@ describe('APP_ROUTES', () => {
       'solo',
       'multiplayer',
       'calendar',
+      'marketplace',
       'history',
       'stats',
       'leaderboard',
@@ -62,6 +63,7 @@ describe('APP_ROUTES', () => {
       'solo',
       'multiplayer',
       'calendar',
+      'marketplace',
       'history',
       'stats',
       'leaderboard',

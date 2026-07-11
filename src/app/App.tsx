@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, PublicProfilePage, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createAccountPracticeSeed, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSupabaseSoloCloudProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, mergeSoloCloudSessionsIntoProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, Settings, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection, type SoloCloudMutation, type SoloCloudProgressRepository } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
+import { applyEconomyCommand, calculateCoinAward, createEconomySnapshot, type ConsumableType, type EconomyCommand } from '../progression'
+import { createSupabaseEconomyRepository, toEconomySnapshot, type EconomyRepository } from '../account/economyRepository'
+import { MarketplacePanel } from '../marketplace'
 import { DAILY_WORD_LENGTH, MAX_PRACTICE_WORD_LENGTH, MIN_PRACTICE_WORD_LENGTH, type GoPuzzleCount } from '../game/constants'
 import { Button, Panel } from '../ui'
 import { AdminPanel, createSupabaseAdminOperationalDashboardRepository, type AdminOperationalDashboardRepository } from '../admin'
@@ -238,6 +241,7 @@ function getCurrentPracticeCloudSeeds(userId: string, progress: GuestProgressSta
 function PracticeGameSwitcher({
   multiplayer,
   coins,
+  consumables,
   competitiveMultiplayer,
   defaultDifficulty,
   defaultGoPuzzleCount,
@@ -252,6 +256,7 @@ function PracticeGameSwitcher({
   onSoloCloudMutation,
   onSaveDifficultyDefault,
   onSaveGoPuzzleCountDefault,
+  onConsumeConsumable,
   onSpendCoins,
   onOpenEloAbout,
   practiceMode,
@@ -270,6 +275,7 @@ function PracticeGameSwitcher({
   readonly authStatus: AuthState['status']
   readonly multiplayer?: MultiplayerState
   readonly coins: number
+  readonly consumables: GuestProgressState['progression']['consumables']
   readonly competitiveMultiplayer?: MultiplayerCompetitiveState
   readonly defaultDifficulty: DifficultyTier
   readonly defaultGoPuzzleCount: GoPuzzleCount
@@ -284,7 +290,8 @@ function PracticeGameSwitcher({
   readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onSaveDifficultyDefault: (tier: DifficultyTier) => void
   readonly onSaveGoPuzzleCountDefault: (count: GoPuzzleCount) => void
-  readonly onSpendCoins: (amount: number) => boolean
+  readonly onConsumeConsumable: (type: ConsumableType, operationId: string) => boolean | Promise<boolean>
+  readonly onSpendCoins: (amount: number, operationId?: string) => boolean | Promise<boolean>
   readonly practiceMode: PracticeMode
   readonly practiceSeeds: PracticeSeedState
   readonly progressOwnerKey: string
@@ -308,8 +315,8 @@ function PracticeGameSwitcher({
         <Button onClick={() => onPracticeModeChange('go')} variant={practiceMode === 'go' ? 'primary' : 'secondary'}>go practice</Button>
       </div>
       {practiceMode === 'og'
-        ? <OgGame key={`practice-og-${progressOwnerKey}`} coins={coins} defaultDifficulty={defaultDifficulty} defaultHardMode={defaultHardMode} initialResume={practiceOgResume?.mode === 'og' ? practiceOgResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('og')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.og} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />
-        : <GoGame key={`practice-go-${progressOwnerKey}`} coins={coins} defaultDifficulty={defaultDifficulty} defaultGoPuzzleCount={defaultGoPuzzleCount} defaultHardMode={defaultHardMode} initialResume={practiceGoResume?.mode === 'go' ? practiceGoResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('go')} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.go} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />}
+        ? <OgGame key={`practice-og-${progressOwnerKey}`} coins={coins} consumables={consumables} defaultDifficulty={defaultDifficulty} defaultHardMode={defaultHardMode} initialResume={practiceOgResume?.mode === 'og' ? practiceOgResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('og')} onConsumeConsumable={onConsumeConsumable} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.og} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />
+        : <GoGame key={`practice-go-${progressOwnerKey}`} coins={coins} consumables={consumables} defaultDifficulty={defaultDifficulty} defaultGoPuzzleCount={defaultGoPuzzleCount} defaultHardMode={defaultHardMode} initialResume={practiceGoResume?.mode === 'go' ? practiceGoResume : undefined} keyboardDisabled={keyboardDisabled} onAdvancePracticeSeed={() => onPracticeSeedAdvance('go')} onConsumeConsumable={onConsumeConsumable} onGameComplete={onGameComplete} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={onSaveDifficultyDefault} onSaveGoPuzzleCountDefault={onSaveGoPuzzleCountDefault} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} practiceSeedCounter={practiceSeeds.go} practiceSeedUserId={viewerUserId} progressOwnerKey={progressOwnerKey} scope="practice" />}
       <MultiplayerPanel
         authStatus={authStatus}
         competitiveState={competitiveMultiplayer}
@@ -570,6 +577,8 @@ function RoutePanel({
   onRequestPasswordReset,
   onSignInWithPassword,
   onSignUpWithPassword,
+  onConsumeConsumable,
+  onPurchaseConsumable,
   onSpendCoins,
   onSignOut,
   onSaveProfile,
@@ -650,6 +659,8 @@ function RoutePanel({
   readonly onRequestPasswordReset: (email: string) => void
   readonly onSignInWithPassword: (email: string, password: string) => void
   readonly onSignUpWithPassword: (email: string, password: string) => void
+  readonly onConsumeConsumable: (type: ConsumableType, operationId: string) => boolean | Promise<boolean>
+  readonly onPurchaseConsumable: (type: ConsumableType) => boolean | Promise<boolean>
   readonly onSignOut: () => void
   readonly onSaveProfile: (input: { readonly displayName?: string; readonly accentColor?: ProfileAccentColor; readonly avatarUrl?: string }) => Promise<void> | void
   readonly onSavePublicProfile: (input: PublicProfileUpdateInput) => Promise<void> | void
@@ -686,7 +697,7 @@ function RoutePanel({
   readonly supabaseClient: ReturnType<typeof createBrrrdleSupabaseClient>
   readonly syncStatus: ReturnType<typeof createSyncStatus>
   readonly workspaceAttention: WorkspaceAttentionMap
-  readonly onSpendCoins: (amount: number) => boolean
+  readonly onSpendCoins: (amount: number, operationId?: string) => boolean | Promise<boolean>
   readonly todayDateKey: string
   readonly multiplayerDailyDateKey: string
   readonly onMarkPastDailyUnlocked: (mode: 'og' | 'go', dateKey: string) => void
@@ -752,11 +763,13 @@ function RoutePanel({
       <OgGame
         key={`solo-practice-og-${progressOwnerKey}`}
         coins={guestProgress.progression.coins}
+        consumables={guestProgress.progression.consumables}
         defaultDifficulty={guestProgress.settings.difficultyDefault}
         defaultHardMode={guestProgress.settings.hardModeDefault}
         initialResume={practiceOgResume?.mode === 'og' ? practiceOgResume : undefined}
         keyboardDisabled={keyboardDisabled}
         onAdvancePracticeSeed={() => onPracticeSeedAdvance('og')}
+        onConsumeConsumable={onConsumeConsumable}
         onGameComplete={onGameComplete}
         onResumeCapture={onResumeCapture}
         onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
@@ -772,12 +785,14 @@ function RoutePanel({
       <GoGame
         key={`solo-practice-go-${progressOwnerKey}`}
         coins={guestProgress.progression.coins}
+        consumables={guestProgress.progression.consumables}
         defaultDifficulty={guestProgress.settings.difficultyDefault}
         defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault}
         defaultHardMode={guestProgress.settings.hardModeDefault}
         initialResume={practiceGoResume?.mode === 'go' ? practiceGoResume : undefined}
         keyboardDisabled={keyboardDisabled}
         onAdvancePracticeSeed={() => onPracticeSeedAdvance('go')}
+        onConsumeConsumable={onConsumeConsumable}
         onGameComplete={onGameComplete}
         onResumeCapture={onResumeCapture}
         onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })}
@@ -878,6 +893,16 @@ function RoutePanel({
     )
   }
 
+  if (route.id === 'marketplace') {
+    return (
+      <MarketplacePanel
+        coins={guestProgress.progression.coins}
+        consumables={guestProgress.progression.consumables}
+        onPurchase={onPurchaseConsumable}
+      />
+    )
+  }
+
   if (route.id === 'solo') {
     return (
       <SoloWorkspace
@@ -908,7 +933,7 @@ function RoutePanel({
   }
 
   if (route.id === 'practice') {
-    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} competitiveMultiplayer={guestProgress.competitiveMultiplayer} completedSoloSlots={completedSoloSlots} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} privateMatchActions={privateMatchActions} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} progressOwnerKey={progressOwnerKey} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
+    return <PracticeGameSwitcher multiplayer={multiplayer} authStatus={authState.status} coins={guestProgress.progression.coins} consumables={guestProgress.progression.consumables} competitiveMultiplayer={guestProgress.competitiveMultiplayer} completedSoloSlots={completedSoloSlots} defaultDifficulty={guestProgress.settings.difficultyDefault} defaultGoPuzzleCount={guestProgress.settings.goPuzzleCountDefault} defaultHardMode={guestProgress.settings.hardModeDefault} keyboardDisabled={keyboardDisabled} onMultiplayerChange={onMultiplayerChange} onCompetitiveMultiplayerChange={onCompetitiveMultiplayerChange} onConsumeConsumable={onConsumeConsumable} onGameComplete={onGameComplete} onOpenEloAbout={onOpenEloAbout} onPracticeModeChange={onPracticeModeChange} onPracticeSeedAdvance={onPracticeSeedAdvance} onResumeCapture={onResumeCapture} onSaveDifficultyDefault={(tier) => onUpdateSettings({ difficultyDefault: tier })} onSaveGoPuzzleCountDefault={(count) => onUpdateSettings({ goPuzzleCountDefault: count })} onSoloCloudMutation={onSoloCloudMutation} onSpendCoins={onSpendCoins} participantIdentityActions={participantIdentityActions} practiceMode={practiceMode} practiceSeeds={guestProgress.practiceSeeds} privateMatchActions={privateMatchActions} postgameActions={postgameActions} rankedQueueActions={rankedQueueActions} resumeSlots={resumeSlots} progressOwnerKey={progressOwnerKey} viewerProfile={viewerProfile} viewerUserId={authState.user?.id} />
   }
 
   if (route.id === 'multiplayer') {
@@ -1105,6 +1130,7 @@ function AppInner() {
   const [liveSpectatorRows, setLiveSpectatorRows] = useState<readonly AuthenticatedLiveSpectatorGame[]>([])
   const [initialMultiplayerSeed] = useState(() => guestProgress.multiplayer)
   const supabaseClient = useMemo(() => createBrrrdleSupabaseClient(), [])
+  const phase57EconomyAuthorityEnabled = import.meta.env.VITE_PHASE57_ECONOMY_AUTHORITY !== 'disabled'
   const [authState, setAuthState] = useState<AuthState>(() => supabaseClient ? { status: 'anonymous' } : { status: 'unconfigured' })
   const [activeProgressScope, setActiveProgressScope] = useState<ActiveProgressScope>(() => getProgressScopeForAuthState(authState))
   const [completedSoloSlots, setCompletedSoloSlots] = useState<ResumeSlotCollection>(() => loadSoloCompletionDisplaySlots(getProgressOwnerKey(getProgressScopeForAuthState(authState))))
@@ -1136,6 +1162,10 @@ function AppInner() {
   const soloCloudProgressRepository = useMemo<SoloCloudProgressRepository | undefined>(
     () => supabaseClient ? createSupabaseSoloCloudProgressRepository(supabaseClient) : undefined,
     [supabaseClient],
+  )
+  const economyRepository = useMemo<EconomyRepository | undefined>(
+    () => phase57EconomyAuthorityEnabled && supabaseClient ? createSupabaseEconomyRepository(supabaseClient) : undefined,
+    [phase57EconomyAuthorityEnabled, supabaseClient],
   )
   const multiplayerRepositoryRef = useRef(multiplayerRepository)
   const trustedRankedSettlementInFlightRef = useRef(new Set<string>())
@@ -2188,14 +2218,96 @@ function AppInner() {
 
     hydrateProgressForAuthState(nextAuthState, { autoResume: false, clearSelections: false })
   }, [hydrateProgressForAuthState])
+  const applyAuthoritativeEconomySnapshot = useCallback((snapshot: ReturnType<typeof createEconomySnapshot>) => {
+    const currentProgress = guestProgressRef.current
+    if (snapshot.revision < currentProgress.progression.economyRevision) {
+      return
+    }
+    const nextProgress: GuestProgressState = {
+      ...currentProgress,
+      progression: {
+        ...currentProgress.progression,
+        coins: snapshot.coins,
+        consumables: snapshot.consumables,
+        economyOperationIds: snapshot.appliedOperationIds,
+        economyRevision: snapshot.revision,
+      },
+    }
+    guestProgressRef.current = nextProgress
+    persistActiveProgress(nextProgress)
+    setGuestProgress(nextProgress)
+  }, [persistActiveProgress])
+  useEffect(() => {
+    if (activeRouteId !== 'marketplace' || authState.status !== 'authenticated' || !economyRepository) {
+      return undefined
+    }
+    let active = true
+    void economyRepository.load().then((result) => {
+      if (active && result) {
+        applyAuthoritativeEconomySnapshot(toEconomySnapshot(result, guestProgressRef.current.progression.economyOperationIds))
+      }
+    }).catch(() => {
+      if (active) setSyncStatus(createSyncStatus('error'))
+    })
+    return () => { active = false }
+  }, [activeRouteId, applyAuthoritativeEconomySnapshot, authState.status, economyRepository])
+  const handleEconomyCommand = useCallback(async (command: EconomyCommand): Promise<boolean> => {
+    if (authStateRef.current.status === 'authenticated') {
+      if (!economyRepository) {
+        return false
+      }
+      try {
+        const authoritative = await economyRepository.execute(command)
+        applyAuthoritativeEconomySnapshot(toEconomySnapshot(authoritative, guestProgressRef.current.progression.economyOperationIds))
+        return true
+      } catch {
+        setSyncStatus(createSyncStatus('error'))
+        return false
+      }
+    }
+    const currentProgress = guestProgressRef.current
+    const result = applyEconomyCommand(createEconomySnapshot({
+      appliedOperationIds: currentProgress.progression.economyOperationIds,
+      coins: currentProgress.progression.coins,
+      consumables: currentProgress.progression.consumables,
+      revision: currentProgress.progression.economyRevision,
+    }), command)
+    if (!result.ok) {
+      return false
+    }
+    applyAuthoritativeEconomySnapshot(result.snapshot)
+    return true
+  }, [applyAuthoritativeEconomySnapshot, economyRepository])
   const handleGameComplete = useCallback((input: CompletedGameInput) => {
     setGuestProgress((currentProgress) => {
-      const nextProgress = recordCompletedGame(input, currentProgress)
-      if (nextProgress !== currentProgress) {
-        persistActiveProgress(nextProgress)
-        if (!shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
-          window.setTimeout(() => flushAuthenticatedProgressSyncRef.current(), 0)
-        }
+      const recordedProgress = recordCompletedGame(input, currentProgress)
+      if (recordedProgress === currentProgress) {
+        return currentProgress
+      }
+      const usesServerAuthority = authStateRef.current.status === 'authenticated' && Boolean(economyRepository)
+      const nextProgress = usesServerAuthority ? {
+        ...recordedProgress,
+        progression: {
+          ...recordedProgress.progression,
+          coins: currentProgress.progression.coins,
+          consumables: currentProgress.progression.consumables,
+          economyOperationIds: currentProgress.progression.economyOperationIds,
+          economyRevision: currentProgress.progression.economyRevision,
+        },
+      } : recordedProgress
+      guestProgressRef.current = nextProgress
+      persistActiveProgress(nextProgress)
+      if (usesServerAuthority && economyRepository) {
+        void economyRepository.execute({
+          amount: calculateCoinAward(input),
+          operationId: `reward:${input.gameId}`,
+          type: 'award',
+        }).then((result) => {
+          applyAuthoritativeEconomySnapshot(toEconomySnapshot(result, guestProgressRef.current.progression.economyOperationIds))
+        }).catch(() => setSyncStatus(createSyncStatus('error')))
+      }
+      if (!shouldPersistProgressToGuestStorage(activeProgressScopeRef.current)) {
+        window.setTimeout(() => flushAuthenticatedProgressSyncRef.current(), 0)
       }
       return nextProgress
     })
@@ -2204,7 +2316,7 @@ function AppInner() {
     } else if (input.status === 'lost') {
       sound.play('game-over-loss')
     }
-  }, [persistActiveProgress, sound])
+  }, [applyAuthoritativeEconomySnapshot, economyRepository, persistActiveProgress, sound])
   const handleResetProgress = useCallback(() => {
     const scope = activeProgressScopeRef.current
     clearSoloCompletionDisplaySlots(getProgressOwnerKey(scope))
@@ -2219,22 +2331,24 @@ function AppInner() {
       return nextProgress
     })
   }, [persistActiveProgress])
-  const handleSpendCoins = useCallback((amount: number) => {
-    if (guestProgress.progression.coins < amount) {
-      return false
-    }
-
-    const nextProgress = {
-      ...guestProgress,
-      progression: {
-        ...guestProgress.progression,
-        coins: guestProgress.progression.coins - amount,
-      },
-    }
-    persistActiveProgress(nextProgress)
-    setGuestProgress(nextProgress)
-    return true
-  }, [guestProgress, persistActiveProgress])
+  const handleSpendCoins = useCallback((amount: number, operationId = `spend:${amount}:${guestProgressRef.current.progression.economyRevision + 1}`) => handleEconomyCommand({
+    amount,
+    operationId,
+    type: 'spend',
+  }), [handleEconomyCommand])
+  const handlePurchaseConsumable = useCallback(async (consumable: ConsumableType) => {
+    return handleEconomyCommand({
+      consumable,
+      operationId: `purchase:${consumable}:${guestProgressRef.current.progression.economyRevision + 1}`,
+      type: 'purchase',
+    })
+  }, [handleEconomyCommand])
+  const handleConsumeConsumable = useCallback((consumable: ConsumableType, operationId: string) => handleEconomyCommand({
+    consumable,
+    operationId,
+    scope: 'practice',
+    type: 'consume',
+  }), [handleEconomyCommand])
   const handleSendMagicLink = useCallback((email: string) => {
     if (!supabaseClient || !email.trim()) {
       return
@@ -2911,6 +3025,8 @@ function AppInner() {
             onSignInWithPassword={handleSignInWithPassword}
             onSignOut={handleSignOut}
             onSignUpWithPassword={handleSignUpWithPassword}
+            onConsumeConsumable={handleConsumeConsumable}
+            onPurchaseConsumable={handlePurchaseConsumable}
             onSoloCloudMutation={handleSoloCloudMutation}
             onSoloDailyModeChange={handleSoloDailyModeChange}
             onSoloSubtabChange={handleSoloSubtabChange}

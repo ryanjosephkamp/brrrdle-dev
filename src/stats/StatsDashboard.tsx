@@ -40,6 +40,8 @@ const EMPTY_HISTORY: readonly GameHistoryEntry[] = []
 const EMPTY_PROGRESSION: GuestProgressionState = {
   coins: 0,
   consumables: { removeIncorrectLetters: 0, revealOneLetter: 0 },
+  economyOperationIds: [],
+  economyRevision: 0,
   level: 1,
   xp: 0,
 }

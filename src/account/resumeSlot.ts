@@ -55,7 +55,10 @@ function isScope(value: unknown): value is PlayScope {
 export function isOgSessionInProgress(session: SerializedOgSession): boolean {
   const solved = session.guesses.some((guess) => guess === session.answer)
   const lost = !solved && session.guesses.length >= session.maxAttempts
-  const started = session.guesses.length > 0 || session.currentGuess.length > 0
+  const started = session.guesses.length > 0
+    || session.currentGuess.length > 0
+    || Boolean(session.consumableEffects?.removedLetters.length)
+    || Boolean(session.consumableEffects?.revealedHints.length)
   return started && !solved && !lost
 }
 
@@ -72,7 +75,12 @@ export function isGoSessionInProgress(session: SerializedGoSession): boolean {
   const currentSolved = current.guesses.some((guess) => guess === current.answer)
   const currentLost = !currentSolved && current.guesses.length >= current.maxAttempts
   const chainWon = currentSolved && session.currentPuzzleIndex >= session.puzzles.length - 1
-  const started = session.currentPuzzleIndex > 0 || session.puzzles.some((puzzle) => puzzle.guesses.length > 0 || puzzle.currentGuess.length > 0)
+  const hasConsumableEffects = Object.values(session.consumableEffectsByPuzzle ?? {}).some(
+    (effects) => effects.removedLetters.length > 0 || effects.revealedHints.length > 0,
+  )
+  const started = session.currentPuzzleIndex > 0
+    || session.puzzles.some((puzzle) => puzzle.guesses.length > 0 || puzzle.currentGuess.length > 0)
+    || hasConsumableEffects
   return started && !chainWon && !currentLost
 }
 

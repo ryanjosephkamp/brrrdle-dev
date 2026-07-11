@@ -3,6 +3,7 @@ import { classNames } from './classNames'
 
 interface KeyboardProps {
   readonly disabled?: boolean
+  readonly disabledLetters?: readonly string[]
   readonly letterStates?: KeyboardLetterStates
   readonly onInput: (input: KeyboardInput) => void
 }
@@ -60,7 +61,8 @@ function KeyboardButton({
   )
 }
 
-export function Keyboard({ disabled = false, letterStates = {}, onInput }: KeyboardProps) {
+export function Keyboard({ disabled = false, disabledLetters = [], letterStates = {}, onInput }: KeyboardProps) {
+  const removed = new Set(disabledLetters.map((letter) => letter.toLocaleLowerCase('en-US')))
   return (
     <section
       aria-label="Keyboard"
@@ -75,7 +77,7 @@ export function Keyboard({ disabled = false, letterStates = {}, onInput }: Keybo
           ) : null}
           {[...row].map((letter) => (
             <KeyboardButton
-              disabled={disabled}
+              disabled={disabled || removed.has(letter)}
               key={letter}
               onClick={() => onInput({ type: 'letter', value: letter })}
               state={letterStates[letter] ?? 'unknown'}
