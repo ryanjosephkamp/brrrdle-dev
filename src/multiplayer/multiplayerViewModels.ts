@@ -376,7 +376,7 @@ function toLiveGameViewModel(
 
 function getSpectatorTurnLabel(row: AuthenticatedLiveSpectatorGame): string {
   if (row.status !== 'playing') {
-    return row.outcome.label
+    return getSpectatorOutcomeDisplayLabel(row)
   }
   const activePlayer = row.players.find((player) => player.seat === row.currentTurnSeat)
   return activePlayer ? `${getSpectatorPlayerDisplayLabel(activePlayer)}'s turn` : 'Turn in progress'
@@ -405,11 +405,25 @@ function getSpectatorProgressLabel(row: AuthenticatedLiveSpectatorGame): string 
   return row.status === 'playing' ? progressLabel : `Final · ${progressLabel}`
 }
 
+function getSpectatorOutcomeDisplayLabel(row: AuthenticatedLiveSpectatorGame): string {
+  if (row.outcome.terminationReason === 'cancelled') {
+    return 'Match cancelled before the first turn'
+  }
+  if (row.outcome.terminationReason === 'forfeit' && row.outcome.forfeitedSeat && row.outcome.winnerSeat) {
+    const forfeited = row.players.find((player) => player.seat === row.outcome.forfeitedSeat)
+    const winner = row.players.find((player) => player.seat === row.outcome.winnerSeat)
+    const forfeitedLabel = forfeited ? getSpectatorPlayerDisplayLabel(forfeited) : 'A player'
+    const winnerLabel = winner ? getSpectatorPlayerDisplayLabel(winner) : 'The opponent'
+    return `${forfeitedLabel} forfeited. ${winnerLabel} won`
+  }
+  return row.outcome.label
+}
+
 function getSpectatorTerminalLabel(row: AuthenticatedLiveSpectatorGame): string | undefined {
   if (row.status === 'playing') {
     return undefined
   }
-  return `${row.outcome.label}. Final board visible briefly.`
+  return `${getSpectatorOutcomeDisplayLabel(row)}. Final board visible briefly.`
 }
 
 function toSpectatorMoveViewModel(
@@ -429,7 +443,8 @@ function toSpectatorMoveViewModel(
 function toSpectatorLiveGameViewModel(row: AuthenticatedLiveSpectatorGame): MultiplayerLiveGameViewModel {
   const terminalLabel = getSpectatorTerminalLabel(row)
   const progressLabel = getSpectatorProgressLabel(row)
-  const detailLabel = terminalLabel ? `Read-only · ${row.outcome.label} · ${progressLabel}` : `Read-only · ${progressLabel}`
+  const outcomeLabel = getSpectatorOutcomeDisplayLabel(row)
+  const detailLabel = terminalLabel ? `Read-only · ${outcomeLabel} · ${progressLabel}` : `Read-only · ${progressLabel}`
   return {
     actionLabel: 'Spectate live game',
     canResume: false,
@@ -446,7 +461,7 @@ function toSpectatorLiveGameViewModel(row: AuthenticatedLiveSpectatorGame): Mult
     spectatorDetails: {
       capabilityLabel: 'Read-only spectator view. Guessing, joining, forfeiting, cancelling, timers, ratings, and claims are unavailable.',
       moves: row.moves.map((move) => toSpectatorMoveViewModel(move, row.players)),
-      outcomeLabel: row.outcome.label,
+      outcomeLabel,
       players: row.players,
       progressLabel,
       terminal: row.status !== 'playing',

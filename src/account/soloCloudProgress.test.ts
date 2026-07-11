@@ -146,6 +146,48 @@ describe('solo cloud progress', () => {
     expect(slot?.mode === 'go' ? slot.serializedSession.priorAnswers : []).toEqual(['CRANE'])
   })
 
+  it('keeps more advanced local Daily progress when a later-timestamped cloud row is behind', () => {
+    const local = mergeSoloCloudSessionsIntoProgress(createDefaultGuestProgress(), [createOgRecord({
+      serializedSession: {
+        ...createOgRecord().serializedSession,
+        guesses: ['CRANE', 'PLANT'],
+      },
+      updatedAt: '2026-07-07T12:00:00.000Z',
+    })]).progress
+
+    const hydrated = mergeSoloCloudSessionsIntoProgress(local, [createOgRecord({
+      serializedSession: {
+        ...createOgRecord().serializedSession,
+        guesses: ['CRANE'],
+      },
+      updatedAt: '2026-07-07T12:01:00.000Z',
+    })])
+    const slot = hydrated.progress.resumeSlots?.['daily-og']
+
+    expect(slot?.mode === 'og' ? slot.serializedSession.guesses : []).toEqual(['CRANE', 'PLANT'])
+  })
+
+  it('accepts more advanced cloud Daily progress even when its timestamp is older', () => {
+    const local = mergeSoloCloudSessionsIntoProgress(createDefaultGuestProgress(), [createOgRecord({
+      serializedSession: {
+        ...createOgRecord().serializedSession,
+        guesses: ['CRANE'],
+      },
+      updatedAt: '2026-07-07T12:01:00.000Z',
+    })]).progress
+
+    const hydrated = mergeSoloCloudSessionsIntoProgress(local, [createOgRecord({
+      serializedSession: {
+        ...createOgRecord().serializedSession,
+        guesses: ['CRANE', 'PLANT'],
+      },
+      updatedAt: '2026-07-07T12:00:00.000Z',
+    })])
+    const slot = hydrated.progress.resumeSlots?.['daily-og']
+
+    expect(slot?.mode === 'og' ? slot.serializedSession.guesses : []).toEqual(['CRANE', 'PLANT'])
+  })
+
   it('skips superseded Practice cloud sessions when the account has advanced to a newer seed', () => {
     const hydrated = mergeSoloCloudSessionsIntoProgress(createDefaultGuestProgress(), [
       createOgRecord({

@@ -91,6 +91,32 @@ async function expectSpectatorLiveReadOnly(
   await expect(page.getByRole('tab', { name: /^Live$/i })).toBeVisible()
 }
 
+async function expectSpectatorTerminalReadOnly(
+  page: Page,
+  participantDisplayNames: readonly [string, string],
+  expectedLabel: string,
+): Promise<void> {
+  await page.goto('/')
+  await page.getByRole('button', { name: /^Multiplayer$/i }).click()
+  await page.getByRole('tab', { name: /^Live$/i }).click()
+  const liveGame = page
+    .getByLabel(/^Practice Multiplayer OG$/i)
+    .filter({ hasText: participantDisplayNames[0] })
+    .filter({ hasText: participantDisplayNames[1] })
+    .filter({ hasText: expectedLabel })
+    .first()
+
+  await expect(liveGame.getByRole('button', { name: /^Spectate live game$/i })).toBeVisible({ timeout: 30_000 })
+  await expect(liveGame).toContainText(expectedLabel)
+  await expect(liveGame).toContainText(/Read-only/i)
+  await expect(liveGame.getByRole('button')).toHaveCount(1)
+  await expect(page.getByRole('button', { name: /^Submit guess$/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Forfeit$/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Cancel Lobby$/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Join multiplayer match$/i })).toHaveCount(0)
+  await expect(page.locator('body')).not.toContainText(/@example\.test/i)
+}
+
 test.describe('Live v1 spectator @multiplayer', () => {
   test('lets authenticated and public nonparticipants spectate a live match read-only', async ({ browser }) => {
     const runId = createRunId()
@@ -147,6 +173,101 @@ test.describe('Live v1 spectator @multiplayer', () => {
         await expectSpectatorLiveReadOnly(spectator.page, wrongGuess, [host.user.displayName, rival.user.displayName])
         await expectSpectatorLiveReadOnly(signedOutPage, wrongGuess, [host.user.displayName, rival.user.displayName])
       }
+
+      await expectNoConsoleFailures(host.consoleFailures)
+      await expectNoConsoleFailures(rival.consoleFailures)
+      await expectNoConsoleFailures(spectator.consoleFailures)
+      await expectNoConsoleFailures(signedOutConsoleFailures)
+    } finally {
+      await Promise.allSettled([
+        ...seats.map((seat) => seat.context.close()),
+        signedOutContext.close(),
+      ])
+      await cleanupE2eRun(seats.map((seat) => seat.user))
+    }
+  })
+
+  test('shows privacy-safe cancellation and forfeit labels to authenticated and public spectators', async ({ browser }) => {
+    test.setTimeout(180_000)
+    const runId = createRunId()
+    const seats: BrowserSeat[] = []
+    const signedOutContext = await browser.newContext()
+    const signedOutPage = await signedOutContext.newPage()
+    const signedOutConsoleFailures = installConsoleGuards(signedOutPage)
+
+    try {
+      const host = await createSignedInSeat(browser, 'terminal-host', runId)
+      const rival = await createSignedInSeat(browser, 'terminal-rival', runId)
+      const spectator = await createSignedInSeat(browser, 'terminal-spectator', runId)
+      seats.push(host, rival, spectator)
+      await Promise.all([
+        upsertPublicProfileForUser(host.user, 'cyan'),
+        upsertPublicProfileForUser(rival.user, 'rose'),
+      ])
+      const participantDisplayNames = [host.user.displayName, rival.user.displayName] as const
+
+      await navigateToPracticeMultiplayer(host.page)
+      await openMultiplayerMatch(host.page)
+      const waitingCancellation = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'waiting',
+        userIds: [host.user.id],
+      })
+      await navigateToPracticeMultiplayer(rival.page)
+      await joinWaitingMultiplayerGame(rival.page, waitingCancellation.id)
+      const playingCancellation = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [host.user.id, rival.user.id],
+      })
+      await selectMultiplayerGame(host.page, playingCancellation.id, { status: 'playing' })
+      await host.page.getByRole('button', { name: /^Forfeit$/i }).click()
+      await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'cancelled',
+        userIds: [host.user.id, rival.user.id],
+      })
+      await Promise.all([
+        expectSpectatorTerminalReadOnly(spectator.page, participantDisplayNames, 'Match cancelled before the first turn'),
+        expectSpectatorTerminalReadOnly(signedOutPage, participantDisplayNames, 'Match cancelled before the first turn'),
+      ])
+
+      await navigateToPracticeMultiplayer(host.page)
+      await openMultiplayerMatch(host.page)
+      const waitingForfeit = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'waiting',
+        userIds: [host.user.id],
+      })
+      await navigateToPracticeMultiplayer(rival.page)
+      await joinWaitingMultiplayerGame(rival.page, waitingForfeit.id)
+      const playingForfeit = await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [host.user.id, rival.user.id],
+      })
+      const wrongGuess = getValidWrongGuess(projectionFromRow(playingForfeit))
+      await selectMultiplayerGame(host.page, playingForfeit.id, { status: 'playing' })
+      await waitForTurn(host.page)
+      await submitGuessWithKeyboard(host.page, wrongGuess)
+      await waitForTurn(rival.page)
+      await rival.page.getByRole('button', { name: /^Forfeit$/i }).click()
+      await waitForMultiplayerRowForUsers({
+        mode: 'og',
+        scope: 'practice',
+        status: 'lost',
+        userIds: [host.user.id, rival.user.id],
+      })
+      const forfeitLabel = `${rival.user.displayName} forfeited. ${host.user.displayName} won`
+      await Promise.all([
+        expectSpectatorTerminalReadOnly(spectator.page, participantDisplayNames, forfeitLabel),
+        expectSpectatorTerminalReadOnly(signedOutPage, participantDisplayNames, forfeitLabel),
+      ])
 
       await expectNoConsoleFailures(host.consoleFailures)
       await expectNoConsoleFailures(rival.consoleFailures)

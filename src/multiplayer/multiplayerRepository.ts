@@ -192,7 +192,8 @@ interface MultiplayerGameRow {
 }
 
 export type AuthenticatedLiveSpectatorSeat = 'player-one' | 'player-two'
-export type AuthenticatedLiveSpectatorStatus = 'playing' | 'won' | 'lost' | 'expired'
+export type AuthenticatedLiveSpectatorStatus = 'playing' | 'won' | 'lost' | 'expired' | 'cancelled'
+export type AuthenticatedLiveSpectatorTerminationReason = 'cancelled' | 'completed' | 'expired' | 'forfeit'
 
 export interface AuthenticatedLiveSpectatorPlayer {
   readonly seat: AuthenticatedLiveSpectatorSeat
@@ -229,10 +230,12 @@ export interface AuthenticatedLiveSpectatorCapabilities {
 }
 
 export interface AuthenticatedLiveSpectatorOutcome {
+  readonly forfeitedSeat?: AuthenticatedLiveSpectatorSeat
   readonly label: string
   readonly status: AuthenticatedLiveSpectatorStatus
   readonly terminal: boolean
   readonly terminalAt?: string
+  readonly terminationReason?: AuthenticatedLiveSpectatorTerminationReason
   readonly winnerSeat?: AuthenticatedLiveSpectatorSeat
 }
 
@@ -954,7 +957,11 @@ function parseSeat(value: unknown): AuthenticatedLiveSpectatorSeat | undefined {
 }
 
 function parseSpectatorStatus(value: unknown): AuthenticatedLiveSpectatorStatus | undefined {
-  return value === 'playing' || value === 'won' || value === 'lost' || value === 'expired' ? value : undefined
+  return value === 'playing' || value === 'won' || value === 'lost' || value === 'expired' || value === 'cancelled' ? value : undefined
+}
+
+function parseSpectatorTerminationReason(value: unknown): AuthenticatedLiveSpectatorTerminationReason | undefined {
+  return value === 'cancelled' || value === 'completed' || value === 'expired' || value === 'forfeit' ? value : undefined
 }
 
 function parseTile(value: unknown): TileResult | undefined {
@@ -1581,12 +1588,32 @@ function parseSpectatorOutcome(value: unknown): AuthenticatedLiveSpectatorOutcom
   if (!label || !status || terminal === undefined) {
     return undefined
   }
+  const forfeitedSeat = parseSeat(value.forfeitedSeat)
+  const terminationReason = parseSpectatorTerminationReason(value.terminationReason)
+  const winnerSeat = parseSeat(value.winnerSeat)
+  if (terminationReason && !terminal) {
+    return undefined
+  }
+  if (status === 'cancelled' && terminationReason !== 'cancelled') {
+    return undefined
+  }
+  if (terminationReason === 'cancelled' && (status !== 'cancelled' || forfeitedSeat || winnerSeat)) {
+    return undefined
+  }
+  if (terminationReason === 'forfeit' && (!forfeitedSeat || !winnerSeat || forfeitedSeat === winnerSeat)) {
+    return undefined
+  }
+  if (terminationReason !== 'forfeit' && forfeitedSeat) {
+    return undefined
+  }
   return {
+    forfeitedSeat,
     label,
     status,
     terminal,
     terminalAt: getString(value, 'terminalAt'),
-    winnerSeat: parseSeat(value.winnerSeat),
+    terminationReason,
+    winnerSeat,
   }
 }
 
@@ -2269,7 +2296,7 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
         .order('updated_at', { ascending: false }),
     ])
     if (gamesResult.error) {
-      return snapshot
+      throw new Error(`Unable to load multiplayer games: ${gamesResult.error.message}`)
     }
     const games = Array.isArray(gamesResult.data)
       ? gamesResult.data.flatMap((row) => rowToGame(row as MultiplayerGameRow) ?? [])
@@ -2610,13 +2637,12 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
     },
     subscribe: (listener) => {
       listeners.add(listener)
-      listener(snapshot)
       const channel = client.channel(channelName)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'async_multiplayer_games' },
           () => {
-            void refresh()
+            void refresh().catch(() => undefined)
           },
         )
         .subscribe()

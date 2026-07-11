@@ -1,5 +1,6 @@
 export * from './multiplayer'
 export * from './multiplayerRepository'
+export * from './multiplayerRepositoryReadiness'
 export * from './competitiveMultiplayer'
 export * from './customGames'
 export * from './dailyMultiplayer'
