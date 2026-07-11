@@ -56,6 +56,7 @@ import {
   loadMultiplayerState,
   applyTrustedSettlementResult,
   joinMultiplayerGame,
+  mergeMultiplayerStates,
   normalizeCompetitiveMultiplayerState,
   saveMultiplayerState,
   settleMultiplayerStateResults,
@@ -120,6 +121,10 @@ type PrivateMatchActions = Pick<
   | 'createPrivateMatchRequest'
   | 'declinePrivateMatchRequest'
   | 'listPrivateMatchRequests'
+  | 'getPrivateRequestPreference'
+  | 'updatePrivateRequestPreference'
+  | 'listPrivateRequestBlocks'
+  | 'setPrivateRequestBlock'
   | 'load'
 >
 
@@ -1051,6 +1056,7 @@ function RoutePanel({
         onSyncNow={onSyncNow}
         onToggleSound={onToggleSound}
         onUpdateSettings={onUpdateSettings}
+        privateRequestSettingsActions={privateMatchActions}
         soundEnabled={soundEnabled}
         syncStatus={syncStatus}
       />
@@ -1147,6 +1153,7 @@ function AppInner() {
   const [publicProfileBusy, setPublicProfileBusy] = useState(false)
   const [syncStatus, setSyncStatus] = useState(() => createSyncStatus(supabaseClient ? 'idle' : 'error'))
   const [notificationMetadata, setNotificationMetadata] = useState(() => loadNotificationMetadata())
+  const [privateMatchRequestsForNotifications, setPrivateMatchRequestsForNotifications] = useState<readonly import('../multiplayer/multiplayerRepository').PrivateMatchRequestResult[]>([])
   const browserNotificationFingerprintsRef = useRef<Set<string> | undefined>(undefined)
   const notificationSoundFingerprintsRef = useRef<Set<string> | undefined>(undefined)
   const [practiceMode, setPracticeModeState] = useState<PracticeMode>(() => initialNavigation.legacyPracticeMode)
@@ -1193,19 +1200,22 @@ function AppInner() {
     }
   }, [])
   const applyScopedProgress = useCallback((progress: GuestProgressState, scope: ActiveProgressScope) => {
-    const nextMultiplayerState = selectScopedProgressMultiplayerState({
-      currentMultiplayerState: multiplayerRef.current,
-      currentScope: activeProgressScopeRef.current,
-      nextProgress: progress,
-      nextScope: scope,
-    })
+    const previousScope = activeProgressScopeRef.current
     activeProgressScopeRef.current = scope
     setActiveProgressScope(scope)
     setCompletedSoloSlots(loadSoloCompletionDisplaySlots(getProgressOwnerKey(scope)))
     guestProgressRef.current = progress
     setGuestProgress(progress)
-    multiplayerRef.current = nextMultiplayerState
-    setMultiplayer(nextMultiplayerState)
+    setMultiplayer((currentMultiplayerState) => {
+      const nextMultiplayerState = selectScopedProgressMultiplayerState({
+        currentMultiplayerState,
+        currentScope: previousScope,
+        nextProgress: progress,
+        nextScope: scope,
+      })
+      multiplayerRef.current = nextMultiplayerState
+      return nextMultiplayerState
+    })
     if (shouldPersistProgressToGuestStorage(scope)) {
       saveGuestProgress(progress)
     }
@@ -1394,10 +1404,12 @@ function AppInner() {
     notificationMetadata,
     notificationPreferences: guestProgress.settings,
     now: dashboard.generatedAt,
+    privateMatchRequests: privateMatchRequestsForNotifications,
   }), [
     dashboard,
     guestProgress.settings,
     notificationMetadata,
+    privateMatchRequestsForNotifications,
   ])
   const routeAttention = useMemo(() => createRouteAttentionMap({
     dashboard,
@@ -1736,6 +1748,7 @@ function AppInner() {
     trustedRankedSettlementCompletedRef.current.clear()
   }, [authenticatedMultiplayerUserId])
   const applyRemoteMultiplayerSnapshot = useCallback((snapshotState: MultiplayerState) => {
+    multiplayerRef.current = snapshotState
     setMultiplayer(snapshotState)
     persistActiveMultiplayerState(snapshotState)
     setGuestProgress((currentProgress) => {
@@ -1746,6 +1759,7 @@ function AppInner() {
     settleTrustedRankedGames(snapshotState)
   }, [cacheMultiplayerProgress, persistActiveMultiplayerState, persistActiveProgress, settleTrustedRankedGames])
   const handleMultiplayerChange = useCallback((multiplayer: MultiplayerState) => {
+    multiplayerRef.current = multiplayer
     setMultiplayer(multiplayer)
     setGuestProgress((currentProgress) => {
       const nextProgress = cacheMultiplayerProgress(currentProgress, multiplayer)
@@ -1757,6 +1771,7 @@ function AppInner() {
     }).catch(() => {
       if (authState.status === 'authenticated') {
         void multiplayerRepositoryRef.current.load().then((snapshot) => {
+          multiplayerRef.current = snapshot.state
           setMultiplayer(snapshot.state)
           persistActiveMultiplayerState(snapshot.state)
           setGuestProgress((currentProgress) => {
@@ -2471,7 +2486,7 @@ function AppInner() {
   }, [guestProgress])
 
   useEffect(() => {
-    multiplayerRef.current = multiplayer
+    multiplayerRef.current = mergeMultiplayerStates(multiplayerRef.current, multiplayer)
   }, [multiplayer])
 
   useEffect(() => () => {
@@ -2532,6 +2547,31 @@ function AppInner() {
       unsubscribe()
     }
   }, [applyRemoteMultiplayerSnapshot, multiplayerRepository])
+
+  useEffect(() => {
+    if (authState.status !== 'authenticated') {
+      const timeoutId = window.setTimeout(() => setPrivateMatchRequestsForNotifications([]), 0)
+      return () => window.clearTimeout(timeoutId)
+    }
+    let active = true
+    let inFlight = false
+    const refresh = () => {
+      if (inFlight || (typeof document !== 'undefined' && document.visibilityState !== 'visible')) return
+      inFlight = true
+      void multiplayerRepository.listPrivateMatchRequests({ limit: 100 })
+        .then((requests) => { if (active) setPrivateMatchRequestsForNotifications(requests) })
+        .catch(() => { if (active) setPrivateMatchRequestsForNotifications([]) })
+        .finally(() => { inFlight = false })
+    }
+    refresh()
+    const intervalId = window.setInterval(refresh, 5_000)
+    window.addEventListener('focus', refresh)
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [authState.status, multiplayerRepository])
 
   useEffect(() => {
     if (activeRouteId !== 'multiplayer') {

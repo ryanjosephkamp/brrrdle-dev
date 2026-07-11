@@ -27,7 +27,7 @@ import { createDefaultPracticeSeedState, type PracticeSeedState } from './practi
  * its safe default via `normalizeGuestSettings`; bumped to 4 in Phase 20
  * Variant 03 so each play lane can remember its own unfinished puzzle.
  */
-export const GUEST_PROGRESS_SCHEMA_VERSION = 9
+export const GUEST_PROGRESS_SCHEMA_VERSION = 10
 
 export interface GuestProgressionState {
   readonly coins: number
@@ -93,6 +93,8 @@ export interface GuestSettingsState {
    */
   readonly notificationSoundMode: NotificationSoundMode
   readonly browserNotificationsEnabled: boolean
+  /** Phase 56 - local/cloud display preference for private-request lifecycle notifications. */
+  readonly privateRequestNotificationsEnabled: boolean
 }
 
 export interface GameHistoryEntry {
@@ -176,6 +178,7 @@ export function createDefaultGuestSettings(): GuestSettingsState {
     inAppNotificationMode: DEFAULT_NOTIFICATION_PREFERENCES.inAppNotificationMode,
     notificationSoundMode: DEFAULT_NOTIFICATION_PREFERENCES.notificationSoundMode,
     browserNotificationsEnabled: DEFAULT_NOTIFICATION_PREFERENCES.browserNotificationsEnabled,
+    privateRequestNotificationsEnabled: DEFAULT_NOTIFICATION_PREFERENCES.privateRequestNotificationsEnabled,
   }
 }
 
@@ -199,6 +202,7 @@ export function normalizeGuestSettings(raw: unknown): GuestSettingsState {
     inAppNotificationMode: notificationPreferences.inAppNotificationMode,
     notificationSoundMode: notificationPreferences.notificationSoundMode,
     browserNotificationsEnabled: notificationPreferences.browserNotificationsEnabled,
+    privateRequestNotificationsEnabled: notificationPreferences.privateRequestNotificationsEnabled,
   }
 }
 

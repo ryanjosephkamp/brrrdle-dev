@@ -10,18 +10,25 @@ import {
 } from './notificationPreferences'
 
 describe('notification preferences', () => {
+  it('defaults private request notifications on and normalizes explicit opt-out', () => {
+    expect(normalizeNotificationPreferences({}).privateRequestNotificationsEnabled).toBe(true)
+    expect(normalizeNotificationPreferences({ privateRequestNotificationsEnabled: false }).privateRequestNotificationsEnabled).toBe(false)
+    expect(normalizeNotificationPreferences({ privateRequestNotificationsEnabled: 'no' }).privateRequestNotificationsEnabled).toBe(true)
+  })
   it('normalizes missing, partial, and corrupt preference payloads to safe defaults', () => {
     expect(normalizeNotificationPreferences(undefined)).toEqual(DEFAULT_NOTIFICATION_PREFERENCES)
     expect(normalizeNotificationPreferences({
       inAppNotificationMode: 'important-only',
       inAppNotificationsEnabled: false,
       notificationSoundMode: 'all',
+      privateRequestNotificationsEnabled: true,
       browserNotificationsEnabled: true,
     })).toEqual({
       browserNotificationsEnabled: true,
       inAppNotificationMode: 'important-only',
       inAppNotificationsEnabled: false,
       notificationSoundMode: 'all',
+      privateRequestNotificationsEnabled: true,
     })
     expect(normalizeNotificationPreferences({
       browserNotificationsEnabled: 'yes',

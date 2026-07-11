@@ -75,7 +75,9 @@ describe('selectScopedProgressMultiplayerState', () => {
   })
 
   it('preserves already-loaded target-account rows during guest-to-account hydration', () => {
-    const currentMultiplayerState = createStateForUser('fresh-server-game', accountScope.userId)
+    const freshTargetState = createStateForUser('fresh-server-game', accountScope.userId)
+    const unrelatedState = createStateForUser('unrelated-public-lobby', rivalAccountScope.userId)
+    const currentMultiplayerState = { games: [...freshTargetState.games, ...unrelatedState.games] }
     const nextProgress = {
       ...createDefaultGuestProgress(),
       multiplayer: createStateForUser('stale-progress-cache-game', accountScope.userId),
@@ -86,7 +88,7 @@ describe('selectScopedProgressMultiplayerState', () => {
       currentScope: guestScope,
       nextProgress,
       nextScope: accountScope,
-    })).toBe(currentMultiplayerState)
+    })).toEqual(freshTargetState)
   })
 
   it('does not preserve rows belonging only to another account during identity hydration', () => {

@@ -13,6 +13,7 @@ import {
 } from '../multiplayer/multiplayer'
 import type { NotificationMetadataState } from './notificationStorage'
 import { createNotificationViewModel } from './notificationViewModels'
+import type { PrivateMatchRequestResult } from '../multiplayer/multiplayerRepository'
 
 const authenticatedViewer: AuthState = {
   status: 'authenticated',
@@ -20,6 +21,17 @@ const authenticatedViewer: AuthState = {
     id: 'viewer-user',
     roles: [],
   },
+}
+
+function privateRequest(overrides: Partial<PrivateMatchRequestResult> = {}): PrivateMatchRequestResult {
+  return {
+    created: false, createdAt: '2026-07-10T12:00:00.000Z', expired: false,
+    expiresAt: '2026-07-10T12:10:00.000Z', hardMode: false, idempotent: false, mode: 'og',
+    opponent: { displayName: 'Opponent', identityAvailable: true }, requestId: 'private-request-1',
+    requester: { displayName: 'Requester', identityAvailable: true }, requestStatus: 'requested',
+    updatedAt: '2026-07-10T12:00:00.000Z', viewerCanAccept: true, viewerCanCancel: false,
+    viewerCanDecline: true, viewerRole: 'opponent', wordLength: 5, ...overrides,
+  }
 }
 
 function ogSession(overrides: Partial<Parameters<typeof createResumeSlot>[0]['serializedSession']> = {}) {
@@ -111,6 +123,30 @@ function createDashboardFixture(): DashboardViewModel {
 }
 
 describe('notification view models', () => {
+  it('projects private request lifecycle items with stable request-center and game actions', () => {
+    const pendingView = createNotificationViewModel({ privateMatchRequests: [privateRequest()] })
+    const createdView = createNotificationViewModel({ privateMatchRequests: [privateRequest({
+      createdGameId: 'private-game-1', requestStatus: 'created', updatedAt: '2026-07-10T12:03:00.000Z',
+      viewerCanAccept: false, viewerCanDecline: false,
+    })] })
+
+    expect(pendingView.items).toEqual(expect.arrayContaining([expect.objectContaining({
+      actionTarget: { multiplayerSubtab: 'practice', routeId: 'multiplayer' },
+      id: 'private-request:private-request-1:requested', kind: 'private-request-incoming',
+    })]))
+    expect(createdView.items).toEqual(expect.arrayContaining([expect.objectContaining({
+      actionTarget: { selectedMultiplayerGameId: 'private-game-1', multiplayerSubtab: 'practice', routeId: 'multiplayer' },
+      id: 'private-request:private-request-1:created', kind: 'private-request-created',
+    })]))
+  })
+
+  it('suppresses private request items when their dedicated preference is off', () => {
+    const view = createNotificationViewModel({
+      notificationPreferences: { privateRequestNotificationsEnabled: false },
+      privateMatchRequests: [privateRequest()],
+    })
+    expect(view.items.some((item) => item.kind.startsWith('private-request-'))).toBe(false)
+  })
   it('projects deterministic notification items from dashboard state', () => {
     const dashboard = createDashboardFixture()
     const notifications = createNotificationViewModel({

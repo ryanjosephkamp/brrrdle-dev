@@ -7,6 +7,8 @@ import {
 import type { NotificationMetadataRecord, NotificationMetadataState } from './notificationStorage'
 import { normalizeNotificationMetadataState } from './notificationStorage'
 import { shouldIncludeInAppNotification } from './notificationPreferences'
+import type { PrivateMatchRequestResult } from '../multiplayer/multiplayerRepository'
+import { getPrivateRequestCounterpart } from '../multiplayer/privateRequestCenter'
 
 export type NotificationKind =
   | 'daily-solo-ready'
@@ -15,6 +17,11 @@ export type NotificationKind =
   | 'multiplayer-completed'
   | 'lobby-open'
   | 'live-active'
+  | 'private-request-incoming'
+  | 'private-request-created'
+  | 'private-request-declined'
+  | 'private-request-cancelled'
+  | 'private-request-expired'
 
 export type NotificationSource = 'daily' | 'multiplayer' | 'lobby' | 'live' | 'history'
 
@@ -49,6 +56,7 @@ export interface CreateNotificationViewModelInput extends CreateDashboardViewMod
   readonly notificationMetadata?: NotificationMetadataState
   readonly notificationPreferences?: unknown
   readonly now?: string
+  readonly privateMatchRequests?: readonly PrivateMatchRequestResult[]
 }
 
 type NotificationCandidate = Omit<NotificationItemViewModel, 'dismissed' | 'read'>
@@ -158,6 +166,44 @@ function liveNotification(dashboard: DashboardViewModel, now: string): Notificat
   }
 }
 
+function privateRequestNotifications(
+  requests: readonly PrivateMatchRequestResult[],
+  preferences: unknown,
+): readonly NotificationCandidate[] {
+  const privateEnabled = typeof preferences === 'object' && preferences !== null
+    ? (preferences as Record<string, unknown>).privateRequestNotificationsEnabled !== false
+    : true
+  if (!privateEnabled) return []
+
+  return requests.flatMap((request): readonly NotificationCandidate[] => {
+    const counterpart = getPrivateRequestCounterpart(request)
+    const label = counterpart.displayName ?? 'Player'
+    const base = {
+      detail: `${request.mode.toUpperCase()} ${request.wordLength}-letter private Practice request with ${label}.`,
+      fingerprint: `${request.requestId}:${request.requestStatus}:${request.updatedAt}`,
+      priority: 'high' as const,
+      source: 'multiplayer' as const,
+      updatedAt: request.updatedAt,
+    }
+    if (request.requestStatus === 'requested' && request.viewerRole === 'opponent') {
+      return [{ ...base, actionTarget: { multiplayerSubtab: 'practice', routeId: 'multiplayer' }, id: `private-request:${request.requestId}:requested`, kind: 'private-request-incoming', title: 'Private match request' }]
+    }
+    if (request.requestStatus === 'created' && request.createdGameId) {
+      return [{ ...base, actionTarget: { selectedMultiplayerGameId: request.createdGameId, multiplayerSubtab: 'practice', routeId: 'multiplayer' }, id: `private-request:${request.requestId}:created`, kind: 'private-request-created', title: 'Private match created' }]
+    }
+    const terminal = request.requestStatus === 'declined' || request.requestStatus === 'cancelled' || request.requestStatus === 'expired'
+    if (!terminal) return []
+    return [{
+      ...base,
+      actionTarget: { multiplayerSubtab: 'practice', routeId: 'multiplayer' },
+      id: `private-request:${request.requestId}:${request.requestStatus}`,
+      kind: `private-request-${request.requestStatus}` as NotificationKind,
+      priority: 'medium',
+      title: `Private request ${request.requestStatus}`,
+    }]
+  })
+}
+
 function getMetadataRecord(
   metadata: NotificationMetadataState,
   candidate: NotificationCandidate,
@@ -209,6 +255,7 @@ export function createNotificationViewModel(input: CreateNotificationViewModelIn
     ...multiplayerCompletedNotifications(dashboard),
     ...(lobby ? [lobby] : []),
     ...(live ? [live] : []),
+    ...privateRequestNotifications(input.privateMatchRequests ?? [], input.notificationPreferences),
   ]).filter((candidate) => shouldIncludeInAppNotification(candidate, input.notificationPreferences))
   const withMetadata = candidates.map((candidate) => applyMetadata(metadata, candidate))
   const items = sortNotifications(withMetadata.filter((item) => (

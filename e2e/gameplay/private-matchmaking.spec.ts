@@ -114,6 +114,17 @@ test.describe('Private matchmaking @multiplayer', () => {
       await selectMultiplayerGame(session.rival.page, createdRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await expect(session.rival.page.getByTestId('multiplayer-selected-game')).toContainText(new RegExp(firstGuess, 'i'), { timeout: 30_000 })
       await session.host.page.reload({ waitUntil: 'domcontentloaded' })
+      await expect(session.host.page.getByRole('button', { name: /open (?:account menu|profile(?: tab)?) for/i })).toBeVisible({ timeout: 30_000 })
+      await expect.poll(async () => {
+        const row = await waitForMultiplayerRowForUsers({
+          mode: 'og',
+          scope: 'practice',
+          status: 'playing',
+          timeoutMs: 2_000,
+          userIds: [session.host.user.id, session.rival.user.id],
+        })
+        return projectionFromRow(row).moves.length
+      }, { timeout: 30_000 }).toBe(1)
       await selectMultiplayerGame(session.host.page, createdRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await expect(session.host.page.getByTestId('multiplayer-selected-game')).toContainText(new RegExp(firstGuess, 'i'), { timeout: 30_000 })
 
