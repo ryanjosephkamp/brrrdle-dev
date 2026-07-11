@@ -102,6 +102,38 @@ async function waitForSoloCloudSessionStatus(user: E2eUser, sessionKey: string, 
   }, { timeout: 20_000 }).toBe(status)
 }
 
+async function waitForSoloCloudGuessCount(user: E2eUser, sessionKey: string, expectedCount: number): Promise<void> {
+  const client = await createAuthenticatedSupabaseClient(user)
+  await expect.poll(async () => {
+    const { data, error } = await client
+      .from('game_history')
+      .select('entry')
+      .eq('user_id', user.id)
+      .eq('id', sessionKey)
+      .maybeSingle()
+    if (error || !data) {
+      return -1
+    }
+    const entry = data.entry as {
+      readonly kind?: string
+      readonly session?: {
+        readonly mode?: string
+        readonly serializedSession?: {
+          readonly guesses?: readonly string[]
+          readonly puzzles?: readonly { readonly guesses?: readonly string[] }[]
+        }
+      }
+    } | undefined
+    if (entry?.kind !== 'solo-cloud-session-v1') {
+      return -1
+    }
+    if (entry.session?.mode === 'go') {
+      return entry.session.serializedSession?.puzzles?.[0]?.guesses?.length ?? -1
+    }
+    return entry.session?.serializedSession?.guesses?.length ?? -1
+  }, { timeout: 20_000 }).toBe(expectedCount)
+}
+
 function findWrongGuess(validGuesses: ReadonlySet<string>, answer: string): string {
   const guess = [...validGuesses].find((candidate) => candidate.length === answer.length && candidate !== answer)
   if (!guess) {
@@ -213,6 +245,75 @@ async function expectNoRevealAnimationsRecorded(page: Page): Promise<void> {
 }
 
 test.describe('Solo completion re-entry @solo @practice @daily', () => {
+  test('keeps authenticated Daily OG and GO wrong guesses across focus, route re-entry, and refresh', async ({ browser }) => {
+    getE2eEnv()
+    const runId = createRunId()
+    const users: E2eUser[] = []
+    const context = await browser.newContext()
+    await installFixedBrowserTime(context, FIXED_DAILY_ISO)
+    const page = await context.newPage()
+    const consoleFailures = installConsoleGuards(page)
+    try {
+      const user = await createE2eUser('solo-daily-in-progress', runId)
+      users.push(user)
+      await signInThroughUi(page, user)
+      await waitForSignedInProgressHydration(page)
+
+      const ogSetup = createDailyOgSetup(dateKeyToLocalDate(FIXED_DAILY_DATE_KEY))
+      const ogWrongGuess = findWrongGuess(ogSetup.validGuesses, ogSetup.answer)
+      await navigateToSoloDaily(page, 'og')
+      await submitSoloGuessWithKeyboard(page, /Daily og puzzle/i, ogWrongGuess)
+      await expectWordVisible(page, /^Guess grid$/i, ogWrongGuess, 1)
+      await waitForSoloCloudGuessCount(user, createSoloCloudSessionKey({
+        dailyDateKey: FIXED_DAILY_DATE_KEY,
+        difficulty: 'expert',
+        mode: 'og',
+        scope: 'daily',
+        wordLength: 5,
+      }), 1)
+
+      const otherPage = await context.newPage()
+      await otherPage.goto('about:blank')
+      await otherPage.bringToFront()
+      await page.bringToFront()
+      await expectWordVisible(page, /^Guess grid$/i, ogWrongGuess, 1)
+      await otherPage.close()
+
+      await goHome(page)
+      await navigateToSoloDaily(page, 'og')
+      await expectWordVisible(page, /^Guess grid$/i, ogWrongGuess, 1)
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await expectHomeAfterStartupSettles(page)
+      await navigateToSoloDaily(page, 'og')
+      await expectWordVisible(page, /^Guess grid$/i, ogWrongGuess, 1)
+
+      const goSetup = createDailyGoSetup(dateKeyToLocalDate(FIXED_DAILY_DATE_KEY))
+      const goWrongGuess = findWrongGuess(goSetup.validGuesses, goSetup.puzzles[0].answer)
+      await navigateToSoloDaily(page, 'go')
+      await submitSoloGuessWithKeyboard(page, /Daily go chain/i, goWrongGuess)
+      await expectWordVisible(page, /^Go guess grid$/i, goWrongGuess, 1)
+      await waitForSoloCloudGuessCount(user, createSoloCloudSessionKey({
+        dailyDateKey: FIXED_DAILY_DATE_KEY,
+        difficulty: 'expert',
+        mode: 'go',
+        scope: 'daily',
+        wordLength: 5,
+      }), 1)
+
+      await goHome(page)
+      await navigateToSoloDaily(page, 'go')
+      await expectWordVisible(page, /^Go guess grid$/i, goWrongGuess, 1)
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await expectHomeAfterStartupSettles(page)
+      await navigateToSoloDaily(page, 'go')
+      await expectWordVisible(page, /^Go guess grid$/i, goWrongGuess, 1)
+      await expectNoConsoleFailures(consoleFailures)
+    } finally {
+      await context.close()
+      await cleanupE2eRun(users)
+    }
+  })
+
   test('keeps Daily OG deleted draft letters cleared after scroll and route re-entry', async ({ browser }) => {
     const context = await browser.newContext()
     await installFixedBrowserTime(context, FIXED_DAILY_ISO)

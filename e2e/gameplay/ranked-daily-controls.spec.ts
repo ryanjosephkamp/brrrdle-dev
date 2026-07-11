@@ -160,6 +160,39 @@ async function submitCurrentTurn(
 }
 
 test.describe('Ranked Daily controls @daily @multiplayer', () => {
+  test('discovers a ranked Daily participant game promptly after refresh and explicit re-entry', async ({ page }) => {
+    const consoleFailures = installConsoleGuards(page)
+    const users: E2eUser[] = []
+    try {
+      const hostUser = await createE2eUser('phase55-refresh-host')
+      users.push(hostUser)
+      const rivalUser = await createE2eUser('phase55-refresh-rival')
+      users.push(rivalUser)
+      const pair = await queueAndFinalizeRankedDaily('og', hostUser, rivalUser)
+      await submitCurrentTurn(pair, (game) => getValidWrongGuess(game))
+
+      await signInThroughUi(page, rivalUser)
+      await page.getByRole('button', { name: /^Multiplayer$/i }).click()
+      await page.getByRole('tab', { name: /^Daily Multiplayer$/i }).click()
+      await expect(page.getByTestId(`multiplayer-game-tab-${pair.gameId}`)).toBeVisible({ timeout: 5_000 })
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+      await page.getByRole('button', { name: /^Multiplayer$/i }).click()
+      await page.getByRole('tab', { name: /^Daily Multiplayer$/i }).click()
+      await expect(page.getByTestId(`multiplayer-game-tab-${pair.gameId}`)).toBeVisible({ timeout: 5_000 })
+
+      await page.getByRole('tab', { name: /^Active Games$/i }).click()
+      await expect(page.getByTestId(`multiplayer-active-resume-${pair.gameId}`)).toBeVisible({ timeout: 5_000 })
+
+      await page.getByRole('tab', { name: /^Live$/i }).click()
+      const currentDateKey = new Date().toISOString().slice(0, 10)
+      await expect(page.getByRole('article', { name: new RegExp(`^Daily Multiplayer OG · ${currentDateKey}$`, 'i') })).toBeVisible({ timeout: 5_000 })
+      await expectNoConsoleFailures(consoleFailures)
+    } finally {
+      await cleanupE2eRun(users)
+    }
+  })
+
   test('creates and cancels a fixed-settings ranked Daily request without mobile overflow', async ({ page }) => {
     const consoleFailures = installConsoleGuards(page)
     let user: E2eUser | undefined

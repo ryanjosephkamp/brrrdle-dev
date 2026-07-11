@@ -1,11 +1,20 @@
 # Post-Phase-57 Deeper Functional-Shell Optimization Manual Review Checklist
 
-**Status:** Ready for hosted/manual user review after the governed Review Candidate backup.
+**Status:** Review Candidate verified; rerun after the governed Review Candidate backup.
 **Repository:** `brrrdle-dev` only.
 **Created:** 2026-07-11.
 **Evidence:** `planning/post-phase-57/CHANGELOG.md`, `planning/post-phase-57/DEEPER-SHELL-PERFORMANCE-BASELINE.md`, and `progress/PROGRESS-STEP-535.md`.
 
 This checklist verifies loading and route ownership changes against the accepted Phase 57 preservation inventory. It does not replace automated verification.
+
+The 2026-07-11 hosted review reported Daily Solo focus/refresh rollback, delayed ranked Daily game discovery after refresh, and missing spectator cancellation/forfeit reason text. The bounded follow-up, exact migration, ledger reconciliation, real E2E, cleanup, and complete regression are now verified. Boxes remain unchecked until the backed-up Review Candidate is reviewed again.
+
+## Recovery Checks To Run First
+
+- [ ] **GAME-04 / GAME-06 - Daily Solo OG in-progress persistence.** Submit at least two valid incorrect guesses while signed in; focus another browser/app and return, navigate away/back, then manually refresh to Home and re-enter Daily OG. Expected: every submitted row remains visible without a correct-then-empty flash.
+- [ ] **GAME-04 / GAME-06 - Daily Solo GO in-progress persistence.** Repeat the same focus, route, and refresh sequence on Daily GO, including after advancing at least one puzzle if practical. Expected: the active puzzle and all submitted/settled rows remain exact.
+- [ ] **MP-02 / MP-11 / MP-13 / MP-18 - Ranked Daily discovery after refresh.** After a rival submits a turn in ranked Daily OG and GO, refresh to Home and explicitly open Daily Multiplayer, Active Games, and Live. Expected: the participant game appears promptly on each surface without waiting 30-60 seconds.
+- [ ] **MP-07 / MP-14 - Spectator cancellation and forfeit transparency.** As a third signed-in or public viewer, spectate one two-participant game cancelled before any turn and one forfeited after a turn. Expected: cancellation says it occurred before the first turn; forfeit identifies the public player name that forfeited and the winner; no mutation control or private identity appears.
 
 ## How To Use
 

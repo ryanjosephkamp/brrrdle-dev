@@ -53,6 +53,7 @@ describe('authenticated automatic progress sync guards', () => {
     expect(canRefreshAuthenticatedProgress({
       authState,
       hasPendingUpload: false,
+      hasPendingSoloCloudWrite: false,
       hasScheduledUpload: false,
       isUploadInFlight: false,
       scope,
@@ -61,6 +62,7 @@ describe('authenticated automatic progress sync guards', () => {
     expect(canRefreshAuthenticatedProgress({
       authState,
       hasPendingUpload: true,
+      hasPendingSoloCloudWrite: false,
       hasScheduledUpload: false,
       isUploadInFlight: false,
       scope,
@@ -68,6 +70,7 @@ describe('authenticated automatic progress sync guards', () => {
     expect(canRefreshAuthenticatedProgress({
       authState,
       hasPendingUpload: false,
+      hasPendingSoloCloudWrite: false,
       hasScheduledUpload: true,
       isUploadInFlight: false,
       scope,
@@ -75,8 +78,17 @@ describe('authenticated automatic progress sync guards', () => {
     expect(canRefreshAuthenticatedProgress({
       authState,
       hasPendingUpload: false,
+      hasPendingSoloCloudWrite: false,
       hasScheduledUpload: false,
       isUploadInFlight: true,
+      scope,
+    })).toBe(false)
+    expect(canRefreshAuthenticatedProgress({
+      authState,
+      hasPendingUpload: false,
+      hasPendingSoloCloudWrite: true,
+      hasScheduledUpload: false,
+      isUploadInFlight: false,
       scope,
     })).toBe(false)
   })

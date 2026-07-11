@@ -21,6 +21,7 @@ export interface CreateAuthenticatedProgressSyncRequestInput {
 
 export interface AuthenticatedProgressRefreshGuardInput {
   readonly authState: AuthState
+  readonly hasPendingSoloCloudWrite: boolean
   readonly hasPendingUpload: boolean
   readonly hasScheduledUpload: boolean
   readonly isUploadInFlight: boolean
@@ -57,6 +58,7 @@ export function createAuthenticatedProgressSyncRequest(
 
 export function canRefreshAuthenticatedProgress(input: AuthenticatedProgressRefreshGuardInput): boolean {
   return canSyncProgressForAuthState(input.authState, input.scope)
+    && !input.hasPendingSoloCloudWrite
     && !input.hasPendingUpload
     && !input.hasScheduledUpload
     && !input.isUploadInFlight

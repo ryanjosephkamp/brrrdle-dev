@@ -792,6 +792,60 @@ describe('multiplayer view models', () => {
     })
   })
 
+  it('explains spectator forfeits with public player names', () => {
+    const terminalSpectatorGame: AuthenticatedLiveSpectatorGame = {
+      ...spectatorGame,
+      currentTurnSeat: undefined,
+      endedAt: '2026-06-04T15:05:00.000Z',
+      outcome: {
+        forfeitedSeat: 'player-two',
+        label: 'Player one won',
+        status: 'won',
+        terminal: true,
+        terminalAt: '2026-06-04T15:05:00.000Z',
+        terminationReason: 'forfeit',
+        winnerSeat: 'player-one',
+      },
+      status: 'won',
+      terminalAt: '2026-06-04T15:05:00.000Z',
+      terminalHoldUntil: '2026-06-04T15:05:15.000Z',
+      updatedAt: '2026-06-04T15:05:00.000Z',
+    }
+
+    const rows = selectLiveMultiplayerRows({ games: [] }, 'spectator-user', [terminalSpectatorGame])
+
+    expect(rows[0]).toMatchObject({
+      detailLabel: 'Read-only · Rival player forfeited. Host player won · Final · 1 turn submitted',
+      turnLabel: 'Rival player forfeited. Host player won',
+    })
+    expect(rows[0].spectatorDetails?.terminalLabel).toBe('Rival player forfeited. Host player won. Final board visible briefly.')
+  })
+
+  it('explains spectator cancellations before the first turn', () => {
+    const terminalSpectatorGame: AuthenticatedLiveSpectatorGame = {
+      ...spectatorGame,
+      currentTurnSeat: undefined,
+      moves: [],
+      outcome: {
+        label: 'Match cancelled',
+        status: 'cancelled',
+        terminal: true,
+        terminalAt: '2026-06-04T15:05:00.000Z',
+        terminationReason: 'cancelled',
+      },
+      progress: { currentPuzzleIndex: 0, moveCount: 0, solvedPuzzleCount: 0 },
+      status: 'cancelled',
+      terminalAt: '2026-06-04T15:05:00.000Z',
+      terminalHoldUntil: '2026-06-04T15:05:15.000Z',
+      updatedAt: '2026-06-04T15:05:00.000Z',
+    }
+
+    const rows = selectLiveMultiplayerRows({ games: [] }, 'spectator-user', [terminalSpectatorGame])
+
+    expect(rows[0].turnLabel).toBe('Match cancelled before the first turn')
+    expect(rows[0].spectatorDetails?.terminalLabel).toBe('Match cancelled before the first turn. Final board visible briefly.')
+  })
+
   it('keeps participant-only Live rows closed to anonymous users and nonparticipant terminal data', () => {
     const active = createMultiplayerGame({
       createdAt: '2026-06-04T12:00:00.000Z',

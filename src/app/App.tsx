@@ -12,7 +12,7 @@ import type { LeaderboardPanel as LeaderboardPanelComponent } from '../leaderboa
 import type { PublicProfilePage as PublicProfilePageComponent } from '../account/PublicProfilePage'
 import type { Settings as SettingsComponent } from '../account/Settings'
 import type { AdminPanel as AdminPanelComponent } from '../admin/AdminPanel'
-import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createAccountPracticeSeed, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSupabaseSoloCloudProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, mergeSoloCloudSessionsIntoProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection, type SoloCloudMutation, type SoloCloudProgressRepository } from '../account'
+import { AccountBadge, AuthModal, AuthPanel, PasswordResetModal, ProfileEditor, ProfilePanel, advancePracticeSeedState, canSyncProgressForAuthState, classifyAuthError, clearPasswordResetUrlMarker, clearSoloCompletionDisplaySlots, createAccountPracticeSeed, createBrrrdleSupabaseClient, AUTHENTICATED_PROGRESS_AUTO_SYNC_DEBOUNCE_MS, canRefreshAuthenticatedProgress, createAuthenticatedProgressSyncRequest, createDefaultGuestProgress, createResumeSlot, createSoloCloudWriteQueue, createSupabaseProgressRepository, createSupabasePublicProfileRepository, createSupabaseSoloCloudProgressRepository, createSyncStatus, getCurrentAuthState, getLatestResumeSlot, getProgressScopeForAuthState, getResumeSlotKey, isCaptureComplete, isCaptureInProgress, isPasswordResetUrl, loadAuthenticatedProgressForScope, loadGuestProgress, loadSoloCompletionDisplaySlots, mergeSoloCloudSessionsIntoProgress, normalizeGuestSettings, normalizeResumeSlots, recordCompletedGame, saveGuestProgress, saveSoloCompletionDisplaySlots, sendPasswordResetEmail, sendMagicLink, shouldInvalidateAuthenticatedProgressSyncForAuthState, shouldPersistProgressToGuestStorage, signInWithPassword, signOut, signUpWithPassword, shouldApplyAuthenticatedProgressSyncResult, subscribeToAuthChanges, syncAuthenticatedProgress, syncGuestProgress, updatePassword, updateProfile, type ActiveProgressScope, type AuthState, type CompletedGameInput, type GuestProgressState, type OwnerPublicProfile, type PracticeSeedState, type ProfileAccentColor, type PublicProfileRepository, type PublicProfileUpdateInput, type ResumeCapture, type ResumeSlot, type ResumeSlotCollection, type SoloCloudMutation, type SoloCloudProgressRepository } from '../account'
 import { BUNDLED_WORD_LIST_LENGTHS, type DifficultyTier } from '../data'
 import { applyEconomyCommand, calculateCoinAward, createEconomySnapshot, type ConsumableType, type EconomyCommand } from '../progression'
 import { createSupabaseEconomyRepository, toEconomySnapshot, type EconomyRepository } from '../account/economyRepository'
@@ -63,6 +63,7 @@ import {
   loadPublicLiveSpectatorRows,
   createMultiplayerProfileSummary,
   createSupabaseMultiplayerRepository,
+  loadMultiplayerRepositoryWithRetry,
   expireStaleDailyMultiplayerGames,
   expireTimedOutPracticeMultiplayerGames,
   getViewerMultiplayerPlayerId,
@@ -1282,7 +1283,7 @@ function AppInner() {
   const latestAuthenticatedProgressSyncRef = useRef<ReturnType<typeof createAuthenticatedProgressSyncRequest> | undefined>(undefined)
   const flushAuthenticatedProgressSyncRef = useRef<() => void>(() => {})
   const pendingAuthenticatedProgressSyncRef = useRef<Promise<void>>(Promise.resolve())
-  const pendingSoloCloudWriteRef = useRef<Promise<void>>(Promise.resolve())
+  const soloCloudWriteQueueRef = useRef(createSoloCloudWriteQueue())
   const invalidateAuthenticatedProgressSync = useCallback(() => {
     authenticatedProgressSyncVersionRef.current += 1
     authenticatedProgressSyncDirtyRef.current = false
@@ -1933,7 +1934,7 @@ function AppInner() {
 
     const userId = currentAuth.user.id
     setSyncStatus(createSyncStatus('syncing'))
-    const write = soloCloudProgressRepository.saveMutation(userId, mutation)
+    void soloCloudWriteQueueRef.current.enqueue(userId, () => soloCloudProgressRepository.saveMutation(userId, mutation))
       .then((session) => {
         const latestAuth = authStateRef.current
         if (latestAuth.status !== 'authenticated' || latestAuth.user?.id !== userId) {
@@ -1963,10 +1964,6 @@ function AppInner() {
         }
       })
 
-    pendingSoloCloudWriteRef.current = pendingSoloCloudWriteRef.current.then(
-      () => write,
-      () => write,
-    )
   }, [applyScopedProgress, soloCloudProgressRepository])
   const handleOpenSoloHistory = useCallback((filters?: { readonly mode?: SoloMode; readonly scope?: SoloScope }) => {
     const nextFilters: HistoryFilters = {
@@ -2271,6 +2268,9 @@ function AppInner() {
     const nextAuthState = authStateRef.current
     if (!canRefreshAuthenticatedProgress({
       authState: nextAuthState,
+      hasPendingSoloCloudWrite: nextAuthState.status === 'authenticated' && nextAuthState.user?.id
+        ? soloCloudWriteQueueRef.current.hasPending(nextAuthState.user.id)
+        : false,
       hasPendingUpload: authenticatedProgressSyncDirtyRef.current,
       hasScheduledUpload: Boolean(authenticatedProgressSyncTimeoutRef.current),
       isUploadInFlight: authenticatedProgressSyncInFlightRef.current,
@@ -2505,7 +2505,9 @@ function AppInner() {
     setAuthBusy(true)
     flushAuthenticatedProgressSyncRef.current()
     void Promise.all([
-      pendingSoloCloudWriteRef.current.catch(() => undefined),
+      authStateRef.current.status === 'authenticated' && authStateRef.current.user
+        ? soloCloudWriteQueueRef.current.waitFor(authStateRef.current.user.id)
+        : Promise.resolve(),
       pendingAuthenticatedProgressSyncRef.current.catch(() => undefined),
     ]).then(() => signOut(supabaseClient)).then((result) => {
       setAuthBusy(false)
@@ -2716,9 +2718,9 @@ function AppInner() {
     const unsubscribe = multiplayerRepository.subscribe((snapshot) => {
       applySnapshot(snapshot.state)
     })
-    void multiplayerRepository.load().then((snapshot) => {
+    void loadMultiplayerRepositoryWithRetry(multiplayerRepository).then((snapshot) => {
       applySnapshot(snapshot.state)
-    })
+    }).catch(() => undefined)
     return () => {
       isActive = false
       unsubscribe()
@@ -2763,7 +2765,7 @@ function AppInner() {
         return
       }
       inFlight = true
-      void multiplayerRepository.load()
+      void loadMultiplayerRepositoryWithRetry(multiplayerRepository)
         .then((snapshot) => {
           if (isActive) {
             applyRemoteMultiplayerSnapshot(snapshot.state)

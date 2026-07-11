@@ -432,6 +432,49 @@ function isNewerSlot(left: ResumeSlot | undefined, right: ResumeSlot): boolean {
   return !left || right.updatedAt.localeCompare(left.updatedAt) > 0
 }
 
+function getCanonicalProgressRank(slot: ResumeSlot): readonly number[] {
+  if (slot.mode === 'og') {
+    const effects = slot.serializedSession.consumableEffects
+    return [
+      0,
+      slot.serializedSession.guesses.length,
+      slot.serializedSession.continuationCount,
+      effects?.revealedHints.length ?? 0,
+      effects?.removedLetters.length ?? 0,
+    ]
+  }
+
+  const sessions = slot.serializedSession.puzzles
+  return [
+    slot.serializedSession.currentPuzzleIndex,
+    sessions.reduce((total, puzzle) => total + puzzle.guesses.length, 0),
+    sessions.reduce((total, puzzle) => total + puzzle.continuationCount, 0),
+    Object.values(slot.serializedSession.consumableEffectsByPuzzle ?? {})
+      .reduce((total, effects) => total + effects.revealedHints.length, 0),
+    Object.values(slot.serializedSession.consumableEffectsByPuzzle ?? {})
+      .reduce((total, effects) => total + effects.removedLetters.length, 0),
+  ]
+}
+
+function compareCanonicalProgress(left: ResumeSlot, right: ResumeSlot): number {
+  const leftRank = getCanonicalProgressRank(left)
+  const rightRank = getCanonicalProgressRank(right)
+  for (let index = 0; index < Math.max(leftRank.length, rightRank.length); index += 1) {
+    const difference = (leftRank[index] ?? 0) - (rightRank[index] ?? 0)
+    if (difference !== 0) {
+      return difference
+    }
+  }
+  return 0
+}
+
+function shouldUseIncomingInProgressSlot(current: ResumeSlot | undefined, incoming: ResumeSlot): boolean {
+  if (!current) {
+    return true
+  }
+  return compareCanonicalProgress(incoming, current) > 0
+}
+
 function collectionHasSlots(slots: ResumeSlotCollection): boolean {
   return Object.keys(slots).length > 0
 }
@@ -470,7 +513,7 @@ export function mergeSoloCloudSessionsIntoProgress(
       }
       continue
     }
-    if (isCaptureInProgress(slot) && isNewerSlot(resumeSlots[key], slot)) {
+    if (isCaptureInProgress(slot) && shouldUseIncomingInProgressSlot(resumeSlots[key], slot)) {
       resumeSlots[key] = slot
     }
   }

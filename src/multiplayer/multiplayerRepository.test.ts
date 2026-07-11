@@ -334,6 +334,54 @@ describe('multiplayer repository seam', () => {
     expect((await repository.load()).state.games[0].id).toBe(game.id)
   })
 
+  it('does not publish an empty authenticated bootstrap before the first server read settles', async () => {
+    let resolveGames: ((value: { data: readonly unknown[], error: null }) => void) | undefined
+    const games = new Promise<{ data: readonly unknown[], error: null }>((resolve) => {
+      resolveGames = resolve
+    })
+    const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
+    const client = {
+      channel: vi.fn(() => channel),
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({ order: vi.fn(() => games) })),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-07-11T12:00:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'user-1' })
+    const listener = vi.fn()
+
+    const unsubscribe = repository.subscribe(listener)
+    expect(listener).not.toHaveBeenCalled()
+
+    const load = repository.load()
+    resolveGames?.({ data: [], error: null })
+    await load
+
+    expect(listener).toHaveBeenCalledOnce()
+    unsubscribe()
+  })
+
+  it('surfaces authenticated game-read failures without publishing an empty snapshot', async () => {
+    const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
+    const client = {
+      channel: vi.fn(() => channel),
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          order: vi.fn(async () => ({ data: null, error: { message: 'read failed' } })),
+        })),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-07-11T12:00:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'user-1' })
+    const listener = vi.fn()
+    repository.subscribe(listener)
+
+    await expect(repository.load()).rejects.toThrow('Unable to load multiplayer games: read failed')
+    expect(listener).not.toHaveBeenCalled()
+  })
+
   it('normalizes sanitized authenticated Live spectator RPC rows', () => {
     const rows = normalizeAuthenticatedLiveSpectatorRows([createSanitizedSpectatorRow()])
 
@@ -391,6 +439,69 @@ describe('multiplayer repository seam', () => {
       terminalAt: '2026-06-15T23:55:00.000Z',
       terminalHoldUntil: '2026-06-15T23:55:15.000Z',
     })
+  })
+
+  it('normalizes privacy-safe spectator cancellation and forfeit reasons', () => {
+    const cancelled = normalizeAuthenticatedLiveSpectatorRows([
+      createSanitizedSpectatorRow({
+        current_turn_seat: null,
+        ended_at: '2026-06-15T23:55:00.000Z',
+        moves: [],
+        outcome: {
+          label: 'Match cancelled',
+          status: 'cancelled',
+          terminal: true,
+          terminalAt: '2026-06-15T23:55:00.000Z',
+          terminationReason: 'cancelled',
+        },
+        progress: {
+          currentPuzzleIndex: 0,
+          latestMoveAt: null,
+          moveCount: 0,
+          solvedPuzzleCount: 0,
+        },
+        status: 'cancelled',
+        terminal_at: '2026-06-15T23:55:00.000Z',
+        terminal_hold_until: '2026-06-15T23:55:15.000Z',
+      }),
+    ])
+    const forfeited = normalizePublicLiveSpectatorRows([
+      createPublicSpectatorRow({
+        current_turn_seat: null,
+        outcome: {
+          forfeitedSeat: 'player-two',
+          label: 'Player one won',
+          status: 'won',
+          terminal: true,
+          terminalAt: '2026-06-30T21:55:00.000Z',
+          terminationReason: 'forfeit',
+          winnerSeat: 'player-one',
+        },
+        status: 'won',
+        terminal_at: '2026-06-30T21:55:00.000Z',
+      }),
+    ])
+
+    expect(cancelled[0]?.outcome).toMatchObject({ terminationReason: 'cancelled' })
+    expect(forfeited[0]?.outcome).toMatchObject({
+      forfeitedSeat: 'player-two',
+      terminationReason: 'forfeit',
+      winnerSeat: 'player-one',
+    })
+  })
+
+  it('rejects inconsistent spectator termination metadata', () => {
+    const playingForfeit = createSanitizedSpectatorRow({
+      outcome: {
+        forfeitedSeat: 'player-two',
+        label: 'In progress',
+        status: 'playing',
+        terminal: false,
+        terminationReason: 'forfeit',
+      },
+    })
+
+    expect(normalizeAuthenticatedLiveSpectatorRows([playingForfeit])).toEqual([])
   })
 
   it('filters current Daily spectator rows as an app-side defense in depth', () => {
