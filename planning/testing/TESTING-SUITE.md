@@ -245,6 +245,8 @@ review, or any required phase verification gate.
 
 ## Known Gaps
 
+- Phase 57 adds `e2e/gameplay/solo-practice-consumables-phase57.spec.ts` for guest Marketplace purchase, OG/GO use, private effect persistence, on-screen/physical keyboard enforcement, and Daily/Multiplayer exclusion. `e2e/gameplay/solo-practice-consumables-phase57-authenticated.spec.ts` adds real disposable-account bootstrap, price/range/underflow, idempotency/concurrency, privacy, cross-browser hydration, OG/GO persistence, scope exclusion, mobile-fit, and cleanup coverage. Signed-in authority runs must explicitly set `E2E_PHASE57_ECONOMY_AUTHORITY=enabled`.
+
 - The E2E suite intentionally avoids visual regression testing so Phase 24 UI
   work can evolve without brittle screenshot churn.
 - Solo Daily currently follows the product's local-midnight variant; Daily

@@ -24,7 +24,8 @@ import {
 } from '../../game'
 import { clearDailyOgStoredSession, loadDailyOgStoredSession, saveDailyOgStoredSession } from '../../game/storage/dailyOgStorage'
 import { dateKeyToLocalDate, getActiveDailyDate } from '../../daily'
-import { calculatePayToContinueCost } from '../../progression'
+import { calculatePayToContinueCost, createInitialConsumableEffects, removePracticeIncorrectLetters, revealNextPracticeLetter, type ConsumableEffects, type ConsumableType } from '../../progression'
+import { PracticeConsumableControls } from '../../marketplace'
 import { useSound } from '../../sound'
 import { Button, Keyboard, Panel, ShareButton } from '../../ui'
 import { classNames } from '../../ui/classNames'
@@ -35,6 +36,7 @@ import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEv
 
 interface OgGameProps {
   readonly coins: number
+  readonly consumables?: Readonly<Record<ConsumableType, number>>
   readonly defaultDifficulty?: DifficultyTier
   readonly defaultHardMode?: boolean
   readonly initialResume?: OgResumeSlot
@@ -43,7 +45,8 @@ interface OgGameProps {
   readonly onResumeCapture?: (capture: ResumeCapture) => void
   readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
-  readonly onSpendCoins: (amount: number) => boolean
+  readonly onConsumeConsumable?: (type: ConsumableType, operationId: string) => boolean | Promise<boolean>
+  readonly onSpendCoins: (amount: number, operationId?: string) => boolean | Promise<boolean>
   readonly onAdvancePracticeSeed?: () => void
   readonly practiceSeedCounter?: number
   readonly practiceSeedUserId?: string
@@ -161,6 +164,7 @@ function getCompletionPercentage(session: PuzzleSessionState): number {
 
 function OgGameSession({
   coins,
+  consumables,
   defaultDifficulty,
   defaultHardMode,
   difficulty,
@@ -174,6 +178,7 @@ function OgGameSession({
   onMarkDailyUnlocked,
   pastDailyDateKey,
   onSaveDifficultyDefault,
+  onConsumeConsumable,
   onSpendCoins,
   practiceLength,
   practiceLengths,
@@ -183,6 +188,7 @@ function OgGameSession({
   setup,
 }: {
   readonly coins: number
+  readonly consumables: Readonly<Record<ConsumableType, number>>
   readonly defaultDifficulty: DifficultyTier
   readonly defaultHardMode: boolean
   readonly difficulty: DifficultyTier
@@ -196,7 +202,8 @@ function OgGameSession({
   readonly onMarkDailyUnlocked?: () => void
   readonly pastDailyDateKey?: string
   readonly onSaveDifficultyDefault?: (tier: DifficultyTier) => void
-  readonly onSpendCoins: (amount: number) => boolean
+  readonly onConsumeConsumable?: (type: ConsumableType, operationId: string) => boolean | Promise<boolean>
+  readonly onSpendCoins: (amount: number, operationId?: string) => boolean | Promise<boolean>
   readonly practiceLength: number
   readonly practiceLengths: readonly number[]
   readonly practiceSeed: number
@@ -212,6 +219,7 @@ function OgGameSession({
   })
   const suppressInitialCompletionReportRef = useRef(Boolean(restoreFrom) && session.status !== 'playing')
   const [continuationMessage, setContinuationMessage] = useState<string>()
+  const [consumableEffects, setConsumableEffects] = useState<ConsumableEffects>(() => createInitialConsumableEffects(restoreFrom?.consumableEffects))
   const completionPercentage = getCompletionPercentage(session)
   const continuationCost = calculatePayToContinueCost({
     completionPercentage,
@@ -223,7 +231,7 @@ function OgGameSession({
   const lossAnswerRevealed = session.status === 'lost' && (!canPayToContinue || Boolean(session.revealedAnswer))
   const endStateRevealed = session.status === 'won' || lossAnswerRevealed
   const canReveal = scope === 'practice' && session.status === 'playing' && session.guesses.length > 0
-  const emitSoloCloudMutation = useCallback((nextSession: PuzzleSessionState, event: SoloCloudMutationEventInput) => {
+  const emitSoloCloudMutation = useCallback((nextSession: PuzzleSessionState, event: SoloCloudMutationEventInput, effects: ConsumableEffects = consumableEffects) => {
     onSoloCloudMutation?.({
       ...(scope === 'daily' && setup.dateKey ? { dailyDateKey: setup.dateKey } : {}),
       difficulty,
@@ -232,7 +240,7 @@ function OgGameSession({
       mode: 'og',
       ...(scope === 'practice' ? { practiceSeed } : {}),
       scope,
-      serializedSession: serializeOgSession(nextSession),
+      serializedSession: { ...serializeOgSession(nextSession), consumableEffects: effects },
       sessionKey: createSoloCloudSessionKey({
         ...(scope === 'daily' && setup.dateKey ? { dailyDateKey: setup.dateKey } : {}),
         difficulty,
@@ -243,13 +251,13 @@ function OgGameSession({
       }),
       wordLength: nextSession.wordLength,
     })
-  }, [difficulty, onSoloCloudMutation, practiceSeed, scope, setup.dateKey])
-  const scheduleSoloCloudMutation = useCallback((nextSession: PuzzleSessionState, event: SoloCloudMutationEventInput) => {
+  }, [consumableEffects, difficulty, onSoloCloudMutation, practiceSeed, scope, setup.dateKey])
+  const scheduleSoloCloudMutation = useCallback((nextSession: PuzzleSessionState, event: SoloCloudMutationEventInput, effects: ConsumableEffects = consumableEffects) => {
     if (!onSoloCloudMutation) {
       return
     }
-    window.setTimeout(() => emitSoloCloudMutation(nextSession, event), 0)
-  }, [emitSoloCloudMutation, onSoloCloudMutation])
+    window.setTimeout(() => emitSoloCloudMutation(nextSession, event, effects), 0)
+  }, [consumableEffects, emitSoloCloudMutation, onSoloCloudMutation])
 
   useEffect(() => {
     if (scope !== 'daily' || !setup.dateKey || !pastDailyDateKey) {
@@ -275,10 +283,10 @@ function OgGameSession({
       difficulty,
       mode: 'og',
       scope,
-      serializedSession: serializeOgSession(session),
+      serializedSession: { ...serializeOgSession(session), consumableEffects },
       wordLength: session.wordLength,
     })
-  }, [difficulty, onResumeCapture, scope, session])
+  }, [consumableEffects, difficulty, onResumeCapture, scope, session])
 
   useEffect(() => {
     if (session.status === 'playing') {
@@ -316,6 +324,10 @@ function OgGameSession({
     }
     setSession((currentSession) => {
       if (input.type === 'letter') {
+        if (consumableEffects.removedLetters.includes(input.value.toLocaleLowerCase('en-US'))) {
+          setContinuationMessage(`${input.value.toLocaleUpperCase('en-US')} was removed for this puzzle.`)
+          return currentSession
+        }
         return enterLetter(currentSession, input.value)
       }
 
@@ -340,14 +352,35 @@ function OgGameSession({
       }
       return nextSession
     })
-  }, [scheduleSoloCloudMutation, sound])
+  }, [consumableEffects.removedLetters, scheduleSoloCloudMutation, sound])
 
-  const handlePayToContinue = useCallback(() => {
+  const handleUseConsumable = useCallback(async (type: ConsumableType) => {
+    if (scope !== 'practice' || session.status !== 'playing' || !onConsumeConsumable) {
+      return
+    }
+    const result = type === 'revealOneLetter'
+      ? revealNextPracticeLetter(session.answer, consumableEffects)
+      : removePracticeIncorrectLetters(session.answer, consumableEffects)
+    if (!result.ok) {
+      setContinuationMessage(type === 'revealOneLetter' ? 'Every letter is already revealed.' : 'Incorrect letters are already removed.')
+      return
+    }
+    const operationId = `consume:practice:og:${practiceSeed}:${type}:${result.effects.revealedHints.length}:${result.effects.removedLetters.length}`
+    if (!await onConsumeConsumable(type, operationId)) {
+      setContinuationMessage('This consumable is not available in your inventory.')
+      return
+    }
+    setConsumableEffects(result.effects)
+    scheduleSoloCloudMutation(session, { consumableType: type, eventType: 'consumable_use', puzzleIndex: 0 }, result.effects)
+    setContinuationMessage(type === 'revealOneLetter' ? 'Revealed one letter.' : 'Incorrect keyboard letters were removed.')
+  }, [consumableEffects, onConsumeConsumable, practiceSeed, scheduleSoloCloudMutation, scope, session])
+
+  const handlePayToContinue = useCallback(async () => {
     if (session.status !== 'lost') {
       return
     }
 
-    if (!onSpendCoins(continuationCost)) {
+    if (!await onSpendCoins(continuationCost, `spend:${scope}:og:${setup.dateKey ?? practiceSeed}:continue:${session.continuationCount + 1}`)) {
       setContinuationMessage(`You need ${continuationCost} coins to continue this puzzle.`)
       return
     }
@@ -364,7 +397,7 @@ function OgGameSession({
       return nextSession
     })
     setContinuationMessage(`Spent ${continuationCost} coins for one more attempt.`)
-  }, [continuationCost, onSpendCoins, scheduleSoloCloudMutation, session.status])
+  }, [continuationCost, onSpendCoins, practiceSeed, scheduleSoloCloudMutation, scope, session.continuationCount, session.status, setup.dateKey])
 
   const handleRevealAfterLoss = useCallback(() => {
     if (!canPayToContinue) {
@@ -389,12 +422,12 @@ function OgGameSession({
     setContinuationMessage(`Revealed the answer: ${answer}. This puzzle counts as a loss.`)
   }, [canPayToContinue, scheduleSoloCloudMutation, session.answer])
 
-  const handleReveal = useCallback(() => {
+  const handleReveal = useCallback(async () => {
     if (!canReveal) {
       return
     }
 
-    if (!onSpendCoins(continuationCost)) {
+    if (!await onSpendCoins(continuationCost, `spend:practice:og:${practiceSeed}:reveal`)) {
       setContinuationMessage(`You need ${continuationCost} coins to reveal this answer.`)
       return
     }
@@ -416,7 +449,7 @@ function OgGameSession({
       return nextSession
     })
     setContinuationMessage(`Revealed the answer: ${answer}. This puzzle counts as a loss.`)
-  }, [canReveal, continuationCost, onSpendCoins, scheduleSoloCloudMutation, session.answer])
+  }, [canReveal, continuationCost, onSpendCoins, practiceSeed, scheduleSoloCloudMutation, session.answer])
 
   useKeyboardInput({ disabled: keyboardDisabled, onInput: handleInput })
 
@@ -523,7 +556,7 @@ function OgGameSession({
             tabIndex={-1}
             {...{ [GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE]: GAMEPLAY_AUTOCENTER_TARGETS.soloKeyboard }}
           >
-            <Keyboard disabled={session.status !== 'playing'} letterStates={letterStates} onInput={handleInput} />
+            <Keyboard disabled={session.status !== 'playing'} disabledLetters={scope === 'practice' ? consumableEffects.removedLetters : undefined} letterStates={letterStates} onInput={handleInput} />
           </div>
           {hasPostGuessControls ? (
             <div className="order-2 flex flex-col gap-4 md:order-1">
@@ -532,6 +565,10 @@ function OgGameSession({
             </div>
           ) : null}
         </div>
+
+        {scope === 'practice' ? (
+          <PracticeConsumableControls consumables={consumables} disabled={session.status !== 'playing'} effects={consumableEffects} onUse={handleUseConsumable} />
+        ) : null}
 
 
         {endStateRevealed ? (
@@ -560,7 +597,7 @@ function OgGameSession({
   )
 }
 
-export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onGameComplete, onResumeCapture, onSoloCloudMutation, onSaveDifficultyDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: OgGameProps) {
+export function OgGame({ coins, consumables = { removeIncorrectLetters: 0, revealOneLetter: 0 }, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, defaultHardMode = false, initialResume, keyboardDisabled = false, onAdvancePracticeSeed, onConsumeConsumable, onGameComplete, onResumeCapture, onSoloCloudMutation, onSaveDifficultyDefault, onSpendCoins, practiceSeedCounter = 0, practiceSeedUserId, progressOwnerKey, scope, pastDailyDateKey, onMarkDailyUnlocked }: OgGameProps) {
   const [initialPracticeResume] = useState(() => initialResume?.scope === 'practice' ? initialResume : undefined)
   const initialDailyResume = initialResume?.scope === 'daily' ? initialResume : undefined
   // Practice resume captures are written on every input. Treat the incoming
@@ -600,6 +637,7 @@ export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
     <OgGameSession
       key={sessionKey}
       coins={coins}
+      consumables={consumables}
       defaultDifficulty={defaultDifficulty}
       defaultHardMode={defaultHardMode}
       difficulty={difficulty}
@@ -607,6 +645,7 @@ export function OgGame({ coins, defaultDifficulty = DEFAULT_DIFFICULTY_TIER, def
       onDifficultyChange={(tier) => { setResumeConsumed(true); setDifficulty(tier) }}
       onGameComplete={onGameComplete}
       onMarkDailyUnlocked={onMarkDailyUnlocked}
+      onConsumeConsumable={onConsumeConsumable}
       onPracticeLengthChange={(length) => { setResumeConsumed(true); setPracticeLength(length) }}
       onPracticeSeedChange={() => {
         setResumeConsumed(true)

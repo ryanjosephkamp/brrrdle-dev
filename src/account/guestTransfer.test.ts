@@ -27,6 +27,34 @@ describe('guest transfer', () => {
     expect(merged.progression.level).toBe(2)
   })
 
+  it('keeps the higher-revision economy snapshot instead of resurrecting spent resources', () => {
+    const stale = {
+      ...createDefaultGuestProgress(),
+      progression: {
+        ...createDefaultGuestProgress().progression,
+        coins: 100,
+        consumables: { removeIncorrectLetters: 2, revealOneLetter: 2 },
+        economyRevision: 1,
+      },
+    }
+    const spent = {
+      ...createDefaultGuestProgress(),
+      progression: {
+        ...createDefaultGuestProgress().progression,
+        coins: 35,
+        consumables: { removeIncorrectLetters: 0, revealOneLetter: 1 },
+        economyRevision: 4,
+      },
+    }
+
+    expect(mergeGuestProgressIntoCloud(stale, spent).progression).toMatchObject({
+      coins: 35,
+      consumables: { removeIncorrectLetters: 0, revealOneLetter: 1 },
+      economyRevision: 4,
+    })
+    expect(mergeGuestProgressIntoCloud(spent, stale).progression.coins).toBe(35)
+  })
+
   it('keeps the difficulty default from the side with more history (signed-in persistence)', () => {
     const local = {
       ...createDefaultGuestProgress(),

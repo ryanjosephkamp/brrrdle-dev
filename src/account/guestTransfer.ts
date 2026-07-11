@@ -56,17 +56,29 @@ export function mergeGuestProgressIntoCloud(local: GuestProgressState, cloud: Gu
   const settings = normalizeGuestSettings(local.history.length >= cloud.history.length ? local.settings : cloud.settings)
   const resumeSlots = mergeResumeSlots(local.resumeSlots, cloud.resumeSlots)
   const resumeSlot = getLatestResumeSlot(resumeSlots ?? {}) ?? local.resumeSlot ?? cloud.resumeSlot
+  const localEconomyRevision = local.progression.economyRevision ?? 0
+  const cloudEconomyRevision = cloud.progression.economyRevision ?? 0
+  const economy = localEconomyRevision === cloudEconomyRevision
+    ? {
+        coins: Math.max(local.progression.coins, cloud.progression.coins),
+        consumables: {
+          removeIncorrectLetters: Math.max(local.progression.consumables.removeIncorrectLetters, cloud.progression.consumables.removeIncorrectLetters),
+          revealOneLetter: Math.max(local.progression.consumables.revealOneLetter, cloud.progression.consumables.revealOneLetter),
+        },
+        economyOperationIds: Array.from(new Set([...(cloud.progression.economyOperationIds ?? []), ...(local.progression.economyOperationIds ?? [])])).slice(-500),
+        economyRevision: localEconomyRevision,
+      }
+    : localEconomyRevision > cloudEconomyRevision ? local.progression : cloud.progression
 
   return {
     ...cloud,
     completedGameIds: Array.from(new Set([...cloud.completedGameIds, ...local.completedGameIds])),
     history,
     progression: {
-      coins: Math.max(local.progression.coins, cloud.progression.coins),
-      consumables: {
-        removeIncorrectLetters: Math.max(local.progression.consumables.removeIncorrectLetters, cloud.progression.consumables.removeIncorrectLetters),
-        revealOneLetter: Math.max(local.progression.consumables.revealOneLetter, cloud.progression.consumables.revealOneLetter),
-      },
+      coins: economy.coins,
+      consumables: economy.consumables,
+      economyOperationIds: economy.economyOperationIds,
+      economyRevision: economy.economyRevision,
       level: getLevelForXp(xp),
       xp,
     },

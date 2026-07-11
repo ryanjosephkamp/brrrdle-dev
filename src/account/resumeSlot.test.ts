@@ -47,6 +47,12 @@ function goSession(overrides: Partial<Parameters<typeof isGoSessionInProgress>[0
 }
 
 describe('resume slot model', () => {
+  it('treats a consumable effect as durable started Practice state before the first guess', () => {
+    expect(isOgSessionInProgress({
+      answer: 'SLATE', continuationCount: 0, currentGuess: '', guesses: [], hardMode: false, maxAttempts: 6,
+      consumableEffects: { removedLetters: [], revealedHints: [{ index: 0, letter: 's' }] },
+    })).toBe(true)
+  })
   it('treats an untouched og board as not in progress', () => {
     expect(isOgSessionInProgress(ogSession())).toBe(false)
   })

@@ -1,5 +1,10 @@
 export type ConsumableType = 'revealOneLetter' | 'removeIncorrectLetters'
 
+export interface ConsumableEffects {
+  readonly removedLetters: readonly string[]
+  readonly revealedHints: readonly { readonly index: number; readonly letter: string }[]
+}
+
 export const CONSUMABLE_COSTS: Readonly<Record<ConsumableType, number>> = {
   removeIncorrectLetters: 40,
   revealOneLetter: 25,

@@ -5,6 +5,7 @@ import { getDailyOgPuzzle } from '../../data/daily'
 import { DAILY_WORD_LENGTH, SUPPORTED_PRACTICE_WORD_LENGTHS } from '../constants'
 import { createPuzzleSession, type PuzzleSessionState } from '../session'
 import { getGuessResult } from '../tileStates'
+import type { ConsumableEffects } from '../../progression/consumables'
 
 export interface OgPuzzleSetup {
   readonly answer: string
@@ -21,6 +22,7 @@ export interface SerializedOgSession {
   readonly hardMode: boolean
   readonly maxAttempts: number
   readonly revealedAnswer?: boolean
+  readonly consumableEffects?: ConsumableEffects
 }
 
 function selectPracticeAnswer(answers: readonly WordEntry[], seed: number): string {

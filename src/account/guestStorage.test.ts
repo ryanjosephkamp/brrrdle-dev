@@ -31,6 +31,27 @@ describe('guest storage', () => {
     expect(loadGuestProgress(createMemoryStorage(JSON.stringify({ schemaVersion: 99 }))).progression.level).toBe(1)
   })
 
+  it('normalizes malformed Phase 57 economy cache fields without losing legacy coins', () => {
+    const legacy = createDefaultGuestProgress()
+    const migrated = loadGuestProgress(createMemoryStorage(JSON.stringify({
+      ...legacy,
+      progression: {
+        ...legacy.progression,
+        coins: 17,
+        consumables: { removeIncorrectLetters: -2, revealOneLetter: 'bad' },
+        economyOperationIds: ['valid', '', 'valid', 42],
+        economyRevision: -9,
+      },
+    })))
+
+    expect(migrated.progression).toMatchObject({
+      coins: 17,
+      consumables: { removeIncorrectLetters: 0, revealOneLetter: 0 },
+      economyOperationIds: ['valid'],
+      economyRevision: 0,
+    })
+  })
+
   it('migrates legacy v1 payloads without losing progress and fills the difficulty default', () => {
     const legacy = createDefaultGuestProgress()
     const legacyPayload = JSON.stringify({

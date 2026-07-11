@@ -86,6 +86,8 @@ describe('stats selectors', () => {
     const progression: GuestProgressionState = {
       coins: 0,
       consumables: { removeIncorrectLetters: 0, revealOneLetter: 0 },
+      economyOperationIds: [],
+      economyRevision: 0,
       level: 2,
       xp: 150,
     }

@@ -10,6 +10,8 @@ scenarios use two isolated browser contexts and Supabase-backed persistence.
 - `npm run test:e2e:daily` runs tests tagged `@daily`.
 - `npm run test:e2e:multiplayer` runs tests tagged `@multiplayer`.
 - `npm run test:e2e:solo` runs tests tagged `@solo`.
+- `npx playwright test e2e/gameplay/solo-practice-consumables-phase57.spec.ts` verifies guest Marketplace purchase plus durable OG/GO Solo Practice effects.
+- `E2E_PHASE57_ECONOMY_AUTHORITY=enabled npx playwright test e2e/gameplay/solo-practice-consumables-phase57-authenticated.spec.ts` verifies signed-in bootstrap, pricing, ranges, idempotency/concurrency, privacy, cross-browser hydration, OG/GO effects, exclusions, mobile fit, and cleanup against the applied Phase 57 authority contract.
 - `npx playwright test e2e/gameplay/practice-multiplayer-go.spec.ts -g "GO transitions"` runs one scenario.
 
 ## Environment

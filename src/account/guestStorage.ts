@@ -1,4 +1,4 @@
-import { calculateCoinAward, calculateXpAward, getLevelForXp } from '../progression'
+import { applyEconomyCommand, calculateCoinAward, calculateXpAward, createEconomySnapshot, getLevelForXp } from '../progression'
 import type { DifficultyTier } from '../data/difficulty'
 import { updateStatistics } from '../stats/statistics'
 import type { CompletedGameStatsInput } from '../stats/types'
@@ -30,7 +30,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isGuestProgressState(value: unknown): value is GuestProgressState {
   return isRecord(value)
-    && (value.schemaVersion === 1 || value.schemaVersion === 2 || value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === 9 || value.schemaVersion === GUEST_PROGRESS_SCHEMA_VERSION)
+    && (value.schemaVersion === 1 || value.schemaVersion === 2 || value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === 9 || value.schemaVersion === 10 || value.schemaVersion === GUEST_PROGRESS_SCHEMA_VERSION)
     && isRecord(value.progression)
     && typeof value.progression.xp === 'number'
     && typeof value.progression.level === 'number'
@@ -64,11 +64,26 @@ export function migrateGuestProgress(value: unknown): GuestProgressState | undef
     return undefined
   }
 
+  const economy = createEconomySnapshot({
+    appliedOperationIds: Array.isArray(value.progression.economyOperationIds)
+      ? value.progression.economyOperationIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+      : [],
+    coins: value.progression.coins,
+    consumables: value.progression.consumables,
+    revision: value.progression.economyRevision,
+  })
   return {
     ...value,
     multiplayer: normalizeMultiplayerState(value.multiplayer ?? (value as unknown as Record<string, unknown>).asyncMultiplayer),
     competitiveMultiplayer: normalizeCompetitiveMultiplayerState(value.competitiveMultiplayer),
     practiceSeeds: normalizePracticeSeedState(value.practiceSeeds),
+    progression: {
+      ...value.progression,
+      coins: economy.coins,
+      consumables: economy.consumables,
+      economyOperationIds: economy.appliedOperationIds,
+      economyRevision: economy.revision,
+    },
     resumeSlot: normalizeResumeSlot(value.resumeSlot),
     resumeSlots: migrateResumeSlots(value),
     schemaVersion: GUEST_PROGRESS_SCHEMA_VERSION,
@@ -123,6 +138,16 @@ export function recordCompletedGame(
 
   const xpAward = calculateXpAward(input)
   const coinAward = calculateCoinAward(input)
+  const economyResult = applyEconomyCommand(createEconomySnapshot({
+    appliedOperationIds: currentProgress.progression.economyOperationIds,
+    coins: currentProgress.progression.coins,
+    consumables: currentProgress.progression.consumables,
+    revision: currentProgress.progression.economyRevision,
+  }), {
+    amount: coinAward,
+    operationId: `reward:${input.gameId}`,
+    type: 'award',
+  })
   const xp = currentProgress.progression.xp + xpAward
   const historyEntry: GameHistoryEntry = {
     attemptsUsed: input.attemptsUsed,
@@ -147,7 +172,10 @@ export function recordCompletedGame(
     history: [historyEntry, ...currentProgress.history].slice(0, 200),
     progression: {
       ...currentProgress.progression,
-      coins: currentProgress.progression.coins + coinAward,
+      coins: economyResult.snapshot.coins,
+      consumables: economyResult.snapshot.consumables,
+      economyOperationIds: economyResult.snapshot.appliedOperationIds,
+      economyRevision: economyResult.snapshot.revision,
       level: getLevelForXp(xp),
       xp,
     },

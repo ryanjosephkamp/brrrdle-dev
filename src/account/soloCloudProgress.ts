@@ -3,6 +3,7 @@ import { normalizeGoPuzzleCount, type GoPuzzleCount } from '../game/constants'
 import type { SerializedGoSession } from '../game/go/session'
 import type { SerializedOgSession } from '../game/og/session'
 import type { GameMode, GameStatus, PlayScope } from '../game/types'
+import type { ConsumableType } from '../progression'
 import type { BrrrdleSupabaseClient } from './supabaseClient'
 import type { GuestProgressState } from './storageSchema'
 import {
@@ -21,10 +22,11 @@ import {
 const SOLO_CLOUD_HISTORY_KIND = 'solo-cloud-session-v1'
 const SOLO_CLOUD_HISTORY_ID_PREFIX = 'solo'
 
-export type SoloCloudMutationEventType = 'valid_guess' | 'pay_to_continue' | 'reveal'
+export type SoloCloudMutationEventType = 'valid_guess' | 'pay_to_continue' | 'reveal' | 'consumable_use'
 
 export interface SoloCloudMutationEventInput {
   readonly cost?: number
+  readonly consumableType?: ConsumableType
   readonly eventType: SoloCloudMutationEventType
   readonly guess?: string
   readonly puzzleIndex: number
@@ -46,6 +48,7 @@ export interface SoloCloudMutation {
 
 export interface SoloCloudEvent {
   readonly cost?: number
+  readonly consumableType?: ConsumableType
   readonly createdAt: string
   readonly eventId: string
   readonly eventType: SoloCloudMutationEventType
@@ -165,6 +168,7 @@ function normalizeSoloCloudEvent(value: unknown): SoloCloudEvent | undefined {
     value.eventType !== 'valid_guess'
     && value.eventType !== 'pay_to_continue'
     && value.eventType !== 'reveal'
+    && value.eventType !== 'consumable_use'
   ) {
     return undefined
   }
@@ -178,6 +182,9 @@ function normalizeSoloCloudEvent(value: unknown): SoloCloudEvent | undefined {
   return {
     ...(typeof value.cost === 'number' ? { cost: Math.max(0, Math.trunc(value.cost)) } : {}),
     createdAt,
+    ...(value.consumableType === 'revealOneLetter' || value.consumableType === 'removeIncorrectLetters'
+      ? { consumableType: value.consumableType }
+      : {}),
     eventId: value.eventId,
     eventType: value.eventType,
     ...(typeof value.guess === 'string' ? { guess: value.guess.toLocaleUpperCase('en-US') } : {}),
@@ -246,6 +253,10 @@ function getCurrentPuzzleIndex(mutation: Pick<SoloCloudMutation, 'mode' | 'seria
 
 function getEventSequence(mutation: SoloCloudMutation): string {
   if (mutation.mode === 'og' && isSerializedOgSession(mutation.serializedSession)) {
+    if (mutation.event.eventType === 'consumable_use') {
+      const effects = mutation.serializedSession.consumableEffects
+      return `${effects?.revealedHints.length ?? 0}-${effects?.removedLetters.length ?? 0}`
+    }
     if (mutation.event.eventType === 'pay_to_continue') {
       return String(mutation.serializedSession.continuationCount)
     }
@@ -259,6 +270,10 @@ function getEventSequence(mutation: SoloCloudMutation): string {
     const puzzle = mutation.serializedSession.puzzles[mutation.event.puzzleIndex]
     if (!puzzle) {
       return 'unknown'
+    }
+    if (mutation.event.eventType === 'consumable_use') {
+      const effects = mutation.serializedSession.consumableEffectsByPuzzle?.[String(mutation.event.puzzleIndex)]
+      return `${effects?.revealedHints.length ?? 0}-${effects?.removedLetters.length ?? 0}`
     }
     if (mutation.event.eventType === 'pay_to_continue') {
       return String(puzzle.continuationCount)
@@ -283,6 +298,7 @@ function createSoloCloudEvent(mutation: SoloCloudMutation, status: GameStatus, c
   return {
     ...(typeof mutation.event.cost === 'number' ? { cost: Math.max(0, Math.trunc(mutation.event.cost)) } : {}),
     createdAt,
+    ...(mutation.event.consumableType ? { consumableType: mutation.event.consumableType } : {}),
     eventId,
     eventType: mutation.event.eventType,
     ...(mutation.event.guess ? { guess: mutation.event.guess.toLocaleUpperCase('en-US') } : {}),

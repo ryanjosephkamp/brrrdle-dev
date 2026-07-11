@@ -98,6 +98,24 @@ describe('solo cloud progress', () => {
     expect(hydrated.progress.resumeSlots?.['daily-og']?.updatedAt).toBe(updatedAt)
   })
 
+  it('keeps private Practice consumable effects in the hydrated serialized session', () => {
+    const hydrated = mergeSoloCloudSessionsIntoProgress(createDefaultGuestProgress(), [createOgRecord({
+      scope: 'practice',
+      serializedSession: {
+        ...createOgRecord().serializedSession,
+        consumableEffects: { removedLetters: ['z'], revealedHints: [{ index: 2, letter: 'a' }] },
+      },
+      sessionKey: 'solo:practice:og:expert:5:1',
+    })])
+    const slot = hydrated.progress.resumeSlots?.['practice-og']
+
+    expect(slot?.mode).toBe('og')
+    expect(slot?.mode === 'og' ? slot.serializedSession.consumableEffects : undefined).toEqual({
+      removedLetters: ['z'],
+      revealedHints: [{ index: 2, letter: 'a' }],
+    })
+  })
+
   it('hydrates completed cloud sessions into display-only slots', () => {
     const hydrated = mergeSoloCloudSessionsIntoProgress(createDefaultGuestProgress(), [
       createOgRecord({

@@ -27,7 +27,7 @@ import { createDefaultPracticeSeedState, type PracticeSeedState } from './practi
  * its safe default via `normalizeGuestSettings`; bumped to 4 in Phase 20
  * Variant 03 so each play lane can remember its own unfinished puzzle.
  */
-export const GUEST_PROGRESS_SCHEMA_VERSION = 10
+export const GUEST_PROGRESS_SCHEMA_VERSION = 11
 
 export interface GuestProgressionState {
   readonly coins: number
@@ -37,6 +37,9 @@ export interface GuestProgressionState {
   }
   readonly level: number
   readonly xp: number
+  /** Phase 57 idempotency cache; signed-in server revisions are authoritative. */
+  readonly economyOperationIds: readonly string[]
+  readonly economyRevision: number
 }
 
 export interface GuestSettingsState {
@@ -218,6 +221,8 @@ export function createDefaultGuestProgress(): GuestProgressState {
       },
       level: 1,
       xp: 0,
+      economyOperationIds: [],
+      economyRevision: 0,
     },
     schemaVersion: GUEST_PROGRESS_SCHEMA_VERSION,
     settings: createDefaultGuestSettings(),

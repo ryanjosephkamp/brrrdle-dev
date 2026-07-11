@@ -301,3 +301,8 @@ Storage configuration. To enable image uploads:
 
 Uploads are limited to PNG, JPEG, or WebP under 200 KB and are stored
 under `avatars/<user-id>/avatar.<ext>` via `supabase.storage.from('avatars').upload(...)`.
+## Phase 57 Solo Practice economy authority
+
+The applied `20260711051818_phase57_solo_practice_marketplace_and_consumables.sql` migration provides owner-private economy state plus an append-only `(user_id, operation_id)` ledger. It bootstraps once from the owner's existing private progress snapshot, serializes commands through the owner row lock, keeps browser roles off both tables, and exposes only authenticated load, reward, spend, purchase, and Solo-Practice consume RPCs with empty search paths and explicit revokes/grants.
+
+The migration tool initially recorded generated remote version `20260711064651`. Exact schema equivalence was proven before a ledger-only transactional reconciliation to source-controlled version `20260711051818`; complete local/remote history now matches at 38 migrations and the Phase 57 catalog fingerprint stayed unchanged. Disposable-account probes verified fixed prices, bootstrap, range/underflow rejection, duplicate and concurrent serialization, cross-user isolation, browser-role revocation, and zero residue. Signed-in Phase 57 E2E must set `E2E_PHASE57_ECONOMY_AUTHORITY=enabled` so RPC failures cannot be hidden by the compatibility gate; the final authority-enabled regression passed 72/72.

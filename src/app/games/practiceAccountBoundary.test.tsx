@@ -153,4 +153,48 @@ describe('Practice Solo account boundaries', () => {
     expect(html).toContain('6 attempts remaining.')
     expect(html).not.toContain('5 attempts remaining.')
   })
+
+  it('renders owned consumables in Practice OG and restores durable hint effects', () => {
+    const serializedSession = {
+      ...createStartedPracticeOgSession(),
+      consumableEffects: { removedLetters: ['z'], revealedHints: [{ index: 0, letter: 'a' }] },
+    }
+    const html = renderToStaticMarkup(
+      <OgGame
+        coins={0}
+        consumables={{ removeIncorrectLetters: 2, revealOneLetter: 3 }}
+        initialResume={{ difficulty: DEFAULT_DIFFICULTY_TIER, mode: 'og', scope: 'practice', serializedSession, updatedAt: '2026-07-11T01:00:00.000Z', wordLength: 5 }}
+        keyboardDisabled
+        onSpendCoins={spendNothing}
+        scope="practice"
+      />,
+    )
+
+    expect(html).toContain('Solo Practice tools')
+    expect(html).toContain('Reveal letter (3)')
+    expect(html).toContain('Remove incorrect letters (2)')
+    expect(html).toContain('Revealed: 1: A')
+    expect(html).toMatch(/aria-label="Enter Z"[^>]*disabled=""/)
+  })
+
+  it('renders owned consumables in Practice GO and restores effects for the active puzzle only', () => {
+    const serializedSession = {
+      ...createStartedPracticeGoSession(),
+      consumableEffectsByPuzzle: { '0': { removedLetters: ['x'], revealedHints: [{ index: 1, letter: 'b' }] } },
+    }
+    const html = renderToStaticMarkup(
+      <GoGame
+        coins={0}
+        consumables={{ removeIncorrectLetters: 1, revealOneLetter: 4 }}
+        initialResume={{ difficulty: DEFAULT_DIFFICULTY_TIER, goPuzzleCount: 5, mode: 'go', scope: 'practice', serializedSession, updatedAt: '2026-07-11T01:00:00.000Z', wordLength: 5 }}
+        keyboardDisabled
+        onSpendCoins={spendNothing}
+        scope="practice"
+      />,
+    )
+
+    expect(html).toContain('Reveal letter (4)')
+    expect(html).toContain('Revealed: 2: B')
+    expect(html).toMatch(/aria-label="Enter X"[^>]*disabled=""/)
+  })
 })

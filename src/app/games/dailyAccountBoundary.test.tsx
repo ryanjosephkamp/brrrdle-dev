@@ -117,6 +117,12 @@ afterEach(() => {
 })
 
 describe('Daily Solo account boundaries', () => {
+  it('never exposes Solo Practice consumables in Daily OG or GO', () => {
+    const og = renderToStaticMarkup(<OgGame coins={0} keyboardDisabled onSpendCoins={spendNothing} scope="daily" />)
+    const go = renderToStaticMarkup(<GoGame coins={0} keyboardDisabled onSpendCoins={spendNothing} scope="daily" />)
+    expect(og).not.toContain('Solo Practice tools')
+    expect(go).not.toContain('Solo Practice tools')
+  })
   it('keeps Daily OG in-progress live resume updates from remounting the active puzzle', () => {
     const started = createStartedDailyOgSession()
     const firstKey = createOgGameSessionKey({
