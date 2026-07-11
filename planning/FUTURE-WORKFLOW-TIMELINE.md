@@ -18,8 +18,9 @@ The canonical intake is `planning/handoffs/POST-SHELL-FOUNDATION-EXPANSION-INTAK
 | --- | --- | --- |
 | 55 | Ranked Daily Multiplayer OG/GO plus narrow private Practice request status/direct routing | Complete; hosted manual review accepted after PR #59. |
 | 56 | Private request center, notification integration, opt-out preference, individual blocking, and anti-spam limits | Accepted and closed after PR #61 hosted review. |
-| 57 | Coin marketplace and consumables restricted to Solo Practice | Review Candidate prepared after remote authority verification; hosted manual review remains. |
-| 58 | Design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff | Preserved from the displaced Phase 55 plan; deferred until foundation acceptance. |
+| 57 | Coin marketplace and consumables restricted to Solo Practice | Accepted and closed after refined Review Candidate PR #64 hosted review. |
+| Post-57 optimization | Preservation-inventory refresh, implementation audit, and evidence-backed deeper-shell optimization planning | Planning-only audit is next after the Phase 57 Final Acceptance backup and Golden Checkpoint. |
+| 58 | Design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff | Preserved from the displaced Phase 55 plan; deferred behind any accepted deeper-shell optimization pass. |
 | 59 | GPT-5.6 SOL frontend rebuild | Deferred behind accepted Phase 58 design/handoff. |
 
 This routing supersedes older statements in this historical document that name Phase 55 as the design phase or Phase 56 as the rebuild. Those statements remain as historical rationale only.
@@ -31,6 +32,8 @@ Phase 56 closure update, 2026-07-11: the user reported that all hosted manual-re
 Phase 57 local implementation update, 2026-07-11: the shared guest/signed-in economy command boundary, lightweight Marketplace, Solo-Practice-only OG/GO effects, persistence contracts, regression tests, and one additive migration are prepared locally. The migration is unapplied; exact application, catalog/authority/concurrency probes, disposable-account E2E, cleanup, and Review Candidate preparation remain the next separate gate.
 
 Phase 57 Review Candidate update, 2026-07-11: the exact migration was applied once, its generated remote ledger version was reconciled to the source-controlled version after equivalence proof, and local/remote histories now match at 38 migrations with unchanged catalog fingerprints. Disposable-account authority/privacy/concurrency and cross-browser OG/GO tests passed with zero residue, followed by a clean 72/72 authority-enabled full browser run. A separately authorized Review Candidate backup and hosted manual review remain before acceptance.
+
+Phase 57 final acceptance and post-shell routing update, 2026-07-11: after the refined Review Candidate PR #64, the user completed every hosted manual-review item and reported that all checks pass with no known regression. Phase 57 is accepted and ready for its Final Acceptance documentation backup and exact-commit Golden Checkpoint. Before Phase 58 design direction, the user wants a separately gated planning-only pass that refreshes the functionality-preservation inventory and audits the current React/Vite implementation, bundle/runtime costs, browser/mobile performance, tests, and architecture for safe opportunities to produce an even lighter fully functional shell. That audit must not assume a framework or dependency change is beneficial, and no optimization implementation begins until a later approved plan.
 
 Closure update, 2026-07-08: Phase 50 was expanded into the macro-phase recommended here, iterated through the Review Candidate Backup Loop, manually accepted by the user, closed through the separately authorized Final Acceptance Backup, and captured with the Phase 50 Golden Checkpoint. Use the Phase 50 sections of this document as historical rationale and workflow guidance, not as an active Phase 50 prompt.
 

@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phases 55 and 56 are accepted and closed. Phase 57 Solo-Practice marketplace/consumables is a verified Review Candidate awaiting hosted manual review under [planning/phase-57/](phase-57/); the displaced design/SOL handoff plan is preserved under Phase 58.
+7. The active or next phase plan. Phases 55-57 are accepted and closed. The next routed action after the Phase 57 Final Acceptance backup and Golden Checkpoint is a planning-only preservation-inventory refresh and deeper-shell optimization audit; the displaced design/SOL handoff plan remains preserved under Phase 58.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -57,8 +57,8 @@ For normal future work, read:
 - `planning/pre-phase-55/`: accepted functional-shell changelog, performance report, and comprehensive preservation-mapped manual review checklist; Final Acceptance commit `ef2349ac53f8d02959d759615d85cfa85190beb9` is protected by Golden Checkpoint `pre-phase-55-functional-shell-golden-2026-07-10`.
 - `planning/phase-55/`: accepted closeout materials for ranked Daily Multiplayer OG/GO and narrow private Practice request routing; hosted manual review passed after PR #59.
 - `planning/phase-56/`: accepted closeout materials for the Private Request Center, lifecycle notifications, request preferences, directional blocking, anti-spam authority, migration reconciliation, and hosted manual review.
-- `planning/phase-57/`: verified Solo-Practice-only marketplace and consumables Review Candidate, including applied/reconciled authority migration, real signed-in authority/browser evidence, changelog, and manual review checklist.
-- `planning/phase-58/`: preserved design-direction and GPT-5.6 SOL handoff planning, deferred until the foundation phases are accepted; the actual frontend rebuild is routed to Phase 59.
+- `planning/phase-57/`: accepted Solo-Practice-only marketplace and consumables closeout, including applied/reconciled authority migration, real signed-in authority/browser evidence, changelog, and completed manual review checklist.
+- `planning/phase-58/`: preserved design-direction and GPT-5.6 SOL handoff planning, deferred behind the separately gated post-Phase-57 deeper-shell optimization audit and any accepted implementation; the actual frontend rebuild remains routed later.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
