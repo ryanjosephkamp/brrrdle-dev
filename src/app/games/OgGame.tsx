@@ -24,7 +24,7 @@ import {
 } from '../../game'
 import { clearDailyOgStoredSession, loadDailyOgStoredSession, saveDailyOgStoredSession } from '../../game/storage/dailyOgStorage'
 import { dateKeyToLocalDate, getActiveDailyDate } from '../../daily'
-import { calculatePayToContinueCost, createInitialConsumableEffects, removePracticeIncorrectLetters, revealNextPracticeLetter, type ConsumableEffects, type ConsumableType } from '../../progression'
+import { applyPracticeHintsToDraft, calculatePayToContinueCost, createInitialConsumableEffects, deletePracticeDraftLetter, enterPracticeDraftLetter, getPracticeDraftTiles, removePracticeIncorrectLetters, revealNextPracticeLetter, type ConsumableEffects, type ConsumableType } from '../../progression'
 import { PracticeConsumableControls } from '../../marketplace'
 import { useSound } from '../../sound'
 import { Button, Keyboard, Panel, ShareButton } from '../../ui'
@@ -93,7 +93,7 @@ function createInitialDailySession(setup: ReturnType<typeof createDailyOgSetup>,
   return createOgSession(setup, hardMode)
 }
 
-function GuessGrid({ session }: { readonly session: PuzzleSessionState }) {
+function GuessGrid({ effects, session }: { readonly effects: ConsumableEffects; readonly session: PuzzleSessionState }) {
   type GridTile = { readonly isSubmitted: boolean; readonly letter: string; readonly state: GridTileState }
   const rows = useMemo(() => Array.from({ length: session.maxAttempts }, (_, rowIndex) => {
     const submittedGuess = session.guesses[rowIndex]
@@ -102,15 +102,15 @@ function GuessGrid({ session }: { readonly session: PuzzleSessionState }) {
     }
 
     if (rowIndex === session.guesses.length && session.status === 'playing') {
-      return Array.from({ length: session.wordLength }, (_, tileIndex): GridTile => ({
+      return getPracticeDraftTiles(session.currentGuess, session.wordLength, effects).map((tile): GridTile => ({
         isSubmitted: false,
-        letter: session.currentGuess[tileIndex] ?? '',
-        state: session.currentGuess[tileIndex] ? 'current' : 'empty',
+        letter: tile.letter,
+        state: tile.locked ? 'correct' : tile.letter ? 'current' : 'empty',
       }))
     }
 
     return Array.from({ length: session.wordLength }, (): GridTile => ({ isSubmitted: false, letter: '', state: 'empty' }))
-  }), [session.currentGuess, session.guesses, session.maxAttempts, session.status, session.wordLength])
+  }), [effects, session.currentGuess, session.guesses, session.maxAttempts, session.status, session.wordLength])
 
   return (
     <div
@@ -328,10 +328,24 @@ function OgGameSession({
           setContinuationMessage(`${input.value.toLocaleUpperCase('en-US')} was removed for this puzzle.`)
           return currentSession
         }
+        if (scope === 'practice' && consumableEffects.revealedHints.length > 0) {
+          return {
+            ...currentSession,
+            currentGuess: enterPracticeDraftLetter(currentSession.currentGuess, currentSession.wordLength, consumableEffects, input.value),
+            lastValidation: undefined,
+          }
+        }
         return enterLetter(currentSession, input.value)
       }
 
       if (input.type === 'delete') {
+        if (scope === 'practice' && consumableEffects.revealedHints.length > 0) {
+          return {
+            ...currentSession,
+            currentGuess: deletePracticeDraftLetter(currentSession.currentGuess, currentSession.wordLength, consumableEffects),
+            lastValidation: undefined,
+          }
+        }
         return deleteLetter(currentSession)
       }
 
@@ -352,17 +366,24 @@ function OgGameSession({
       }
       return nextSession
     })
-  }, [consumableEffects.removedLetters, scheduleSoloCloudMutation, sound])
+  }, [consumableEffects, scheduleSoloCloudMutation, scope, sound])
 
   const handleUseConsumable = useCallback(async (type: ConsumableType) => {
     if (scope !== 'practice' || session.status !== 'playing' || !onConsumeConsumable) {
       return
     }
     const result = type === 'revealOneLetter'
-      ? revealNextPracticeLetter(session.answer, consumableEffects)
-      : removePracticeIncorrectLetters(session.answer, consumableEffects)
+      ? revealNextPracticeLetter(session.answer, consumableEffects, {
+          guesses: session.guesses,
+          selectionKey: `practice:og:${practiceSeed}:reveal:${consumableEffects.revealedHints.length}`,
+        })
+      : removePracticeIncorrectLetters(session.answer, consumableEffects, {
+          currentGuess: session.currentGuess,
+          guesses: session.guesses,
+          selectionKey: `practice:og:${practiceSeed}:remove:${consumableEffects.removedLetters.length}`,
+        })
     if (!result.ok) {
-      setContinuationMessage(type === 'revealOneLetter' ? 'Every letter is already revealed.' : 'Incorrect letters are already removed.')
+      setContinuationMessage(type === 'revealOneLetter' ? 'Every answer position is already resolved.' : 'No eligible incorrect letters remain.')
       return
     }
     const operationId = `consume:practice:og:${practiceSeed}:${type}:${result.effects.revealedHints.length}:${result.effects.removedLetters.length}`
@@ -370,10 +391,22 @@ function OgGameSession({
       setContinuationMessage('This consumable is not available in your inventory.')
       return
     }
+    const isRevealResult = 'completed' in result
+    const nextSession = isRevealResult
+      ? result.completed
+        ? submitGuess({ ...session, currentGuess: session.answer, lastValidation: undefined })
+        : { ...session, currentGuess: applyPracticeHintsToDraft(session.currentGuess, session.wordLength, result.effects), lastValidation: undefined }
+      : session
     setConsumableEffects(result.effects)
-    scheduleSoloCloudMutation(session, { consumableType: type, eventType: 'consumable_use', puzzleIndex: 0 }, result.effects)
-    setContinuationMessage(type === 'revealOneLetter' ? 'Revealed one letter.' : 'Incorrect keyboard letters were removed.')
-  }, [consumableEffects, onConsumeConsumable, practiceSeed, scheduleSoloCloudMutation, scope, session])
+    setSession(nextSession)
+    scheduleSoloCloudMutation(nextSession, { consumableType: type, eventType: 'consumable_use', puzzleIndex: 0 }, result.effects)
+    if (isRevealResult && result.completed) {
+      for (const event of getSoloSubmitSoundEvents({ solved: true, validationFailed: false })) sound.play(event)
+    }
+    setContinuationMessage(isRevealResult
+      ? result.completed ? 'The final letter was revealed. Puzzle solved.' : 'Revealed one letter on the board.'
+      : `Removed ${result.removedLetters.length} incorrect keyboard letter${result.removedLetters.length === 1 ? '' : 's'}.`)
+  }, [consumableEffects, onConsumeConsumable, practiceSeed, scheduleSoloCloudMutation, scope, session, sound])
 
   const handlePayToContinue = useCallback(async () => {
     if (session.status !== 'lost') {
@@ -453,7 +486,10 @@ function OgGameSession({
 
   useKeyboardInput({ disabled: keyboardDisabled, onInput: handleInput })
 
-  const letterStates = deriveKeyboardLetterStates(session.guesses)
+  const letterStates = {
+    ...deriveKeyboardLetterStates(session.guesses),
+    ...Object.fromEntries(consumableEffects.revealedHints.map((hint) => [hint.letter, 'correct' as const])),
+  }
   const statusMessage = session.status === 'won'
     ? 'Solved. Daily completion is preserved on refresh.'
     : session.status === 'lost'
@@ -543,7 +579,7 @@ function OgGameSession({
           Hard mode
         </label>
 
-        <GuessGrid session={session} />
+        <GuessGrid effects={scope === 'practice' ? consumableEffects : createInitialConsumableEffects()} session={session} />
 
         <div aria-live="polite" className="min-h-20 rounded-2xl border border-slate-700 bg-slate-950/70 p-3 text-sm leading-6 text-slate-200" role="status">
           <p>{statusMessage}</p>

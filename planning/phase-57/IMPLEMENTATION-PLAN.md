@@ -1,6 +1,6 @@
 # Phase 57 Solo Practice Marketplace And Consumables Implementation Plan
 
-> **For agentic workers:** Use `superpowers:executing-plans`, `superpowers:test-driven-development`, the Supabase skill, and the existing brrrdle E2E fixtures. Keep source and migration work test-first. The initial implementation stops before remote migration application.
+> **For agentic workers:** Use `superpowers:executing-plans`, `superpowers:test-driven-development`, the Supabase skill, and the existing brrrdle E2E fixtures. The original implementation tasks are retained for history. For work after Review Candidate PR #63, follow the hosted-review addendum below and do not edit or reapply the migration.
 
 **Goal:** Add a lightweight coin marketplace and durable consumable inventory, with consumables usable only in Solo Practice OG/GO and never in Daily or Multiplayer.
 
@@ -19,6 +19,29 @@
 - Do not reveal answers or private hint state through public profiles, history summaries, notifications, logs, URLs, multiplayer projections, or browser-readable public tables.
 - Keep the functional shell lightweight and usable at 320/390px with no horizontal overflow.
 - Prepare at most one additive Phase 57 migration. Stop if a secure cohesive contract needs multiple migrations or broader economy architecture.
+
+## Hosted Manual Review Follow-Up Addendum - 2026-07-11
+
+The original local, migration, authority, and Review Candidate tasks are complete through PR #63 and merge commit `c89ea55c827e6b867432fcedf2dc0f3500eb7b3f`. Phase 57 remains open because hosted review clarified the two consumable gameplay projections.
+
+Only the following work is reopened:
+
+1. Replace lowest-index text-only Reveal behavior with retry-stable pseudo-random unresolved-position selection and a locked green active-row projection.
+2. Route a final-position Reveal through existing canonical OG win or GO solved-transition behavior exactly once.
+3. Replace one-use remove-all behavior with repeatable retry-stable pseudo-random batches of at most five eligible wrong keyboard letters.
+4. Expand focused and real E2E coverage, rerun the complete gate, update Phase 57 continuity, and return to Review Candidate.
+
+The applied migration, economy RPCs, prices, authority boundaries, and private persistence fields must remain unchanged. This addendum does not reopen remote migration work, Marketplace architecture, Daily/Multiplayer consumable availability, reward/XP/Elo formulas, shell redesign, Git/GitHub backup, final acceptance, or Phase 58 work.
+
+### Follow-up execution result
+
+- [x] Added retry-stable unresolved-position selection that treats duplicate letters positionally and includes submitted/prefilled green evidence.
+- [x] Projected Reveal hints as locked green active-row tiles, preserved them through input/delete, merged them into submission and keyboard evidence, and retained private resume/cloud persistence.
+- [x] Routed final-position Reveal through canonical OG completion, GO solved-row transition, and GO final-chain completion.
+- [x] Replaced one-use remove-all behavior with repeatable stable batches of at most five eligible wrong keys, including draft/submitted-evidence exclusions and no-candidate no-spend behavior.
+- [x] Passed focused guest and authenticated browser coverage plus the complete 998-unit and 74-E2E regression gates without migration or remote-contract changes.
+
+The implementation is ready for a new Review Candidate backup and hosted/manual review. Phase 57 remains open.
 
 ## Current Implementation Audit
 
@@ -55,10 +78,15 @@
 
 ### Solo-Practice effects
 
-- Reveal One Letter consumes one item and permanently reveals the lowest-index answer position not already revealed for the active puzzle. It displays a private position/letter hint and does not auto-submit, mutate prior guesses, award progress, or bypass word validation. It may be used repeatedly until every position is revealed; a fully revealed puzzle must not consume inventory.
-- Remove Incorrect Letters consumes one item at most once per puzzle and disables every answer-absent letter on both on-screen and physical-keyboard paths. Attempts to enter a removed letter are ignored with an accessible status message. It never disables a correct answer letter.
+- Reveal One Letter consumes one item and selects one unresolved answer position from the active puzzle. Selection must be pseudo-random but stable for the same session, puzzle, and use ordinal so retries cannot choose a different result. A position is resolved when a submitted or prefilled row already proves it correct or an earlier Reveal effect covers it.
+- A revealed position must appear in the active board row as a locked green answer letter. On-screen and physical-keyboard input must skip and preserve locked cells, submissions must include them, and the corresponding keyboard letter must project as correct. The old standalone `Revealed: position/letter` presentation may remain only as accessible status copy, not as the primary effect.
+- If a Reveal use resolves the last unresolved position, consume exactly one item, materialize one canonical all-green winning row, and use the existing win/completion path. OG must show its ordinary result screen; GO must use its ordinary solved-row hold, advance, and final-chain behavior. Completion, history, rewards, and stats must remain idempotent and occur once.
+- Remove Incorrect Letters consumes one item per successful use and selects a pseudo-random batch of at most five currently eligible answer-absent keyboard letters. Eligible letters exclude answer letters, letters already ruled absent by submitted guesses, letters removed by prior uses, and letters currently present in the unsent draft. If one through five candidates remain, remove all of them; if more than five remain, remove exactly five.
+- Remove Incorrect Letters may be used repeatedly on the same puzzle while eligible letters remain and inventory is available. A use with no eligible letters must not consume inventory. Removed keys remain disabled on both on-screen and physical-keyboard paths with an accessible status message, and a use must never disable a correct answer letter or mutate the current draft.
 - GO effects are puzzle-scoped; moving to the next puzzle starts with no effect unless the player consumes another item. Starting a new Practice puzzle/chain never carries old hint effects forward.
 - Effects remain through refresh/re-entry and signed-in hydration for that exact Practice session/puzzle.
+
+The behavior above supersedes the original lowest-index private-text Reveal and one-use remove-all behavior. It does not change Marketplace prices, inventory authority, the applied Phase 57 migration, or any Daily/Multiplayer boundary.
 
 ### Economy authority
 
@@ -101,7 +129,7 @@
 ### Task 2 - Build the pure economy and effect domain
 
 - [ ] Define exact catalog/types and a pure guest command reducer with operation-id deduplication, non-negative balance/inventory, fixed prices, and Practice-only use validation.
-- [ ] Define puzzle-scoped effect state and deterministic Reveal/Remove behavior, including fully-revealed and already-removed no-spend failures.
+- [ ] Define puzzle-scoped effect state and retry-stable pseudo-random selection for unresolved Reveal positions and repeated Remove batches of at most five, including no-candidate no-spend failures.
 - [ ] Add normalization for malformed/legacy state and prove old saves retain their exact coin balance and inventory.
 - [ ] Run `npx vitest run src/progression/economy.test.ts src/progression/progression.test.ts src/account/guestStorage.test.ts src/account/guestTransfer.test.ts` to green.
 
@@ -131,7 +159,8 @@
 
 - [ ] Add inventory controls only when `scope === 'practice'`; assert their absence in every Daily render and every Multiplayer surface.
 - [ ] Persist private puzzle-scoped effects through resume captures and Solo cloud mutation events without exposing them in public history or projections.
-- [ ] Apply Reveal One Letter as a private hint and Remove Incorrect Letters to on-screen and physical keyboard entry without changing guesses, tiles, Hard Mode evidence, completion, definitions, or rewards.
+- [ ] Project Reveal One Letter into the active row as a locked green cell, merge it into keyboard state and submitted guesses, and route a final-position reveal through the canonical OG win or GO solved-transition path exactly once.
+- [ ] Apply Remove Incorrect Letters in repeated pseudo-random batches of at most five eligible wrong keys, preserving the unsent draft and rejecting removed keys on both input paths.
 - [ ] Prove GO effects reset per puzzle and all effects reset for a new puzzle/chain.
 - [ ] Add refresh, route re-entry, sign-out/sign-in, and fresh-browser restoration tests.
 
@@ -146,8 +175,10 @@
 
 - Purchase each item, refresh, sign out/in, and restore the same balance/inventory in a fresh browser.
 - Concurrent same-id purchase grants/spends once; distinct concurrent purchases cannot overdraw.
-- Practice OG and each GO puzzle consume inventory once and persist the exact private effect.
-- Fully revealed/already-removed/insufficient-inventory attempts do not spend.
+- Practice OG and each GO puzzle consume inventory once per successful use and persist the exact private effect.
+- Reveal selects only unresolved positions, renders a locked green board cell, survives reload/hydration, and completes OG/GO through the existing terminal or transition flow when it resolves the final position.
+- Remove selects no more than five eligible wrong keys per use, supports repeated uses, preserves the current draft, and removes all remaining eligible keys only when five or fewer remain.
+- Fully resolved/no-eligible/insufficient-inventory attempts do not spend.
 - Daily OG/GO, past Daily, ranked/unranked/private Multiplayer, Live/Lobby, and spectators expose no controls and receive no effects.
 - Existing reward, Pay-to-Continue, reveal-answer, past-Daily unlock, Solo persistence, Home-on-refresh, Phase 56 request center, ranked matchmaking, and spectator tests remain green.
 - Cleanup removes temporary economy rows/operations, Solo history, progress snapshots, game rows, and Auth users.

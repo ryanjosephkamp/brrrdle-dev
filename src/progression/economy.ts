@@ -1,5 +1,5 @@
-import type { PlayScope } from '../game/types'
-import { CONSUMABLE_COSTS, removeIncorrectLetters, revealOneLetter, type ConsumableEffects, type ConsumableType } from './consumables'
+import type { GuessResult, PlayScope } from '../game/types'
+import { CONSUMABLE_COSTS, type ConsumableEffects, type ConsumableType } from './consumables'
 
 export interface EconomySnapshot {
   readonly appliedOperationIds: readonly string[]
@@ -89,18 +89,123 @@ export function createInitialConsumableEffects(value?: Partial<ConsumableEffects
   return { removedLetters, revealedHints }
 }
 
-export function revealNextPracticeLetter(answer: string, effects: ConsumableEffects):
-  | { readonly ok: true; readonly effects: ConsumableEffects; readonly hint: { readonly index: number; readonly letter: string } }
-  | { readonly ok: false; readonly effects: ConsumableEffects; readonly reason: 'fully-revealed' } {
-  const hint = revealOneLetter(answer, effects.revealedHints.map((entry) => entry.index))
-  if (!hint.ok) return { ok: false, effects, reason: hint.reason }
-  const next = createInitialConsumableEffects({ ...effects, revealedHints: [...effects.revealedHints, { index: hint.index, letter: hint.letter }] })
-  return { ok: true, effects: next, hint: { index: hint.index, letter: hint.letter } }
+function stableHash(value: string): number {
+  let hash = 2166136261
+  for (const character of value) {
+    hash ^= character.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
 }
 
-export function removePracticeIncorrectLetters(answer: string, effects: ConsumableEffects, candidates?: string):
-  | { readonly ok: true; readonly effects: ConsumableEffects }
-  | { readonly ok: false; readonly effects: ConsumableEffects; readonly reason: 'already-applied' } {
-  if (effects.removedLetters.length > 0) return { ok: false, effects, reason: 'already-applied' }
-  return { ok: true, effects: createInitialConsumableEffects({ ...effects, removedLetters: removeIncorrectLetters(answer, candidates) }) }
+function stableSelection<T extends string | number>(values: readonly T[], selectionKey: string, limit: number): readonly T[] {
+  return [...values]
+    .sort((left, right) => {
+      const score = stableHash(`${selectionKey}:${String(left)}`) - stableHash(`${selectionKey}:${String(right)}`)
+      return score || String(left).localeCompare(String(right), 'en-US')
+    })
+    .slice(0, limit)
+}
+
+function resolvedPracticePositions(guesses: readonly GuessResult[], effects: ConsumableEffects): ReadonlySet<number> {
+  const resolved = new Set(effects.revealedHints.map((hint) => hint.index))
+  for (const guess of guesses) {
+    guess.tiles.forEach((tile, index) => {
+      if (tile.state === 'correct') resolved.add(index)
+    })
+  }
+  return resolved
+}
+
+export function revealNextPracticeLetter(
+  answer: string,
+  effects: ConsumableEffects,
+  options: { readonly guesses?: readonly GuessResult[]; readonly selectionKey: string },
+):
+  | { readonly ok: true; readonly completed: boolean; readonly effects: ConsumableEffects; readonly hint: { readonly index: number; readonly letter: string } }
+  | { readonly ok: false; readonly effects: ConsumableEffects; readonly reason: 'fully-revealed' } {
+  const normalizedAnswer = answer.toLocaleLowerCase('en-US')
+  const resolved = resolvedPracticePositions(options.guesses ?? [], effects)
+  const unresolved = Array.from(normalizedAnswer, (_, index) => index).filter((index) => !resolved.has(index))
+  const index = stableSelection(unresolved, options.selectionKey, 1)[0]
+  if (index === undefined) return { ok: false, effects, reason: 'fully-revealed' }
+  const hint = { index, letter: normalizedAnswer[index] }
+  const next = createInitialConsumableEffects({ ...effects, revealedHints: [...effects.revealedHints, { index: hint.index, letter: hint.letter }] })
+  return { ok: true, completed: unresolved.length === 1, effects: next, hint }
+}
+
+export function removePracticeIncorrectLetters(
+  answer: string,
+  effects: ConsumableEffects,
+  options: {
+    readonly batchSize?: number
+    readonly candidates?: string
+    readonly currentGuess?: string
+    readonly guesses?: readonly GuessResult[]
+    readonly selectionKey: string
+  },
+):
+  | { readonly ok: true; readonly effects: ConsumableEffects; readonly removedLetters: readonly string[] }
+  | { readonly ok: false; readonly effects: ConsumableEffects; readonly reason: 'no-eligible-letters' } {
+  const answerLetters = new Set(answer.toLocaleLowerCase('en-US'))
+  const alreadyAbsent = new Set((options.guesses ?? []).flatMap((guess) => guess.tiles
+    .filter((tile) => tile.state === 'absent')
+    .map((tile) => tile.letter.toLocaleLowerCase('en-US'))))
+  const draftLetters = new Set((options.currentGuess ?? '').toLocaleLowerCase('en-US').replace(/[^a-z]/g, ''))
+  const alreadyRemoved = new Set(effects.removedLetters)
+  const eligible = Array.from(new Set((options.candidates ?? 'abcdefghijklmnopqrstuvwxyz')
+    .toLocaleLowerCase('en-US')
+    .replace(/[^a-z]/g, '')))
+    .filter((letter) => !answerLetters.has(letter) && !alreadyAbsent.has(letter) && !alreadyRemoved.has(letter) && !draftLetters.has(letter))
+  const removedLetters = stableSelection(eligible, options.selectionKey, Math.max(0, options.batchSize ?? 5))
+  if (removedLetters.length === 0) return { ok: false, effects, reason: 'no-eligible-letters' }
+  return {
+    ok: true,
+    effects: createInitialConsumableEffects({ ...effects, removedLetters: [...effects.removedLetters, ...removedLetters] }),
+    removedLetters,
+  }
+}
+
+function revealedPositionSet(effects: ConsumableEffects): ReadonlySet<number> {
+  return new Set(effects.revealedHints.map((hint) => hint.index))
+}
+
+export function applyPracticeHintsToDraft(currentGuess: string, wordLength: number, effects: ConsumableEffects): string {
+  const draft = Array.from({ length: wordLength }, (_, index) => currentGuess[index] ?? ' ')
+  for (const hint of effects.revealedHints) {
+    if (hint.index < wordLength) draft[hint.index] = hint.letter
+  }
+  return draft.join('')
+}
+
+export function enterPracticeDraftLetter(
+  currentGuess: string,
+  wordLength: number,
+  effects: ConsumableEffects,
+  letter: string,
+): string {
+  const draft = Array.from(applyPracticeHintsToDraft(currentGuess, wordLength, effects))
+  const locked = revealedPositionSet(effects)
+  const index = draft.findIndex((value, candidateIndex) => !locked.has(candidateIndex) && value === ' ')
+  if (index < 0 || !/^[a-z]$/i.test(letter)) return draft.join('')
+  draft[index] = letter.toLocaleLowerCase('en-US')
+  return draft.join('')
+}
+
+export function deletePracticeDraftLetter(currentGuess: string, wordLength: number, effects: ConsumableEffects): string {
+  const draft = Array.from(applyPracticeHintsToDraft(currentGuess, wordLength, effects))
+  const locked = revealedPositionSet(effects)
+  for (let index = draft.length - 1; index >= 0; index -= 1) {
+    if (!locked.has(index) && draft[index] !== ' ') {
+      draft[index] = ' '
+      break
+    }
+  }
+  return draft.join('')
+}
+
+export function getPracticeDraftTiles(currentGuess: string, wordLength: number, effects: ConsumableEffects): readonly { readonly letter: string; readonly locked: boolean }[] {
+  const draft = Array.from(applyPracticeHintsToDraft(currentGuess, wordLength, effects))
+  const locked = revealedPositionSet(effects)
+  return draft.map((letter, index) => ({ letter: letter === ' ' ? '' : letter, locked: locked.has(index) }))
 }

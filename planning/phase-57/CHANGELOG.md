@@ -47,3 +47,23 @@ The Phase 57 migration remains local and unapplied. Signed-in authority/catalog/
 - The first authority-enabled full browser run passed 71/72 with the established transient participant-identity `403`; the exact failed GO scenario passed on retry, and the required final authority-enabled rerun passed 72/72.
 
 Phase 57 is now a Review Candidate. It remains open for hosted/manual review and requires a separately authorized Review Candidate GitHub Backup before that review window.
+
+## Hosted manual-review refinement planned - 2026-07-11
+
+The hosted Marketplace, account authority, persistence, mobile fit, and Daily/Multiplayer exclusion checks passed. Manual review clarified two intended Solo Practice tool behaviors before final acceptance:
+
+- Reveal One Letter must select an unresolved position, render the answer letter as a locked green active-row tile, update keyboard evidence, and complete OG or advance GO through the canonical path when the final unresolved position is revealed.
+- Remove Incorrect Letters must remove a pseudo-random batch of at most five eligible wrong keys per successful use, support repeated uses, remove all only when five or fewer eligible keys remain, and avoid spending when no eligible key remains.
+
+This is a bounded source/test follow-up. It does not change Marketplace pricing, economy RPCs, the applied migration, reward/XP/Elo formulas, Daily/Multiplayer availability, or the functional-shell design.
+
+## Consumable behavior refinement Review Candidate - 2026-07-11
+
+- Reveal now selects a retry-stable unresolved answer position, displays it as a locked green tile in the active row, preserves it during typing/deletion, merges it into submissions, and marks the corresponding keyboard letter correct.
+- A Reveal that resolves the final position creates one canonical all-green row. OG follows normal completion; GO follows the existing solved-row hold, next-puzzle transition, and final-chain results.
+- Remove now chooses a retry-stable batch of at most five eligible answer-absent letters. Submitted absent evidence, prior removals, answer letters, and letters in the unsent draft are excluded.
+- Remove may be used repeatedly until no eligible letters remain; a no-candidate use does not consume inventory or mutate the puzzle.
+- Existing private puzzle-scoped persistence fields remain unchanged. No migration, RPC, schema, price, reward, XP, Elo, Daily, Multiplayer, or shell-design contract changed.
+- Verification passed 16 focused domain/component tests, 4 guest browser scenarios, 2 authenticated authority/browser scenarios, lint, build, API typecheck, all 998 unit tests, and all 74 authority-enabled E2E scenarios. Temporary authenticated E2E users/data were cleaned by the existing fixture.
+
+Phase 57 remains open for a separately authorized Review Candidate backup and hosted/manual review.
