@@ -5,6 +5,7 @@ import type { GameMode, PlayScope, TileResult } from '../game/types'
 import {
   createMultiplayerGame,
   createEmptyMultiplayerState,
+  mergeMultiplayerStates,
   normalizeMultiplayerState,
   submitMultiplayerGuess,
   type MultiplayerGame,
@@ -49,6 +50,10 @@ export interface MultiplayerRepository {
   readonly cancelPrivateMatchRequest: (requestId: string) => Promise<PrivateMatchRequestResult>
   readonly declinePrivateMatchRequest: (requestId: string) => Promise<PrivateMatchRequestResult>
   readonly acceptPrivateMatchRequest: (input: AcceptPrivateMatchInput) => Promise<PrivateMatchRequestResult>
+  readonly getPrivateRequestPreference: () => Promise<PrivateRequestPreferenceResult>
+  readonly updatePrivateRequestPreference: (acceptRequests: boolean) => Promise<PrivateRequestPreferenceResult>
+  readonly listPrivateRequestBlocks: () => Promise<readonly PrivateRequestBlockResult[]>
+  readonly setPrivateRequestBlock: (input: SetPrivateRequestBlockInput) => Promise<SetPrivateRequestBlockResult>
   readonly getParticipantIdentitySummaries: (input: GetParticipantIdentitySummariesInput) => Promise<readonly ParticipantIdentitySummaryResult[]>
   readonly subscribe: (listener: (snapshot: MultiplayerRepositorySnapshot) => void) => () => void
 }
@@ -159,6 +164,10 @@ export function createLocalStorageMultiplayerRepository(
     acceptPrivateMatchRequest: async () => {
       throw new Error('Private match requests require authenticated Supabase multiplayer.')
     },
+    getPrivateRequestPreference: async () => ({ acceptPrivatePracticeRequests: true, updatedAt: new Date(0).toISOString() }),
+    updatePrivateRequestPreference: async () => { throw new Error('Private match request preferences require authenticated Supabase multiplayer.') },
+    listPrivateRequestBlocks: async () => [],
+    setPrivateRequestBlock: async () => { throw new Error('Private match request blocks require authenticated Supabase multiplayer.') },
     getParticipantIdentitySummaries: async () => [],
     subscribe: (listener) => {
       listeners.add(listener)
@@ -434,6 +443,30 @@ export interface AcceptPrivateMatchInput {
   readonly game: MultiplayerGame
   readonly idempotencyKey?: string
   readonly requestId: string
+}
+
+export interface PrivateRequestPreferenceResult {
+  readonly acceptPrivatePracticeRequests: boolean
+  readonly updatedAt: string
+}
+
+export interface PrivateRequestBlockResult {
+  readonly accentColor?: string
+  readonly avatarUrl?: string
+  readonly blockedAt: string
+  readonly displayName: string
+  readonly publicProfileId: string
+}
+
+export interface SetPrivateRequestBlockInput {
+  readonly blocked: boolean
+  readonly targetPublicProfileId: string
+}
+
+export interface SetPrivateRequestBlockResult {
+  readonly blocked: boolean
+  readonly publicProfileId: string
+  readonly updatedAt: string
 }
 
 export interface GetParticipantIdentitySummariesInput {
@@ -1733,6 +1766,31 @@ export function normalizePrivateMatchRequestRows(
   return value.flatMap((row) => parsePrivateMatchRequestRow(row, now) ?? [])
 }
 
+function parsePrivateRequestPreferenceRow(row: unknown): PrivateRequestPreferenceResult | undefined {
+  if (!isRecord(row) || Object.keys(row).some((key) => !['accept_private_practice_requests', 'updated_at'].includes(key))) return undefined
+  const acceptPrivatePracticeRequests = getBoolean(row, 'accept_private_practice_requests')
+  const updatedAt = parseTimestamp(row.updated_at)
+  return acceptPrivatePracticeRequests === undefined || !updatedAt ? undefined : { acceptPrivatePracticeRequests, updatedAt }
+}
+
+function parsePrivateRequestBlockRow(row: unknown): PrivateRequestBlockResult | undefined {
+  if (!isRecord(row) || Object.keys(row).some((key) => !['accent_color', 'avatar_url', 'blocked_at', 'display_name', 'flair_key', 'public_profile_id'].includes(key))) return undefined
+  const publicProfileId = getString(row, 'public_profile_id')
+  const displayName = getString(row, 'display_name')
+  const blockedAt = parseTimestamp(row.blocked_at)
+  return !publicProfileId || !displayName || !blockedAt ? undefined : {
+    accentColor: getString(row, 'accent_color'), avatarUrl: getString(row, 'avatar_url'), blockedAt, displayName, publicProfileId,
+  }
+}
+
+function parseSetPrivateRequestBlockRow(row: unknown): SetPrivateRequestBlockResult | undefined {
+  if (!isRecord(row) || Object.keys(row).some((key) => !['blocked', 'public_profile_id', 'updated_at'].includes(key))) return undefined
+  const blocked = getBoolean(row, 'blocked')
+  const publicProfileId = getString(row, 'public_profile_id')
+  const updatedAt = parseTimestamp(row.updated_at)
+  return blocked === undefined || !publicProfileId || !updatedAt ? undefined : { blocked, publicProfileId, updatedAt }
+}
+
 export function normalizeParticipantIdentitySummaryRows(value: unknown): readonly ParticipantIdentitySummaryResult[] {
   if (!Array.isArray(value)) {
     return []
@@ -2033,6 +2091,11 @@ interface RankedDailyGameChange {
   readonly previous?: MultiplayerGame
 }
 
+interface ExistingGameForUpdate {
+  readonly game: MultiplayerGame
+  readonly rowUpdatedAt: string
+}
+
 function rankedDailyMovesHavePrefix(previous: MultiplayerGame, next: MultiplayerGame): boolean {
   return previous.moves.every((move, index) => JSON.stringify(move) === JSON.stringify(next.moves[index]))
 }
@@ -2063,7 +2126,7 @@ async function saveRankedDailyGameRows(
       if (next.moves.length === 0 && next.status === 'playing') {
         continue
       }
-      previous = await loadExistingGameForUpdate(client, next.id)
+      previous = (await loadExistingGameForUpdate(client, next.id))?.game
       if (!previous) {
         throw new Error('Ranked Daily action is missing its previous durable game state.')
       }
@@ -2147,26 +2210,37 @@ function isStaleIncomingGame(existing: MultiplayerGame | undefined, incoming: Mu
   return false
 }
 
-async function loadExistingGameForUpdate(client: BrrrdleSupabaseClient, id: string): Promise<MultiplayerGame | undefined> {
+async function loadExistingGameForUpdate(client: BrrrdleSupabaseClient, id: string): Promise<ExistingGameForUpdate | undefined> {
   const result = await client
     .from('async_multiplayer_games')
-    .select('projection')
+    .select('projection, updated_at')
     .eq('id', id)
     .maybeSingle()
   if (result.error) {
     return undefined
   }
-  return rowToGame(result.data as MultiplayerGameRow)
+  const row = result.data as MultiplayerGameRow
+  const game = rowToGame(row)
+  return game && typeof row.updated_at === 'string'
+    ? { game, rowUpdatedAt: row.updated_at }
+    : undefined
 }
 
 async function updateMultiplayerGameRows(client: BrrrdleSupabaseClient, rows: readonly ReturnType<typeof gameToRow>[]): Promise<void> {
   for (const row of rows) {
-    const existing = await loadExistingGameForUpdate(client, row.id)
+    const existingRow = await loadExistingGameForUpdate(client, row.id)
+    if (!existingRow) {
+      continue
+    }
+    const existing = existingRow.game
     const incoming = normalizeMultiplayerState({ games: [row.projection] }).games[0]
     if (isStaleIncomingGame(existing, incoming)) {
       continue
     }
-    const { error } = await client.from('async_multiplayer_games').update(row).eq('id', row.id)
+    const { error } = await client.from('async_multiplayer_games').update(row).match({
+      id: row.id,
+      updated_at: existingRow.rowUpdatedAt,
+    })
     if (error) {
       throw new Error(`Unable to save multiplayer games: ${error.message}`)
     }
@@ -2200,7 +2274,13 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
     const games = Array.isArray(gamesResult.data)
       ? gamesResult.data.flatMap((row) => rowToGame(row as MultiplayerGameRow) ?? [])
       : []
-    snapshot = createSnapshot({ games }, snapshot.version + 1, serverNow)
+    const serverGameIds = new Set(games.map((game) => game.id))
+    const currentServerGames = snapshot.state.games.filter((game) => serverGameIds.has(game.id))
+    snapshot = createSnapshot(
+      mergeMultiplayerStates({ games }, { games: currentServerGames }),
+      snapshot.version + 1,
+      serverNow,
+    )
     publish()
     return snapshot
   }
@@ -2412,7 +2492,7 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
       )
     },
     createPrivateMatchRequest: async (input) => {
-      const { data, error } = await client.rpc('create_private_multiplayer_match_request', {
+      const { data, error } = await client.rpc('create_private_multiplayer_match_request_v2', {
         p_expires_at: input.expiresAt ?? null,
         p_go_puzzle_count: input.mode === 'go' ? input.goPuzzleCount ?? null : null,
         p_hard_mode: input.hardMode === true,
@@ -2489,6 +2569,29 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
         (row) => parsePrivateMatchRequestRow(row),
         'Unable to parse private match accept result.',
       )
+    },
+    getPrivateRequestPreference: async () => {
+      const { data, error } = await client.rpc('get_private_multiplayer_request_preference')
+      if (error) throw new Error(`Unable to load private match request preference: ${error.message}`)
+      return parseSingleRpcRow(data, parsePrivateRequestPreferenceRow, 'Unable to parse private request preference.')
+    },
+    updatePrivateRequestPreference: async (acceptRequests) => {
+      const { data, error } = await client.rpc('update_private_multiplayer_request_preference', { p_accept: acceptRequests })
+      if (error) throw new Error(`Unable to update private match request preference: ${error.message}`)
+      return parseSingleRpcRow(data, parsePrivateRequestPreferenceRow, 'Unable to parse private request preference.')
+    },
+    listPrivateRequestBlocks: async () => {
+      const { data, error } = await client.rpc('get_private_multiplayer_request_blocks')
+      if (error) throw new Error(`Unable to load private match request blocks: ${error.message}`)
+      return Array.isArray(data) ? data.flatMap((row) => parsePrivateRequestBlockRow(row) ?? []) : []
+    },
+    setPrivateRequestBlock: async (input) => {
+      const { data, error } = await client.rpc('set_private_multiplayer_request_block', {
+        p_blocked: input.blocked,
+        p_target_public_profile_id: input.targetPublicProfileId,
+      })
+      if (error) throw new Error(`Unable to update private match request block: ${error.message}`)
+      return parseSingleRpcRow(data, parseSetPrivateRequestBlockRow, 'Unable to parse private request block result.')
     },
     getParticipantIdentitySummaries: async (input) => {
       const gameId = typeof input.gameId === 'string' && input.gameId.trim() ? input.gameId : null

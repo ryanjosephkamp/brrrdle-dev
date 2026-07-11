@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { exportGuestProgress } from './guestStorage'
 import type { GuestProgressState, GuestSettingsState } from './storageSchema'
 import { DELETE_ACCOUNT_CONFIRMATION, RESET_PROGRESS_CONFIRMATION } from './dangerZone'
@@ -24,6 +24,9 @@ import {
   isNotificationSoundMode,
 } from '../notifications/notificationPreferences'
 import { THEMES, getThemeMeta, isTheme } from '../theme'
+import type { MultiplayerRepository } from '../multiplayer/multiplayerRepository'
+
+type PrivateRequestSettingsActions = Pick<MultiplayerRepository, 'getPrivateRequestPreference' | 'updatePrivateRequestPreference'>
 
 interface SettingsProps {
   readonly authState: AuthState
@@ -43,6 +46,7 @@ interface SettingsProps {
   readonly onToggleSound?: (enabled: boolean) => void
   readonly onUpdateSettings?: (patch: Partial<GuestSettingsState>) => void
   readonly syncStatus: SyncStatusState
+  readonly privateRequestSettingsActions?: PrivateRequestSettingsActions
 }
 
 export function Settings({
@@ -59,6 +63,7 @@ export function Settings({
   onToggleSound,
   onUpdateSettings,
   syncStatus,
+  privateRequestSettingsActions,
 }: SettingsProps) {
   const {
     difficultyDefault,
@@ -71,7 +76,19 @@ export function Settings({
     inAppNotificationMode,
     notificationSoundMode,
     browserNotificationsEnabled,
+    privateRequestNotificationsEnabled,
   } = guestProgress.settings
+  const [acceptPrivateRequests, setAcceptPrivateRequests] = useState(true)
+  const [privateRequestPreferenceBusy, setPrivateRequestPreferenceBusy] = useState(false)
+  const [privateRequestPreferenceMessage, setPrivateRequestPreferenceMessage] = useState<string>()
+  useEffect(() => {
+    if (authState.status !== 'authenticated' || !privateRequestSettingsActions) return
+    let active = true
+    void privateRequestSettingsActions.getPrivateRequestPreference().then((result) => {
+      if (active) setAcceptPrivateRequests(result.acceptPrivatePracticeRequests)
+    }).catch(() => { if (active) setPrivateRequestPreferenceMessage('Unable to load private request preference.') })
+    return () => { active = false }
+  }, [authState.status, privateRequestSettingsActions])
   const [browserNotificationPermission, setBrowserNotificationPermission] = useState(() => (
     getBrowserNotificationPermissionState()
   ))
@@ -237,6 +254,30 @@ export function Settings({
             </label>
             <p className="text-xs text-slate-400">When disabled, existing notification metadata is preserved so items can stay read or dismissed if you turn notifications back on.</p>
           </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 text-slate-100">
+              <input checked={privateRequestNotificationsEnabled} disabled={!inAppNotificationsEnabled} onChange={(event) => onUpdateSettings({ privateRequestNotificationsEnabled: event.target.checked })} type="checkbox" />
+              <span>Show private Practice request notifications</span>
+            </label>
+            <p className="text-xs text-slate-400">Controls request lifecycle items only. It does not change whether other players may send requests.</p>
+          </div>
+          {authState.status === 'authenticated' && privateRequestSettingsActions ? (
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 text-slate-100">
+                <input checked={acceptPrivateRequests} disabled={privateRequestPreferenceBusy} onChange={(event) => {
+                  const next = event.target.checked
+                  setPrivateRequestPreferenceBusy(true)
+                  void privateRequestSettingsActions.updatePrivateRequestPreference(next).then((result) => {
+                    setAcceptPrivateRequests(result.acceptPrivatePracticeRequests)
+                    setPrivateRequestPreferenceMessage('Private request preference saved.')
+                  }).catch(() => setPrivateRequestPreferenceMessage('Unable to save private request preference.')).finally(() => setPrivateRequestPreferenceBusy(false))
+                }} type="checkbox" />
+                <span>Allow new private Practice requests</span>
+              </label>
+              <p className="text-xs text-slate-400">This signed-in account preference is enforced by the server.</p>
+              {privateRequestPreferenceMessage ? <p className="text-xs font-semibold" role="status">{privateRequestPreferenceMessage}</p> : null}
+            </div>
+          ) : null}
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <label className="font-semibold text-cyan-100" htmlFor="settings-in-app-notification-mode">In-app notification level</label>

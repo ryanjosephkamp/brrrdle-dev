@@ -1,7 +1,7 @@
 # brrrdle Constitution
 
-**Version**: 3.5
-**Date**: 2026-06-13
+**Version**: 3.6
+**Date**: 2026-07-10
 **Status**: Final upgraded project constitution with the progress tracking amendment, the phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+), the multi-agent workflow amendment, the Phase 23 coordination-file amendment, and the prompt-package governance amendment — binding until revised with explicit user approval.
 
 ---
@@ -104,6 +104,7 @@ At each review gate, provide:
 4. The relevant `PROGRESS.csv` and progress markdown updates.
 5. The exact approval needed to continue.
 6. The recommended next prompt package for the next safe gated action, plus whether the user is authorized/safe to use it, or a clear reason no next prompt package should be generated yet.
+7. A clearly labeled `Ryan Action Items` section. It must state `None` when no manual action is required. Otherwise it must list the exact manual action, whether any evidence or private input is required, what must not be shared, and a copy-ready activation prompt or precise approval phrase when one is available.
 
 Then stop. Do not continue into the next phase, scaffold, or implement additional code until approved.
 

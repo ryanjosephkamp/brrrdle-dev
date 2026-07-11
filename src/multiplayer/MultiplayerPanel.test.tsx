@@ -364,7 +364,7 @@ describe('PrivateMatchRequestsPanel', () => {
     expect(html).not.toContain('Private match created.')
     expect(html).not.toContain('Cancel request')
     expect(html).not.toContain('Accept private match')
-    expect(html).not.toContain('Decline')
+    expect(html).not.toContain('>Decline</button>')
   })
 })
 

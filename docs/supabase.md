@@ -5,6 +5,12 @@ title: Supabase setup
 
 # Supabase setup
 
+## Phase 56 private Practice request authority
+
+The applied `20260711001811_phase56_private_request_center_and_anti_spam.sql` migration adds caller-private request preferences and directional blocks, requester-target-mode active uniqueness, transactional block cleanup, and narrow preference/block/create RPCs. Browser code has no direct table grant. Security-definer RPCs validate `auth.uid()`, use an empty search path, return allowlisted participant/public-profile summaries only, and explicitly revoke public/anon execution. The old authenticated private-request create RPC is revoked so clients cannot bypass Phase 56 rules.
+
+The migration tool initially recorded generated remote version `20260711012007`. After exact schema, function, policy, index, trigger, search-path, and grant equivalence was proven, only the migration-ledger version was transactionally reconciled to source-controlled version `20260711001811`; migration SQL was not rerun. Local and remote histories then matched exactly at 37 versions, and the bounded Phase 56 catalog fingerprint remained unchanged. Real disposable-account verification proved participant-only request views, directional OG/GO lanes, duplicate collapse, reverse-direction independence, opt-out, block/unblock, lifecycle actions, expiry, global anti-spam limits, mobile fit, durable private-game entry, and first-turn reload persistence. Cleanup left zero temporary users, request rows, preference rows, block rows, or game rows.
+
 Supabase support is optional. Without configuration, the app remains playable in guest mode and shows a clear unconfigured state in account-related settings.
 
 ## Browser environment variables

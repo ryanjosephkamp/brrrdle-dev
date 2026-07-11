@@ -88,6 +88,7 @@ Use this structure by default, adjusting only when the task is simpler, blocked,
 
 13. **Final report**
     - Require file links, verification results, changed files, blockers, open questions, and confirmation of protected actions not taken.
+    - Require a clearly labeled `Ryan Action Items` section in the chat response. It must say `None` when the user has nothing to do manually. Otherwise it must identify the exact manual step, required evidence or inputs, sensitive information that must not be shared, and the copy-ready activation prompt or approval phrase when available.
     - Require a halt for review.
 
 14. **Next prompt package**
@@ -433,6 +434,10 @@ Report:
 - blockers or open questions
 - confirmation of protected actions not taken
 - recommended next prompt package or reason not to generate one
+
+## Ryan Action Items
+
+State `None` if the user has no manual action. Otherwise state exactly what the user must do, whether evidence or private input is needed, what must not be shared, and include the copy-ready activation prompt or precise approval phrase when available.
 
 Then halt for review.
 ````

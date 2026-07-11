@@ -59,6 +59,13 @@ import {
   getPrivateMatchAcceptIdempotencyKey,
 } from './privateMatchmaking'
 import {
+  getPrivateRequestCounterpart,
+  getPrivateRequestDirectionAfterAsyncLoad,
+  selectPrivateRequestCenterRows,
+  type PrivateRequestCenterDirection,
+  type PrivateRequestCenterStatusFilter,
+} from './privateRequestCenter'
+import {
   getActivePrivateMatchRequests,
   getCreatorJoinedGameAutoRouteId,
   getPrivateMatchCreatedGameAutoRouteId,
@@ -614,6 +621,7 @@ interface PrivateMatchRequestsPanelProps {
   readonly onAccept: (request: PrivateMatchRequestResult) => void
   readonly onCancel: (request: PrivateMatchRequestResult) => void
   readonly onDecline: (request: PrivateMatchRequestResult) => void
+  readonly onEnter?: (gameId: string) => void
   readonly requests: readonly PrivateMatchRequestResult[]
 }
 
@@ -623,10 +631,26 @@ export function PrivateMatchRequestsPanel({
   onAccept,
   onCancel,
   onDecline,
+  onEnter,
   requests,
 }: PrivateMatchRequestsPanelProps) {
-  const visibleRequests = getActivePrivateMatchRequests(requests)
-  const shouldOpen = visibleRequests.length > 0 || Boolean(message)
+  const [direction, setDirection] = useState<PrivateRequestCenterDirection>(() => (
+    getActivePrivateMatchRequests(requests)[0]?.viewerRole === 'requester' ? 'outgoing' : 'incoming'
+  ))
+  const [statusFilter, setStatusFilter] = useState<PrivateRequestCenterStatusFilter>('requested')
+  const visibleRequests = selectPrivateRequestCenterRows(requests, direction, statusFilter)
+  const activeCount = getActivePrivateMatchRequests(requests).length
+  const previousActiveCountRef = useRef(activeCount)
+  const shouldOpen = activeCount > 0 || Boolean(message)
+
+  useEffect(() => {
+    setDirection((current) => getPrivateRequestDirectionAfterAsyncLoad(
+      requests,
+      current,
+      previousActiveCountRef.current,
+    ))
+    previousActiveCountRef.current = activeCount
+  }, [activeCount, requests])
 
   return (
     <details
@@ -640,11 +664,22 @@ export function PrivateMatchRequestsPanel({
           <p className="text-xs text-cyan-100">Authenticated-only, unranked Practice requests between active public profiles.</p>
         </div>
         <span className="rounded border border-white/10 bg-black/20 px-2 py-1 text-xs font-semibold text-cyan-50">
-          {visibleRequests.length} active
+          {activeCount} active
         </span>
       </summary>
 
       <div className="mt-3 space-y-3">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Private request direction">
+          <Button onClick={() => setDirection('incoming')} size="sm" variant={direction === 'incoming' ? 'primary' : 'secondary'}>Incoming</Button>
+          <Button onClick={() => setDirection('outgoing')} size="sm" variant={direction === 'outgoing' ? 'primary' : 'secondary'}>Outgoing</Button>
+          <label className="flex items-center gap-2 text-xs font-semibold">
+            Status
+            <select className="rounded border border-white/15 bg-black/30 px-2 py-1" onChange={(event) => setStatusFilter(event.target.value as PrivateRequestCenterStatusFilter)} value={statusFilter}>
+              <option value="all">All</option><option value="requested">Pending</option><option value="created">Created</option>
+              <option value="declined">Declined</option><option value="cancelled">Cancelled</option><option value="expired">Expired</option>
+            </select>
+          </label>
+        </div>
         {visibleRequests.length === 0 ? (
           <p className="rounded-md border border-white/10 bg-black/20 p-2 text-xs text-cyan-100">
             No active private match requests.
@@ -654,6 +689,7 @@ export function PrivateMatchRequestsPanel({
             {visibleRequests.map((request) => {
               const requesterLabel = getPrivateMatchProfileLabel(request.requester, 'Requester')
               const opponentLabel = getPrivateMatchProfileLabel(request.opponent, 'Opponent')
+              const counterpart = getPrivateRequestCounterpart(request)
               const isIncoming = request.viewerRole === 'opponent'
               const lifecycleMessage = getPrivateMatchLifecycleMessage(request)
               return (
@@ -684,6 +720,10 @@ export function PrivateMatchRequestsPanel({
                       ) : null}
                     </div>
                   ) : null}
+                  {request.requestStatus === 'created' && request.createdGameId && onEnter ? (
+                    <div className="mt-3"><Button disabled={busy} onClick={() => onEnter(request.createdGameId!)} size="sm" variant="primary">Enter private match</Button></div>
+                  ) : null}
+                  <p className="mt-2 text-xs text-cyan-100">With {counterpart.displayName ?? 'player'} · Updated {new Date(request.updatedAt).toLocaleString()}</p>
                 </article>
               )
             })}
@@ -2088,6 +2128,7 @@ export function MultiplayerPanel({
           onAccept={(request) => { void acceptPrivateMatchRequest(request) }}
           onCancel={(request) => { void cancelPrivateMatchRequest(request) }}
           onDecline={(request) => { void declinePrivateMatchRequest(request) }}
+          onEnter={(gameId) => { selectGame(gameId); onGameplayAutoCenterRequest?.() }}
           requests={privateMatchRequests}
         />
       ) : null}

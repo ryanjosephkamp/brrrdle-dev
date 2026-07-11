@@ -1331,7 +1331,7 @@ describe('multiplayer repository seam', () => {
       wordLength: 5,
     })
     const rpc = vi.fn(async (name: string, params?: Record<string, unknown>) => {
-      if (name === 'create_private_multiplayer_match_request') {
+        if (name === 'create_private_multiplayer_match_request_v2') {
         return {
           data: [createPrivateMatchRequestRow({
             go_puzzle_count: params?.p_mode === 'go' ? params.p_go_puzzle_count : null,
@@ -1417,7 +1417,7 @@ describe('multiplayer repository seam', () => {
       createdGameId: 'private-game-1',
       requestStatus: 'created',
     })
-    expect(rpc).toHaveBeenCalledWith('create_private_multiplayer_match_request', {
+    expect(rpc).toHaveBeenCalledWith('create_private_multiplayer_match_request_v2', {
       p_expires_at: null,
       p_go_puzzle_count: null,
       p_hard_mode: false,
@@ -1427,7 +1427,7 @@ describe('multiplayer repository seam', () => {
       p_time_limit_ms: null,
       p_word_length: 5,
     })
-    expect(rpc).toHaveBeenCalledWith('create_private_multiplayer_match_request', {
+    expect(rpc).toHaveBeenCalledWith('create_private_multiplayer_match_request_v2', {
       p_expires_at: null,
       p_go_puzzle_count: 5,
       p_hard_mode: true,
@@ -1547,7 +1547,7 @@ describe('multiplayer repository seam', () => {
             in: vi.fn(async () => ({ data: [], error: null })),
           }
         }
-        if (columns === 'projection') {
+        if (columns === 'projection, updated_at') {
           return {
             eq: vi.fn(() => ({
               maybeSingle: vi.fn(async () => ({ data: null, error: null })),
@@ -1559,7 +1559,7 @@ describe('multiplayer repository seam', () => {
         }
       }),
       update: vi.fn((row: unknown) => ({
-        eq: vi.fn(async () => {
+        match: vi.fn(async () => {
           inserts[`${table}:updated`] = [row]
           return { error: null }
         }),
@@ -1606,7 +1606,7 @@ describe('multiplayer repository seam', () => {
     })
     const from = vi.fn(() => ({
       select: vi.fn(() => ({ order: vi.fn(async () => ({ data: [], error: null })) })),
-      update: vi.fn(() => ({ eq: vi.fn(async () => ({ error: null })) })),
+      update: vi.fn(() => ({ match: vi.fn(async () => ({ error: null })) })),
       upsert: vi.fn(async () => ({ error: null })),
     }))
     const game = createMultiplayerGame({
@@ -1716,7 +1716,7 @@ describe('multiplayer repository seam', () => {
               in: vi.fn(async () => ({ data: [], error: null })),
             }
           }
-          if (columns === 'projection') {
+          if (columns === 'projection, updated_at') {
             return {
               eq: vi.fn(() => ({
                 maybeSingle: vi.fn(async () => ({ data: null, error: null })),
@@ -1728,7 +1728,7 @@ describe('multiplayer repository seam', () => {
           }
         }),
         update: vi.fn(() => ({
-          eq: vi.fn(async () => ({ error: null })),
+          match: vi.fn(async () => ({ error: null })),
         })),
       })),
       removeChannel: vi.fn(async () => ({ error: null })),
@@ -1783,7 +1783,7 @@ describe('multiplayer repository seam', () => {
               })),
             }
           }
-          if (columns === 'projection') {
+          if (columns === 'projection, updated_at') {
             return {
               eq: vi.fn((_column: string, id: string) => ({
                 maybeSingle: vi.fn(async () => ({
@@ -1798,9 +1798,12 @@ describe('multiplayer repository seam', () => {
           }
         }),
         update: vi.fn((row: { readonly id?: string }) => ({
-          eq: vi.fn(async (_column: string, id: string) => {
+          match: vi.fn(async ({ id, updated_at: updatedAt }: { readonly id: string, readonly updated_at: string }) => {
             updatedRows.push(row)
-            tables[table] = (tables[table] ?? []).map((entry) => (entry as { readonly id?: string }).id === id ? row : entry)
+            tables[table] = (tables[table] ?? []).map((entry) => {
+              const stored = entry as { readonly id?: string, readonly updated_at?: string }
+              return stored.id === id && stored.updated_at === updatedAt ? row : entry
+            })
             return { error: null }
           }),
         })),
@@ -1861,7 +1864,7 @@ describe('multiplayer repository seam', () => {
               })),
             }
           }
-          if (columns === 'projection') {
+          if (columns === 'projection, updated_at') {
             return {
               eq: vi.fn((_column: string, id: string) => ({
                 maybeSingle: vi.fn(async () => ({
@@ -1876,8 +1879,11 @@ describe('multiplayer repository seam', () => {
           }
         }),
         update: vi.fn((row: { readonly id?: string }) => ({
-          eq: vi.fn(async (_column: string, id: string) => {
-            tables[table] = (tables[table] ?? []).map((entry) => (entry as { readonly id?: string }).id === id ? row : entry)
+          match: vi.fn(async ({ id, updated_at: updatedAt }: { readonly id: string, readonly updated_at: string }) => {
+            tables[table] = (tables[table] ?? []).map((entry) => {
+              const stored = entry as { readonly id?: string, readonly updated_at?: string }
+              return stored.id === id && stored.updated_at === updatedAt ? row : entry
+            })
             return { error: null }
           }),
         })),
@@ -1944,7 +1950,7 @@ describe('multiplayer repository seam', () => {
               })),
             }
           }
-          if (columns === 'projection') {
+          if (columns === 'projection, updated_at') {
             return {
               eq: vi.fn((_column: string, id: string) => ({
                 maybeSingle: vi.fn(async () => ({
@@ -1959,8 +1965,11 @@ describe('multiplayer repository seam', () => {
           }
         }),
         update: vi.fn((row: { readonly id?: string }) => ({
-          eq: vi.fn(async (_column: string, id: string) => {
-            tables[table] = (tables[table] ?? []).map((entry) => (entry as { readonly id?: string }).id === id ? row : entry)
+          match: vi.fn(async ({ id, updated_at: updatedAt }: { readonly id: string, readonly updated_at: string }) => {
+            tables[table] = (tables[table] ?? []).map((entry) => {
+              const stored = entry as { readonly id?: string, readonly updated_at?: string }
+              return stored.id === id && stored.updated_at === updatedAt ? row : entry
+            })
             return { error: null }
           }),
         })),
@@ -1987,6 +1996,50 @@ describe('multiplayer repository seam', () => {
 
     expect(reloaded.state.games[0].status).toBe('playing')
     expect(reloaded.state.games[0].playerUserIds?.['player-two']).toBe('rival-user')
+  })
+
+  it('guards ordinary multiplayer updates with the durable updated-at value observed before writing', async () => {
+    const waitingGame = createMultiplayerGame({
+      createdAt: '2026-07-10T22:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const game = joinMultiplayerGame({ games: [waitingGame] }, {
+      gameId: waitingGame.id,
+      userId: 'rival-user',
+    }).game!
+    const storedRow = { id: game.id, projection: game, updated_at: game.updatedAt }
+    const match = vi.fn(async () => ({ error: null }))
+    const client = {
+      channel: vi.fn(() => {
+        const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
+        return channel
+      }),
+      from: vi.fn(() => ({
+        select: vi.fn((columns: string) => {
+          if (columns === 'id') return { in: vi.fn(async () => ({ data: [{ id: game.id }], error: null })) }
+          if (columns === 'projection, updated_at') return { eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: storedRow, error: null })) })) }
+          return { order: vi.fn(async () => ({ data: [storedRow], error: null })) }
+        }),
+        update: vi.fn(() => ({ match })),
+        upsert: vi.fn(async () => ({ error: null })),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-07-10T22:00:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'host-user' })
+    const loaded = await repository.load()
+    const submitted = submitMultiplayerGuess(loaded.state, {
+      gameId: game.id,
+      guess: getMultiplayerAnswerWords(game)[0],
+      playerId: 'player-one',
+    })
+
+    await repository.save(submitted.state)
+
+    expect(match).toHaveBeenCalledWith({ id: game.id, updated_at: storedRow.updated_at })
   })
 
   it('does not let a stale timed timeout overwrite a newer submitted turn', async () => {
@@ -2020,7 +2073,7 @@ describe('multiplayer repository seam', () => {
               })),
             }
           }
-          if (columns === 'projection') {
+          if (columns === 'projection, updated_at') {
             return {
               eq: vi.fn((_column: string, id: string) => ({
                 maybeSingle: vi.fn(async () => ({
@@ -2035,8 +2088,11 @@ describe('multiplayer repository seam', () => {
           }
         }),
         update: vi.fn((row: { readonly id?: string }) => ({
-          eq: vi.fn(async (_column: string, id: string) => {
-            tables[table] = (tables[table] ?? []).map((entry) => (entry as { readonly id?: string }).id === id ? row : entry)
+          match: vi.fn(async ({ id, updated_at: updatedAt }: { readonly id: string, readonly updated_at: string }) => {
+            tables[table] = (tables[table] ?? []).map((entry) => {
+              const stored = entry as { readonly id?: string, readonly updated_at?: string }
+              return stored.id === id && stored.updated_at === updatedAt ? row : entry
+            })
             return { error: null }
           }),
         })),

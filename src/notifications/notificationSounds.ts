@@ -32,6 +32,11 @@ const NOTIFICATION_KIND_SOUND_EVENTS: Record<NotificationKind, SoundEvent> = {
   'lobby-open': 'notification-alert',
   'multiplayer-completed': 'notification-alert',
   'multiplayer-your-turn': 'notification-alert',
+  'private-request-incoming': 'notification-alert',
+  'private-request-created': 'notification-alert',
+  'private-request-declined': 'notification-alert',
+  'private-request-cancelled': 'notification-alert',
+  'private-request-expired': 'notification-alert',
 }
 
 export function getNotificationSoundFingerprint(item: Pick<NotificationItemViewModel, 'fingerprint' | 'id'>): string {

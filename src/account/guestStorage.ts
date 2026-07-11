@@ -30,7 +30,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isGuestProgressState(value: unknown): value is GuestProgressState {
   return isRecord(value)
-    && (value.schemaVersion === 1 || value.schemaVersion === 2 || value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === GUEST_PROGRESS_SCHEMA_VERSION)
+    && (value.schemaVersion === 1 || value.schemaVersion === 2 || value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 || value.schemaVersion === 9 || value.schemaVersion === GUEST_PROGRESS_SCHEMA_VERSION)
     && isRecord(value.progression)
     && typeof value.progression.xp === 'number'
     && typeof value.progression.level === 'number'

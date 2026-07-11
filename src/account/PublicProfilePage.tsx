@@ -39,6 +39,7 @@ export type PublicProfilePageStatus = 'idle' | 'loading' | 'ready' | 'unavailabl
 export type PublicProfileRatingMetadataStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 type PrivateMatchActions = Pick<MultiplayerRepository, 'createPrivateMatchRequest' | 'listPrivateMatchRequests'>
+  & Partial<Pick<MultiplayerRepository, 'listPrivateRequestBlocks' | 'setPrivateRequestBlock'>>
 type PublicProfilePageRepository = Pick<PublicProfileRepository, 'loadPublicProfile'> & Partial<Pick<PublicProfileRepository, 'loadMine'>>
 type PublicProfileAuthStatus = 'anonymous' | 'authenticated' | 'unconfigured'
 
@@ -103,6 +104,8 @@ interface PublicProfileCardProps {
   readonly onEnterPrivateMatch?: (gameId: string) => void
   readonly onGoToPracticeMultiplayer?: () => void
   readonly onRequestPrivateMatch?: () => void
+  readonly blockedForPrivateRequests?: boolean
+  readonly onTogglePrivateRequestBlock?: () => void
   readonly onBack?: () => void
   readonly profile?: PublicPlayerProfile
   readonly ratingMetadata?: readonly PublicProfileRatingMetadata[]
@@ -178,6 +181,8 @@ export function PublicProfileCard({
   onEnterPrivateMatch,
   onGoToPracticeMultiplayer,
   onRequestPrivateMatch,
+  blockedForPrivateRequests = false,
+  onTogglePrivateRequestBlock,
   onBack,
   profile,
   ratingMetadata = [],
@@ -439,6 +444,13 @@ export function PublicProfileCard({
                     ) : null}
                 </div>
               ) : null}
+              {authStatus === 'authenticated' && onTogglePrivateRequestBlock ? (
+                <div className="mt-3 border-t border-white/10 pt-3">
+                  <Button disabled={privateMatchBusy} onClick={onTogglePrivateRequestBlock} size="sm" variant="secondary">
+                    {blockedForPrivateRequests ? 'Unblock private requests' : 'Block private requests'}
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -485,6 +497,7 @@ export function PublicProfilePage({
     viewerSessionKey: privateMatchViewerSessionKey,
   })
   const [privatePracticeSettings, setPrivatePracticeSettings] = useState<PrivatePracticeRequestSettings>(DEFAULT_PRIVATE_PRACTICE_REQUEST_SETTINGS)
+  const [blockedForPrivateRequests, setBlockedForPrivateRequests] = useState(false)
   const [ratingMetadataResult, setRatingMetadataResult] = useState<{
     readonly metadata: readonly PublicProfileRatingMetadata[]
     readonly publicProfileId?: string
@@ -605,6 +618,18 @@ export function PublicProfilePage({
   const ratingMetadata = ratingMetadataStatus === 'ready'
     ? ratingMetadataResult.metadata
     : []
+
+  useEffect(() => {
+    if (!profile || !privateMatchActions?.listPrivateRequestBlocks || authStatus !== 'authenticated') {
+      setBlockedForPrivateRequests(false)
+      return undefined
+    }
+    let active = true
+    void privateMatchActions.listPrivateRequestBlocks().then((blocks) => {
+      if (active) setBlockedForPrivateRequests(blocks.some((block) => block.publicProfileId === profile.publicProfileId))
+    }).catch(() => { if (active) setBlockedForPrivateRequests(false) })
+    return () => { active = false }
+  }, [authStatus, privateMatchActions, profile])
 
   useEffect(() => {
     const request = privateMatchState.publicProfileId === normalizedPublicProfileId
@@ -763,6 +788,19 @@ export function PublicProfilePage({
     }
   }
 
+  const togglePrivateRequestBlock = async () => {
+    if (!profile || !privateMatchActions?.setPrivateRequestBlock || authStatus !== 'authenticated') return
+    if (!blockedForPrivateRequests && typeof window !== 'undefined' && !window.confirm(`Block private Practice requests with ${profile.displayName}?`)) return
+    setPrivateMatchState((current) => ({ ...current, busy: true, errorMessage: undefined }))
+    try {
+      const result = await privateMatchActions.setPrivateRequestBlock({ blocked: !blockedForPrivateRequests, targetPublicProfileId: profile.publicProfileId })
+      setBlockedForPrivateRequests(result.blocked)
+      setPrivateMatchState((current) => ({ ...current, busy: false }))
+    } catch (error) {
+      setPrivateMatchState((current) => ({ ...current, busy: false, errorMessage: getPrivateMatchRequestErrorMessage(error) }))
+    }
+  }
+
   return (
     <PublicProfileCard
       authStatus={authStatus}
@@ -777,6 +815,8 @@ export function PublicProfilePage({
       onEnterPrivateMatch={onEnterPrivateMatch}
       onGoToPracticeMultiplayer={onGoToPracticeMultiplayer}
       onRequestPrivateMatch={() => { void requestPrivatePracticeMatch() }}
+      blockedForPrivateRequests={blockedForPrivateRequests}
+      onTogglePrivateRequestBlock={privateMatchActions?.setPrivateRequestBlock ? () => { void togglePrivateRequestBlock() } : undefined}
       onBack={onBack}
       profile={profile}
       ratingMetadata={ratingMetadata}

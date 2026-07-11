@@ -7,6 +7,7 @@ export interface NotificationPreferencesState {
   readonly inAppNotificationsEnabled: boolean
   readonly inAppNotificationMode: InAppNotificationMode
   readonly notificationSoundMode: NotificationSoundMode
+  readonly privateRequestNotificationsEnabled: boolean
 }
 
 export const IN_APP_NOTIFICATION_MODES = ['all', 'important-only'] as const
@@ -17,6 +18,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferencesState = {
   inAppNotificationMode: 'all',
   inAppNotificationsEnabled: true,
   notificationSoundMode: 'important-only',
+  privateRequestNotificationsEnabled: true,
 }
 
 const IN_APP_NOTIFICATION_MODE_LABELS: Record<InAppNotificationMode, string> = {
@@ -84,6 +86,9 @@ export function normalizeNotificationPreferences(raw: unknown): NotificationPref
     notificationSoundMode: isNotificationSoundMode(record.notificationSoundMode)
       ? record.notificationSoundMode
       : DEFAULT_NOTIFICATION_PREFERENCES.notificationSoundMode,
+    privateRequestNotificationsEnabled: typeof record.privateRequestNotificationsEnabled === 'boolean'
+      ? record.privateRequestNotificationsEnabled
+      : DEFAULT_NOTIFICATION_PREFERENCES.privateRequestNotificationsEnabled,
   }
 }
 

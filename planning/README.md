@@ -56,7 +56,7 @@ For normal future work, read:
 - `planning/phase-54/`: Phase 54 accepted closeout materials for participant-owned Live/Active public-profile links, source-aware profile return routing, static Lobby/spectator identity boundaries, focused spectator preservation, protected-contract routing, changelog, and manual review checklist; closed at `cc6a1e600a7e330140366d2ba2ab95fd1da11a75` and checkpointed by `phase-54-golden-2026-07-09`.
 - `planning/pre-phase-55/`: accepted functional-shell changelog, performance report, and comprehensive preservation-mapped manual review checklist; Final Acceptance commit `ef2349ac53f8d02959d759615d85cfa85190beb9` is protected by Golden Checkpoint `pre-phase-55-functional-shell-golden-2026-07-10`.
 - `planning/phase-55/`: accepted closeout materials for ranked Daily Multiplayer OG/GO and narrow private Practice request routing; hosted manual review passed after PR #59.
-- `planning/phase-56/`: implementation-ready Private Request Center, notification, preferences, blocking, and anti-spam brief and plan.
+- `planning/phase-56/`: local Private Request Center, notification, preferences, blocking, and anti-spam plan, changelog, and future hosted-review checklist; remote migration/E2E remain gated.
 - `planning/phase-57/`: routed Solo-Practice-only marketplace and consumables foundation brief.
 - `planning/phase-58/`: preserved design-direction and GPT-5.6 SOL handoff planning, deferred until the foundation phases are accepted; the actual frontend rebuild is routed to Phase 59.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
