@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import * as localWordListsModule from './localWordLists.js'
 import { isLoadWordListFailure, loadBundledWordList } from './loadWordList.js'
 import {
-  LOCAL_WORD_LISTS,
   LOCAL_WORD_LISTS_MANIFEST,
   LOCAL_WORD_LISTS_SOURCE_PATH,
   LOCAL_WORD_LIST_LENGTHS,
@@ -23,13 +23,15 @@ describe('LOCAL_WORD_LISTS_MANIFEST', () => {
 
   it('exposes every length from 2 through 35 inclusive', () => {
     expect(LOCAL_WORD_LIST_LENGTHS).toEqual(Array.from({ length: 34 }, (_, i) => i + 2))
-    for (let length = 2; length <= 35; length += 1) {
-      expect(LOCAL_WORD_LISTS[length]).toBeDefined()
-    }
   })
 
   it('pins the loader-path constant to the on-disk src/latest layout', () => {
     expect(LOCAL_WORD_LISTS_SOURCE_PATH).toBe('src/latest')
+  })
+
+  it('keeps the eager loader answer-free by avoiding static per-length imports', () => {
+    expect('LOCAL_WORD_LISTS' in localWordListsModule).toBe(false)
+    expect(LOCAL_WORD_LIST_LENGTHS).toHaveLength(34)
   })
 })
 
@@ -62,20 +64,17 @@ describe('normalizeLocalWordListFile', () => {
 
   it('produces a payload that passes the canonical schema for representative lengths', () => {
     for (const length of [2, 5, 12, 20, 35] as const) {
-      const adapted = normalizeLocalWordListFile(LOCAL_WORD_LISTS[length], length)
-      // LOCAL_WORD_LISTS is already adapted; re-adapting is idempotent because
-      // the resulting metadata still has length/source/version/generatedAt.
-      const validation = validateWordListFile(adapted)
-      expect(validation.ok, `length ${length} should validate`).toBe(true)
+      const loaded = loadBundledWordList('practice', length)
+      expect(loaded.ok, `length ${length} should validate`).toBe(true)
     }
   })
 })
 
-describe('LOCAL_WORD_LISTS schema integration', () => {
-  it('every length 2..35 in LOCAL_WORD_LISTS passes the canonical schema validator', () => {
+describe('local word-list schema integration', () => {
+  it('every prepared length 2..35 passes the canonical schema validator', () => {
     for (let length = 2; length <= 35; length += 1) {
-      const validation = validateWordListFile(LOCAL_WORD_LISTS[length])
-      expect(validation.ok, `length ${length} should validate`).toBe(true)
+      const loaded = loadBundledWordList('practice', length)
+      expect(loaded.ok, `length ${length} should validate`).toBe(true)
     }
   })
 
@@ -88,11 +87,11 @@ describe('LOCAL_WORD_LISTS schema integration', () => {
     for (const { length, raw } of sample) {
       const rawAnswers = (raw as { answers: readonly unknown[] }).answers
       const rawValidGuesses = (raw as { validGuesses: readonly unknown[] }).validGuesses
-      const validation = validateWordListFile(LOCAL_WORD_LISTS[length])
-      expect(validation.ok).toBe(true)
-      if (!validation.ok) throw new Error('unreachable')
-      expect(validation.value.answers.length).toBe(rawAnswers.length)
-      expect(validation.value.validGuesses.length).toBe(rawValidGuesses.length)
+      const loaded = loadBundledWordList('practice', length)
+      expect(loaded.ok).toBe(true)
+      if (!loaded.ok) throw new Error('unreachable')
+      expect(loaded.wordList.answers.length).toBe(rawAnswers.length)
+      expect(loaded.wordList.validGuesses.size).toBe(rawValidGuesses.length)
     }
   })
 
@@ -114,11 +113,10 @@ describe('LOCAL_WORD_LISTS schema integration', () => {
 
 describe('loadBundledWordList against local source (will be wired in 17.2)', () => {
   it('the local payload for daily length 5 contains a representative ordinary English word as a valid guess', () => {
-    // Sanity: a word like "house" should be in the length-5 valid-guess list.
-    const validation = validateWordListFile(LOCAL_WORD_LISTS[5])
-    expect(validation.ok).toBe(true)
-    if (!validation.ok) throw new Error('unreachable')
-    expect(validation.value.validGuesses).toContain('house')
+    const loaded = loadBundledWordList('daily', 5)
+    expect(loaded.ok).toBe(true)
+    if (!loaded.ok) throw new Error('unreachable')
+    expect(loaded.wordList.validGuesses.has('house')).toBe(true)
   })
 
   it('loadBundledWordList still returns failure-free results for current bundled source (unchanged at 17.1)', () => {

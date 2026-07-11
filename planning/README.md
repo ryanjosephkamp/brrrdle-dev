@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phases 55-57 are accepted and closed. The next routed action after the Phase 57 Final Acceptance backup and Golden Checkpoint is a planning-only preservation-inventory refresh and deeper-shell optimization audit; the displaced design/SOL handoff plan remains preserved under Phase 58.
+7. The active or next phase plan. Phases 55-57 are accepted and closed. The post-Phase-57 deeper-shell Review Candidate is prepared under [planning/post-phase-57/](post-phase-57/) and awaits governed backup plus hosted/manual review; the design/SOL handoff remains preserved under Phase 58.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -58,7 +58,8 @@ For normal future work, read:
 - `planning/phase-55/`: accepted closeout materials for ranked Daily Multiplayer OG/GO and narrow private Practice request routing; hosted manual review passed after PR #59.
 - `planning/phase-56/`: accepted closeout materials for the Private Request Center, lifecycle notifications, request preferences, directional blocking, anti-spam authority, migration reconciliation, and hosted manual review.
 - `planning/phase-57/`: accepted Solo-Practice-only marketplace and consumables closeout, including applied/reconciled authority migration, real signed-in authority/browser evidence, changelog, and completed manual review checklist.
-- `planning/phase-58/`: preserved design-direction and GPT-5.6 SOL handoff planning, deferred behind the separately gated post-Phase-57 deeper-shell optimization audit and any accepted implementation; the actual frontend rebuild remains routed later.
+- `planning/post-phase-57/`: measured deeper-shell baseline/audit/decision/plan plus the implemented Review Candidate changelog and manual checklist. It keeps React/Vite and all backend/product contracts while deferring word banks and route presentation until requested.
+- `planning/phase-58/`: preserved design-direction and GPT-5.6 SOL handoff planning, deferred until the post-Phase-57 optimization pass is accepted or explicitly declined; the actual frontend rebuild remains routed later.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.

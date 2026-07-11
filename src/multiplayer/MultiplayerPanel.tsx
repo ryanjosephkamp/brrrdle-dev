@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { DifficultyTier } from '../data'
+import { prepareBundledWordList, useWordListPreparation, useWordListSetPreparation, type DifficultyTier } from '../data'
 import type { GoPuzzleCount } from '../game/constants'
 import type { GameMode, PlayScope } from '../game/types'
 import { DefinitionPanel } from '../definitions'
@@ -740,7 +740,25 @@ export function PrivateMatchRequestsPanel({
   )
 }
 
-export function MultiplayerPanel({
+export function MultiplayerPanel(props: MultiplayerPanelProps) {
+  const lengths = useMemo(
+    () => [5, ...(props.state?.games ?? []).map((game) => game.wordLength)],
+    [props.state?.games],
+  )
+  const preparation = useWordListSetPreparation(lengths)
+  if (!preparation.isReady) {
+    return (
+      <Panel aria-busy={preparation.error ? undefined : true} className="space-y-3" tone="muted">
+        <h3 className="text-lg font-bold text-white">{preparation.error ? 'Multiplayer word data unavailable' : 'Preparing multiplayer'}</h3>
+        <p aria-live="polite" className="text-sm text-slate-300">{preparation.error ?? 'Loading the word data required by your current matches…'}</p>
+        {preparation.error ? <Button onClick={preparation.retry} variant="primary">Retry</Button> : null}
+      </Panel>
+    )
+  }
+  return <PreparedMultiplayerPanel {...props} />
+}
+
+function PreparedMultiplayerPanel({
   authStatus = 'unconfigured',
   competitiveState,
   dailyDateKey,
@@ -776,6 +794,7 @@ export function MultiplayerPanel({
   const [hardMode, setHardMode] = useState(false)
   const [timeLimitMs, setTimeLimitMs] = useState<PracticeMultiplayerTimeLimitMs | null>(null)
   const [wordLength, setWordLength] = useState(5)
+  const formPreparation = useWordListPreparation('practice', scope === 'daily' ? 5 : wordLength)
   const [localMessage, setLocalMessage] = useState<LocalStatusMessage | undefined>(undefined)
   const [postgameMessage, setPostgameMessage] = useState<PostgameStatusMessage | undefined>(undefined)
   const [postgameBusy, setPostgameBusy] = useState(false)
@@ -967,6 +986,7 @@ export function MultiplayerPanel({
     && !dailyClaimedForMode
     && !rankedQueueUnavailableReason
     && !rankedQueueBusy
+    && formPreparation.isReady
     && !(matchKind === 'ranked' && rankedQueue.status === 'queued')
 
   const upsertFinalizedRankedGame = useCallback((game: MultiplayerGame) => {
@@ -1382,16 +1402,21 @@ export function MultiplayerPanel({
     if (!privateMatchActions) {
       return
     }
-    const projection = createPrivateMatchGameProjection(request, {
-      defaultDifficulty,
-      defaultGoPuzzleCount,
-    })
-    if (!projection) {
-      setPrivateMatchMessage('Unable to create a safe private Practice game from this request.')
-      return
-    }
     setPrivateMatchBusy(true)
     try {
+      const wordList = await prepareBundledWordList('practice', request.wordLength)
+      if (!wordList.ok) {
+        setPrivateMatchMessage(wordList.message)
+        return
+      }
+      const projection = createPrivateMatchGameProjection(request, {
+        defaultDifficulty,
+        defaultGoPuzzleCount,
+      })
+      if (!projection) {
+        setPrivateMatchMessage('Unable to create a safe private Practice game from this request.')
+        return
+      }
       const accepted = await privateMatchActions.acceptPrivateMatchRequest({
         game: projection,
         idempotencyKey: getPrivateMatchAcceptIdempotencyKey(request, projection.id),
@@ -2054,6 +2079,10 @@ export function MultiplayerPanel({
                   ? 'Already queued'
                   : rankedQueueUnavailableReason
                     ? rankedQueueUnavailableReason
+                    : formPreparation.error
+                      ? 'Word data unavailable'
+                    : !formPreparation.isReady
+                      ? 'Preparing word data'
                     : dailyClaimedForMode
                       ? 'Daily multiplayer already claimed'
                       : onlineReady ? 'Active limit reached' : 'Sign in required'}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../../data'
+import { DEFAULT_DIFFICULTY_TIER, useWordListPreparation, type DifficultyTier } from '../../data'
 import { createSoloCloudSessionKey, type CompletedGameInput, type OgResumeSlot, type ResumeCapture, type SoloCloudMutation, type SoloCloudMutationEventInput } from '../../account'
 import { createAccountPracticeSeed } from '../../account/practiceSeeds'
 import { DefinitionPanel } from '../../definitions'
@@ -33,6 +33,7 @@ import { GAMEPLAY_AUTOCENTER_TARGET_ATTRIBUTE, GAMEPLAY_AUTOCENTER_TARGETS } fro
 import { CustomizeMenu } from './CustomizeMenu'
 import { createOgGameSessionKey } from './soloSessionKeys'
 import { getSoloInputSoundEvents, getSoloSubmitSoundEvents } from './soloSoundEvents'
+import { WordListPreparationPanel } from './WordListPreparationPanel'
 
 interface OgGameProps {
   readonly coins: number
@@ -655,10 +656,17 @@ export function OgGame({ coins, consumables = { removeIncorrectLetters: 0, revea
     () => pastDailyDateKey ? dateKeyToLocalDate(pastDailyDateKey) : getActiveDailyDate(),
     [pastDailyDateKey],
   )
+  const requiredWordLength = scope === 'daily' ? 5 : practiceLength
+  const preparation = useWordListPreparation(scope, requiredWordLength)
   const setup = useMemo(
-    () => scope === 'daily' ? createDailyOgSetup(dailyDate, difficulty) : createPracticeOgSetup(practiceLength, practiceSeed, difficulty),
-    [dailyDate, difficulty, practiceLength, practiceSeed, scope],
+    () => preparation.isReady
+      ? (scope === 'daily' ? createDailyOgSetup(dailyDate, difficulty) : createPracticeOgSetup(practiceLength, practiceSeed, difficulty))
+      : undefined,
+    [dailyDate, difficulty, practiceLength, practiceSeed, preparation.isReady, scope],
   )
+  if (!setup) {
+    return <WordListPreparationPanel error={preparation.error} onRetry={preparation.retry} />
+  }
   const sessionKey = createOgGameSessionKey({
     activeResume,
     difficulty,

@@ -1,4 +1,5 @@
-import { MultiplayerStatsPanel, type MultiplayerCompetitiveState } from '../multiplayer'
+import { MultiplayerStatsPanel } from '../multiplayer/MultiplayerStatsPanel'
+import type { MultiplayerCompetitiveState } from '../multiplayer/competitiveMultiplayer'
 import { PublicRankedLeaderboardPanel, type PublicRankedLeaderboardAuthStatus } from './PublicRankedLeaderboardPanel'
 import { getPublicRankedLeaderboardFreshnessKey } from './leaderboardFreshness'
 import type { PublicRankedLeaderboardRepository } from './publicRankedLeaderboard'

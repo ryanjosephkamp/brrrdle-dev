@@ -1,6 +1,6 @@
 # Phase 58 Design Direction And GPT-5.6 SOL Handoff Implementation Plan
 
-**Status:** Preserved high-level plan; refresh after Phases 55-57.
+**Status:** Preserved high-level plan; refresh after the post-Phase-57 optimization pass is accepted or explicitly declined.
 
 ## Goal
 
