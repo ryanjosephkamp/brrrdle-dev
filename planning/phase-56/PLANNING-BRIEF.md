@@ -1,6 +1,6 @@
 # Phase 56 Planning Brief - Private Request Center And Anti-Spam
 
-**Status:** Routed; not authorized for implementation.
+**Status:** Implementation-ready planning complete; implementation requires the separate execution prompt.
 **Date:** 2026-07-10.
 
 Phase 56 should add participant-owned incoming/outgoing private Practice request management, lifecycle notifications, direct game entry, private-request preferences, individual blocks, and server-enforced anti-spam limits while preserving the functional shell.
@@ -18,3 +18,5 @@ Required first-version contract:
 - no chat, friends, social graph, public block list, private Daily, service-worker push, or presence system.
 
 This phase requires a separate implementation-ready audit and likely an additive migration/RPC/RLS contract. It must not be folded into Phase 55 source work merely as notification UI.
+
+The implementation-ready contract and ordered test plan are in `planning/phase-56/IMPLEMENTATION-PLAN.md`.

@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phase 54 and the Pre-Phase-55 functional shell are accepted, closed, and checkpointed. Phase 55 ranked Daily/private-request-routing planning is under [planning/phase-55/](phase-55/); Phases 56-57 contain routed foundation briefs; the displaced design/SOL handoff plan is preserved under Phase 58.
+7. The active or next phase plan. Phase 55 ranked Daily/private-request routing is accepted and closed. Phase 56 private-request-center planning is under [planning/phase-56/](phase-56/); Phase 57 remains routed, and the displaced design/SOL handoff plan is preserved under Phase 58.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -55,8 +55,8 @@ For normal future work, read:
 - `planning/phase-53/`: Phase 53 accepted closeout materials for Stats clarity, progression transparency, cloud-sync provenance copy, local multiplayer performance summaries, and privacy-safe public rating/profile metadata, including planning brief, implementation plan, changelog, and manual review checklist.
 - `planning/phase-54/`: Phase 54 accepted closeout materials for participant-owned Live/Active public-profile links, source-aware profile return routing, static Lobby/spectator identity boundaries, focused spectator preservation, protected-contract routing, changelog, and manual review checklist; closed at `cc6a1e600a7e330140366d2ba2ab95fd1da11a75` and checkpointed by `phase-54-golden-2026-07-09`.
 - `planning/pre-phase-55/`: accepted functional-shell changelog, performance report, and comprehensive preservation-mapped manual review checklist; Final Acceptance commit `ef2349ac53f8d02959d759615d85cfa85190beb9` is protected by Golden Checkpoint `pre-phase-55-functional-shell-golden-2026-07-10`.
-- `planning/phase-55/`: active ranked Daily Multiplayer OG/GO and narrow private Practice request routing phase. Source, tests, five applied source-controlled migrations, real temporary-account E2E, changelog, and manual checklist are complete; the governed Review Candidate Backup and hosted manual review remain pending.
-- `planning/phase-56/`: routed Private Request Center, notification, preferences, blocking, and anti-spam foundation brief.
+- `planning/phase-55/`: accepted closeout materials for ranked Daily Multiplayer OG/GO and narrow private Practice request routing; hosted manual review passed after PR #59.
+- `planning/phase-56/`: implementation-ready Private Request Center, notification, preferences, blocking, and anti-spam brief and plan.
 - `planning/phase-57/`: routed Solo-Practice-only marketplace and consumables foundation brief.
 - `planning/phase-58/`: preserved design-direction and GPT-5.6 SOL handoff planning, deferred until the foundation phases are accepted; the actual frontend rebuild is routed to Phase 59.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.

@@ -16,13 +16,15 @@ The canonical intake is `planning/handoffs/POST-SHELL-FOUNDATION-EXPANSION-INTAK
 
 | Phase | Current Focus | Status |
 | --- | --- | --- |
-| 55 | Ranked Daily Multiplayer OG/GO plus narrow private Practice request status/direct routing | Review Candidate prepared; hosted backup/manual review pending. |
-| 56 | Private request center, notification integration, opt-out preference, individual blocking, and anti-spam limits | Routed; separate contract and migration audit required. |
+| 55 | Ranked Daily Multiplayer OG/GO plus narrow private Practice request status/direct routing | Complete; hosted manual review accepted after PR #59. |
+| 56 | Private request center, notification integration, opt-out preference, individual blocking, and anti-spam limits | Implementation-ready plan prepared; separate execution authorization required. |
 | 57 | Coin marketplace and consumables restricted to Solo Practice | Routed; separate progression/cloud/gameplay audit required. |
 | 58 | Design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff | Preserved from the displaced Phase 55 plan; deferred until foundation acceptance. |
 | 59 | GPT-5.6 SOL frontend rebuild | Deferred behind accepted Phase 58 design/handoff. |
 
 This routing supersedes older statements in this historical document that name Phase 55 as the design phase or Phase 56 as the rebuild. Those statements remain as historical rationale only.
+
+Phase 55 closure update, 2026-07-10: the user reported that every hosted manual-review item passes after Review Candidate PR #59. Phase 55 is closed through the Final Acceptance documentation backup. Phase 56 planning confirms an additive server-enforced request-preference/block/duplicate-limit contract plus a lightweight request center and lifecycle notification integration; implementation remains separately gated.
 
 Closure update, 2026-07-08: Phase 50 was expanded into the macro-phase recommended here, iterated through the Review Candidate Backup Loop, manually accepted by the user, closed through the separately authorized Final Acceptance Backup, and captured with the Phase 50 Golden Checkpoint. Use the Phase 50 sections of this document as historical rationale and workflow guidance, not as an active Phase 50 prompt.
 
