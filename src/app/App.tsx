@@ -1273,6 +1273,7 @@ function AppInner() {
   const lastBrowserNavigationViewStateRef = useRef<BrowserNavigationViewState | undefined>(undefined)
   const guestProgressRef = useRef(guestProgress)
   const multiplayerRef = useRef(multiplayer)
+  const multiplayerAuthorityUserIdRef = useRef<string | undefined>(undefined)
   const authStateRef = useRef(authState)
   const activeProgressScopeRef = useRef<ActiveProgressScope>(activeProgressScope)
   const authHydrationRequestRef = useRef(0)
@@ -1294,7 +1295,9 @@ function AppInner() {
     }
   }, [])
   const applyScopedProgress = useCallback((progress: GuestProgressState, scope: ActiveProgressScope) => {
-    const previousScope = activeProgressScopeRef.current
+    if (scope.kind !== 'authenticated') {
+      multiplayerAuthorityUserIdRef.current = undefined
+    }
     activeProgressScopeRef.current = scope
     setActiveProgressScope(scope)
     setCompletedSoloSlots(loadSoloCompletionDisplaySlots(getProgressOwnerKey(scope)))
@@ -1302,8 +1305,8 @@ function AppInner() {
     setGuestProgress(progress)
     setMultiplayer((currentMultiplayerState) => {
       const nextMultiplayerState = selectScopedProgressMultiplayerState({
+        currentAuthorityUserId: multiplayerAuthorityUserIdRef.current,
         currentMultiplayerState,
-        currentScope: previousScope,
         nextProgress: progress,
         nextScope: scope,
       })
@@ -1841,7 +1844,8 @@ function AppInner() {
     trustedRankedSettlementInFlightRef.current.clear()
     trustedRankedSettlementCompletedRef.current.clear()
   }, [authenticatedMultiplayerUserId])
-  const applyRemoteMultiplayerSnapshot = useCallback((snapshotState: MultiplayerState) => {
+  const applyRemoteMultiplayerSnapshot = useCallback((snapshotState: MultiplayerState, authorityUserId?: string) => {
+    multiplayerAuthorityUserIdRef.current = authorityUserId
     multiplayerRef.current = snapshotState
     setMultiplayer(snapshotState)
     persistActiveMultiplayerState(snapshotState)
@@ -1865,21 +1869,13 @@ function AppInner() {
     }).catch(() => {
       if (authState.status === 'authenticated') {
         void multiplayerRepositoryRef.current.load().then((snapshot) => {
-          multiplayerRef.current = snapshot.state
-          setMultiplayer(snapshot.state)
-          persistActiveMultiplayerState(snapshot.state)
-          setGuestProgress((currentProgress) => {
-            const nextProgress = cacheMultiplayerProgress(currentProgress, snapshot.state)
-            persistActiveProgress(nextProgress)
-            return nextProgress
-          })
-          settleTrustedRankedGames(snapshot.state)
+          applyRemoteMultiplayerSnapshot(snapshot.state, authenticatedMultiplayerUserId)
         })
         return
       }
       persistActiveMultiplayerState(multiplayer)
     })
-  }, [authState.status, cacheMultiplayerProgress, persistActiveMultiplayerState, persistActiveProgress, settleTrustedRankedGames])
+  }, [applyRemoteMultiplayerSnapshot, authState.status, authenticatedMultiplayerUserId, cacheMultiplayerProgress, persistActiveMultiplayerState, persistActiveProgress, settleTrustedRankedGames])
   const handleCompetitiveMultiplayerChange = useCallback((competitiveMultiplayer: MultiplayerCompetitiveState) => {
     setGuestProgress((currentProgress) => {
       const nextProgress = { ...currentProgress, competitiveMultiplayer: normalizeCompetitiveMultiplayerState(competitiveMultiplayer) }
@@ -2713,7 +2709,7 @@ function AppInner() {
       if (!isActive) {
         return
       }
-      applyRemoteMultiplayerSnapshot(snapshotState)
+      applyRemoteMultiplayerSnapshot(snapshotState, authenticatedMultiplayerUserId)
     }
     const unsubscribe = multiplayerRepository.subscribe((snapshot) => {
       applySnapshot(snapshot.state)
@@ -2725,7 +2721,7 @@ function AppInner() {
       isActive = false
       unsubscribe()
     }
-  }, [applyRemoteMultiplayerSnapshot, multiplayerRepository])
+  }, [applyRemoteMultiplayerSnapshot, authenticatedMultiplayerUserId, multiplayerRepository])
 
   useEffect(() => {
     if (authState.status !== 'authenticated') {
@@ -2768,7 +2764,7 @@ function AppInner() {
       void loadMultiplayerRepositoryWithRetry(multiplayerRepository)
         .then((snapshot) => {
           if (isActive) {
-            applyRemoteMultiplayerSnapshot(snapshot.state)
+            applyRemoteMultiplayerSnapshot(snapshot.state, authenticatedMultiplayerUserId)
           }
         })
         .catch(() => undefined)
@@ -2800,7 +2796,7 @@ function AppInner() {
         window.removeEventListener('focus', refresh)
       }
     }
-  }, [activeRouteId, applyRemoteMultiplayerSnapshot, multiplayerRepository])
+  }, [activeRouteId, applyRemoteMultiplayerSnapshot, authenticatedMultiplayerUserId, multiplayerRepository])
 
   useEffect(() => {
     if (!supabaseClient) {

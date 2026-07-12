@@ -42,6 +42,20 @@ The exact migration applied successfully once. Supabase recorded generated remot
 
 Ledger reconciliation changed only the generated migration-history version to the source-controlled version in one transaction. Histories now match at 39/39, catalog fingerprints stayed unchanged, and post-apply verification is complete. The recovery is ready for governed Review Candidate backup and hosted/manual review.
 
+## Final Hosted Ranked-Discovery Follow-Up
+
+Hosted review accepted Daily Solo persistence and spectator cancellation/forfeit transparency. One issue remains: ranked Practice and ranked Daily participant games, in OG and GO, can be absent from Overview, the corresponding mode tab, Active Games, and Live for approximately 15-30 seconds after a hard refresh-to-Home.
+
+Repository review found that authentication replaces an initial local multiplayer repository with an empty Supabase repository, successful-empty reads are not retried, and the existing ranked Daily refresh E2E warms Multiplayer before reload. `RANKED-MULTIPLAYER-HARD-REFRESH-DISCOVERY-FINAL-FOLLOW-UP-PLAN-2026-07-11.md` records a reproduce-first final attempt with a five-second target, a three-cycle evidence boundary, and explicit deferral rather than speculative architecture if the narrow repair does not hold.
+
+The final attempt reproduced the cold-start ordering issue and proved that participant reads already contained the durable game while stale authenticated progress hydration could leave the UI empty until a focus-triggered refresh. A narrow one-time reconciliation passed production Firefox and Chromium but did not reliably meet the unchanged five-second ranked Practice gate under the standard runner. The three-cycle limit was reached, so all speculative runtime/test changes and diagnostics were removed. The accepted Review Candidate remains intact, and the ranked post-refresh delay is recorded as deferred pending a separately governed authenticated hydration/repository-readiness design.
+
+## Authenticated Multiplayer Readiness Recovery
+
+The user subsequently authorized the separately governed architecture decision. Authenticated account progress no longer owns or restores Multiplayer projections. App now tracks which authenticated user owns the current repository snapshot; progress hydration preserves Multiplayer only when that explicit owner matches, otherwise it waits with an empty state for the authenticated repository. This removes the timing-dependent cache/repository overwrite without polling, retries, timeouts, schema changes, or row-identity inference.
+
+True-cold fresh-page E2E now covers ranked Practice GO and ranked Daily OG without warming Multiplayer first. Both require the game in the corresponding mode tab, Active Games, and Live within five seconds. The change passed focused repeated Chromium, production Chromium/Firefox, the full ranked reliability set, all 1,018 unit tests, and a fresh 80/80 authority-enabled E2E run after the established exact-retry protocol for one unrelated Daily OG lobby timing transient.
+
 ## Verification
 
 - 141 unit-test files / 1,001 tests passed.

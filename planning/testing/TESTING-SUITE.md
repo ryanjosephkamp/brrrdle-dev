@@ -38,7 +38,7 @@ The full shell gate on 2026-07-09 passed 132 Vitest files / 920 tests and 63 Pla
 
 The accepted Phase 57 checkpoint expands the preservation gate to 141 Vitest files / 998 tests and 21 Playwright files / 74 scenarios:
 
-- `e2e/gameplay/ranked-daily-controls.spec.ts` covers signed-in ranked Daily queueing, separate fixed OG/GO settings, durable game routing, and authority-backed gameplay.
+- `e2e/gameplay/ranked-daily-controls.spec.ts` covers signed-in ranked Daily queueing, separate fixed OG/GO settings, durable game routing, authority-backed gameplay, and true-cold participant discovery from a fresh authenticated page.
 - `e2e/gameplay/private-request-center-phase56.spec.ts` covers participant-owned incoming/outgoing request management, preferences, blocking, lifecycle actions, and durable-game entry.
 - `e2e/gameplay/solo-practice-consumables-phase57.spec.ts` covers guest Marketplace and Solo Practice OG/GO consumable behavior plus Daily/Multiplayer exclusion.
 - `e2e/gameplay/solo-practice-consumables-phase57-authenticated.spec.ts` covers signed-in purchase authority, fresh-context inventory hydration, durable effects, and cleanup.
@@ -129,13 +129,13 @@ are present.
 | Practice Multiplayer GO | Yes | Yes | Yes | `npm run test:e2e:practice`, `npm run test:e2e:multiplayer` | Real two-client solved transition, prior solution visibility, keyboard evidence, and reload persistence. |
 | Daily Multiplayer OG | Yes | Yes | Yes | `npm run test:e2e:daily`, `npm run test:e2e:multiplayer` | Create/join, completion, five-letter/no-clock/no-Hard-Mode checks, and claim guard. |
 | Daily Multiplayer GO | Yes | Yes | Yes | `npm run test:e2e:daily`, `npm run test:e2e:multiplayer` | Real two-client solved transition, prior answer visibility, keyboard evidence, and Daily invariant checks. |
-| Ranked Daily Multiplayer OG/GO | Yes | Yes | Yes | `npx playwright test e2e/gameplay/ranked-daily-controls.spec.ts` | Separate FIFO/claim/answer/rating lanes, fixed settings, durable routing, and authority-backed play. |
+| Ranked Daily Multiplayer OG/GO | Yes | Yes | Yes | `npx playwright test e2e/gameplay/ranked-daily-controls.spec.ts` | Separate FIFO/claim/answer/rating lanes, fixed settings, durable routing, authority-backed play, and five-second cold-page discovery in Daily, Active, and Live. |
 | Authenticated two-client harness | N/A | N/A | Yes | `npm run test:e2e:multiplayer` | `authenticated-two-client-smoke.spec.ts` validates temp-user creation, UI sign-in, isolated contexts, and cleanup. |
 | Public/guest Live spectation | Yes | Yes | Yes | `npm run test:e2e:multiplayer` | `live-v1-spectator.spec.ts` protects public/guest read-only Practice Live discovery and Daily exclusion. |
 | Private matchmaking | Yes | Yes | Yes | `npm run test:e2e:multiplayer` | `private-matchmaking.spec.ts` covers safe public-profile request creation, incoming request visibility, accept, and participant-owned created-game routing. |
 | Private request center and anti-spam | Yes | Yes | Yes | `npx playwright test e2e/gameplay/private-request-center-phase56.spec.ts` | Incoming/outgoing lifecycle, filtering, opt-out, blocking, duplicate limits, notifications, and created-game entry. |
 | Marketplace and Solo Practice consumables | Yes | Yes | Yes | `npm run test:e2e:solo` | Fixed-price guest/signed-in purchases, authority/hydration, board-native Reveal, repeated five-key Remove, persistence, canonical completion, and protected-scope absence. |
-| Multiplayer reliability | Yes | Yes | Yes | `npm run test:e2e:multiplayer` | `multiplayer-reliability.spec.ts` covers three-client ranked queue cancellation/stale-row denial, ranked search-again, public leaderboard freshness, private request lifecycle cleanup, accepted-game routing, and mobile route-entry freshness. |
+| Multiplayer reliability | Yes | Yes | Yes | `npm run test:e2e:multiplayer` | `multiplayer-reliability.spec.ts` covers ranked Practice cold-page discovery, three-client queue cancellation/stale-row denial, ranked search-again, public leaderboard freshness, private request lifecycle cleanup, accepted-game routing, and mobile route-entry freshness. |
 | Mobile route layout/scroll | N/A | N/A | Yes | `npx playwright test e2e/layout/mobile-scroll.spec.ts` | Deterministic route scroll/layout harness for mobile overflow, reachability, and sticky/fixed overlay checks. |
 
 ## Current E2E Files
@@ -270,6 +270,8 @@ review, or any required phase verification gate.
 - Post-Phase-57 optimization adds `e2e/navigation/lazy-loading-boundaries.spec.ts` for answer-free cold Home, selected-length-only loading, one-main-landmark failure containment, and retry through the accepted Home reset. The Playwright worker prepares a canonical five-letter payload only for synchronous Node-side answer helpers; browser pages continue to exercise real dynamic imports. The current complete authority-enabled gate is 76/76 with one worker, alongside 141 files and 1,001 unit tests.
 
 - Phase 57 adds `e2e/gameplay/solo-practice-consumables-phase57.spec.ts` for guest Marketplace purchase, OG/GO use, private effect persistence, on-screen/physical keyboard enforcement, and Daily/Multiplayer exclusion. `e2e/gameplay/solo-practice-consumables-phase57-authenticated.spec.ts` adds real disposable-account bootstrap, price/range/underflow, idempotency/concurrency, privacy, cross-browser hydration, OG/GO persistence, scope exclusion, mobile-fit, and cleanup coverage. Signed-in authority runs must explicitly set `E2E_PHASE57_ECONOMY_AUTHORITY=enabled`.
+
+- Post-Phase-57 authenticated Multiplayer readiness adds an explicit repository-authority contract in `src/app/scopedProgressMultiplayerState.test.ts`, true-cold ranked Practice GO coverage in `multiplayer-reliability.spec.ts`, and true-cold ranked Daily OG coverage in `ranked-daily-controls.spec.ts`. The accepted complete authority gate is now 80/80 with one worker, alongside 144 unit files and 1,018 tests.
 
 - The E2E suite intentionally avoids visual regression testing so Phase 24 UI
   work can evolve without brittle screenshot churn.
