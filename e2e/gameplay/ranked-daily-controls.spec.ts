@@ -59,6 +59,7 @@ async function queueAndFinalizeRankedDaily(
   hostUser: E2eUser,
   rivalUser: E2eUser,
   injectUnknownProjectionFields = false,
+  confirmParticipantLoads = true,
 ): Promise<RankedDailyPair> {
   const hostClient = await createAuthenticatedSupabaseClient(hostUser)
   const rivalClient = await createAuthenticatedSupabaseClient(rivalUser)
@@ -118,8 +119,10 @@ async function queueAndFinalizeRankedDaily(
   })
   expect(rivalFinalization.gameId).toBe(hostStatus.matchedGameId)
 
-  await hostRepository.load()
-  await rivalRepository.load()
+  if (confirmParticipantLoads) {
+    await hostRepository.load()
+    await rivalRepository.load()
+  }
   return {
     gameId: hostStatus.matchedGameId,
     hostRepository,
@@ -160,7 +163,7 @@ async function submitCurrentTurn(
 }
 
 test.describe('Ranked Daily controls @daily @multiplayer', () => {
-  test('discovers a ranked Daily participant game promptly after refresh and explicit re-entry', async ({ page }) => {
+  test('discovers a ranked Daily participant game on a fresh authenticated page', async ({ page }) => {
     const consoleFailures = installConsoleGuards(page)
     const users: E2eUser[] = []
     try {
@@ -168,25 +171,26 @@ test.describe('Ranked Daily controls @daily @multiplayer', () => {
       users.push(hostUser)
       const rivalUser = await createE2eUser('phase55-refresh-rival')
       users.push(rivalUser)
-      const pair = await queueAndFinalizeRankedDaily('og', hostUser, rivalUser)
+      const pair = await queueAndFinalizeRankedDaily('og', hostUser, rivalUser, false, false)
       await submitCurrentTurn(pair, (game) => getValidWrongGuess(game))
 
       await signInThroughUi(page, rivalUser)
-      await page.getByRole('button', { name: /^Multiplayer$/i }).click()
-      await page.getByRole('tab', { name: /^Daily Multiplayer$/i }).click()
-      await expect(page.getByTestId(`multiplayer-game-tab-${pair.gameId}`)).toBeVisible({ timeout: 5_000 })
-      await page.reload({ waitUntil: 'domcontentloaded' })
-      await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
-      await page.getByRole('button', { name: /^Multiplayer$/i }).click()
-      await page.getByRole('tab', { name: /^Daily Multiplayer$/i }).click()
-      await expect(page.getByTestId(`multiplayer-game-tab-${pair.gameId}`)).toBeVisible({ timeout: 5_000 })
+      const freshPage = await page.context().newPage()
+      const freshConsoleFailures = installConsoleGuards(freshPage)
+      await freshPage.goto('/', { waitUntil: 'domcontentloaded' })
+      await expect(freshPage.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+      await expect(freshPage.getByRole('button', { name: /open (?:account menu|profile(?: tab)?) for/i })).toBeVisible({ timeout: 20_000 })
+      await freshPage.getByRole('button', { name: /^Multiplayer$/i }).click()
+      await freshPage.getByRole('tab', { name: /^Daily Multiplayer$/i }).click()
+      await expect(freshPage.getByTestId(`multiplayer-game-tab-${pair.gameId}`)).toBeVisible({ timeout: 5_000 })
 
-      await page.getByRole('tab', { name: /^Active Games$/i }).click()
-      await expect(page.getByTestId(`multiplayer-active-resume-${pair.gameId}`)).toBeVisible({ timeout: 5_000 })
+      await freshPage.getByRole('tab', { name: /^Active Games$/i }).click()
+      await expect(freshPage.getByTestId(`multiplayer-active-resume-${pair.gameId}`)).toBeVisible({ timeout: 5_000 })
 
-      await page.getByRole('tab', { name: /^Live$/i }).click()
+      await freshPage.getByRole('tab', { name: /^Live$/i }).click()
       const currentDateKey = new Date().toISOString().slice(0, 10)
-      await expect(page.getByRole('article', { name: new RegExp(`^Daily Multiplayer OG · ${currentDateKey}$`, 'i') })).toBeVisible({ timeout: 5_000 })
+      await expect(freshPage.getByRole('article', { name: new RegExp(`^Daily Multiplayer OG · ${currentDateKey}$`, 'i') })).toBeVisible({ timeout: 5_000 })
+      await expectNoConsoleFailures(freshConsoleFailures)
       await expectNoConsoleFailures(consoleFailures)
     } finally {
       await cleanupE2eRun(users)

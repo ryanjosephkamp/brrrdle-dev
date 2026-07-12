@@ -1,13 +1,15 @@
 import { expect, test, type Page } from '@playwright/test'
-import { expectNoConsoleFailures } from '../fixtures/assertions'
+import { expectNoConsoleFailures, installConsoleGuards } from '../fixtures/assertions'
 import { getCurrentAnswer, projectionFromRow } from '../fixtures/answers'
 import {
   cancelRankedPracticeQueue,
+  chooseMultiplayerMode,
   enterRankedPracticeQueue,
   navigateToLeaderboard,
   navigateToPracticeMultiplayer,
   openPublicProfileRoute,
   selectMultiplayerGame,
+  setPracticeMultiplayerMatchType,
   submitGuessWithKeyboard,
   waitForTurn,
 } from '../fixtures/gameActions'
@@ -43,6 +45,59 @@ async function sendPrivatePracticeRequest(page: Page, targetPublicProfileId: str
 }
 
 test.describe('Multiplayer reliability characterization @multiplayer', () => {
+  test('rediscovers a ranked Practice GO game on a fresh authenticated page', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+
+    try {
+      await navigateToPracticeMultiplayer(session.host.page)
+      await chooseMultiplayerMode(session.host.page, 'go')
+      await setPracticeMultiplayerMatchType(session.host.page, 'ranked')
+      await session.host.page.getByRole('button', { name: /^Enter ranked queue$/i }).click()
+      await waitForRankedQueueRowsForUsers({
+        status: 'queued',
+        userIds: [session.host.user.id],
+      })
+
+      await navigateToPracticeMultiplayer(session.rival.page)
+      await chooseMultiplayerMode(session.rival.page, 'go')
+      await setPracticeMultiplayerMatchType(session.rival.page, 'ranked')
+      await session.rival.page.getByRole('button', { name: /^Enter ranked queue$/i }).click()
+
+      const playingRow = await waitForMultiplayerRowForExactUsers({
+        mode: 'go',
+        scope: 'practice',
+        status: 'playing',
+        timeoutMs: 30_000,
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      await expectSelectedGame(session.host.page, playingRow.id)
+      await expectSelectedGame(session.rival.page, playingRow.id)
+
+      const freshPage = await session.host.context.newPage()
+      const freshConsoleFailures = installConsoleGuards(freshPage)
+      await freshPage.goto('/', { waitUntil: 'domcontentloaded' })
+      await expect(freshPage.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
+      await expect(freshPage.getByRole('button', { name: /open (?:account menu|profile(?: tab)?) for/i })).toBeVisible({ timeout: 20_000 })
+      await freshPage.getByRole('button', { name: /^Multiplayer$/i }).click()
+      await freshPage.getByRole('tab', { name: /^Practice Multiplayer$/i }).click()
+      await expect(freshPage.getByTestId(`multiplayer-game-tab-${playingRow.id}`)).toBeVisible({ timeout: 5_000 })
+
+      await freshPage.getByRole('tab', { name: /^Active Games$/i }).click()
+      await expect(freshPage.getByTestId(`multiplayer-active-resume-${playingRow.id}`)).toBeVisible({ timeout: 5_000 })
+
+      await freshPage.getByRole('tab', { name: /^Live$/i }).click()
+      await expect(freshPage.getByRole('article', { name: /^Practice Multiplayer GO$/i }).filter({
+        hasText: session.rival.user.displayName,
+      })).toBeVisible({ timeout: 5_000 })
+
+      await expectNoConsoleFailures(freshConsoleFailures)
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
   test('keeps cancelled ranked queue rows out of later three-client matching', async ({ browser }) => {
     const session = await createThreeClientSession(browser)
 

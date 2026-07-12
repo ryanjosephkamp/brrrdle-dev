@@ -43,15 +43,17 @@ describe('selectScopedProgressMultiplayerState', () => {
       multiplayer: createState('stale-progress-cache-game'),
     }
 
-    expect(selectScopedProgressMultiplayerState({
+    const input = {
+      currentAuthorityUserId: accountScope.userId,
       currentMultiplayerState,
-      currentScope: accountScope,
       nextProgress,
       nextScope: accountScope,
-    })).toBe(currentMultiplayerState)
+    }
+
+    expect(selectScopedProgressMultiplayerState(input)).toBe(currentMultiplayerState)
   })
 
-  it('uses the next progress state when switching identities or guest scopes', () => {
+  it('waits for repository authority when switching accounts and uses progress for guest scopes', () => {
     const currentMultiplayerState = createState('previous-account-game')
     const nextMultiplayerState = createState('next-scope-game')
     const nextProgress = {
@@ -61,20 +63,18 @@ describe('selectScopedProgressMultiplayerState', () => {
 
     expect(selectScopedProgressMultiplayerState({
       currentMultiplayerState,
-      currentScope: accountScope,
       nextProgress,
       nextScope: rivalAccountScope,
-    })).toBe(nextMultiplayerState)
+    })).toEqual({ games: [] })
 
     expect(selectScopedProgressMultiplayerState({
       currentMultiplayerState,
-      currentScope: accountScope,
       nextProgress,
       nextScope: guestScope,
     })).toBe(nextMultiplayerState)
   })
 
-  it('preserves already-loaded target-account rows during guest-to-account hydration', () => {
+  it('preserves the complete same-account repository snapshot during guest-to-account hydration', () => {
     const freshTargetState = createStateForUser('fresh-server-game', accountScope.userId)
     const unrelatedState = createStateForUser('unrelated-public-lobby', rivalAccountScope.userId)
     const currentMultiplayerState = { games: [...freshTargetState.games, ...unrelatedState.games] }
@@ -83,15 +83,17 @@ describe('selectScopedProgressMultiplayerState', () => {
       multiplayer: createStateForUser('stale-progress-cache-game', accountScope.userId),
     }
 
-    expect(selectScopedProgressMultiplayerState({
+    const input = {
+      currentAuthorityUserId: accountScope.userId,
       currentMultiplayerState,
-      currentScope: guestScope,
       nextProgress,
       nextScope: accountScope,
-    })).toEqual(freshTargetState)
+    }
+
+    expect(selectScopedProgressMultiplayerState(input)).toBe(currentMultiplayerState)
   })
 
-  it('does not preserve rows belonging only to another account during identity hydration', () => {
+  it('does not use cached target-account rows before its repository becomes authoritative', () => {
     const currentMultiplayerState = createStateForUser('previous-account-game', rivalAccountScope.userId)
     const nextMultiplayerState = createStateForUser('target-account-game', accountScope.userId)
     const nextProgress = {
@@ -101,9 +103,45 @@ describe('selectScopedProgressMultiplayerState', () => {
 
     expect(selectScopedProgressMultiplayerState({
       currentMultiplayerState,
-      currentScope: guestScope,
       nextProgress,
       nextScope: accountScope,
-    })).toBe(nextMultiplayerState)
+    })).toEqual({ games: [] })
+  })
+
+  it('does not let authenticated progress cache authorize multiplayer before the account repository is ready', () => {
+    const currentMultiplayerState = createStateForUser('visible-but-not-authoritative', accountScope.userId)
+    const nextProgress = {
+      ...createDefaultGuestProgress(),
+      multiplayer: createStateForUser('stale-progress-cache-game', accountScope.userId),
+    }
+
+    expect(selectScopedProgressMultiplayerState({
+      currentMultiplayerState,
+      nextProgress,
+      nextScope: accountScope,
+    })).toEqual({ games: [] })
+  })
+
+  it('preserves an explicitly authoritative same-account snapshot without relying on row identity fields', () => {
+    const currentMultiplayerState: MultiplayerState = {
+      games: [createMultiplayerGame({
+        id: 'authority-owned-game',
+        mode: 'go',
+        scope: 'practice',
+        wordLength: 5,
+      })],
+    }
+    const nextProgress = {
+      ...createDefaultGuestProgress(),
+      multiplayer: createStateForUser('stale-progress-cache-game', accountScope.userId),
+    }
+    const input = {
+      currentAuthorityUserId: accountScope.userId,
+      currentMultiplayerState,
+      nextProgress,
+      nextScope: accountScope,
+    }
+
+    expect(selectScopedProgressMultiplayerState(input)).toBe(currentMultiplayerState)
   })
 })
