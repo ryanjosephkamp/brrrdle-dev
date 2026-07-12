@@ -1,10 +1,10 @@
 # Functionality Preservation Inventory - Refreshed After Phase 57
 
-**Status:** Current preservation contract, mapped through the post-Phase-57 optimization Review Candidate.
+**Status:** Current accepted preservation contract, mapped through post-Phase-57 Final Acceptance.
 **Repository:** `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev` only.
 **Originally created:** 2026-07-09.
 **Refreshed:** 2026-07-11.
-**Protected baseline:** Phase 57 Final Acceptance commit `7df20365d9f0dc29bd609a22118403fce6662abd`, tag and GitHub Release `phase-57-golden-2026-07-11`.
+**Protected baseline:** Phase 57 remains protected by `phase-57-golden-2026-07-11`; `post-phase-57-optimized-shell-golden-2026-07-12` supersedes it as the Phase 58 design baseline.
 
 ## Purpose
 

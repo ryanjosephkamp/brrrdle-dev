@@ -1,6 +1,6 @@
 # Phase 58 Design Direction And GPT-5.6 SOL Handoff Implementation Plan
 
-**Status:** Preserved high-level plan; refresh after the post-Phase-57 optimization pass is accepted or explicitly declined.
+**Status:** Ready for intake-driven planning refresh after the post-Phase-57 optimized-shell Golden Checkpoint.
 
 ## Goal
 
@@ -8,7 +8,7 @@ Produce an approved, distinctive, implementation-ready design contract and GPT-5
 
 ## Stages
 
-1. **Checkpoint and intake:** verify the latest accepted foundation checkpoint and capture user references, desired qualities, anti-goals, density, motion/sound, mobile priorities, and unknowns without invention.
+1. **Checkpoint and intake:** verify exact Golden Checkpoint `post-phase-57-optimized-shell-golden-2026-07-12` and capture the user's forthcoming approach, references, desired qualities, anti-goals, density, motion/sound, mobile priorities, and unknowns without invention.
 2. **Product/design audit:** audit every route on desktop/mobile, map recommendations to the refreshed functionality-preservation inventory, and distinguish presentation changes from contract-affecting work.
 3. **Distinct concepts:** prepare three or four meaningfully different desktop/mobile concepts for Home, Solo gameplay, Multiplayer, Stats/Leaderboard, and Profile/Settings. Stop for explicit concept selection.
 4. **Design contract:** create `design.md` covering hierarchy, typography, palette, spacing, controls, game boards/keyboards, feedback, data visualization, responsive behavior, accessibility, performance, motion/sound, and anti-patterns.
