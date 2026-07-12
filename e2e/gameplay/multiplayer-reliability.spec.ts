@@ -5,9 +5,11 @@ import {
   cancelRankedPracticeQueue,
   chooseMultiplayerMode,
   enterRankedPracticeQueue,
+  joinWaitingMultiplayerGame,
   navigateToDailyMultiplayer,
   navigateToLeaderboard,
   navigateToPracticeMultiplayer,
+  openMultiplayerMatch,
   openPublicProfileRoute,
   selectMultiplayerGame,
   setDailyMultiplayerMatchType,
@@ -20,8 +22,10 @@ import {
   fetchPublicProfileIdForUser,
   fetchPublicRankedLeaderboardRowsForUser,
   fetchRankedQueueRowsForUsers,
+  createAuthenticatedSupabaseClient,
   upsertPublicProfileForUser,
   waitForMultiplayerRowForExactUsers,
+  waitForMultiplayerRowForUsers,
   waitForRankedQueueRowsForUsers,
 } from '../fixtures/supabaseAdmin'
 import { createThreeClientSession } from '../fixtures/threeClientGame'
@@ -40,10 +44,118 @@ async function expectPrivateRequestCount(page: Page, count: number): Promise<voi
   }
 }
 
-async function sendPrivatePracticeRequest(page: Page, targetPublicProfileId: string): Promise<void> {
+async function sendPrivatePracticeRequest(
+  page: Page,
+  targetPublicProfileId: string,
+  mode: 'go' | 'og' = 'og',
+): Promise<void> {
   await openPublicProfileRoute(page, targetPublicProfileId)
+  if (mode === 'go') {
+    await page.getByLabel(/^Private Practice mode$/i).selectOption('go')
+  }
   await page.getByRole('button', { name: /^Request Practice match$/i }).click()
   await expect(page.getByText(/Private Practice request pending/i)).toBeVisible({ timeout: 30_000 })
+}
+
+const PARTICIPANT_RELOAD_DEADLINE_MS = 5_000
+
+function remainingDeadlineMs(deadline: number): number {
+  return Math.max(1, deadline - Date.now())
+}
+
+async function expectGameAfterSameTabReload(
+  page: Page,
+  gameId: string,
+  mode: 'go' | 'og',
+  scope: 'daily' | 'practice',
+): Promise<void> {
+  const startedAt = Date.now()
+  const deadline = startedAt + PARTICIPANT_RELOAD_DEADLINE_MS
+  await page.addInitScript((eventName) => {
+    const readinessWindow = window as Window & {
+      __brrrdleMultiplayerReadiness?: unknown[]
+      __brrrdleMultiplayerStateReadiness?: unknown[]
+    }
+    readinessWindow.__brrrdleMultiplayerReadiness = []
+    readinessWindow.__brrrdleMultiplayerStateReadiness = []
+    window.addEventListener(eventName, (event) => {
+      readinessWindow.__brrrdleMultiplayerReadiness?.push((event as CustomEvent).detail)
+    })
+    window.addEventListener('brrrdle:multiplayer-state-readiness', (event) => {
+      readinessWindow.__brrrdleMultiplayerStateReadiness?.push((event as CustomEvent).detail)
+    })
+  }, 'brrrdle:multiplayer-repository-readiness')
+  const participantReadEvents: { readonly elapsedMs: number; readonly rowCount: number; readonly status: number }[] = []
+  const isParticipantRead = (response: import('@playwright/test').Response) => {
+    const url = decodeURIComponent(response.url())
+    return response.request().method() === 'GET'
+      && url.includes('/rest/v1/async_multiplayer_games')
+      && url.includes('player_one_user_id.eq.')
+      && url.includes('player_two_user_id.eq.')
+  }
+  const recordParticipantRead = (response: import('@playwright/test').Response) => {
+    if (!isParticipantRead(response)) return
+    void response.json().then((data: unknown) => {
+      participantReadEvents.push({
+        elapsedMs: Date.now() - startedAt,
+        rowCount: Array.isArray(data) ? data.length : -1,
+        status: response.status(),
+      })
+    }).catch(() => {
+      participantReadEvents.push({ elapsedMs: Date.now() - startedAt, rowCount: -1, status: response.status() })
+    })
+  }
+  page.on('response', recordParticipantRead)
+  const participantRead = page.waitForResponse(isParticipantRead, { timeout: PARTICIPANT_RELOAD_DEADLINE_MS })
+
+  try {
+    await page.reload({
+      timeout: remainingDeadlineMs(deadline),
+      waitUntil: 'domcontentloaded',
+    })
+    await expect(page.locator('#dashboard-home-title')).toBeVisible({ timeout: remainingDeadlineMs(deadline) })
+    await page.getByRole('button', { name: /^Multiplayer$/i }).click({ timeout: remainingDeadlineMs(deadline) })
+    await expect(page.getByRole('tab', { name: /^Overview$/i })).toHaveAttribute('aria-selected', 'true', {
+      timeout: remainingDeadlineMs(deadline),
+    })
+    await expect(page.getByTestId(`multiplayer-active-resume-${gameId}`)).toBeVisible({
+      timeout: remainingDeadlineMs(deadline),
+    })
+
+    await page.getByRole('tab', { name: scope === 'daily' ? /^Daily Multiplayer$/i : /^Practice Multiplayer$/i }).click({
+      timeout: remainingDeadlineMs(deadline),
+    })
+    await expect(page.getByTestId(`multiplayer-game-tab-${gameId}`)).toBeVisible({
+      timeout: remainingDeadlineMs(deadline),
+    })
+
+    await page.getByRole('tab', { name: /^Active Games$/i }).click({ timeout: remainingDeadlineMs(deadline) })
+    await expect(page.getByTestId(`multiplayer-active-resume-${gameId}`)).toBeVisible({
+      timeout: remainingDeadlineMs(deadline),
+    })
+
+    await page.getByRole('tab', { name: /^Live$/i }).click({ timeout: remainingDeadlineMs(deadline) })
+    await expect(page.getByRole('article', {
+      name: new RegExp(`^${scope === 'daily' ? 'Daily' : 'Practice'} Multiplayer ${mode.toUpperCase()}`, 'i'),
+    }).filter({
+      has: page.getByRole('button', { name: /^Resume live game$/i }),
+    }).first()).toBeVisible({ timeout: remainingDeadlineMs(deadline) })
+
+    const participantResponse = await participantRead
+    expect(participantResponse.ok()).toBe(true)
+    expect(Date.now() - startedAt).toBeLessThanOrEqual(PARTICIPANT_RELOAD_DEADLINE_MS)
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const repositoryEvents = await page.evaluate(() => (
+      (window as Window & { __brrrdleMultiplayerReadiness?: unknown[] }).__brrrdleMultiplayerReadiness ?? []
+    ))
+    const stateEvents = await page.evaluate(() => (
+      (window as Window & { __brrrdleMultiplayerStateReadiness?: unknown[] }).__brrrdleMultiplayerStateReadiness ?? []
+    ))
+    throw new Error(`Participant reload readiness failed: network=${JSON.stringify(participantReadEvents)} repository=${JSON.stringify(repositoryEvents)} state=${JSON.stringify(stateEvents)}`)
+  } finally {
+    page.off('response', recordParticipantRead)
+  }
 }
 
 test.describe('Multiplayer reliability characterization @multiplayer', () => {
@@ -82,45 +194,13 @@ test.describe('Multiplayer reliability characterization @multiplayer', () => {
       const reloaded = actor === session.host ? session.rival : session.host
       await selectMultiplayerGame(actor.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await waitForTurn(actor.page)
-      const participantProgressSynced = reloaded.page.waitForResponse((response) => (
-        response.url().includes('/rest/v1/progress_snapshots')
-        && response.request().method() !== 'GET'
-        && response.ok()
-      ), { timeout: 20_000 })
       await submitGuessWithKeyboard(actor.page, getValidWrongGuess(initialGame))
       await expect.poll(async () => {
         const rows = await fetchMultiplayerRowsForUsers([session.host.user.id, session.rival.user.id])
         const row = rows.find((candidate) => candidate.id === playingRow.id)
         return row ? projectionFromRow(row).moves.length : 0
       }, { timeout: 20_000 }).toBe(1)
-      await participantProgressSynced
-
-      // Give the normal authenticated progress autosync time to persist the
-      // participant's same-account projection, then hold only the authoritative
-      // game read past the discovery budget. The cached projection should bridge
-      // that startup interval and must yield when the repository becomes ready.
-      const delayParticipantRepository = async (route: import('@playwright/test').Route) => {
-        await new Promise((resolve) => setTimeout(resolve, 8_000))
-        await route.continue()
-      }
-      await reloaded.page.route('**/rest/v1/async_multiplayer_games*', delayParticipantRepository)
-      await reloaded.page.reload({ waitUntil: 'domcontentloaded' })
-      await expect(reloaded.page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
-      await reloaded.page.getByRole('button', { name: /^Multiplayer$/i }).click()
-      await expect(reloaded.page.getByRole('tab', { name: /^Overview$/i })).toHaveAttribute('aria-selected', 'true')
-      await expect(reloaded.page.getByTestId(`multiplayer-active-resume-${playingRow.id}`)).toBeVisible({ timeout: 5_000 })
-      await expect(reloaded.page.getByRole('button', { name: /open (?:account menu|profile(?: tab)?) for/i })).toBeVisible({ timeout: 20_000 })
-
-      await reloaded.page.getByRole('tab', { name: /^Practice Multiplayer$/i }).click()
-      await expect(reloaded.page.getByTestId(`multiplayer-game-tab-${playingRow.id}`)).toBeVisible({ timeout: 5_000 })
-
-      await reloaded.page.getByRole('tab', { name: /^Active Games$/i }).click()
-      await expect(reloaded.page.getByTestId(`multiplayer-active-resume-${playingRow.id}`)).toBeVisible({ timeout: 5_000 })
-
-      await reloaded.page.getByRole('tab', { name: /^Live$/i }).click()
-      await expect(reloaded.page.getByRole('article', { name: new RegExp(`^Practice Multiplayer ${mode.toUpperCase()}$`, 'i') }).filter({
-        has: reloaded.page.getByRole('button', { name: /^Resume live game$/i }),
-      }).first()).toBeVisible({ timeout: 5_000 })
+      await expectGameAfterSameTabReload(reloaded.page, playingRow.id, mode, 'practice')
 
       await expectNoConsoleFailures(session.host.consoleFailures)
       await expectNoConsoleFailures(session.rival.consoleFailures)
@@ -147,11 +227,6 @@ test.describe('Multiplayer reliability characterization @multiplayer', () => {
       await navigateToDailyMultiplayer(session.rival.page)
       await chooseMultiplayerMode(session.rival.page, mode, 'daily')
       await setDailyMultiplayerMatchType(session.rival.page, 'ranked')
-      const participantProgressSynced = session.host.page.waitForResponse((response) => (
-        response.url().includes('/rest/v1/progress_snapshots')
-        && response.request().method() !== 'GET'
-        && response.ok()
-      ), { timeout: 20_000 })
       await session.rival.page.getByRole('button', { name: /^Enter ranked Daily queue$/i }).click()
 
       const playingRow = await waitForMultiplayerRowForExactUsers({
@@ -163,30 +238,134 @@ test.describe('Multiplayer reliability characterization @multiplayer', () => {
       })
       await expectSelectedGame(session.host.page, playingRow.id)
       await expectSelectedGame(session.rival.page, playingRow.id)
-      await participantProgressSynced
       const reloaded = session.host
+      await expectGameAfterSameTabReload(reloaded.page, playingRow.id, mode, 'daily')
 
-      const delayParticipantRepository = async (route: import('@playwright/test').Route) => {
-        await new Promise((resolve) => setTimeout(resolve, 8_000))
-        await route.continue()
-      }
-      await reloaded.page.route('**/rest/v1/async_multiplayer_games*', delayParticipantRepository)
-      await reloaded.page.reload({ waitUntil: 'domcontentloaded' })
-      await expect(reloaded.page.locator('#dashboard-home-title')).toBeVisible({ timeout: 20_000 })
-      await reloaded.page.getByRole('button', { name: /^Multiplayer$/i }).click()
-      await expect(reloaded.page.getByRole('tab', { name: /^Overview$/i })).toHaveAttribute('aria-selected', 'true')
-      await expect(reloaded.page.getByTestId(`multiplayer-active-resume-${playingRow.id}`)).toBeVisible({ timeout: 5_000 })
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+  }
 
-      await reloaded.page.getByRole('tab', { name: /^Daily Multiplayer$/i }).click()
-      await expect(reloaded.page.getByTestId(`multiplayer-game-tab-${playingRow.id}`)).toBeVisible({ timeout: 5_000 })
+  for (const mode of ['og', 'go'] as const) {
+  test(`rediscovers an unranked Practice ${mode.toUpperCase()} game after reloading the matched participant page`, async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
 
-      await reloaded.page.getByRole('tab', { name: /^Active Games$/i }).click()
-      await expect(reloaded.page.getByTestId(`multiplayer-active-resume-${playingRow.id}`)).toBeVisible({ timeout: 5_000 })
+    try {
+      await navigateToPracticeMultiplayer(session.host.page)
+      await chooseMultiplayerMode(session.host.page, mode)
+      await setPracticeMultiplayerMatchType(session.host.page, 'unranked')
+      await openMultiplayerMatch(session.host.page)
+      const waitingRow = await waitForMultiplayerRowForUsers({
+        mode,
+        scope: 'practice',
+        status: 'waiting',
+        userIds: [session.host.user.id],
+      })
 
-      await reloaded.page.getByRole('tab', { name: /^Live$/i }).click()
-      await expect(reloaded.page.getByRole('article', { name: new RegExp(`^Daily Multiplayer ${mode.toUpperCase()}`, 'i') }).filter({
-        has: reloaded.page.getByRole('button', { name: /^Resume live game$/i }),
-      }).first()).toBeVisible({ timeout: 5_000 })
+      await navigateToPracticeMultiplayer(session.rival.page)
+      await chooseMultiplayerMode(session.rival.page, mode)
+      await setPracticeMultiplayerMatchType(session.rival.page, 'unranked')
+      await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id)
+      const playingRow = await waitForMultiplayerRowForExactUsers({
+        mode,
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      await expectSelectedGame(session.host.page, playingRow.id)
+      await expectSelectedGame(session.rival.page, playingRow.id)
+
+      await expectGameAfterSameTabReload(session.host.page, playingRow.id, mode, 'practice')
+
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+  }
+
+  for (const mode of ['og', 'go'] as const) {
+  test(`rediscovers an unranked Daily ${mode.toUpperCase()} game after reloading the matched participant page`, async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+
+    try {
+      await navigateToDailyMultiplayer(session.host.page)
+      await chooseMultiplayerMode(session.host.page, mode, 'daily')
+      await setDailyMultiplayerMatchType(session.host.page, 'unranked')
+      await openMultiplayerMatch(session.host.page)
+      const waitingRow = await waitForMultiplayerRowForUsers({
+        mode,
+        scope: 'daily',
+        status: 'waiting',
+        userIds: [session.host.user.id],
+      })
+
+      await navigateToDailyMultiplayer(session.rival.page)
+      await chooseMultiplayerMode(session.rival.page, mode, 'daily')
+      await setDailyMultiplayerMatchType(session.rival.page, 'unranked')
+      await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id, { via: 'selected' })
+      const playingRow = await waitForMultiplayerRowForExactUsers({
+        mode,
+        scope: 'daily',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      await expectSelectedGame(session.host.page, playingRow.id)
+      await expectSelectedGame(session.rival.page, playingRow.id)
+
+      await expectGameAfterSameTabReload(session.host.page, playingRow.id, mode, 'daily')
+
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+  }
+
+  for (const mode of ['og', 'go'] as const) {
+  test(`rediscovers a private Practice ${mode.toUpperCase()} game after reloading the matched participant page`, async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+
+    try {
+      await Promise.all([
+        upsertPublicProfileForUser(session.host.user, 'cyan'),
+        upsertPublicProfileForUser(session.rival.user, 'rose'),
+      ])
+      const rivalPublicProfileId = await fetchPublicProfileIdForUser(session.rival.user)
+
+      const requesterClient = await createAuthenticatedSupabaseClient(session.host.user)
+      const { error: requestError } = await requesterClient.rpc('create_private_multiplayer_match_request_v2', {
+        p_expires_at: null,
+        p_go_puzzle_count: mode === 'go' ? 5 : null,
+        p_hard_mode: false,
+        p_idempotency_key: `${session.runId}-reload-${mode}`,
+        p_mode: mode,
+        p_target_public_profile_id: rivalPublicProfileId,
+        p_time_limit_ms: null,
+        p_word_length: 5,
+      })
+      expect(requestError).toBeNull()
+      await navigateToPracticeMultiplayer(session.rival.page)
+      const rivalRequests = session.rival.page.getByTestId('private-match-requests')
+      await expect(rivalRequests).toContainText(`${session.host.user.displayName} requested a private match.`, { timeout: 30_000 })
+      await rivalRequests.getByRole('button', { name: /^Accept private match$/i }).click()
+
+      const playingRow = await waitForMultiplayerRowForExactUsers({
+        mode,
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      await expectSelectedGame(session.rival.page, playingRow.id)
+      await navigateToPracticeMultiplayer(session.host.page)
+      await expectSelectedGame(session.host.page, playingRow.id)
+
+      await expectGameAfterSameTabReload(session.host.page, playingRow.id, mode, 'practice')
 
       await expectNoConsoleFailures(session.host.consoleFailures)
       await expectNoConsoleFailures(session.rival.consoleFailures)

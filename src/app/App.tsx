@@ -58,6 +58,7 @@ import {
   MULTIPLAYER_ESTABLISHED_K,
   MULTIPLAYER_PROVISIONAL_GAMES,
   MULTIPLAYER_PROVISIONAL_K,
+  MULTIPLAYER_REPOSITORY_READINESS_EVENT,
   createLocalStorageMultiplayerRepository,
   loadAuthenticatedLiveSpectatorRows,
   loadPublicLiveSpectatorRows,
@@ -196,6 +197,14 @@ type PrivateMatchActions = Pick<
 >
 
 const LIVE_SPECTATOR_ACTIVE_POLL_INTERVAL_MS = 5_000
+const MULTIPLAYER_STATE_READINESS_EVENT = 'brrrdle:multiplayer-state-readiness'
+
+function reportMultiplayerStateReadiness(kind: 'expiry-applied' | 'progress-selected' | 'repository-applied', gameCount: number): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent(MULTIPLAYER_STATE_READINESS_EVENT, {
+    detail: { gameCount, kind },
+  }))
+}
 const LIVE_SPECTATOR_IDLE_POLL_INTERVAL_MS = 30_000
 export const RANKED_ELO_ABOUT_SECTION_ID = 'ranked-elo-about'
 
@@ -1201,7 +1210,13 @@ function AppInner() {
   const authenticatedMultiplayerUserId = authState.status === 'authenticated' && authState.user ? authState.user.id : undefined
   const multiplayerRepository = useMemo<MultiplayerRepository>(
     () => authenticatedMultiplayerUserId && supabaseClient
-      ? createSupabaseMultiplayerRepository({ client: supabaseClient, userId: authenticatedMultiplayerUserId })
+      ? createSupabaseMultiplayerRepository({
+          client: supabaseClient,
+          onReadinessEvent: (event) => {
+            window.dispatchEvent(new CustomEvent(MULTIPLAYER_REPOSITORY_READINESS_EVENT, { detail: event }))
+          },
+          userId: authenticatedMultiplayerUserId,
+        })
       : createLocalStorageMultiplayerRepository(undefined, initialMultiplayerSeed),
     [authenticatedMultiplayerUserId, initialMultiplayerSeed, supabaseClient],
   )
@@ -1310,6 +1325,7 @@ function AppInner() {
         nextProgress: progress,
         nextScope: scope,
       })
+      reportMultiplayerStateReadiness('progress-selected', nextMultiplayerState.games.length)
       multiplayerRef.current = nextMultiplayerState
       return nextMultiplayerState
     })
@@ -1846,6 +1862,7 @@ function AppInner() {
   }, [authenticatedMultiplayerUserId])
   const applyRemoteMultiplayerSnapshot = useCallback((snapshotState: MultiplayerState, authorityUserId?: string) => {
     multiplayerAuthorityUserIdRef.current = authorityUserId
+    reportMultiplayerStateReadiness('repository-applied', snapshotState.games.length)
     multiplayerRef.current = snapshotState
     setMultiplayer(snapshotState)
     persistActiveMultiplayerState(snapshotState)
@@ -2882,6 +2899,7 @@ function AppInner() {
       if (JSON.stringify(expired) === JSON.stringify(multiplayer)) {
         return
       }
+      reportMultiplayerStateReadiness('expiry-applied', expired.games.length)
       setMultiplayer(expired)
       void multiplayerRepositoryRef.current.save(expired).then((snapshot) => {
         settleTrustedRankedGames(snapshot.state)

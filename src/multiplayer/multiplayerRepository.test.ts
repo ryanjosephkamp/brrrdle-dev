@@ -36,6 +36,40 @@ function createStorage(initial: Record<string, string> = {}) {
   }
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((resolver) => {
+    resolve = resolver
+  })
+  return { promise, resolve }
+}
+
+function createFilteredReadQuery<T>(order: () => T) {
+  const query = {
+    eq: vi.fn(() => query),
+    or: vi.fn(() => query),
+    order: vi.fn(order),
+  }
+  return query
+}
+
+function createGameRow(id: string, status: 'playing' | 'waiting') {
+  const base = createMultiplayerGame({ mode: 'og', scope: 'practice', wordLength: 5 })
+  return {
+    created_at: '2026-07-12T12:00:00.000Z',
+    projection: {
+      ...base,
+      id,
+      playerUserIds: status === 'playing'
+        ? { 'player-one': 'user-1', 'player-two': 'user-2' }
+        : { 'player-one': 'lobby-host' },
+      status,
+      updatedAt: status === 'playing' ? '2026-07-12T12:02:00.000Z' : '2026-07-12T12:01:00.000Z',
+    },
+    updated_at: status === 'playing' ? '2026-07-12T12:02:00.000Z' : '2026-07-12T12:01:00.000Z',
+  }
+}
+
 function createSanitizedSpectatorRow(overrides: Record<string, unknown> = {}) {
   return {
     created_at: '2026-06-15T23:50:00.000Z',
@@ -343,7 +377,7 @@ describe('multiplayer repository seam', () => {
     const client = {
       channel: vi.fn(() => channel),
       from: vi.fn(() => ({
-        select: vi.fn(() => ({ order: vi.fn(() => games) })),
+        select: vi.fn(() => createFilteredReadQuery(() => games)),
       })),
       removeChannel: vi.fn(async () => ({ error: null })),
       rpc: vi.fn(async () => ({ data: '2026-07-11T12:00:00.000Z', error: null })),
@@ -362,14 +396,246 @@ describe('multiplayer repository seam', () => {
     unsubscribe()
   })
 
+  it('publishes explicitly filtered participant games before waiting-lobby discovery settles', async () => {
+    const participant = deferred<{ data: readonly unknown[], error: null }>()
+    const waiting = deferred<{ data: readonly unknown[], error: null }>()
+    const queryCalls: { filter?: string; status?: string }[] = []
+    const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
+    const client = {
+      channel: vi.fn(() => channel),
+      from: vi.fn(() => ({
+        select: vi.fn(() => {
+          const call: { filter?: string; status?: string } = {}
+          queryCalls.push(call)
+          const builder = {
+            eq: vi.fn((column: string, value: string) => {
+              if (column === 'status') call.status = value
+              return builder
+            }),
+            or: vi.fn((filter: string) => {
+              call.filter = filter
+              return builder
+            }),
+            order: vi.fn(() => call.filter ? participant.promise : waiting.promise),
+          }
+          return builder
+        }),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-07-12T12:03:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'user-1' })
+    const listener = vi.fn()
+    repository.subscribe(listener)
+
+    const load = repository.load()
+    participant.resolve({ data: [createGameRow('participant-game', 'playing')], error: null })
+    await vi.waitFor(() => expect(listener).toHaveBeenCalledOnce())
+
+    expect(listener.mock.calls[0]?.[0].state.games.map((game: { id: string }) => game.id)).toEqual(['participant-game'])
+    expect(queryCalls.some((call) => call.filter === 'player_one_user_id.eq.user-1,player_two_user_id.eq.user-1')).toBe(true)
+    expect(queryCalls.some((call) => call.status === 'waiting')).toBe(true)
+
+    waiting.resolve({ data: [createGameRow('waiting-lobby', 'waiting')], error: null })
+    await load
+    expect(listener.mock.calls.at(-1)?.[0].state.games.map((game: { id: string }) => game.id)).toEqual([
+      'participant-game',
+      'waiting-lobby',
+    ])
+  })
+
+  it('prepares the canonical Daily word bank before hydrating an answerless ranked Daily row', async () => {
+    const game = createMultiplayerGame({
+      createdAt: '2026-07-12T12:00:00.000Z',
+      dailyDateKey: '2026-07-12',
+      id: 'ranked-daily-game',
+      matchmakingRequestId: 'phase55-ranked-daily-v1:finalize:ranked-daily-game',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'user-1', 'player-two': 'user-2' },
+      ranked: true,
+      ratingBucket: 'multiplayer:og:daily:v1',
+      scope: 'daily',
+    })
+    const {
+      playerSessions: omittedPlayerSessions,
+      serializedSession: omittedSerializedSession,
+      ...answerlessProjection
+    } = game
+    void omittedPlayerSessions
+    void omittedSerializedSession
+    const prepareRankedDailyHydration = vi.fn(async () => undefined)
+    const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
+    const client = {
+      channel: vi.fn(() => channel),
+      from: vi.fn(() => ({
+        select: vi.fn(() => createFilteredReadQuery(async () => ({
+          data: [{
+            created_at: game.createdAt,
+            projection: answerlessProjection,
+            updated_at: game.updatedAt,
+          }],
+          error: null,
+        }))),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-07-12T12:03:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({
+      client,
+      prepareRankedDailyHydration,
+      userId: 'user-1',
+    })
+
+    const snapshot = await repository.load()
+
+    expect(prepareRankedDailyHydration).toHaveBeenCalledOnce()
+    expect(snapshot.state.games.map((candidate) => candidate.id)).toContain(game.id)
+  })
+
+  it('deduplicates overlapping bootstrap and route loads into one participant read', async () => {
+    const participant = deferred<{ data: readonly unknown[], error: null }>()
+    const waiting = deferred<{ data: readonly unknown[], error: null }>()
+    let participantQueries = 0
+    let waitingQueries = 0
+    const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
+    const client = {
+      channel: vi.fn(() => channel),
+      from: vi.fn(() => ({
+        select: vi.fn(() => {
+          let participantQuery = false
+          const builder = {
+            eq: vi.fn(() => builder),
+            or: vi.fn(() => {
+              participantQuery = true
+              return builder
+            }),
+            order: vi.fn(() => {
+              if (participantQuery) {
+                participantQueries += 1
+                return participant.promise
+              }
+              waitingQueries += 1
+              return waiting.promise
+            }),
+          }
+          return builder
+        }),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-07-12T12:03:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'user-1' })
+    const listener = vi.fn()
+    repository.subscribe(listener)
+
+    const bootstrapLoad = repository.load()
+    const routeLoad = repository.load()
+    expect(participantQueries).toBe(1)
+    expect(waitingQueries).toBe(1)
+    participant.resolve({ data: [createGameRow('participant-game', 'playing')], error: null })
+    waiting.resolve({ data: [], error: null })
+    const [bootstrapSnapshot, routeSnapshot] = await Promise.all([bootstrapLoad, routeLoad])
+
+    expect(bootstrapSnapshot.state.games.map((game) => game.id)).toEqual(['participant-game'])
+    expect(routeSnapshot.state.games.map((game) => game.id)).toEqual(['participant-game'])
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  it('coalesces realtime bursts during a read into one trailing refresh', async () => {
+    const participants = Array.from({ length: 3 }, () => deferred<{ data: readonly unknown[], error: null }>())
+    const waiting = Array.from({ length: 3 }, () => deferred<{ data: readonly unknown[], error: null }>())
+    let participantQueries = 0
+    let waitingQueries = 0
+    let realtimeHandler: (() => void) | undefined
+    const channel = {
+      on: vi.fn((_event: string, _filter: unknown, handler: () => void) => {
+        realtimeHandler = handler
+        return channel
+      }),
+      subscribe: vi.fn(() => channel),
+    }
+    const client = {
+      channel: vi.fn(() => channel),
+      from: vi.fn(() => ({
+        select: vi.fn(() => {
+          let participantQuery = false
+          const builder = {
+            eq: vi.fn(() => builder),
+            or: vi.fn(() => {
+              participantQuery = true
+              return builder
+            }),
+            order: vi.fn(() => {
+              if (participantQuery) {
+                return participants[participantQueries++]!.promise
+              }
+              return waiting[waitingQueries++]!.promise
+            }),
+          }
+          return builder
+        }),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-07-12T12:03:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'user-1' })
+    const listener = vi.fn()
+    repository.subscribe(listener)
+
+    const load = repository.load()
+    realtimeHandler?.()
+    realtimeHandler?.()
+    expect(participantQueries).toBe(1)
+    expect(waitingQueries).toBe(1)
+
+    participants[0]!.resolve({ data: [createGameRow('first-game', 'playing')], error: null })
+    waiting[0]!.resolve({ data: [], error: null })
+    await load
+    await vi.waitFor(() => expect(participantQueries).toBe(2))
+    expect(waitingQueries).toBe(2)
+
+    participants[1]!.resolve({ data: [createGameRow('fresh-game', 'playing')], error: null })
+    waiting[1]!.resolve({ data: [], error: null })
+    await vi.waitFor(() => {
+      expect(listener.mock.calls.at(-1)?.[0].state.games.map((game: { id: string }) => game.id)).toEqual(['fresh-game'])
+    })
+    expect(participantQueries).toBe(2)
+    expect(waitingQueries).toBe(2)
+  })
+
+  it('reports non-secret participant and waiting-lane readiness timings', async () => {
+    const events: unknown[] = []
+    let now = 100
+    const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
+    const client = {
+      channel: vi.fn(() => channel),
+      from: vi.fn(() => ({
+        select: vi.fn(() => createFilteredReadQuery(async () => ({ data: [], error: null }))),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-07-12T12:03:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({
+      client,
+      now: () => ++now,
+      onReadinessEvent: (event) => events.push(event),
+      userId: 'user-1',
+    })
+
+    await repository.load()
+
+    expect(events).toEqual([
+      { durationMs: 1, generation: 1, kind: 'participant-published', rowCount: 0 },
+      { durationMs: 2, generation: 1, kind: 'waiting-published', rowCount: 0 },
+    ])
+  })
+
   it('surfaces authenticated game-read failures without publishing an empty snapshot', async () => {
     const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
     const client = {
       channel: vi.fn(() => channel),
       from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          order: vi.fn(async () => ({ data: null, error: { message: 'read failed' } })),
-        })),
+        select: vi.fn(() => createFilteredReadQuery(async () => ({ data: null, error: { message: 'read failed' } }))),
       })),
       removeChannel: vi.fn(async () => ({ error: null })),
       rpc: vi.fn(async () => ({ data: '2026-07-11T12:00:00.000Z', error: null })),
@@ -1716,7 +1982,7 @@ describe('multiplayer repository seam', () => {
       return { data: null, error: { message: `Unexpected RPC ${name}` } }
     })
     const from = vi.fn(() => ({
-      select: vi.fn(() => ({ order: vi.fn(async () => ({ data: [], error: null })) })),
+      select: vi.fn(() => createFilteredReadQuery(async () => ({ data: [], error: null }))),
       update: vi.fn(() => ({ match: vi.fn(async () => ({ error: null })) })),
       upsert: vi.fn(async () => ({ error: null })),
     }))
@@ -1780,16 +2046,14 @@ describe('multiplayer repository seam', () => {
     void omittedPlayerSessions
     void omittedSerializedSession
     const from = vi.fn(() => ({
-      select: vi.fn(() => ({
-        order: vi.fn(async () => ({
+      select: vi.fn(() => createFilteredReadQuery(async () => ({
           data: [{
             created_at: submitted.createdAt,
             projection: { ...answerlessProjection, authorityVersion: 1 },
             updated_at: submitted.updatedAt,
           }],
           error: null,
-        })),
-      })),
+        }))),
     }))
     const repository = createSupabaseMultiplayerRepository({
       client: {
@@ -1806,6 +2070,56 @@ describe('multiplayer repository seam', () => {
     expect(restored?.moves).toEqual(submitted.moves)
     expect(restored?.status).toBe('won')
     expect(getMultiplayerAnswerWords(restored!)).toEqual(getMultiplayerAnswerWords(game))
+  })
+
+  it('hydrates answerless ranked Daily GO with its persisted generation version', async () => {
+    const game = createMultiplayerGame({
+      createdAt: '2026-07-14T12:00:00.000Z',
+      dailyDateKey: '2026-07-14',
+      matchmakingRequestId: 'phase55-ranked-daily-v1:finalize:go-game-1',
+      mode: 'go',
+      playerUserIds: { 'player-one': 'user-1', 'player-two': 'user-2' },
+      ranked: true,
+      ratingBucket: 'multiplayer:go:daily:v1',
+      scope: 'daily',
+      id: 'go-game-1',
+    })
+    const {
+      playerSessions: omittedPlayerSessions,
+      serializedSession: omittedSerializedSession,
+      ...answerlessProjection
+    } = game
+    void omittedPlayerSessions
+    void omittedSerializedSession
+
+    async function hydrate(answerGenerationVersion?: 'v1' | 'v2') {
+      const from = vi.fn(() => ({
+        select: vi.fn(() => createFilteredReadQuery(async () => ({
+          data: [{
+            created_at: game.createdAt,
+            projection: { ...answerlessProjection, answerGenerationVersion },
+            updated_at: game.updatedAt,
+          }],
+          error: null,
+        }))),
+      }))
+      const repository = createSupabaseMultiplayerRepository({
+        client: {
+          from,
+          rpc: vi.fn(async () => ({ data: '2026-07-14T12:01:00.000Z', error: null })),
+        } as unknown as BrrrdleSupabaseClient,
+        userId: 'user-1',
+      })
+      return (await repository.load()).state.games[0]
+    }
+
+    const legacy = await hydrate()
+    const v2 = await hydrate('v2')
+
+    expect(legacy?.answerGenerationVersion).toBe('v1')
+    expect(legacy?.serializedSession.mode === 'go' ? legacy.serializedSession.session.answerGenerationVersion : undefined).toBe('v1')
+    expect(v2?.answerGenerationVersion).toBe('v2')
+    expect(v2?.serializedSession.mode === 'go' ? v2.serializedSession.session.answerGenerationVersion : undefined).toBe('v2')
   })
 
   it('saves canonical timed ranked games with the timed storage rating bucket', async () => {
@@ -1834,9 +2148,7 @@ describe('multiplayer repository seam', () => {
               })),
             }
           }
-          return {
-            order: vi.fn(async () => ({ data: [], error: null })),
-          }
+          return createFilteredReadQuery(async () => ({ data: [], error: null }))
         }),
         update: vi.fn(() => ({
           match: vi.fn(async () => ({ error: null })),
@@ -1904,9 +2216,7 @@ describe('multiplayer repository seam', () => {
               })),
             }
           }
-          return {
-            order: vi.fn(async () => ({ data: tables[table] ?? [], error: null })),
-          }
+          return createFilteredReadQuery(async () => ({ data: tables[table] ?? [], error: null }))
         }),
         update: vi.fn((row: { readonly id?: string }) => ({
           match: vi.fn(async ({ id, updated_at: updatedAt }: { readonly id: string, readonly updated_at: string }) => {
@@ -1985,9 +2295,7 @@ describe('multiplayer repository seam', () => {
               })),
             }
           }
-          return {
-            order: vi.fn(async () => ({ data: tables[table] ?? [], error: null })),
-          }
+          return createFilteredReadQuery(async () => ({ data: tables[table] ?? [], error: null }))
         }),
         update: vi.fn((row: { readonly id?: string }) => ({
           match: vi.fn(async ({ id, updated_at: updatedAt }: { readonly id: string, readonly updated_at: string }) => {
@@ -2071,9 +2379,7 @@ describe('multiplayer repository seam', () => {
               })),
             }
           }
-          return {
-            order: vi.fn(async () => ({ data: tables[table] ?? [], error: null })),
-          }
+          return createFilteredReadQuery(async () => ({ data: tables[table] ?? [], error: null }))
         }),
         update: vi.fn((row: { readonly id?: string }) => ({
           match: vi.fn(async ({ id, updated_at: updatedAt }: { readonly id: string, readonly updated_at: string }) => {
@@ -2132,7 +2438,7 @@ describe('multiplayer repository seam', () => {
         select: vi.fn((columns: string) => {
           if (columns === 'id') return { in: vi.fn(async () => ({ data: [{ id: game.id }], error: null })) }
           if (columns === 'projection, updated_at') return { eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: storedRow, error: null })) })) }
-          return { order: vi.fn(async () => ({ data: [storedRow], error: null })) }
+          return createFilteredReadQuery(async () => ({ data: [storedRow], error: null }))
         }),
         update: vi.fn(() => ({ match })),
         upsert: vi.fn(async () => ({ error: null })),
@@ -2194,9 +2500,7 @@ describe('multiplayer repository seam', () => {
               })),
             }
           }
-          return {
-            order: vi.fn(async () => ({ data: tables[table] ?? [], error: null })),
-          }
+          return createFilteredReadQuery(async () => ({ data: tables[table] ?? [], error: null }))
         }),
         update: vi.fn((row: { readonly id?: string }) => ({
           match: vi.fn(async ({ id, updated_at: updatedAt }: { readonly id: string, readonly updated_at: string }) => {

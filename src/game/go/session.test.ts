@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DAILY_WORD_LENGTH, GO_PUZZLE_COUNT } from '../constants'
+import { GO_CHAIN_V2_DAILY_CUTOFF_DATE_KEY } from './chainSelector'
 import { continueGoAfterLoss, createDailyGoSetup, createGoSession, createPracticeGoSetup, deleteGoLetter, enterGoLetter, getAvailableGoPracticeLengths, restoreGoSession, revealGoPuzzle, serializeGoSession, setGoHardMode, submitGoGuess } from './session'
 
 function submitWord(state: ReturnType<typeof createGoSession>, word: string) {
@@ -155,5 +156,43 @@ describe('go session model', () => {
     const setup = createPracticeGoSetup(5, 0, undefined, 10)
     expect(setup.puzzles).toHaveLength(10)
     expect(setup.puzzles.every((puzzle) => puzzle.answer.length === 5)).toBe(true)
+  })
+
+  it('uses v2 for new practice chains without shifted consecutive answer windows', () => {
+    const first = createPracticeGoSetup(5, 100)
+    const second = createPracticeGoSetup(5, 101)
+    const firstAnswers = first.puzzles.map((puzzle) => puzzle.answer)
+    const secondAnswers = second.puzzles.map((puzzle) => puzzle.answer)
+
+    expect(first.answerGenerationVersion).toBe('v2')
+    expect(second.answerGenerationVersion).toBe('v2')
+    expect(secondAnswers.slice(0, -1)).not.toEqual(firstAnswers.slice(1))
+    expect(secondAnswers.filter((answer) => firstAnswers.includes(answer)).length).toBeLessThan(4)
+  })
+
+  it('activates Daily v2 only at the shared calendar-date cutoff', () => {
+    const before = new Date(`${GO_CHAIN_V2_DAILY_CUTOFF_DATE_KEY}T12:00:00`)
+    before.setDate(before.getDate() - 1)
+    const legacy = createDailyGoSetup(before)
+    const v2 = createDailyGoSetup(new Date(`${GO_CHAIN_V2_DAILY_CUTOFF_DATE_KEY}T12:00:00`))
+
+    expect(legacy.answerGenerationVersion).toBe('v1')
+    expect(v2.answerGenerationVersion).toBe('v2')
+  })
+
+  it('round-trips v2 and treats a missing serialized version as legacy v1', () => {
+    const setup = createPracticeGoSetup(5, 200)
+    const serialized = serializeGoSession(createGoSession(setup))
+    const restored = restoreGoSession(serialized, setup.validGuesses)
+    const { answerGenerationVersion: _version, ...legacySerialized } = serialized
+    void _version
+    const restoredLegacy = restoreGoSession(legacySerialized, setup.validGuesses)
+
+    expect(serialized.answerGenerationVersion).toBe('v2')
+    expect(restored.answerGenerationVersion).toBe('v2')
+    expect(restoredLegacy.answerGenerationVersion).toBe('v1')
+    expect(restoredLegacy.puzzles.map((puzzle) => puzzle.answer)).toEqual(
+      serialized.puzzles.map((puzzle) => puzzle.answer),
+    )
   })
 })

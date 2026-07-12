@@ -2,6 +2,10 @@ import { getDailyAnswerIndex, getDailyDateKey, getDailyGoSeedIndex, getWordRepos
 import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../data/difficulty'
 import { DAILY_WORD_LENGTH, DEFAULT_GO_PUZZLE_COUNT, type GoPuzzleCount } from '../game/constants'
 import type { GoSessionSetup } from '../game/go/session'
+import {
+  getGoAnswerGenerationVersionForDateKey,
+  selectDeterministicGoAnswerSequence,
+} from '../game/go/chainSelector'
 import type { OgPuzzleSetup } from '../game/og/session'
 
 export interface MultiplayerProfileSummary {
@@ -183,16 +187,34 @@ export function createDailyMultiplayerGoSetup(
   difficulty: DifficultyTier = DEFAULT_DIFFICULTY_TIER,
   puzzleCount: GoPuzzleCount = DEFAULT_GO_PUZZLE_COUNT,
   ranked = false,
+  versionOverride?: GoSessionSetup['answerGenerationVersion'],
 ): GoSessionSetup {
   const repository = getWordRepository({ difficulty, length: DAILY_WORD_LENGTH, mode: 'go', scope: 'daily' })
   if (!repository.ok) {
     throw new Error(repository.message)
   }
   const dateKey = getDailyDateKey(date)
-  const seedIndex = ranked
-    ? rankedMultiplayerAnswerIndex(dateKey, repository.answers, 'go', puzzleCount)
-    : multiplayerAnswerIndex(dateKey, repository.answers.length, 'go')
-  const answers = answerSequence(repository.answers, seedIndex, puzzleCount)
+  const answerGenerationVersion = versionOverride ?? getGoAnswerGenerationVersionForDateKey(dateKey)
+  let answers: readonly string[]
+  if (answerGenerationVersion === 'v1') {
+    const seedIndex = ranked
+      ? rankedMultiplayerAnswerIndex(dateKey, repository.answers, 'go', puzzleCount)
+      : multiplayerAnswerIndex(dateKey, repository.answers.length, 'go')
+    answers = answerSequence(repository.answers, seedIndex, puzzleCount)
+  } else {
+    const unrankedStreamKey = `go-chain-v2:multiplayer:daily:unranked:${dateKey}:${DAILY_WORD_LENGTH}:${difficulty}:${puzzleCount}`
+    const unrankedAnswers = selectDeterministicGoAnswerSequence(repository.answers, {
+      puzzleCount,
+      streamKey: unrankedStreamKey,
+    })
+    answers = ranked
+      ? selectDeterministicGoAnswerSequence(repository.answers, {
+          excludedWords: new Set(unrankedAnswers),
+          puzzleCount,
+          streamKey: `go-chain-v2:multiplayer:daily:ranked:${dateKey}:${DAILY_WORD_LENGTH}:${difficulty}:${puzzleCount}`,
+        })
+      : unrankedAnswers
+  }
   const priorAnswers: string[] = []
   const puzzles = answers.map((answer) => {
     const prefilledGuesses = [...priorAnswers]
@@ -200,6 +222,7 @@ export function createDailyMultiplayerGoSetup(
     return { answer, prefilledGuesses }
   })
   return {
+    answerGenerationVersion,
     dateKey,
     puzzles,
     validGuesses: repository.validGuesses,

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { getGuessResult } from '../../src/game/tileStates'
 import { expectKeyboardState, expectNoConsoleFailures } from '../fixtures/assertions'
 import { getCurrentAnswer, projectionFromRow } from '../fixtures/answers'
 import { chooseMultiplayerMode, navigateToPracticeMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, setPracticeMultiplayerMatchType, setPracticeMultiplayerWordLength, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
@@ -83,6 +84,19 @@ test.describe('Practice Multiplayer GO @practice @multiplayer', () => {
       })
       const game = projectionFromRow(playingRow)
       const firstAnswer = getCurrentAnswer(game)
+      const secondAnswer = game.serializedSession.mode === 'go'
+        ? game.serializedSession.session.puzzles[1]?.answer
+        : undefined
+      if (!secondAnswer) throw new Error('Practice GO E2E projection is missing puzzle two.')
+      const keyboardLetter = firstAnswer[0]!
+      const keyboardStates = getGuessResult(firstAnswer, secondAnswer).tiles
+        .filter((tile) => tile.letter === keyboardLetter)
+        .map((tile) => tile.state)
+      const expectedKeyboardState = keyboardStates.includes('correct')
+        ? 'correct'
+        : keyboardStates.includes('present')
+          ? 'present'
+          : 'absent'
 
       await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await waitForTurn(session.host.page)
@@ -93,7 +107,7 @@ test.describe('Practice Multiplayer GO @practice @multiplayer', () => {
       await expect(session.rival.page.getByText(visibleAnswer, { exact: true }).first()).toBeVisible({ timeout: 20_000 })
       await expect(session.host.page.getByText(/Puzzle 2 of 5/i).first()).toBeVisible({ timeout: 20_000 })
       await expect(session.rival.page.getByText(/Puzzle 2 of 5/i).first()).toBeVisible({ timeout: 20_000 })
-      await expectKeyboardState(session.rival.page, firstAnswer[0], 'correct')
+      await expectKeyboardState(session.rival.page, keyboardLetter, expectedKeyboardState)
 
       await session.rival.page.reload()
       await selectMultiplayerGame(session.rival.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
