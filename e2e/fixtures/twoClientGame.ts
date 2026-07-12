@@ -32,6 +32,14 @@ export async function createTwoClientSession(browser: Browser): Promise<TwoClien
   const hostConsoleFailures = installConsoleGuards(hostPage)
   const rivalConsoleFailures = installConsoleGuards(rivalPage)
 
+  const protectedPreviewAccessUrl = process.env.E2E_PROTECTED_PREVIEW_ACCESS_URL
+  if (protectedPreviewAccessUrl) {
+    await Promise.all([
+      hostPage.goto(protectedPreviewAccessUrl, { waitUntil: 'domcontentloaded' }),
+      rivalPage.goto(protectedPreviewAccessUrl, { waitUntil: 'domcontentloaded' }),
+    ])
+  }
+
   await signInThroughUi(hostPage, hostUser)
   await signInThroughUi(rivalPage, rivalUser)
 

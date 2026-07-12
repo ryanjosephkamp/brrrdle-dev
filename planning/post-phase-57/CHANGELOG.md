@@ -56,6 +56,22 @@ The user subsequently authorized the separately governed architecture decision. 
 
 True-cold fresh-page E2E now covers ranked Practice GO and ranked Daily OG without warming Multiplayer first. Both require the game in the corresponding mode tab, Active Games, and Live within five seconds. The change passed focused repeated Chromium, production Chromium/Firefox, the full ranked reliability set, all 1,018 unit tests, and a fresh 80/80 authority-enabled E2E run after the established exact-retry protocol for one unrelated Daily OG lobby timing transient.
 
+## Hosted Failure After PR #68
+
+Hosted manual review rejected the readiness recovery. Ranked Practice and ranked Daily games still disappear from all expected participant surfaces after a manual same-tab refresh-to-Home, and the reported recovery delay increased to approximately 30-60 seconds.
+
+The prior automated evidence used a second page while the original matched page remained alive in the same browser context. It therefore did not model the actual participant tab being destroyed and reconstructed by a manual reload. `RANKED-MULTIPLAYER-SAME-TAB-HARD-REFRESH-RECOVERY-PLAN-2026-07-11.md` replaces that false-positive topology with a Practice-first, same-tab, real-account reproduction and temporary hosted-preview acceptance gate. No source reversion or new implementation is authorized by this planning update.
+
+## Same-Tab Hard-Refresh Recovery
+
+The corrected two-context harness now reloads the actual matched participant page. With the account projection synced and the participant repository read held beyond five seconds, the PR #68 selector reproduced the hosted empty interval by discarding the current account's safe provisional Multiplayer projection until repository authority arrived.
+
+Authenticated progress may now supply that account-scoped Multiplayer projection only while its repository is pending. The existing explicit same-user repository authority still wins permanently once published, so later progress hydration cannot replace current repository state. This is a display/readiness bridge only; canonical game writes, queues, claims, settlements, realtime, and server contracts are unchanged.
+
+Ranked Practice and Daily OG/GO now have real UI same-tab reload coverage across Overview, the matching mode tab, Active Games, and Live under an eight-second delayed repository read and an unchanged five-second visibility budget. Practice passed five consecutive Chromium cycles per mode plus Firefox and WebKit. All four scenarios passed local production mode and one protected non-production Vercel preview.
+
+Complete regression exposed two existing harness weaknesses rather than product regressions. The selected unranked Daily join helper now reopens the exact lobby after the accepted refresh-to-Home fallback, and temporary Auth-user deletion retries at most three times with bounded backoff. The final fresh authority-enabled browser run passed 83/83, with exact 39/39 migration equality, unchanged spectator fingerprints, and zero temporary Auth/profile residue.
+
 ## Verification
 
 - 141 unit-test files / 1,001 tests passed.
@@ -71,6 +87,9 @@ True-cold fresh-page E2E now covers ranked Practice GO and ranked Daily OG witho
 - Real authenticated/public terminal spectator E2E passed for two-participant pre-turn cancellation and post-turn forfeit labels; focused Daily Solo and ranked Daily refresh regressions also passed.
 - Final verification passed 86 focused spectator tests, lint, 144 unit files / 1,016 tests, build, app/API typechecks, and a fresh authority-enabled 79/79 Playwright run with one worker in 10.6 minutes.
 - Supabase advisors reported existing project-wide warnings, including the intentionally public read-only spectator security-definer RPC; no new table, policy, index, trigger, role broadening, or unreviewed function was introduced.
+- Same-tab recovery verification passed three red selector expectations before source correction, six selector tests after correction, ten consecutive Chromium Practice reloads, two Firefox Practice reloads, two WebKit Practice reloads, four Firefox/WebKit Daily reloads, four local-production reloads, four protected-preview reloads, lint, 144 files / 1,018 unit tests, build, API typecheck, and a final fresh 83/83 authority-enabled E2E run.
+- Preview `https://brrrdle-a4rdkoy7k-ryanjosephkamps-projects.vercel.app` is `READY` and non-production. It was not promoted and no production configuration changed.
+- Final cleanup proof: exact 39/39 local/remote migrations, spectator hashes `546ad763742d56de9dfea2dcf63e436d` and `79330949c8ef878ed78e439954d23661`, zero temporary Auth users, and zero temporary public profiles.
 
 ## Boundaries Preserved
 

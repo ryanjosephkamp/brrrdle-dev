@@ -23,6 +23,12 @@ export async function navigateToPracticeMultiplayer(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { level: 3, name: /^Practice Multiplayer$/i })).toBeVisible()
 }
 
+export async function navigateToDailyMultiplayer(page: Page): Promise<void> {
+  await ensureMultiplayerWorkspace(page)
+  await page.getByRole('tab', { name: /^Daily Multiplayer$/i }).click()
+  await expect(page.getByRole('heading', { level: 3, name: /^Daily Multiplayer$/i })).toBeVisible()
+}
+
 async function ensureMultiplayerWorkspace(page: Page): Promise<void> {
   if (await page.locator('#multiplayer-workspace-title').isVisible({ timeout: 1_000 }).catch(() => false)) {
     return
@@ -70,6 +76,14 @@ export async function setPracticeMultiplayerWordLength(page: Page, wordLength: n
 
 export async function setPracticeMultiplayerMatchType(page: Page, matchType: 'custom' | 'ranked' | 'unranked'): Promise<void> {
   const panel = page.getByTestId('multiplayer-panel-practice')
+  const matchTypeSelect = panel.locator('select').nth(1)
+  await expect(matchTypeSelect).toBeVisible()
+  await matchTypeSelect.selectOption(matchType)
+  await expect(matchTypeSelect).toHaveValue(matchType)
+}
+
+export async function setDailyMultiplayerMatchType(page: Page, matchType: 'ranked' | 'unranked'): Promise<void> {
+  const panel = page.getByTestId('multiplayer-panel-daily')
   const matchTypeSelect = panel.locator('select').nth(1)
   await expect(matchTypeSelect).toBeVisible()
   await matchTypeSelect.selectOption(matchType)
@@ -200,10 +214,20 @@ export async function joinMultiplayerMatch(page: Page): Promise<void> {
 export async function joinWaitingMultiplayerGame(page: Page, gameId: string, options: JoinWaitingMultiplayerGameOptions = {}): Promise<void> {
   if (options.via === 'selected') {
     const findJoinButton = () => page.getByRole('button', { name: /^Join multiplayer match$/i }).first()
+    const reopenSelectedLobby = async () => {
+      await ensureMultiplayerWorkspace(page)
+      await page.getByRole('tab', { name: /^Lobby$/i }).click()
+      await page.getByTestId(`multiplayer-lobby-action-${gameId}`).click({ timeout: 20_000 })
+    }
     let joinButton = findJoinButton()
     if (!await joinButton.isVisible({ timeout: 20_000 }).catch(() => false)) {
-      await page.reload({ waitUntil: 'domcontentloaded' })
+      await reopenSelectedLobby()
       joinButton = findJoinButton()
+      if (!await joinButton.isVisible({ timeout: 5_000 }).catch(() => false)) {
+        await page.reload({ waitUntil: 'domcontentloaded' })
+        await reopenSelectedLobby()
+        joinButton = findJoinButton()
+      }
       await expect(joinButton).toBeVisible({ timeout: 20_000 })
     }
     await joinButton.click({ timeout: 20_000 })

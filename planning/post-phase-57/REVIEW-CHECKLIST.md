@@ -7,7 +7,9 @@
 
 This checklist verifies loading and route ownership changes against the accepted Phase 57 preservation inventory. It does not replace automated verification.
 
-The 2026-07-11 hosted review reported Daily Solo focus/refresh rollback, delayed ranked game discovery after refresh, and missing spectator cancellation/forfeit reason text. Daily Solo persistence and spectator termination transparency pass hosted review. After separate user authorization, authenticated Multiplayer now has an explicit repository authority owner, and cold ranked Practice/Daily browser regressions pass within five seconds across Chromium and Firefox. The ranked item remains unchecked until the backed-up Review Candidate is manually verified on the hosted site.
+The 2026-07-11 hosted review reported Daily Solo focus/refresh rollback, delayed ranked game discovery after refresh, and missing spectator cancellation/forfeit reason text. Daily Solo persistence and spectator termination transparency pass hosted review. Hosted review after PR #68 rejected the authenticated Multiplayer readiness change because its automated test opened a second page while the matched page remained alive.
+
+The recovered candidate now reloads the actual matched participant page and bridges a slow participant-repository read with the current account's provisional progress projection until explicit repository authority arrives. Automated verification passed ranked Practice and Daily OG/GO locally, cross-browser, in production mode, and on a protected non-production Vercel preview. The ranked item remains unchecked until the governed backup is hosted and the user repeats the manual same-tab sequence.
 
 ## Recovery Checks To Run First
 

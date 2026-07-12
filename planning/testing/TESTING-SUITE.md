@@ -138,6 +138,21 @@ are present.
 | Multiplayer reliability | Yes | Yes | Yes | `npm run test:e2e:multiplayer` | `multiplayer-reliability.spec.ts` covers ranked Practice cold-page discovery, three-client queue cancellation/stale-row denial, ranked search-again, public leaderboard freshness, private request lifecycle cleanup, accepted-game routing, and mobile route-entry freshness. |
 | Mobile route layout/scroll | N/A | N/A | Yes | `npx playwright test e2e/layout/mobile-scroll.spec.ts` | Deterministic route scroll/layout harness for mobile overflow, reachability, and sticky/fixed overlay checks. |
 
+## Ranked Same-Tab Hard-Refresh Contract
+
+`e2e/gameplay/multiplayer-reliability.spec.ts` contains the accepted ranked reload topology:
+
+- two independent authenticated browser contexts enter the real Practice or Daily ranked queue;
+- the exact participant page that displayed the matched game submits or observes durable game state and then calls `page.reload({ waitUntil: 'domcontentloaded' })`;
+- refresh lands on Home, and the participant enters Multiplayer once without a second page, focus dispatch, Back/Forward, or prior route warming;
+- the participant repository read is delayed beyond the five-second budget while the account-scoped progress write is proven complete;
+- the exact game must appear in Overview, Practice/Daily, Active Games, and Live within five seconds;
+- OG and GO are covered for both Practice and Daily.
+
+Use `playwright.multiplayer-recovery.config.ts` for explicit Chromium, Firefox, and WebKit runs. A protected Vercel preview may set `E2E_PROTECTED_PREVIEW_ACCESS_URL` only in process scope so each disposable context establishes its temporary preview cookie before normal UI sign-in. Never commit or log that short-lived URL.
+
+Temporary Auth deletion retries at most three times with short bounded backoff. Persistent deletion failure remains fatal and must be followed by a zero-residue probe; the retry does not weaken cleanup requirements.
+
 ## Current E2E Files
 
 - `e2e/gameplay/authenticated-two-client-smoke.spec.ts`

@@ -53,7 +53,7 @@ describe('selectScopedProgressMultiplayerState', () => {
     expect(selectScopedProgressMultiplayerState(input)).toBe(currentMultiplayerState)
   })
 
-  it('waits for repository authority when switching accounts and uses progress for guest scopes', () => {
+  it('uses target-account progress provisionally when switching accounts and uses progress for guest scopes', () => {
     const currentMultiplayerState = createState('previous-account-game')
     const nextMultiplayerState = createState('next-scope-game')
     const nextProgress = {
@@ -65,7 +65,7 @@ describe('selectScopedProgressMultiplayerState', () => {
       currentMultiplayerState,
       nextProgress,
       nextScope: rivalAccountScope,
-    })).toEqual({ games: [] })
+    })).toBe(nextMultiplayerState)
 
     expect(selectScopedProgressMultiplayerState({
       currentMultiplayerState,
@@ -93,7 +93,7 @@ describe('selectScopedProgressMultiplayerState', () => {
     expect(selectScopedProgressMultiplayerState(input)).toBe(currentMultiplayerState)
   })
 
-  it('does not use cached target-account rows before its repository becomes authoritative', () => {
+  it('uses cached target-account rows before its repository becomes authoritative', () => {
     const currentMultiplayerState = createStateForUser('previous-account-game', rivalAccountScope.userId)
     const nextMultiplayerState = createStateForUser('target-account-game', accountScope.userId)
     const nextProgress = {
@@ -105,10 +105,10 @@ describe('selectScopedProgressMultiplayerState', () => {
       currentMultiplayerState,
       nextProgress,
       nextScope: accountScope,
-    })).toEqual({ games: [] })
+    })).toBe(nextMultiplayerState)
   })
 
-  it('does not let authenticated progress cache authorize multiplayer before the account repository is ready', () => {
+  it('uses authenticated progress only as the provisional multiplayer projection before repository readiness', () => {
     const currentMultiplayerState = createStateForUser('visible-but-not-authoritative', accountScope.userId)
     const nextProgress = {
       ...createDefaultGuestProgress(),
@@ -119,7 +119,7 @@ describe('selectScopedProgressMultiplayerState', () => {
       currentMultiplayerState,
       nextProgress,
       nextScope: accountScope,
-    })).toEqual({ games: [] })
+    })).toBe(nextProgress.multiplayer)
   })
 
   it('preserves an explicitly authoritative same-account snapshot without relying on row identity fields', () => {
