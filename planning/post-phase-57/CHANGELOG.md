@@ -1,6 +1,6 @@
 # Post-Phase-57 Deeper Functional-Shell Optimization Changelog
 
-**Status:** Review Candidate prepared; hosted/manual review and governed backup remain gated.
+**Status:** Final Acceptance complete; Golden Checkpoint `post-phase-57-optimized-shell-golden-2026-07-12` approved.
 **Protected baseline:** `7df20365d9f0dc29bd609a22118403fce6662abd` / `phase-57-golden-2026-07-11`.
 **Date:** 2026-07-11.
 
@@ -94,3 +94,11 @@ Complete regression exposed two existing harness weaknesses rather than product 
 ## Boundaries Preserved
 
 No dependency, lockfile, framework, gameplay, economy, rating, queue, request, deployment, design-system, release, Git/GitHub, or stable-repository change was made. The only remote application change is the exact one-time spectator projection migration plus its proven ledger-only version reconciliation.
+
+## Final Acceptance
+
+The user completed hosted manual review after PR #69 and accepted the post-Phase-57 optimized functional shell for closure and checkpointing. Daily Solo persistence, spectator cancellation/forfeit transparency, Marketplace and consumables, route/data loading, navigation, account surfaces, multiplayer flows, responsive behavior, and the broader preservation checklist are accepted.
+
+Ranked Practice and Daily games may still take a short interval to reappear after a manual hard refresh. The user confirmed that the remaining delay is acceptable, is not associated with game loss, and may be revisited later if it persists or worsens. It is recorded as a deferred minor limitation rather than silently represented as eliminated.
+
+Final Acceptance closes the post-Phase-57 optimization/recovery program. The next governed stage is Phase 58 planning for design direction, concepts, `design.md`, frontend-stack evaluation, performance/accessibility budgets, and the GPT-5.6 SOL handoff. Production source redesign remains separately gated to Phase 59.
