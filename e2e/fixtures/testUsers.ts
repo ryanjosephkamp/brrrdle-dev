@@ -38,10 +38,18 @@ export async function deleteE2eUser(user: E2eUser | undefined): Promise<void> {
     return
   }
   const admin = createAdminSupabaseClient()
-  const { error } = await admin.auth.admin.deleteUser(user.id)
-  if (error) {
-    throw new Error(`Unable to delete E2E user ${user.label}: ${error.message}`)
+  let lastErrorMessage = 'unknown deletion failure'
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const { error } = await admin.auth.admin.deleteUser(user.id)
+    if (!error) {
+      return
+    }
+    lastErrorMessage = error.message
+    if (attempt < 3) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 250))
+    }
   }
+  throw new Error(`Unable to delete E2E user ${user.label}: ${lastErrorMessage}`)
 }
 
 export async function signInThroughUi(page: Page, user: E2eUser): Promise<void> {

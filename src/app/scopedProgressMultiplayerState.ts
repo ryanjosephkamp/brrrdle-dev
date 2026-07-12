@@ -18,7 +18,12 @@ export function selectScopedProgressMultiplayerState(
     if (input.currentAuthorityUserId === nextAuthenticatedUserId) {
       return input.currentMultiplayerState
     }
-    return createEmptyMultiplayerState()
+    // Authenticated progress is loaded for nextAuthenticatedUserId and guarded
+    // by the current hydration request in App. Use its Multiplayer projection
+    // only while this account's repository is still pending. As soon as the
+    // repository publishes, currentAuthorityUserId is set and later progress
+    // hydration can no longer replace that authoritative snapshot.
+    return input.nextProgress.multiplayer ?? createEmptyMultiplayerState()
   }
 
   return input.nextProgress.multiplayer ?? createEmptyMultiplayerState()
