@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_DIFFICULTY_TIER } from '../data/difficulty'
+import { GO_CHAIN_V2_DAILY_CUTOFF_DATE_KEY } from '../game/go/chainSelector'
 import {
   createDailyMultiplayerGoSetup,
   createDailyMultiplayerOgSetup,
@@ -21,7 +22,7 @@ describe('daily multiplayer helpers', () => {
   })
 
   it('keeps ranked Daily answers deterministic and separate from unranked answers', () => {
-    const date = new Date('2026-06-04T12:00:00.000Z')
+    const date = new Date(`${GO_CHAIN_V2_DAILY_CUTOFF_DATE_KEY}T12:00:00.000Z`)
     const unrankedOg = createDailyMultiplayerOgSetup(date, DEFAULT_DIFFICULTY_TIER, false)
     const rankedOg = createDailyMultiplayerOgSetup(date, DEFAULT_DIFFICULTY_TIER, true)
     const repeatedRankedOg = createDailyMultiplayerOgSetup(date, DEFAULT_DIFFICULTY_TIER, true)
@@ -33,9 +34,11 @@ describe('daily multiplayer helpers', () => {
     expect(rankedGo.puzzles.map((puzzle) => puzzle.answer)).not.toEqual(
       unrankedGo.puzzles.map((puzzle) => puzzle.answer),
     )
-    for (let index = 0; index < rankedGo.puzzles.length; index += 1) {
-      expect(rankedGo.puzzles[index]?.answer).not.toBe(unrankedGo.puzzles[index]?.answer)
-    }
+    expect(rankedGo.answerGenerationVersion).toBe('v2')
+    expect(unrankedGo.answerGenerationVersion).toBe('v2')
+    expect(rankedGo.puzzles.some((puzzle) => (
+      unrankedGo.puzzles.some((unrankedPuzzle) => unrankedPuzzle.answer === puzzle.answer)
+    ))).toBe(false)
   })
 
   it('sanitizes rival profile summaries before they enter match projections', () => {

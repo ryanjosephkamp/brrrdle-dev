@@ -1,6 +1,6 @@
 import type { BrrrdleSupabaseClient } from '../account/supabaseClient'
-import { DEFAULT_DIFFICULTY_TIER, type DifficultyTier } from '../data'
-import { DEFAULT_GO_PUZZLE_COUNT } from '../game/constants'
+import { DEFAULT_DIFFICULTY_TIER, prepareBundledWordList, type DifficultyTier } from '../data'
+import { DAILY_WORD_LENGTH, DEFAULT_GO_PUZZLE_COUNT } from '../game/constants'
 import type { GameMode, PlayScope, TileResult } from '../game/types'
 import {
   createMultiplayerGame,
@@ -181,8 +181,20 @@ export function createLocalStorageMultiplayerRepository(
 
 export interface SupabaseMultiplayerRepositoryOptions {
   readonly client: BrrrdleSupabaseClient
+  readonly now?: () => number
+  readonly onReadinessEvent?: (event: MultiplayerRepositoryReadinessEvent) => void
+  readonly prepareRankedDailyHydration?: () => Promise<void>
   readonly userId: string
 }
+
+export interface MultiplayerRepositoryReadinessEvent {
+  readonly durationMs: number
+  readonly generation: number
+  readonly kind: 'participant-published' | 'waiting-published'
+  readonly rowCount: number
+}
+
+export const MULTIPLAYER_REPOSITORY_READINESS_EVENT = 'brrrdle:multiplayer-repository-readiness'
 
 interface MultiplayerGameRow {
   readonly created_at?: string
@@ -1973,7 +1985,9 @@ function hydrateRankedDailyProjection(value: unknown): unknown {
   }
 
   const createdAt = typeof record.createdAt === 'string' ? record.createdAt : new Date(0).toISOString()
+  const answerGenerationVersion = record.mode === 'go' && record.answerGenerationVersion === 'v2' ? 'v2' : 'v1'
   const initial = createMultiplayerGame({
+    answerGenerationVersion,
     createdAt,
     dailyDateKey: record.dailyDateKey,
     difficulty: DEFAULT_DIFFICULTY_TIER,
@@ -2055,6 +2069,26 @@ function hydrateRankedDailyProjection(value: unknown): unknown {
 
 function rowToGame(row: MultiplayerGameRow): MultiplayerGame | undefined {
   return normalizeMultiplayerState({ games: [hydrateRankedDailyProjection(row.projection)] }).games[0]
+}
+
+function hasAnswerlessRankedDailyProjectionRows(data: unknown): boolean {
+  return Array.isArray(data) && data.some((row) => {
+    if (typeof row !== 'object' || row === null) return false
+    const projection = (row as MultiplayerGameRow).projection
+    if (typeof projection !== 'object' || projection === null) return false
+    const record = projection as Record<string, unknown>
+    return record.ranked === true
+      && record.scope === 'daily'
+      && (record.mode === 'og' || record.mode === 'go')
+      && record.serializedSession === undefined
+  })
+}
+
+async function prepareDefaultRankedDailyHydration(): Promise<void> {
+  const result = await prepareBundledWordList('daily', DAILY_WORD_LENGTH)
+  if (!result.ok) {
+    throw new Error('Unable to prepare ranked Daily multiplayer word data.')
+  }
 }
 
 function removePrivateMatchAcceptPlayerUserIds(game: MultiplayerGame): MultiplayerGame {
@@ -2274,9 +2308,20 @@ async function updateMultiplayerGameRows(client: BrrrdleSupabaseClient, rows: re
   }
 }
 
-export function createSupabaseMultiplayerRepository({ client, userId }: SupabaseMultiplayerRepositoryOptions): MultiplayerRepository {
+export function createSupabaseMultiplayerRepository({
+  client,
+  now = Date.now,
+  onReadinessEvent,
+  prepareRankedDailyHydration = prepareDefaultRankedDailyHydration,
+  userId,
+}: SupabaseMultiplayerRepositoryOptions): MultiplayerRepository {
   const channelName = `brrrdle-multiplayer:${userId}`
   let snapshot = createSnapshot(createEmptyMultiplayerState(), 0)
+  let participantGames: readonly MultiplayerGame[] = []
+  let waitingLobbyGames: readonly MultiplayerGame[] = []
+  let refreshGeneration = 0
+  let refreshInFlight: Promise<MultiplayerRepositorySnapshot> | undefined
+  let realtimeRefreshQueued = false
   const listeners = new Set<(next: MultiplayerRepositorySnapshot) => void>()
   const publish = () => {
     for (const listener of listeners) {
@@ -2284,32 +2329,108 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
     }
   }
 
-  const refresh = async () => {
-    const [serverNow, gamesResult] = await Promise.all([
-      (async () => {
-        const { data, error } = await client.rpc('get_live_multiplayer_server_time')
-        return error || typeof data !== 'string' ? new Date().toISOString() : data
-      })(),
-      client
-        .from('async_multiplayer_games')
-        .select('projection, created_at, updated_at')
-        .order('updated_at', { ascending: false }),
-    ])
-    if (gamesResult.error) {
-      throw new Error(`Unable to load multiplayer games: ${gamesResult.error.message}`)
+  const parseGameRows = (data: unknown): readonly MultiplayerGame[] => Array.isArray(data)
+    ? data.flatMap((row) => rowToGame(row as MultiplayerGameRow) ?? [])
+    : []
+  const composeRepositoryState = () => mergeMultiplayerStates(
+    { games: participantGames },
+    { games: waitingLobbyGames },
+  )
+  const publishRepositoryState = (serverNow: string, force = false) => {
+    const nextState = composeRepositoryState()
+    const unchanged = nextState.games.length === snapshot.state.games.length
+      && nextState.games.every((game, index) => {
+        const current = snapshot.state.games[index]
+        return current?.id === game.id && current.updatedAt === game.updatedAt
+      })
+    if (!force && unchanged) {
+      return
     }
-    const games = Array.isArray(gamesResult.data)
-      ? gamesResult.data.flatMap((row) => rowToGame(row as MultiplayerGameRow) ?? [])
-      : []
-    const serverGameIds = new Set(games.map((game) => game.id))
-    const currentServerGames = snapshot.state.games.filter((game) => serverGameIds.has(game.id))
-    snapshot = createSnapshot(
-      mergeMultiplayerStates({ games }, { games: currentServerGames }),
-      snapshot.version + 1,
-      serverNow,
-    )
+    snapshot = createSnapshot(nextState, snapshot.version + 1, serverNow)
     publish()
+  }
+
+  const performRefresh = async () => {
+    const generation = ++refreshGeneration
+    const startedAt = now()
+    const serverNowPromise = (async () => {
+      const { data, error } = await client.rpc('get_live_multiplayer_server_time')
+      return error || typeof data !== 'string' ? new Date().toISOString() : data
+    })()
+    const participantPromise = client
+      .from('async_multiplayer_games')
+      .select('projection, created_at, updated_at')
+      .or(`player_one_user_id.eq.${userId},player_two_user_id.eq.${userId}`)
+      .order('updated_at', { ascending: false })
+    const waitingLobbyPromise = client
+      .from('async_multiplayer_games')
+      .select('projection, created_at, updated_at')
+      .eq('status', 'waiting')
+      .order('updated_at', { ascending: false })
+
+    const [serverNow, participantResult] = await Promise.all([serverNowPromise, participantPromise])
+    if (generation !== refreshGeneration) {
+      await waitingLobbyPromise
+      return snapshot
+    }
+    if (participantResult.error) {
+      throw new Error(`Unable to load multiplayer games: ${participantResult.error.message}`)
+    }
+    if (hasAnswerlessRankedDailyProjectionRows(participantResult.data)) {
+      await prepareRankedDailyHydration()
+    }
+    participantGames = parseGameRows(participantResult.data)
+    publishRepositoryState(serverNow, true)
+    onReadinessEvent?.({
+      durationMs: Math.max(0, Math.round(now() - startedAt)),
+      generation,
+      kind: 'participant-published',
+      rowCount: participantGames.length,
+    })
+
+    const waitingLobbyResult = await waitingLobbyPromise
+    if (generation !== refreshGeneration) {
+      return snapshot
+    }
+    if (!waitingLobbyResult.error) {
+      waitingLobbyGames = parseGameRows(waitingLobbyResult.data)
+      publishRepositoryState(serverNow)
+      onReadinessEvent?.({
+        durationMs: Math.max(0, Math.round(now() - startedAt)),
+        generation,
+        kind: 'waiting-published',
+        rowCount: waitingLobbyGames.length,
+      })
+    }
     return snapshot
+  }
+
+  const refresh = (): Promise<MultiplayerRepositorySnapshot> => {
+    if (refreshInFlight) {
+      return refreshInFlight
+    }
+
+    const activeRefresh = performRefresh()
+    refreshInFlight = activeRefresh
+    const finish = () => {
+      if (refreshInFlight === activeRefresh) {
+        refreshInFlight = undefined
+      }
+      if (realtimeRefreshQueued) {
+        realtimeRefreshQueued = false
+        void refresh().catch(() => undefined)
+      }
+    }
+    void activeRefresh.then(finish, finish)
+    return activeRefresh
+  }
+
+  const refreshAfterRealtimeEvent = () => {
+    if (refreshInFlight) {
+      realtimeRefreshQueued = true
+      return
+    }
+    void refresh().catch(() => undefined)
   }
 
   return {
@@ -2327,6 +2448,10 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
       }
       const previousGames = new Map(snapshot.state.games.map((game) => [game.id, game]))
       snapshot = createSnapshot(state, snapshot.version + 1)
+      participantGames = snapshot.state.games.filter((game) => (
+        game.playerUserIds?.['player-one'] === userId || game.playerUserIds?.['player-two'] === userId
+      ))
+      waitingLobbyGames = snapshot.state.games.filter((game) => game.status === 'waiting')
       const changedGames = snapshot.state.games
         .filter((game) => game.playerUserIds?.['player-one'] === userId || game.playerUserIds?.['player-two'] === userId)
         .filter((game) => hasGameProjectionChanged(previousGames.get(game.id), game))
@@ -2641,9 +2766,7 @@ export function createSupabaseMultiplayerRepository({ client, userId }: Supabase
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'async_multiplayer_games' },
-          () => {
-            void refresh().catch(() => undefined)
-          },
+          refreshAfterRealtimeEvent,
         )
         .subscribe()
       return () => {

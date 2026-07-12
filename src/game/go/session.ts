@@ -12,6 +12,13 @@ import {
 import { getGuessResult } from '../tileStates'
 import type { GameStatus } from '../types'
 import type { ConsumableEffects } from '../../progression/consumables'
+import {
+  getGoAnswerGenerationVersionForDateKey,
+  selectDeterministicGoAnswerSequence,
+  type GoAnswerGenerationVersion,
+} from './chainSelector'
+
+export type { GoAnswerGenerationVersion } from './chainSelector'
 
 export interface GoPuzzleSetup {
   readonly answer: string
@@ -19,6 +26,7 @@ export interface GoPuzzleSetup {
 }
 
 export interface GoSessionSetup {
+  readonly answerGenerationVersion: GoAnswerGenerationVersion
   readonly dateKey?: string
   readonly puzzles: readonly GoPuzzleSetup[]
   readonly validGuesses: ReadonlySet<string>
@@ -26,6 +34,7 @@ export interface GoSessionSetup {
 }
 
 export interface GoSessionState {
+  readonly answerGenerationVersion: GoAnswerGenerationVersion
   readonly currentPuzzleIndex: number
   readonly hardMode: boolean
   readonly priorAnswers: readonly string[]
@@ -43,6 +52,7 @@ export interface GoSessionState {
 }
 
 export interface SerializedGoSession {
+  readonly answerGenerationVersion?: GoAnswerGenerationVersion
   readonly currentPuzzleIndex: number
   readonly hardMode: boolean
   readonly priorAnswers: readonly string[]
@@ -96,7 +106,13 @@ export function createDailyGoSetup(date = new Date(), difficulty: DifficultyTier
   }
 
   const dateKey = getDailyDateKey(date)
-  const answers = selectAnswerSequence(repository.answers, getDailyGoSeedIndex(dateKey, repository.answers.length), puzzleCount)
+  const answerGenerationVersion = getGoAnswerGenerationVersionForDateKey(dateKey)
+  const answers = answerGenerationVersion === 'v1'
+    ? selectAnswerSequence(repository.answers, getDailyGoSeedIndex(dateKey, repository.answers.length), puzzleCount)
+    : selectDeterministicGoAnswerSequence(repository.answers, {
+        puzzleCount,
+        streamKey: `go-chain-v2:solo:daily:${dateKey}:${DAILY_WORD_LENGTH}:${difficulty}:${puzzleCount}`,
+      })
   const priorAnswers: string[] = []
   const puzzles = answers.map((answer) => {
     const prefilledGuesses = [...priorAnswers]
@@ -105,6 +121,7 @@ export function createDailyGoSetup(date = new Date(), difficulty: DifficultyTier
   })
 
   return {
+    answerGenerationVersion,
     dateKey,
     puzzles,
     validGuesses: repository.validGuesses,
@@ -118,8 +135,11 @@ export function createPracticeGoSetup(length: number, seed = Date.now(), difficu
     throw new Error(repository.message)
   }
 
-  const seedIndex = Math.abs(Math.trunc(seed)) % repository.answers.length
-  const answers = selectAnswerSequence(repository.answers, seedIndex, puzzleCount)
+  const normalizedSeed = Math.abs(Math.trunc(seed))
+  const answers = selectDeterministicGoAnswerSequence(repository.answers, {
+    puzzleCount,
+    streamKey: `go-chain-v2:solo:practice:${normalizedSeed}:${length}:${difficulty}:${puzzleCount}`,
+  })
   const priorAnswers: string[] = []
   const puzzles = answers.map((answer) => {
     const prefilledGuesses = [...priorAnswers]
@@ -128,6 +148,7 @@ export function createPracticeGoSetup(length: number, seed = Date.now(), difficu
   })
 
   return {
+    answerGenerationVersion: 'v2',
     puzzles,
     validGuesses: repository.validGuesses,
     wordLength: repository.wordList.metadata.length,
@@ -136,6 +157,7 @@ export function createPracticeGoSetup(length: number, seed = Date.now(), difficu
 
 export function createGoSession(setup: GoSessionSetup, hardMode = false): GoSessionState {
   return {
+    answerGenerationVersion: setup.answerGenerationVersion,
     currentPuzzleIndex: 0,
     hardMode,
     priorAnswers: [],
@@ -261,6 +283,7 @@ export function revealGoPuzzle(state: GoSessionState): GoSessionState {
 
 export function serializeGoSession(state: GoSessionState): SerializedGoSession {
   return {
+    answerGenerationVersion: state.answerGenerationVersion,
     currentPuzzleIndex: state.currentPuzzleIndex,
     hardMode: state.hardMode,
     priorAnswers: state.priorAnswers,
@@ -301,6 +324,7 @@ export function restoreGoSession(serialized: SerializedGoSession, validGuesses: 
   const currentPuzzleIndex = activePuzzleIndex
 
   return {
+    answerGenerationVersion: serialized.answerGenerationVersion ?? 'v1',
     currentPuzzleIndex,
     hardMode: serialized.hardMode,
     priorAnswers: serialized.priorAnswers,

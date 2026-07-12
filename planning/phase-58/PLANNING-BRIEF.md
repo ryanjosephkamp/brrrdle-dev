@@ -1,10 +1,39 @@
-# Phase 58 Planning Brief - Design Direction And GPT-5.6 SOL Handoff
+# Phase 58 Planning Brief - GO Solution Diversity And Multiplayer Refresh Readiness
 
-**Status:** Ready for Phase 58 planning against the accepted post-Phase-57 optimized-shell checkpoint.
+**Status:** Planned; implementation requires separate authorization.
 **Date:** 2026-07-12.
+**Protected baseline:** `post-phase-57-optimized-shell-golden-2026-07-12` at `046c681dd99e66b21b9fdbeca97b60b2e0ada99c`.
 
-Phase 58 preserves the previously planned Phase 55 design-direction work. It should verify Golden Checkpoint `post-phase-57-optimized-shell-golden-2026-07-12`, audit the final accepted optimized shell, capture the user's forthcoming redesign approach and inspiration, develop distinct desktop/mobile concepts, establish `design.md`, decide the component/frontend strategy, define performance/accessibility/motion budgets, and produce a preservation-mapped GPT-5.6 SOL handoff.
+## Purpose
 
-Phase 58 is documentation/design work. It must not modify production runtime behavior or begin the frontend rebuild. The preservation inventory was refreshed through the accepted post-Phase-57 recovery; Phase 58 must reconcile it once more against the exact optimized-shell checkpoint before concept work.
+Phase 58 is the final foundation-hardening phase before design direction. It has two bounded objectives:
 
-The actual GPT-5.6 SOL frontend rebuild is routed to Phase 59 and requires separate authorization.
+1. Replace GO's contiguous answer-window selection with a versioned deterministic sampler that selects unique, independently distributed answers from the eligible word-length and difficulty pool while preserving every existing GO gameplay, carry-over, keyboard, Hard Mode, persistence, privacy, and multiplayer rule.
+2. Make participant-owned Multiplayer games rediscoverable after a same-tab hard refresh within one shared five-second readiness budget across ranked, unranked, Daily, Practice, private, OG, and GO lanes, without weakening repository authority or relying on stale cross-account cache state.
+
+The two objectives share a single reason to precede redesign: both define foundational game/data behavior that the later visual work must preserve. They should remain separate implementation stages and verification lanes inside the phase.
+
+## Evidence Summary
+
+- Current Solo and most Multiplayer GO creation uses `answers[(seedIndex + offset) % answers.length]`. Because eligible answer lists retain alphabetical ordering, each chain is a contiguous lexical window.
+- Five-letter adjacent answers currently share their first letter about 98.8 percent of the time and their first two letters about 90.0 percent of the time.
+- Practice counters advance by one. A new five-, seven-, or ten-puzzle chain therefore overlaps the prior same-configuration chain by four, six, or nine answers respectively.
+- The participant repository currently reads every RLS-visible `async_multiplayer_games` row ordered by `updated_at`. RLS also exposes global waiting rows, so the critical participant read grows with account history and current public activity.
+- The accepted reload bridge depends on a debounced progress snapshot. Existing E2E normally uses fresh accounts and waits for that snapshot, so it does not model an established account that reloads immediately.
+
+## Compatibility Rules
+
+- Existing serialized Solo and non-ranked Multiplayer sessions keep their stored answers exactly.
+- Existing ranked Daily games keep their canonical server answers exactly.
+- Daily answer-generation v2 activates only on an explicit future UTC cutoff shared by TypeScript and the ranked Daily server contract.
+- New Practice games use v2 after implementation; absence of an answer-generation version means legacy v1.
+- GO mechanics and UI are out of scope except for changes strictly required to preserve or expose the selected chain version.
+- Multiplayer participant repository authority remains final. Provisional same-account display may bridge startup only when it cannot cross users or overwrite later authority.
+
+## Phase Routing
+
+- **Phase 58:** GO solution diversity and Multiplayer hard-refresh readiness.
+- **Phase 59:** preserved design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff.
+- **Phase 60:** separately authorized frontend rebuild.
+
+No design makeover, dependency/framework change, Git/GitHub action, production deployment, or stable-repository work is authorized by this planning brief.

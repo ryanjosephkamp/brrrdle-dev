@@ -1,14 +1,14 @@
 # Functionality Preservation Inventory - Refreshed After Phase 57
 
-**Status:** Current accepted preservation contract, mapped through post-Phase-57 Final Acceptance.
+**Status:** Current preservation contract, mapped through the Phase 58 Review Candidate.
 **Repository:** `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev` only.
 **Originally created:** 2026-07-09.
-**Refreshed:** 2026-07-11.
-**Protected baseline:** Phase 57 remains protected by `phase-57-golden-2026-07-11`; `post-phase-57-optimized-shell-golden-2026-07-12` supersedes it as the Phase 58 design baseline.
+**Refreshed:** 2026-07-12.
+**Protected baseline:** Phase 57 remains protected by `phase-57-golden-2026-07-11`; `post-phase-57-optimized-shell-golden-2026-07-12` supersedes it as the Phase 58 foundation-hardening baseline and the future Phase 59 design baseline.
 
 ## Purpose
 
-This inventory defines the behavior that deeper-shell optimization, Phase 58 design work, and the later GPT-5.6 SOL frontend rebuild must preserve. It is a contract map, not permission to remove anything lacking a dedicated browser scenario. The refresh reconciles every original row with current repository paths and adds accepted Phase 55 ranked Daily, Phase 56 private-request management, and Phase 57 Marketplace/economy/consumable behavior.
+This inventory defines the behavior that deeper-shell optimization, Phase 58 foundation hardening, Phase 59 design work, and the later GPT-5.6 SOL frontend rebuild must preserve. It is a contract map, not permission to remove anything lacking a dedicated browser scenario. The refresh reconciles every original row with current repository paths and adds accepted Phase 55 ranked Daily, Phase 56 private-request management, and Phase 57 Marketplace/economy/consumable behavior.
 
 Presentation labels:
 
@@ -55,6 +55,7 @@ Sensitivity labels:
 | GAME-11 | Word lists load, validate, cache, refresh, and cover supported lengths without exposing puzzle answers. | `src/data/` | Data/cache/schema/repository tests | Representative offline/error state | Protected | Functional |
 | GAME-12 | Definitions use the established source/fallback path and do not duplicate the final GO definition. | `src/definitions/`, OG/GO results surfaces | Definition service and Google-search tests; game component tests | OG/GO results with available/missing definitions | Public | Functional |
 | GAME-13 | Sharing produces accurate, privacy-safe result text without exposing answers before allowed. | `src/game/share.ts`, `src/ui/ShareButton.tsx` | `src/game/share.test.ts` | Share won/lost OG/GO | Public | Functional |
+| GAME-14 | New GO chains use a versioned deterministic selection-without-replacement contract rather than contiguous ordered-pool windows. Practice uses v2 immediately; Daily uses the recorded UTC cutoff; legacy stored answers restore unchanged; ranked/unranked Daily sets remain separated without exposing answers. | `src/game/go/chainSelector.ts`, GO session/Daily Multiplayer setup, Phase 58 migration | Selector property tests, session cutoff tests, migration-contract tests, two-client GO E2E | Consecutive Practice chains, Daily reproducibility, legacy resume, ranked/unranked separation | Protected | Functional |
 
 ## C. Account, Persistence, Progression, History, And Settings
 
@@ -98,6 +99,7 @@ Sensitivity labels:
 | MP-18 | Ranked Daily OG and GO use independent authenticated FIFO queues, four independent Daily participation lanes, deterministic answer namespaces distinct from unranked Daily, server-authorized pair/action evidence, finalization/cleanup recovery, reload hydration, and public metadata without exposing answers or private projections. | `src/multiplayer/matchmaking.ts`, `src/multiplayer/multiplayerPanelRankedQueue.ts`, `src/multiplayer/multiplayerRepository.ts`, Phase 55 migrations | Matchmaking/repository/migration-contract tests and `e2e/gameplay/ranked-daily-controls.spec.ts` | Two-account ranked Daily OG/GO queue, play, reload, completion, and repeat queue | Protected | Functional |
 | MP-19 | Private-request opt-out, directional blocking, requester-target-mode uniqueness, pair locking, active/recent anti-spam limits, participant-only visibility, and lifecycle mutations remain server-enforced. | `src/multiplayer/multiplayerRepository.ts`, `src/account/Settings.tsx`, Phase 56 migration | Phase 56 repository/migration-contract tests and request-center E2E | Opt-out, block/unblock, duplicate, reverse-direction, and limit review | Protected | Functional |
 | MP-20 | After an authenticated same-tab refresh-to-Home, the current account's synced Multiplayer projection may display provisionally while its participant repository loads; explicit same-account repository authority supersedes it and cannot be overwritten by later progress hydration. Cross-account, guest, queue, claim, settlement, and write authority remain unchanged. | `src/app/scopedProgressMultiplayerState.ts`, `src/app/App.tsx` | Selector tests and ranked Practice/Daily OG/GO same-tab reload E2E | Reload an actual ranked participant page, re-enter Overview/mode/Active/Live within five seconds | Protected | Functional |
+| MP-21 | Authenticated Multiplayer startup reads participant-owned rows through explicit participant predicates, publishes that authority before the separate waiting-game lane, coalesces concurrent/realtime refreshes, rejects stale generations, and conditionally prepares only the word bank required to hydrate cold answerless ranked-Daily rows. | `src/multiplayer/multiplayerRepository.ts`, `src/app/App.tsx` | Repository query/concurrency/readiness tests and actual-page ranked reload E2E | Established-account refresh across Overview/mode/Active/Live | Protected | Functional |
 
 ## E. Supporting Product And Operational Surfaces
 
@@ -136,4 +138,11 @@ Post-Phase-57 Review Candidate characterization:
 - Route boundaries preserve one main landmark, ordinary Back/Forward, Home-on-refresh, mobile fit, account controls, and a deterministic failure/retry-to-Home path.
 - Signed-in focus/refocus tracing proved overlapping private-request reads, but the notification and request-center consumers have different row limits and responsibilities. Polling remains unchanged pending a separately justified shared-data contract.
 - Countdown/reset and mobile scroll costs remain characterized and did not justify root-state restructuring.
-- Phase 58 design work must preserve these loading/error boundaries unless replacement evidence proves equal or better transfer, accessibility, and behavior.
+- Phase 58 foundation hardening and Phase 59 design work must preserve these loading/error boundaries unless replacement evidence proves equal or better transfer, accessibility, and behavior.
+
+Phase 58 Review Candidate characterization:
+
+- GO selection is now versioned and independent of source-pool adjacency. Existing serialized sessions remain authoritative and are never regenerated.
+- Participant-owned Multiplayer rows are the critical authenticated startup lane; waiting/lobby discovery remains a separate later merge and may not delay participant authority.
+- Cold answerless ranked-Daily hydration must prepare the canonical five-letter bank before normalization, without restoring eager word assets to cold Home.
+- The selector migration and its one function-only bigint-overflow repair are applied and reconciled at exact 41/41 local/remote history. Post-cutoff SQL vectors match TypeScript, existing v1 rows remain unchanged, public projections remain answerless, and all ten same-tab Multiplayer reload lanes pass the shared five-second deadline in Chromium with representative Firefox/WebKit coverage.

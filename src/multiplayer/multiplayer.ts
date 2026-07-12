@@ -14,6 +14,7 @@ import {
   submitGuess,
   validateHardModeGuess,
   type GoSessionState,
+  type GoAnswerGenerationVersion,
   type PuzzleSessionState,
   type SerializedGoSession,
   type SerializedOgSession,
@@ -65,6 +66,7 @@ export type MultiplayerSerializedSession =
   | { readonly mode: 'go'; readonly session: SerializedGoSession }
 
 export interface MultiplayerGame {
+  readonly answerGenerationVersion?: GoAnswerGenerationVersion
   readonly authorityVersion?: number
   readonly createdAt: string
   readonly currentTurn: MultiplayerPlayerId
@@ -104,6 +106,7 @@ export interface MultiplayerState {
 }
 
 export interface CreateMultiplayerGameInput {
+  readonly answerGenerationVersion?: GoAnswerGenerationVersion
   readonly createdAt?: string
   readonly customGameCode?: string
   readonly dailyDateKey?: string
@@ -426,6 +429,9 @@ function normalizeGame(value: unknown): MultiplayerGame | undefined {
   const timeLimitMs = record.scope === 'practice' ? normalizePracticeTimeLimitMs(record.timeLimitMs) : null
   const timeRemainingMs = normalizeTimeRemaining(record.timeRemainingMs, timeLimitMs)
   return {
+    answerGenerationVersion: record.mode === 'go'
+      ? record.answerGenerationVersion === 'v2' ? 'v2' : 'v1'
+      : undefined,
     authorityVersion: typeof record.authorityVersion === 'number'
       && Number.isInteger(record.authorityVersion)
       && record.authorityVersion >= 0
@@ -498,7 +504,7 @@ export function canCreateMultiplayerGame(state: MultiplayerState, userId?: strin
   return getActiveMultiplayerGames(state, userId).length < MAX_MULTIPLAYER_GAMES
 }
 
-function createInitialSession(input: Required<Pick<CreateMultiplayerGameInput, 'difficulty' | 'goPuzzleCount' | 'mode' | 'scope' | 'seed' | 'wordLength'>> & { readonly dailyDateKey?: string; readonly hardMode: boolean; readonly ranked: boolean }): MultiplayerSerializedSession {
+function createInitialSession(input: Required<Pick<CreateMultiplayerGameInput, 'difficulty' | 'goPuzzleCount' | 'mode' | 'scope' | 'seed' | 'wordLength'>> & { readonly answerGenerationVersion?: GoAnswerGenerationVersion; readonly dailyDateKey?: string; readonly hardMode: boolean; readonly ranked: boolean }): MultiplayerSerializedSession {
   if (input.mode === 'og') {
     const setup = input.scope === 'daily'
       ? createDailyMultiplayerOgSetup(dateKeyToLocalDate(input.dailyDateKey ?? getUtcDailyDateKey()), input.difficulty, input.ranked)
@@ -507,7 +513,13 @@ function createInitialSession(input: Required<Pick<CreateMultiplayerGameInput, '
   }
 
   const setup = input.scope === 'daily'
-    ? createDailyMultiplayerGoSetup(dateKeyToLocalDate(input.dailyDateKey ?? getUtcDailyDateKey()), input.difficulty, input.goPuzzleCount, input.ranked)
+    ? createDailyMultiplayerGoSetup(
+        dateKeyToLocalDate(input.dailyDateKey ?? getUtcDailyDateKey()),
+        input.difficulty,
+        input.goPuzzleCount,
+        input.ranked,
+        input.answerGenerationVersion,
+      )
     : createPracticeGoSetup(input.wordLength, input.seed, input.difficulty, input.goPuzzleCount)
   return { mode: 'go', session: serializeGoSession(createGoSession(setup, input.hardMode)) }
 }
@@ -521,6 +533,7 @@ export function createMultiplayerGame(input: CreateMultiplayerGameInput): Multip
   const ranked = input.ranked === true
   const hardMode = (input.scope === 'practice' || (input.scope === 'daily' && ranked)) && input.hardMode === true
   const normalizedInput = {
+    answerGenerationVersion: input.answerGenerationVersion,
     difficulty: input.difficulty ?? DEFAULT_DIFFICULTY_TIER,
     goPuzzleCount: input.scope === 'daily' && ranked ? DEFAULT_GO_PUZZLE_COUNT : input.goPuzzleCount ?? DEFAULT_GO_PUZZLE_COUNT,
     hardMode,
@@ -533,6 +546,9 @@ export function createMultiplayerGame(input: CreateMultiplayerGameInput): Multip
   }
   const serializedSession = createInitialSession(normalizedInput)
   return {
+    answerGenerationVersion: serializedSession.mode === 'go'
+      ? serializedSession.session.answerGenerationVersion ?? 'v1'
+      : undefined,
     authorityVersion: input.scope === 'daily' && ranked ? 0 : undefined,
     createdAt,
     currentTurn: 'player-one',

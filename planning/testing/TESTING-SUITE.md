@@ -282,6 +282,14 @@ review, or any required phase verification gate.
 
 ## Known Gaps
 
+- Phase 58 adds deterministic GO-chain property coverage in `src/game/go/chainSelector.test.ts`, legacy/cutoff coverage in `src/game/go/session.test.ts`, ranked/unranked Daily separation coverage, and a private-SQL contract suite in `src/multiplayer/phase58GoChainMigrationContract.test.ts`. The source selector is invariant to candidate order, selects without replacement, and uses versioned streams rather than contiguous ordered-pool windows.
+
+- Phase 58 strengthens `e2e/gameplay/multiplayer-reliability.spec.ts` so all ten ranked/unranked/private Practice/Daily OG/GO lanes reload the actual matched participant page, start one deadline before reload, enter Multiplayer once after the intentional Home reset, and require Overview, the mode tab, Active, Live, and the participant read to complete within one shared five-second budget. Chromium passed 10/10; representative Firefox and WebKit coverage passed 8/8 per browser.
+
+- Participant-read repository tests now require explicit participant predicates, participant-first publication, a separate waiting-game lane, monotonic single-flight loads, realtime-burst coalescing, and conditional five-letter bank preparation for cold answerless ranked-Daily hydration. Readiness diagnostics must remain non-secret and answer-free.
+
+- Phase 58's applied selector migration and single function-only overflow repair now have exact 41/41 local/remote history. Scalar boundary vectors and three post-cutoff ranked/unranked SQL date vectors match TypeScript digests, with five unique answers per chain and disjoint ranked/unranked sets. The fresh complete authority-enabled Chromium gate is 89/89 with one worker, alongside 147 unit files and 1,041 tests.
+
 - Post-Phase-57 optimization adds `e2e/navigation/lazy-loading-boundaries.spec.ts` for answer-free cold Home, selected-length-only loading, one-main-landmark failure containment, and retry through the accepted Home reset. The Playwright worker prepares a canonical five-letter payload only for synchronous Node-side answer helpers; browser pages continue to exercise real dynamic imports. The current complete authority-enabled gate is 76/76 with one worker, alongside 141 files and 1,001 unit tests.
 
 - Phase 57 adds `e2e/gameplay/solo-practice-consumables-phase57.spec.ts` for guest Marketplace purchase, OG/GO use, private effect persistence, on-screen/physical keyboard enforcement, and Daily/Multiplayer exclusion. `e2e/gameplay/solo-practice-consumables-phase57-authenticated.spec.ts` adds real disposable-account bootstrap, price/range/underflow, idempotency/concurrency, privacy, cross-browser hydration, OG/GO persistence, scope exclusion, mobile-fit, and cleanup coverage. Signed-in authority runs must explicitly set `E2E_PHASE57_ECONOMY_AUTHORITY=enabled`.
