@@ -5,6 +5,8 @@ import type { GameMode, PlayScope, TileResult } from '../game/types'
 import {
   createMultiplayerGame,
   createEmptyMultiplayerState,
+  forfeitMultiplayerGame,
+  getViewerMultiplayerPlayerId,
   mergeMultiplayerStates,
   normalizeMultiplayerState,
   submitMultiplayerGuess,
@@ -2104,9 +2106,14 @@ function hasGameProjectionChanged(previous: MultiplayerGame | undefined, next: M
   return JSON.stringify(previous) !== JSON.stringify(next)
 }
 
-async function saveMultiplayerGameRows(client: BrrrdleSupabaseClient, rows: readonly ReturnType<typeof gameToRow>[]): Promise<void> {
+async function saveMultiplayerGameRows(
+  client: BrrrdleSupabaseClient,
+  rows: readonly ReturnType<typeof gameToRow>[],
+  userId: string,
+  previousGames: ReadonlyMap<string, MultiplayerGame>,
+): Promise<ReadonlyMap<string, MultiplayerGame>> {
   if (rows.length === 0) {
-    return
+    return new Map()
   }
 
   const ids = rows.map((row) => row.id)
@@ -2137,8 +2144,9 @@ async function saveMultiplayerGameRows(client: BrrrdleSupabaseClient, rows: read
   }
 
   if (updateRows.length > 0) {
-    await updateMultiplayerGameRows(client, updateRows)
+    return updateMultiplayerGameRows(client, updateRows, userId, previousGames)
   }
+  return new Map()
 }
 
 function isRankedDailyGameRow(row: ReturnType<typeof gameToRow>): boolean {
@@ -2287,10 +2295,70 @@ async function loadExistingGameForUpdate(client: BrrrdleSupabaseClient, id: stri
     : undefined
 }
 
-async function updateMultiplayerGameRows(client: BrrrdleSupabaseClient, rows: readonly ReturnType<typeof gameToRow>[]): Promise<void> {
+function isOwnedForfeitIntent(
+  previous: MultiplayerGame | undefined,
+  incoming: MultiplayerGame | undefined,
+  userId: string,
+): boolean {
+  if (!previous || !incoming || previous.status !== 'playing') {
+    return false
+  }
+  const viewerPlayerId = getViewerMultiplayerPlayerId(previous, userId)
+  if (!viewerPlayerId || incoming.moves.length !== previous.moves.length) {
+    return false
+  }
+  if (previous.moves.length === 0) {
+    return incoming.status === 'cancelled' && !incoming.winnerId && !incoming.forfeitedPlayerId
+  }
+  return incoming.status === 'lost' && incoming.forfeitedPlayerId === viewerPlayerId
+}
+
+function isEquivalentOwnedForfeit(
+  canonical: MultiplayerGame,
+  intended: MultiplayerGame,
+  userId: string,
+): boolean {
+  const viewerPlayerId = getViewerMultiplayerPlayerId(canonical, userId)
+  if (!viewerPlayerId) {
+    return false
+  }
+  if (intended.status === 'cancelled') {
+    return canonical.status === 'cancelled' && !canonical.winnerId && canonical.moves.length === 0
+  }
+  return canonical.status === 'lost'
+    && canonical.forfeitedPlayerId === viewerPlayerId
+    && canonical.winnerId === intended.winnerId
+}
+
+async function updateOrdinaryMultiplayerRow(
+  client: BrrrdleSupabaseClient,
+  row: ReturnType<typeof gameToRow>,
+  expectedUpdatedAt: string,
+): Promise<boolean> {
+  const result = await client.from('async_multiplayer_games').update(row, { count: 'exact' }).match({
+    id: row.id,
+    updated_at: expectedUpdatedAt,
+  })
+  if (result.error) {
+    throw new Error(`Unable to save multiplayer games: ${result.error.message}`)
+  }
+  return result.count !== 0
+}
+
+async function updateMultiplayerGameRows(
+  client: BrrrdleSupabaseClient,
+  rows: readonly ReturnType<typeof gameToRow>[],
+  userId: string,
+  previousGames: ReadonlyMap<string, MultiplayerGame>,
+): Promise<ReadonlyMap<string, MultiplayerGame>> {
+  const canonicalGames = new Map<string, MultiplayerGame>()
   for (const row of rows) {
     const existingRow = await loadExistingGameForUpdate(client, row.id)
     if (!existingRow) {
+      const incoming = normalizeMultiplayerState({ games: [row.projection] }).games[0]
+      if (isOwnedForfeitIntent(previousGames.get(row.id), incoming, userId)) {
+        throw new Error('Unable to confirm multiplayer forfeit because the durable game was not found.')
+      }
       continue
     }
     const existing = existingRow.game
@@ -2298,14 +2366,45 @@ async function updateMultiplayerGameRows(client: BrrrdleSupabaseClient, rows: re
     if (isStaleIncomingGame(existing, incoming)) {
       continue
     }
-    const { error } = await client.from('async_multiplayer_games').update(row).match({
-      id: row.id,
-      updated_at: existingRow.rowUpdatedAt,
-    })
-    if (error) {
-      throw new Error(`Unable to save multiplayer games: ${error.message}`)
+    const updated = await updateOrdinaryMultiplayerRow(client, row, existingRow.rowUpdatedAt)
+    if (updated) {
+      if (incoming) {
+        canonicalGames.set(incoming.id, incoming)
+      }
+      continue
     }
+    if (!isOwnedForfeitIntent(previousGames.get(row.id), incoming, userId) || !incoming) {
+      throw new Error('Multiplayer repository version conflict.')
+    }
+
+    const refreshedRow = await loadExistingGameForUpdate(client, row.id)
+    if (!refreshedRow) {
+      throw new Error('Unable to confirm multiplayer forfeit because the durable game was not found.')
+    }
+    if (isEquivalentOwnedForfeit(refreshedRow.game, incoming, userId)) {
+      canonicalGames.set(refreshedRow.game.id, refreshedRow.game)
+      continue
+    }
+    const viewerPlayerId = getViewerMultiplayerPlayerId(refreshedRow.game, userId)
+    if (!viewerPlayerId || (refreshedRow.game.status !== 'waiting' && refreshedRow.game.status !== 'playing')) {
+      throw new Error('Unable to confirm multiplayer forfeit because the durable game changed.')
+    }
+    const retried = forfeitMultiplayerGame({ games: [refreshedRow.game] }, {
+      gameId: refreshedRow.game.id,
+      now: incoming.updatedAt,
+      playerId: viewerPlayerId,
+    })
+    if (retried.error || !retried.game) {
+      throw new Error('Unable to confirm multiplayer forfeit from the durable game state.')
+    }
+    const retriedRow = gameToRow(retried.game, userId)
+    const retryUpdated = await updateOrdinaryMultiplayerRow(client, retriedRow, refreshedRow.rowUpdatedAt)
+    if (!retryUpdated) {
+      throw new Error('Unable to confirm multiplayer forfeit after one conflict retry.')
+    }
+    canonicalGames.set(retried.game.id, retried.game)
   }
+  return canonicalGames
 }
 
 export function createSupabaseMultiplayerRepository({
@@ -2462,11 +2561,26 @@ export function createSupabaseMultiplayerRepository({
         .map((game) => gameToRow(game, userId))
       const ordinaryRows = rows.filter((row) => !isRankedDailyGameRow(row))
       const canonicalRankedDailyGames = await saveRankedDailyGameRows(client, rankedDailyChanges, userId)
-      await saveMultiplayerGameRows(client, ordinaryRows.filter((row) => row.host_user_id === userId))
-      await updateMultiplayerGameRows(client, ordinaryRows.filter((row) => row.host_user_id !== userId))
-      if (canonicalRankedDailyGames.size > 0) {
+      const creatorCanonicalGames = await saveMultiplayerGameRows(
+        client,
+        ordinaryRows.filter((row) => row.host_user_id === userId),
+        userId,
+        previousGames,
+      )
+      const participantCanonicalGames = await updateMultiplayerGameRows(
+        client,
+        ordinaryRows.filter((row) => row.host_user_id !== userId),
+        userId,
+        previousGames,
+      )
+      const canonicalGames = new Map([
+        ...canonicalRankedDailyGames,
+        ...creatorCanonicalGames,
+        ...participantCanonicalGames,
+      ])
+      if (canonicalGames.size > 0) {
         snapshot = createSnapshot({
-          games: snapshot.state.games.map((game) => canonicalRankedDailyGames.get(game.id) ?? game),
+          games: snapshot.state.games.map((game) => canonicalGames.get(game.id) ?? game),
         }, snapshot.version, snapshot.serverNow)
       }
       publish()

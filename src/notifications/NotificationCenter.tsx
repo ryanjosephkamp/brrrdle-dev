@@ -72,6 +72,10 @@ export function NotificationCenter({
   const summaryText =
     unreadCount === 1 ? '1 unread notification' : `${unreadCount} unread notifications`
   const toggleAction = open ? 'Close' : 'Open'
+  const handleActivate = (item: NotificationItemViewModel) => {
+    setOpen(false)
+    onActivate(item)
+  }
 
   useEffect(() => {
     if (!open || typeof document === 'undefined') {
@@ -154,7 +158,7 @@ export function NotificationCenter({
                     Updated {formatNotificationTime(item.updatedAt)}
                   </p>
                   <div className="brrrdle-notification-actions">
-                    <button onClick={() => onActivate(item)} type="button">
+                    <button onClick={() => handleActivate(item)} type="button">
                       Open
                     </button>
                     {!item.read ? (

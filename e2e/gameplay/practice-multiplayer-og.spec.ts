@@ -8,6 +8,23 @@ import { createTwoClientSession, type TwoClientSession } from '../fixtures/twoCl
 const TIMED_RANKED_PRACTICE_TIME_LIMIT_MS = 300_000
 const RANKED_E2E_WORD_LENGTH = 7
 
+async function getContrastRatio(locator: import('@playwright/test').Locator): Promise<number> {
+  return locator.evaluate((element) => {
+    const parseRgb = (value: string) => value.match(/[\d.]+/gu)?.slice(0, 3).map(Number) ?? []
+    const luminance = (channels: readonly number[]) => {
+      const normalized = channels.map((channel) => {
+        const value = channel / 255
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+      })
+      return 0.2126 * (normalized[0] ?? 0) + 0.7152 * (normalized[1] ?? 0) + 0.0722 * (normalized[2] ?? 0)
+    }
+    const styles = window.getComputedStyle(element)
+    const foreground = luminance(parseRgb(styles.color))
+    const background = luminance(parseRgb(styles.backgroundColor))
+    return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05)
+  })
+}
+
 async function openAndJoinPracticeOgMatch(session: TwoClientSession) {
   await navigateToPracticeMultiplayer(session.host.page)
   await openMultiplayerMatch(session.host.page)
@@ -187,6 +204,132 @@ test.describe('Practice Multiplayer OG @practice @multiplayer', () => {
       await expectVisibleStatus(session.rival.page, /You forfeited this multiplayer match\./)
       await expectVisibleStatus(session.host.page, /Rival forfeited\. You won this multiplayer match\./)
 
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
+  test('retries an older-shaped participant forfeit after one durable write conflict', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+    try {
+      const playingRow = await openAndJoinPracticeOgMatch(session)
+      const overviewTab = session.rival.page.getByRole('tab', { name: /^Overview$/i })
+      await overviewTab.click()
+      const activeBadge = overviewTab.locator('.brrrdle-attention-badge[data-active="true"]')
+      await expect(activeBadge).toBeVisible()
+      expect(await getContrastRatio(activeBadge)).toBeGreaterThanOrEqual(4.5)
+      await session.rival.page.setViewportSize({ height: 844, width: 390 })
+      await expect(activeBadge).toBeVisible()
+      expect(await getContrastRatio(activeBadge)).toBeGreaterThanOrEqual(4.5)
+      await session.rival.page.getByRole('tab', { name: /^Practice Multiplayer$/i }).click()
+      await selectMultiplayerGame(session.rival.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
+      const game = projectionFromRow(playingRow)
+      const wrongGuess = getValidWrongGuess(game)
+
+      await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
+      await waitForTurn(session.host.page)
+      await submitGuessWithKeyboard(session.host.page, wrongGuess)
+      await waitForTurn(session.rival.page)
+      const afterGuessRow = await waitForMultiplayerRowByIdForUsers({
+        id: playingRow.id,
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      const afterGuess = projectionFromRow(afterGuessRow)
+      const {
+        authorityVersion: omittedAuthorityVersion,
+        playerProfiles: omittedPlayerProfiles,
+        ...olderProjection
+      } = afterGuess
+      void omittedAuthorityVersion
+      void omittedPlayerProfiles
+      const conflictUpdatedAt = new Date(Date.parse(afterGuess.updatedAt) + 1).toISOString()
+      let conflictInjected = false
+
+      await session.rival.page.route('**/rest/v1/async_multiplayer_games*', async (route) => {
+        const request = route.request()
+        if (!conflictInjected && request.method() === 'PATCH' && request.url().includes(`id=eq.${playingRow.id}`)) {
+          conflictInjected = true
+          await updateMultiplayerProjection({ ...olderProjection, updatedAt: conflictUpdatedAt })
+        }
+        await route.continue()
+      })
+
+      await session.rival.page.getByRole('button', { name: /^Forfeit$/i }).click()
+
+      const forfeitedRow = await waitForMultiplayerRowByIdForUsers({
+        id: playingRow.id,
+        mode: 'og',
+        scope: 'practice',
+        status: 'lost',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      const forfeitedGame = projectionFromRow(forfeitedRow)
+      expect(conflictInjected).toBe(true)
+      expect(forfeitedGame.forfeitedPlayerId).toBe('player-two')
+      expect(forfeitedGame.winnerId).toBe('player-one')
+
+      await session.rival.page.reload()
+      await navigateToPracticeMultiplayer(session.rival.page)
+      await expect(session.rival.page.getByText(/You forfeited this multiplayer match\./i)).toBeVisible({ timeout: 20_000 })
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
+  test('reports a durable forfeit failure after both bounded write attempts conflict', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+    try {
+      const playingRow = await openAndJoinPracticeOgMatch(session)
+      const game = projectionFromRow(playingRow)
+      const wrongGuess = getValidWrongGuess(game)
+
+      await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
+      await waitForTurn(session.host.page)
+      await submitGuessWithKeyboard(session.host.page, wrongGuess)
+      await waitForTurn(session.rival.page)
+      const afterGuessRow = await waitForMultiplayerRowByIdForUsers({
+        id: playingRow.id,
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      const afterGuess = projectionFromRow(afterGuessRow)
+      let conflictCount = 0
+
+      await session.rival.page.route('**/rest/v1/async_multiplayer_games*', async (route) => {
+        const request = route.request()
+        if (request.method() === 'PATCH' && request.url().includes(`id=eq.${playingRow.id}`) && conflictCount < 2) {
+          conflictCount += 1
+          await updateMultiplayerProjection({
+            ...afterGuess,
+            updatedAt: new Date(Date.parse(afterGuess.updatedAt) + conflictCount).toISOString(),
+          })
+        }
+        await route.continue()
+      })
+
+      await session.rival.page.getByRole('button', { name: /^Forfeit$/i }).click()
+
+      await expect(session.rival.page.getByRole('alert')).toContainText(
+        'Unable to save this multiplayer update. The durable game was reloaded; please try again.',
+      )
+      const durableRow = await waitForMultiplayerRowByIdForUsers({
+        id: playingRow.id,
+        mode: 'og',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      expect(conflictCount).toBe(2)
+      expect(projectionFromRow(durableRow).forfeitedPlayerId).toBeUndefined()
       await expectNoConsoleFailures(session.host.consoleFailures)
       await expectNoConsoleFailures(session.rival.consoleFailures)
     } finally {

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { getGuessResult } from '../../src/game/tileStates'
 import { expectKeyboardState, expectNoConsoleFailures } from '../fixtures/assertions'
-import { getCurrentAnswer, projectionFromRow } from '../fixtures/answers'
+import { getCurrentAnswer, getValidWrongGuess, projectionFromRow } from '../fixtures/answers'
 import { chooseMultiplayerMode, navigateToPracticeMultiplayer, openMultiplayerMatch, joinWaitingMultiplayerGame, selectMultiplayerGame, setPracticeMultiplayerMatchType, setPracticeMultiplayerWordLength, submitGuessWithKeyboard, waitForTurn } from '../fixtures/gameActions'
 import { upsertPublicProfileForUser, waitForMultiplayerRowByIdForUsers, waitForMultiplayerRowForUsers } from '../fixtures/supabaseAdmin'
 import { createTwoClientSession } from '../fixtures/twoClientGame'
@@ -113,6 +113,54 @@ test.describe('Practice Multiplayer GO @practice @multiplayer', () => {
       await selectMultiplayerGame(session.rival.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
       await expect(session.rival.page.getByText(/Puzzle 2 of 5/i).first()).toBeVisible({ timeout: 20_000 })
       await expect(session.rival.page.getByText(visibleAnswer, { exact: true }).first()).toBeVisible()
+
+      await expectNoConsoleFailures(session.host.consoleFailures)
+      await expectNoConsoleFailures(session.rival.consoleFailures)
+    } finally {
+      await session.cleanup()
+    }
+  })
+
+  test('durably forfeits an unranked GO match after a submitted turn', async ({ browser }) => {
+    const session = await createTwoClientSession(browser)
+    try {
+      await navigateToPracticeMultiplayer(session.host.page)
+      await chooseMultiplayerMode(session.host.page, 'go')
+      await openMultiplayerMatch(session.host.page)
+      const waitingRow = await waitForMultiplayerRowForUsers({
+        mode: 'go',
+        scope: 'practice',
+        status: 'waiting',
+        userIds: [session.host.user.id],
+      })
+
+      await navigateToPracticeMultiplayer(session.rival.page)
+      await chooseMultiplayerMode(session.rival.page, 'go')
+      await joinWaitingMultiplayerGame(session.rival.page, waitingRow.id)
+      const playingRow = await waitForMultiplayerRowForUsers({
+        mode: 'go',
+        scope: 'practice',
+        status: 'playing',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      const wrongGuess = getValidWrongGuess(projectionFromRow(playingRow))
+
+      await selectMultiplayerGame(session.host.page, playingRow.id, { reloadOnStaleStatus: true, status: 'playing' })
+      await waitForTurn(session.host.page)
+      await submitGuessWithKeyboard(session.host.page, wrongGuess)
+      await waitForTurn(session.rival.page)
+      await session.rival.page.getByRole('button', { name: /^Forfeit$/i }).click()
+
+      const forfeitedRow = await waitForMultiplayerRowByIdForUsers({
+        id: playingRow.id,
+        mode: 'go',
+        scope: 'practice',
+        status: 'lost',
+        userIds: [session.host.user.id, session.rival.user.id],
+      })
+      const forfeitedGame = projectionFromRow(forfeitedRow)
+      expect(forfeitedGame.forfeitedPlayerId).toBe('player-two')
+      expect(forfeitedGame.winnerId).toBe('player-one')
 
       await expectNoConsoleFailures(session.host.consoleFailures)
       await expectNoConsoleFailures(session.rival.consoleFailures)

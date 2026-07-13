@@ -169,7 +169,7 @@ interface MultiplayerPanelProps {
   readonly dailyDateKey?: string
   readonly defaultDifficulty: DifficultyTier
   readonly defaultGoPuzzleCount: GoPuzzleCount
-  readonly onChange: (state: MultiplayerState) => void
+  readonly onChange: (state: MultiplayerState) => void | Promise<{ readonly error?: string }>
   readonly onCompetitiveChange?: (state: MultiplayerCompetitiveState) => void
   readonly onGameplayAutoCenterRequest?: () => void
   readonly onOpenEloAbout?: () => void
@@ -796,6 +796,7 @@ function PreparedMultiplayerPanel({
   const [wordLength, setWordLength] = useState(5)
   const formPreparation = useWordListPreparation('practice', scope === 'daily' ? 5 : wordLength)
   const [localMessage, setLocalMessage] = useState<LocalStatusMessage | undefined>(undefined)
+  const [persistenceMessage, setPersistenceMessage] = useState<string | undefined>(undefined)
   const [postgameMessage, setPostgameMessage] = useState<PostgameStatusMessage | undefined>(undefined)
   const [postgameBusy, setPostgameBusy] = useState(false)
   const [practiceRematchRequests, setPracticeRematchRequests] = useState<readonly PracticeRematchRequestResult[]>([])
@@ -840,6 +841,7 @@ function PreparedMultiplayerPanel({
     : undefined
   const selectGame = useCallback((gameId: string) => {
     setInternalSelectedGameId(gameId)
+    setPersistenceMessage(undefined)
     onSelectedGameChange?.(gameId)
   }, [onSelectedGameChange])
   const controlledSelectedGameId = selectedGameId && visibleGames.some((game) => game.id === selectedGameId)
@@ -1640,7 +1642,7 @@ function PreparedMultiplayerPanel({
     onChange(result.state)
   }
 
-  const forfeitGame = () => {
+  const forfeitGame = async () => {
     if (!selectedGame || readOnly || !viewerPlayerId) {
       return
     }
@@ -1657,7 +1659,11 @@ function PreparedMultiplayerPanel({
       return
     }
     setLocalMessage(undefined)
-    onChange(result.state)
+    setPersistenceMessage(undefined)
+    const persistence = await onChange(result.state)
+    if (persistence?.error) {
+      setPersistenceMessage(persistence.error)
+    }
   }
   const selectedPostgameActions = selectedGame ? getPracticePostgameActions(selectedGame, viewerUserId) : undefined
   const selectedGameIdForRematches = selectedGame?.id
@@ -2294,6 +2300,12 @@ function PreparedMultiplayerPanel({
               </p>
               <Button className="mt-2" onClick={forfeitGame} variant="secondary">Forfeit</Button>
             </div>
+          ) : null}
+
+          {persistenceMessage ? (
+            <p className="rounded-lg border border-rose-300/30 bg-rose-400/10 p-3 font-semibold text-rose-50" role="alert">
+              {persistenceMessage}
+            </p>
           ) : null}
 
           {displayStatusMessage ? (

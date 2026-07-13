@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { BrrrdleSupabaseClient } from '../account/supabaseClient'
+import type { MultiplayerGame } from './multiplayer'
 import {
   cancelMultiplayerGame,
   createMultiplayerGame,
   expireTimedOutPracticeMultiplayerGames,
+  forfeitMultiplayerGame,
   getMultiplayerAnswerWords,
   joinMultiplayerGame,
   submitMultiplayerGuess,
@@ -2457,6 +2459,133 @@ describe('multiplayer repository seam', () => {
     await repository.save(submitted.state)
 
     expect(match).toHaveBeenCalledWith({ id: game.id, updated_at: storedRow.updated_at })
+  })
+
+  it('re-reads and retries an owned forfeit once when the first ordinary update affects zero rows', async () => {
+    const waitingGame = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'og',
+      playerUserIds: { 'player-one': 'host-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const joinedGame = joinMultiplayerGame({ games: [waitingGame] }, {
+      gameId: waitingGame.id,
+      now: '2026-06-04T12:01:00.000Z',
+      userId: 'rival-user',
+    }).game!
+    const legacyGame: MultiplayerGame = {
+      ...joinedGame,
+      moves: [{
+        createdAt: '2026-06-04T12:02:00.000Z',
+        guess: 'ROBOT',
+        id: 'legacy-move-1',
+        playerId: 'player-one' as const,
+        puzzleIndex: 0,
+        tiles: [
+          { letter: 'R', state: 'absent' as const },
+          { letter: 'O', state: 'present' as const },
+          { letter: 'B', state: 'absent' as const },
+          { letter: 'O', state: 'correct' as const },
+          { letter: 'T', state: 'correct' as const },
+        ],
+      }],
+      updatedAt: '2026-06-04T12:02:00.000Z',
+    }
+    let durableRow = {
+      id: legacyGame.id,
+      projection: legacyGame,
+      updated_at: legacyGame.updatedAt,
+    }
+    const match = vi.fn(async () => {
+      if (match.mock.calls.length === 1) {
+        return { count: 0, error: null }
+      }
+      const forfeited = forfeitMultiplayerGame({ games: [legacyGame] }, {
+        gameId: legacyGame.id,
+        now: '2026-06-04T12:03:00.000Z',
+        playerId: 'player-two',
+      }).game!
+      durableRow = { id: forfeited.id, projection: forfeited, updated_at: forfeited.updatedAt }
+      return { count: 1, error: null }
+    })
+    const client = {
+      channel: vi.fn(() => {
+        const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
+        return channel
+      }),
+      from: vi.fn(() => ({
+        select: vi.fn((columns: string) => {
+          if (columns === 'id') return { in: vi.fn(async () => ({ data: [{ id: legacyGame.id }], error: null })) }
+          if (columns === 'projection, updated_at') return { eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: durableRow, error: null })) })) }
+          return createFilteredReadQuery(async () => ({ data: [durableRow], error: null }))
+        }),
+        update: vi.fn(() => ({ match })),
+        upsert: vi.fn(async () => ({ error: null })),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-06-04T12:02:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'rival-user' })
+    const loaded = await repository.load()
+    const forfeited = forfeitMultiplayerGame(loaded.state, {
+      gameId: legacyGame.id,
+      now: '2026-06-04T12:03:00.000Z',
+      playerId: 'player-two',
+    })
+
+    const saved = await repository.save(forfeited.state)
+
+    expect(match).toHaveBeenCalledTimes(2)
+    expect(saved.state.games[0]).toMatchObject({
+      forfeitedPlayerId: 'player-two',
+      status: 'lost',
+      winnerId: 'player-one',
+    })
+  })
+
+  it('rejects an owned forfeit when both acknowledgment attempts affect zero rows', async () => {
+    const waitingGame = createMultiplayerGame({
+      createdAt: '2026-06-04T12:00:00.000Z',
+      mode: 'go',
+      playerUserIds: { 'player-one': 'host-user' },
+      scope: 'practice',
+      wordLength: 5,
+    })
+    const playingGame = joinMultiplayerGame({ games: [waitingGame] }, {
+      gameId: waitingGame.id,
+      now: '2026-06-04T12:01:00.000Z',
+      userId: 'rival-user',
+    }).game!
+    const storedRow = { id: playingGame.id, projection: playingGame, updated_at: playingGame.updatedAt }
+    const match = vi.fn(async () => ({ count: 0, error: null }))
+    const client = {
+      channel: vi.fn(() => {
+        const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) }
+        return channel
+      }),
+      from: vi.fn(() => ({
+        select: vi.fn((columns: string) => {
+          if (columns === 'id') return { in: vi.fn(async () => ({ data: [{ id: playingGame.id }], error: null })) }
+          if (columns === 'projection, updated_at') return { eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: storedRow, error: null })) })) }
+          return createFilteredReadQuery(async () => ({ data: [storedRow], error: null }))
+        }),
+        update: vi.fn(() => ({ match })),
+        upsert: vi.fn(async () => ({ error: null })),
+      })),
+      removeChannel: vi.fn(async () => ({ error: null })),
+      rpc: vi.fn(async () => ({ data: '2026-06-04T12:01:00.000Z', error: null })),
+    } as unknown as BrrrdleSupabaseClient
+    const repository = createSupabaseMultiplayerRepository({ client, userId: 'host-user' })
+    const loaded = await repository.load()
+    const cancelled = forfeitMultiplayerGame(loaded.state, {
+      gameId: playingGame.id,
+      now: '2026-06-04T12:02:00.000Z',
+      playerId: 'player-one',
+    })
+
+    await expect(repository.save(cancelled.state)).rejects.toThrow('Unable to confirm multiplayer forfeit')
+    expect(match).toHaveBeenCalledTimes(2)
   })
 
   it('does not let a stale timed timeout overwrite a newer submitted turn', async () => {
