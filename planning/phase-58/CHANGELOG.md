@@ -1,7 +1,7 @@
 # Phase 58 Changelog
 
-**Status:** Review Candidate prepared; hosted/manual review remains.
-**Date:** 2026-07-12.
+**Status:** Final Acceptance complete; Phase 58 closed and the functional shell locked.
+**Date:** 2026-07-13.
 **Baseline:** `post-phase-57-optimized-shell-golden-2026-07-12` at `046c681dd99e66b21b9fdbeca97b60b2e0ada99c`.
 
 ## GO Solution Diversity
@@ -40,9 +40,9 @@
 - Reverified the intended `brrrdle-dev` Supabase project, exact 41/41 history, unchanged protected catalog/authority/spectator evidence, answerless public ranked-Daily rows, no mixer browser grants, no Phase 58 advisor finding, and zero temporary Auth/profile/projection residue.
 - Recorded an approximately 17.7-second paired post-cutoff SQL parity probe for hosted/post-cutoff observation; no verification timeout was increased.
 
-## Gate
+## Original Review Candidate Gate - Satisfied
 
-The governed Review Candidate GitHub Backup, hosted/manual review, final acceptance, phase closure/checkpointing, Phase 59, and Phase 60 remain separately gated.
+The governed Review Candidate backup and hosted/manual review completed. Final acceptance and the separate final-shell Golden Checkpoint are authorized by the user; Phase 59/60 execution is superseded in this repository by the Awordle successor route.
 
 ## Remote Application Blocker
 
@@ -76,3 +76,11 @@ The governed Review Candidate GitHub Backup, hosted/manual review, final accepta
 - The final fresh authority-enabled Chromium run passed 95/95 with one worker, including all fresh/conflict forfeit cases, ranked/private/Daily regressions, refresh-readiness lanes, notification behavior, and mobile layout.
 - Exact local/remote migration equality remains 41/41. Protected mixer and spectator digests are unchanged, private mixer browser grants remain zero, public ranked-Daily answer leaks remain zero, and no Phase 58 security/performance advisor finding appeared.
 - Temporary E2E Auth users, profiles, and game projections are zero after cleanup. Local-only desktop/mobile badge and mobile notification evidence is recorded under `test-results/visual-review/phase-58-post-review-follow-up/`.
+
+## Final Acceptance And Shell Lock
+
+- On 2026-07-13, the user completed hosted/manual review and reported that every required calendar-available item passes with no known gameplay, persistence, privacy, or presentation regression.
+- The two post-`2026-07-14` observations remain optional calendar-gated monitoring. Their underlying selector/parity contracts passed automated verification and they do not block acceptance.
+- Phase 58 is closed. The accepted `brrrdle-dev` runtime, tests, migrations, dependencies, Supabase project, and Vercel project are locked as the final functional shell.
+- Future redesign work is rerouted to the separate Awordle repository and independent service stack described by `SHELL-LOCK.md` and `planning/handoffs/AWORDLE-SUCCESSOR-ROADMAP-AND-HANDOFF-2026-07-13.md`.
+- This closeout changes documentation and governance only. It does not change runtime source, tests, migrations, dependencies, deployment configuration, Supabase state, Vercel state, or the new Awordle repository.

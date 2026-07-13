@@ -1,7 +1,7 @@
 # Phase 58 Planning Brief - GO Solution Diversity And Multiplayer Refresh Readiness
 
-**Status:** Planned; implementation requires separate authorization.
-**Date:** 2026-07-12.
+**Status:** Accepted and closed; retained as historical Phase 58 intent.
+**Date:** 2026-07-13.
 **Protected baseline:** `post-phase-57-optimized-shell-golden-2026-07-12` at `046c681dd99e66b21b9fdbeca97b60b2e0ada99c`.
 
 ## Purpose
@@ -32,8 +32,7 @@ The two objectives share a single reason to precede redesign: both define founda
 
 ## Phase Routing
 
-- **Phase 58:** GO solution diversity and Multiplayer hard-refresh readiness.
-- **Phase 59:** preserved design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff.
-- **Phase 60:** separately authorized frontend rebuild.
+- **Phase 58:** accepted and closed as the final `brrrdle-dev` foundation phase.
+- **Awordle successor:** clean-history clone parity, then design direction and the separately authorized frontend transformation.
 
-No design makeover, dependency/framework change, Git/GitHub action, production deployment, or stable-repository work is authorized by this planning brief.
+No later implementation is authorized in the locked shell by this historical brief. See `SHELL-LOCK.md` and `planning/handoffs/AWORDLE-SUCCESSOR-ROADMAP-AND-HANDOFF-2026-07-13.md`.

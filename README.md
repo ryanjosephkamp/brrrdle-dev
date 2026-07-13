@@ -15,6 +15,8 @@
 
 </div>
 
+> **Final functional shell:** This repository is locked after Phase 58 acceptance. See [`SHELL-LOCK.md`](SHELL-LOCK.md). New product and redesign work is routed to the independent Awordle successor and must treat this repository as read-only.
+
 ---
 
 ## ✨ What is brrrdle?

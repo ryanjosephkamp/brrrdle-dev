@@ -1,12 +1,14 @@
 # brrrdle Optimized Development Roadmap
 
-**Status**: Active optimized roadmap for staged execution
-**Last Updated**: 2026-07-05
+**Status**: Historical optimized roadmap; implementation routing superseded by the final shell lock
+**Last Updated**: 2026-07-13
 **Repository Target**: `brrrdle-dev`
 **Source Roadmap**: `planning/ROADMAP.md`
 **Purpose**: Refine the long-term roadmap into lower-risk gated phases with clear deferrals, verification expectations, and protected-action boundaries.
 
 ---
+
+> **Current route:** Phase 58 is accepted and `brrrdle-dev` is the locked final functional shell. Do not execute later implementation phases here. Use `SHELL-LOCK.md` and `planning/handoffs/AWORDLE-SUCCESSOR-ROADMAP-AND-HANDOFF-2026-07-13.md` for the separate Awordle successor workflow.
 
 ## Authority And Scope Notes
 

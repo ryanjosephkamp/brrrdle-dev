@@ -10,6 +10,8 @@ This document gives a single forward-looking view of the work currently routed a
 
 ## Active Post-Shell Routing - 2026-07-10
 
+**Final routing update - 2026-07-13:** Phase 58 is accepted and closed. `brrrdle-dev` is the locked final functional shell and will not host Phase 59 or Phase 60 implementation. Design research, concepts, clean-history bootstrap, independent Supabase/Vercel provisioning, clone parity, and the later frontend transformation are routed to the separate Awordle successor workflow in `planning/handoffs/AWORDLE-SUCCESSOR-ROADMAP-AND-HANDOFF-2026-07-13.md`.
+
 The accepted functional shell is protected by Final Acceptance commit `ef2349ac53f8d02959d759615d85cfa85190beb9`, annotated tag `pre-phase-55-functional-shell-golden-2026-07-10`, and its GitHub Release. The user subsequently directed the project to complete remaining non-design foundations before design direction and the GPT-5.6 SOL rebuild.
 
 The canonical intake is `planning/handoffs/POST-SHELL-FOUNDATION-EXPANSION-INTAKE-2026-07-10.md`.
@@ -20,9 +22,9 @@ The canonical intake is `planning/handoffs/POST-SHELL-FOUNDATION-EXPANSION-INTAK
 | 56 | Private request center, notification integration, opt-out preference, individual blocking, and anti-spam limits | Accepted and closed after PR #61 hosted review. |
 | 57 | Coin marketplace and consumables restricted to Solo Practice | Accepted and closed after refined Review Candidate PR #64 hosted review. |
 | Post-57 optimization | On-demand word banks, route loading boundaries, and measured active-work hardening | Accepted and closed after PR #69 hosted review; Golden Checkpoint approved. |
-| 58 | GO solution diversity and Multiplayer hard-refresh readiness | Planned as the final foundation-hardening phase before design work. |
-| 59 | Design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff | Preserved and shifted behind accepted Phase 58 foundation hardening. |
-| 60 | GPT-5.6 SOL frontend rebuild | Deferred behind accepted Phase 59 design/handoff. |
+| 58 | GO solution diversity and Multiplayer hard-refresh readiness | Accepted and closed; final functional shell locked. |
+| 59 | Design direction, concepts, `design.md`, stack decision, and GPT-5.6 SOL handoff | Superseded in `brrrdle-dev`; intent transferred to Awordle. |
+| 60 | GPT-5.6 SOL frontend rebuild | Superseded in `brrrdle-dev`; any rebuild occurs only in Awordle after clone parity. |
 
 This routing supersedes older statements in this historical document that name Phase 55 as the design phase or Phase 56 as the rebuild. Those statements remain as historical rationale only.
 

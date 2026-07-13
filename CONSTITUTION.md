@@ -1,8 +1,8 @@
 # brrrdle Constitution
 
-**Version**: 3.6
-**Date**: 2026-07-10
-**Status**: Final upgraded project constitution with the progress tracking amendment, the phase-range generalization amendment (Phases 0–11 plus all subsequently approved addenda, Phases 12+), the multi-agent workflow amendment, the Phase 23 coordination-file amendment, and the prompt-package governance amendment — binding until revised with explicit user approval.
+**Version**: 3.7
+**Date**: 2026-07-13
+**Status**: Final upgraded project constitution with the progress tracking, phase-range generalization, multi-agent workflow, Phase 23 coordination-file, prompt-package governance, and final functional-shell lock amendments - binding until revised with explicit user approval.
 
 ---
 
@@ -32,6 +32,10 @@ No feature, dependency, architecture choice, route, data model, UX behavior, mon
 Sub-agent instructions, branch-local notes, preview notes, or implementation handoffs are never higher authority than the ordered sources above. If a sub-agent report conflicts with an authoritative source, the coordinating agent must stop, identify the conflict, and ask the user for clarification.
 
 Operational coordination files such as `agents.md`, `memory.md`, `docs/planning-index.md`, and `progress/README.md` are supporting aids only. They may summarize current state, file ownership, workflow conventions, and handoff expectations, but they cannot authorize new scope, implementation, commits, merges, releases, production actions, or phase/stage progression.
+
+### 2.1 Final Functional-Shell Lock
+
+After Phase 58 Final Acceptance and Golden Checkpoint creation, `SHELL-LOCK.md` governs the accepted `brrrdle-dev` implementation. Runtime source, tests, migrations, dependencies, build/deployment configuration, Supabase/Vercel state, and product contracts are frozen unless a later explicit user instruction names this repository, identifies the exact locked surface to change, and authorizes an unlock. Reading, auditing, and copying from the Golden Checkpoint into an independent successor workspace remain allowed. Successor work must never use `brrrdle-dev` as its working tree or service target.
 
 ---
 
