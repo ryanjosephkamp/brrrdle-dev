@@ -1,14 +1,14 @@
-# Functionality Preservation Inventory - Refreshed After Phase 57
+# Final Functional Shell Preservation Inventory
 
-**Status:** Current preservation contract, mapped through the Phase 58 Review Candidate.
+**Status:** Final accepted preservation contract through Phase 58 and its post-review follow-up.
 **Repository:** `/Users/noir/visual_studio/Codex_Projects/brrrdle-dev` only.
 **Originally created:** 2026-07-09.
-**Refreshed:** 2026-07-12.
-**Protected baseline:** Phase 57 remains protected by `phase-57-golden-2026-07-11`; `post-phase-57-optimized-shell-golden-2026-07-12` supersedes it as the Phase 58 foundation-hardening baseline and the future Phase 59 design baseline.
+**Final refresh:** 2026-07-13.
+**Protected baseline:** `phase-58-final-functional-shell-golden-2026-07-13` is the final accepted source and recovery baseline. Earlier Phase 57 and optimized-shell checkpoints remain historical recovery anchors.
 
 ## Purpose
 
-This inventory defines the behavior that deeper-shell optimization, Phase 58 foundation hardening, Phase 59 design work, and the later GPT-5.6 SOL frontend rebuild must preserve. It is a contract map, not permission to remove anything lacking a dedicated browser scenario. The refresh reconciles every original row with current repository paths and adds accepted Phase 55 ranked Daily, Phase 56 private-request management, and Phase 57 Marketplace/economy/consumable behavior.
+This inventory defines the behavior that any copied successor, including Awordle, must preserve. It is a contract map, not permission to remove anything lacking a dedicated browser scenario. The final refresh covers the complete accepted shell through Phase 58, including ranked Daily, private-request management, Marketplace/economy/consumables, deterministic GO diversity, participant-first reload readiness, durable forfeit recovery, selected-badge contrast, and notification action collapse.
 
 Presentation labels:
 
@@ -34,9 +34,10 @@ Sensitivity labels:
 | APP-06 | Keyboard navigation, visible focus, dialogs, tooltips, status messages, and controls remain accessible. | `src/ui/Button.tsx`, `Dialog.tsx`, `Tooltip.tsx`, `StatusState.tsx`, `ToastRegion.tsx` | Shared component tests and `e2e/layout/functional-shell-accessibility.spec.ts` | Keyboard-only and screen-reader-oriented review | Public | Functional |
 | APP-07 | Focus Mode continues to reduce chrome without hiding required gameplay controls or state. | `src/app/App.tsx`, `src/app/attentionViewModels.ts` | `src/app/attentionViewModels.test.ts`, route/component tests | Toggle during Solo and Multiplayer | Account | Functional |
 | APP-08 | Progression HUD remains actionable and routes to Stats with correct coin, XP, level, and Daily countdown information; Marketplace displays the same authoritative coin state. | `src/app/ProgressionHud.tsx`, `src/app/progressionHudViewModel.ts`, `src/marketplace/MarketplacePanel.tsx` | HUD/view-model tests, Marketplace tests, Phase 57 E2E | HUD/Marketplace desktop and mobile review | Account | Functional |
-| APP-09 | Notification center, account menu, dialogs, private-request lifecycle actions, and menus dismiss and route predictably without viewport spillover or replaying unchanged notices. | `src/notifications/NotificationCenter.tsx`, `src/notifications/notificationViewModels.ts`, `src/account/AccountBadge.tsx`, shared dialog/UI | Notification component/view-model tests, Phase 56 E2E, mobile scroll E2E | Mobile menu, request action, and outside-click review | Account | Functional |
+| APP-09 | Notification center, account menu, dialogs, private-request lifecycle actions, and menus dismiss and route predictably without viewport spillover or replaying unchanged notices. Notification `Open` collapses the center before routing; Mark read, Mark all read, and Hide leave it expanded; outside click and Escape collapse it. | `src/notifications/NotificationCenter.tsx`, `src/notifications/notificationViewModels.ts`, `src/account/AccountBadge.tsx`, shared dialog/UI | Notification component/view-model tests, Phase 56/58 E2E, mobile scroll E2E | Mobile menu, routing action, local actions, outside click, and Escape review | Account | Functional |
 | APP-10 | PWA/service-worker registration remains non-blocking and does not change refresh or update behavior unexpectedly. | `src/pwa/registerServiceWorker.ts`, `src/main.tsx` | Build and browser smoke; add explicit registration smoke if changed | Install/update sanity check where supported | Public | Functional |
 | APP-11 | Decorative command-center staging, glass, glow, gradients, heavy shadows, and ambient motion may be removed. | `src/app/LunarSignalStage.tsx`, `src/index.css`, `src/theme/` | Update presentation-only component assertions | Visual review only | Public | Cosmetic |
+| APP-12 | Selected subtabs keep numeric and `Ready` attention badges readable with an opaque contrasting treatment at desktop and mobile sizes. Badge meaning, count, label fit, and accessibility cannot be lost during redesign. | `src/index.css`, subtab components | `src/ui/SubtabBar.test.tsx`, shell accessibility E2E | Selected/unselected numeric and `Ready` badge review | Public/Account | Functional; exact palette cosmetic |
 
 ## B. Core Game, Solo, Data, And Definitions
 
@@ -85,7 +86,7 @@ Sensitivity labels:
 | MP-04 | Shared submitted rows and keyboard evidence appear consistently to both participants without replaying completed animations on every input. | Multiplayer game surface/view models | Component tests and multiplayer E2E | Two-client turn review | Protected | Functional; exact flip animation cosmetic |
 | MP-05 | GO solved-row holds, transitions, prior solutions, final definitions, and continued turn ownership synchronize across both clients. | Multiplayer domain/game surface | Practice/Daily GO E2E | Two-client full GO chain | Protected | Functional |
 | MP-06 | Hard Mode, configured Practice settings, and optional supported Practice time controls are enforced according to the canonical game contract. Ranked Daily permits only mode and Hard Mode while remaining fixed five-letter and no-clock. | Multiplayer domain, custom games, ranked queue helpers, game surface | Domain tests, Practice E2E, ranked Daily controls E2E | Hard Mode/timed Practice and ranked Daily Hard Mode review | Protected | Functional |
-| MP-07 | Forfeit, cancel, timeout, normal completion, winner precedence, and status text remain correct and idempotent. | Multiplayer domain/repository/scoring | Multiplayer/reliability E2E and domain tests | Forfeit before/after guess; timeout | Protected | Functional |
+| MP-07 | Forfeit, cancel, timeout, normal completion, winner precedence, and status text remain correct and idempotent. Ordinary participant forfeits require exact durable acknowledgment; one compatible conflict may be retried once, while a repeated conflict restores canonical state and shows a non-secret retry error instead of pretending success. | Multiplayer domain/repository/scoring | Multiplayer/reliability E2E, repository conflict tests, and domain tests | Fresh/older OG/GO forfeit before/after guess; timeout; refresh after terminal state | Protected | Functional |
 | MP-08 | Ranked Practice FIFO matchmaking permits repeat opponents, supports OG/GO compatibility, finalizes once, and routes both players to the match. | `src/multiplayer/matchmaking.ts`, ranked queue helper, repository, Phase 50 RPC migration | Queue fairness, panel, repository tests and E2E | Two/three-account queue sequences | Protected | Functional |
 | MP-09 | Rating, rank bands, scoring, and trusted settlement remain deterministic across ranked Practice and separate ranked Daily OG/GO buckets. Hard Mode does not create a separate leaderboard bucket. | `src/multiplayer/rating.ts`, `src/multiplayer/scoring.ts`, competitive modules, repository authority | Rating/scoring/settlement/migration-contract tests and ranked Daily E2E | Ranked Practice/Daily result and leaderboard review | Account/Public | Functional |
 | MP-10 | Private Practice requests support eligible public profiles, OG/GO settings, incoming/outgoing views, newest-first status filtering, accept/decline/cancel/expire/create lifecycle, direct durable-game entry, and first-turn persistence. | `src/multiplayer/privateMatchmaking.ts`, `src/multiplayer/privateRequestCenter.ts`, repository, panel | Private matchmaking/request-center unit tests and Phase 56 E2E | Two-account full request lifecycle | Protected | Functional |
@@ -122,6 +123,8 @@ Sensitivity labels:
 6. Require full automated verification and a comprehensive interactive manual checklist before calling the shell functionally equivalent.
 7. Consumables remain usable only in Solo Practice. Daily Solo and every ranked, unranked, private, Daily, Practice, Live, Lobby, and spectator multiplayer lane must stay consumable-free.
 8. Optimization may change loading boundaries or presentation ownership, but it must not expose answers, weaken server authority, or make an offline/failed-load state silently select different puzzle data.
+9. The `brrrdle-dev` runtime, tests, migrations, dependencies, and deployment configuration are locked after the final Phase 58 Golden Checkpoint. A successor must work in a separate repository and service stack.
+10. User-visible rebranding may not silently rename compatibility-critical schemas, storage keys, migration history, queue buckets, or other internal identifiers before clone parity is proven.
 
 ## Characterization Status And Current Optimization Gaps
 
@@ -138,7 +141,7 @@ Post-Phase-57 Review Candidate characterization:
 - Route boundaries preserve one main landmark, ordinary Back/Forward, Home-on-refresh, mobile fit, account controls, and a deterministic failure/retry-to-Home path.
 - Signed-in focus/refocus tracing proved overlapping private-request reads, but the notification and request-center consumers have different row limits and responsibilities. Polling remains unchanged pending a separately justified shared-data contract.
 - Countdown/reset and mobile scroll costs remain characterized and did not justify root-state restructuring.
-- Phase 58 foundation hardening and Phase 59 design work must preserve these loading/error boundaries unless replacement evidence proves equal or better transfer, accessibility, and behavior.
+- The Awordle clone and later design work must preserve these loading/error boundaries unless replacement evidence proves equal or better transfer, accessibility, and behavior.
 
 Phase 58 Review Candidate characterization:
 
@@ -146,3 +149,11 @@ Phase 58 Review Candidate characterization:
 - Participant-owned Multiplayer rows are the critical authenticated startup lane; waiting/lobby discovery remains a separate later merge and may not delay participant authority.
 - Cold answerless ranked-Daily hydration must prepare the canonical five-letter bank before normalization, without restoring eager word assets to cold Home.
 - The selector migration and its one function-only bigint-overflow repair are applied and reconciled at exact 41/41 local/remote history. Post-cutoff SQL vectors match TypeScript, existing v1 rows remain unchanged, public projections remain answerless, and all ten same-tab Multiplayer reload lanes pass the shared five-second deadline in Chromium with representative Firefox/WebKit coverage.
+
+Final Phase 58 post-review characterization:
+
+- Fresh and older-compatible unranked Practice OG/GO forfeits receive exact durable acknowledgment. One bounded conflict retry preserves the existing terminal rules; a repeated conflict restores the canonical active game and exposes a stable retry message.
+- Selected numeric and `Ready` subtab badges retain readable contrast without changing badge semantics.
+- Notification navigation actions collapse the center before routing, while local read/hide actions retain the expanded state.
+- Final verification passed 147 unit files and 1,044 tests, lint, build, app/API typechecks, real temporary-account forfeit/conflict/browser coverage, and a fresh authority-enabled Chromium run of 95/95. Local/remote migrations remained 41/41, protected fingerprints stayed unchanged, public answer leaks remained zero, and temporary residue was cleaned.
+- Hosted/manual review passed every required calendar-available item. The two post-`2026-07-14` observations remain optional calendar-gated monitoring, not closure blockers.

@@ -1,6 +1,8 @@
 # Phase 59 Design Direction And GPT-5.6 SOL Handoff Implementation Plan
 
-**Status:** Preserved; refresh against the accepted Phase 58 checkpoint before execution.
+**Status:** Superseded in `brrrdle-dev`; retained as historical design-planning input.
+
+Do not execute this plan in `brrrdle-dev`. The shell is locked by `SHELL-LOCK.md`. Its useful design intent is incorporated into `planning/handoffs/AWORDLE-SUCCESSOR-ROADMAP-AND-HANDOFF-2026-07-13.md`, where clone parity must precede design work.
 
 ## Goal
 

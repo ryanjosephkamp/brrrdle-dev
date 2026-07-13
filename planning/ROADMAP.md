@@ -1,10 +1,12 @@
 # brrrdle Development Roadmap
 
-**Status**: Active long-term roadmap for `brrrdle-dev`
-**Last Updated**: 2026-07-06
+**Status**: Historical roadmap; implementation routing superseded by the final shell lock
+**Last Updated**: 2026-07-13
 **Purpose**: This document records the long-term product direction for `brrrdle-dev` while keeping implementation gated by the constitution, phase specs, progress records, and explicit user authorization.
 
 ---
+
+> **Current route:** Phase 58 is accepted and `brrrdle-dev` is the locked final functional shell. Do not execute later implementation phases here. Use `SHELL-LOCK.md` and `planning/handoffs/AWORDLE-SUCCESSOR-ROADMAP-AND-HANDOFF-2026-07-13.md` for the separate Awordle successor workflow.
 
 ## Overview
 

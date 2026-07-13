@@ -1,7 +1,9 @@
 # brrrdle Lightweight Implementation Plan
 
-**Status**: Active high-level plan after Phase 23.
-**Updated**: 2026-06-10
+**Status**: Historical high-level plan; runtime implementation is locked after Phase 58.
+**Updated**: 2026-07-13
+
+The current authoritative route is `SHELL-LOCK.md` plus `planning/handoffs/AWORDLE-SUCCESSOR-ROADMAP-AND-HANDOFF-2026-07-13.md`. No later implementation phase is active in `brrrdle-dev`.
 
 ## Current Project State
 

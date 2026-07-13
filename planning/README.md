@@ -16,7 +16,7 @@ For normal future work, read:
 4. Root [BRRRDLE-OVERVIEW.md](../BRRRDLE-OVERVIEW.md) when historical product-plan context matters.
 5. Root [AGENT-IMPLEMENTATION-PLAN.md](../AGENT-IMPLEMENTATION-PLAN.md), which now points into this planning hub.
 6. [planning/IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md).
-7. The active or next phase plan. Phases 55-57 and the post-Phase-57 optimized functional shell are accepted and closed. Phase 58 GO solution diversity and Multiplayer refresh readiness is at Review Candidate awaiting hosted/manual review. The preserved design/handoff work is Phase 59, and the actual frontend rebuild remains separately gated to Phase 60.
+7. [SHELL-LOCK.md](../SHELL-LOCK.md) and the [Awordle successor roadmap](handoffs/AWORDLE-SUCCESSOR-ROADMAP-AND-HANDOFF-2026-07-13.md). Phase 58 is accepted and closed; no later implementation or redesign phase runs in `brrrdle-dev`.
 8. [progress/PROGRESS.csv](../progress/PROGRESS.csv) and the latest matching progress report.
 
 ## Directory Map
@@ -59,8 +59,8 @@ For normal future work, read:
 - `planning/phase-56/`: accepted closeout materials for the Private Request Center, lifecycle notifications, request preferences, directional blocking, anti-spam authority, migration reconciliation, and hosted manual review.
 - `planning/phase-57/`: accepted Solo-Practice-only marketplace and consumables closeout, including applied/reconciled authority migration, real signed-in authority/browser evidence, changelog, and completed manual review checklist.
 - `planning/post-phase-57/`: accepted deeper-shell baseline/audit/decision/implementation, follow-up recovery, Final Acceptance changelog, and completed manual checklist. It keeps React/Vite and all backend/product contracts while adding measured on-demand word/data and route-loading boundaries.
-- `planning/phase-58/`: Review Candidate records for deterministic diverse GO chains, legacy-safe server parity, and participant-owned Multiplayer rediscovery within five seconds after same-tab hard refresh.
-- `planning/phase-59/`: preserved design-direction and GPT-5.6 SOL handoff planning after Phase 58 acceptance; the actual frontend rebuild remains Phase 60 work.
+- `planning/phase-58/`: accepted Final Acceptance records for deterministic diverse GO chains, legacy-safe server parity, participant-owned Multiplayer rediscovery, durable forfeit recovery, selected-badge contrast, and notification navigation collapse.
+- `planning/phase-59/`: historical design-direction planning superseded in this repository by the separate Awordle successor workflow.
 - `planning/specs/phase-23/`: Phase 23 source specs and bug notes.
 - `planning/specs/phase-24/`: future Phase 24 specs once provided.
 - `planning/specs/phase-25/`: Phase 25 dashboard, notifications, and engagement specs.
