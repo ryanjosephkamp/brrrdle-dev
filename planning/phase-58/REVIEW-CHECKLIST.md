@@ -17,6 +17,30 @@ This checklist helps the user manually verify Phase 58 behavior. It does not rep
 
 ## Must Manually Verify
 
+### Post-Review Follow-Up
+
+- [ ] **Older and fresh unranked Practice matches forfeit durably.**
+  - Open an established unranked Practice match that has at least one submitted turn, then forfeit from either participant account. Repeat with the other mode if practical.
+  - Expected: the forfeiting player loses, the rival wins, and after refresh the match remains terminal rather than returning to Practice, Overview, Active Games, or Live as active.
+
+- [ ] **A failed durable forfeit does not pretend to succeed.**
+  - This conflict path has automated coverage and may be difficult to trigger manually.
+  - Expected if encountered: the active durable game is restored and a clear retry message appears; the UI does not leave an unsaved terminal projection on screen.
+
+- [ ] **Selected subtab badges remain readable.**
+  - On desktop and mobile, select tabs that show Overview, Active Games, Lobby, Live, or Daily Multiplayer attention badges. Check both a number and Daily `Ready` if that transient state is available.
+  - Expected: the selected badge uses an opaque dark background with clearly readable light text; the label does not overflow or distort the tab.
+
+- [ ] **Notification Open collapses the center and preserves routing.**
+  - Expand Notifications and choose `Open` on an actionable item.
+  - Expected: the center collapses and the exact destination still opens, especially on mobile.
+
+- [ ] **Notification local actions stay expanded.**
+  - Try Mark read, Mark all read, and Hide on available items.
+  - Expected: each action updates its item as before without collapsing the notification center. Outside click and Escape still collapse it.
+
+### Original Phase 58 Scope
+
 - [ ] **New Solo Practice GO chains are diverse rather than shifted copies.**
   - Start and complete or inspect at least two consecutive five-letter Practice GO chains.
   - Expected: each chain is deterministic once created, contains no repeated solution inside that chain, and the next chain is not merely the prior chain shifted by one position.
@@ -78,6 +102,7 @@ This checklist helps the user manually verify Phase 58 behavior. It does not rep
 - `progress/PROGRESS-STEP-547.md`
 - `progress/PROGRESS-STEP-548.md`
 - `progress/PROGRESS-STEP-549.md`
+- `progress/PROGRESS-STEP-550.md`
 
 ## Review Result
 

@@ -177,6 +177,7 @@ button, input, select, textarea { font: inherit; }
 }
 .brrrdle-attention-badge[data-tone='urgent'] { border-color: #f87171; color: #fecaca; }
 .brrrdle-attention-badge[data-tone='attention'] { border-color: #fbbf24; color: #fde68a; }
+.brrrdle-attention-badge[data-active='true'] { background: #020617; border-color: #020617; color: #f8fafc; }
 
 .brrrdle-lunar-playfield {
   min-width: 0;

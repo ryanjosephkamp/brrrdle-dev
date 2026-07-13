@@ -80,4 +80,28 @@ describe('SubtabBar', () => {
     expect(html).toContain('data-active="true"')
     expect(html).toContain('3 Live v1 games visible to you')
   })
+
+  it('marks an active Ready attention badge for the generic selected treatment', () => {
+    const html = renderToStaticMarkup(
+      <SubtabBar
+        activeId="daily"
+        label="Multiplayer sections"
+        onSelect={() => undefined}
+        options={[
+          {
+            attention: {
+              ariaLabel: 'Daily Multiplayer is ready',
+              label: 'Ready',
+              tone: 'attention',
+            },
+            id: 'daily',
+            label: 'Daily Multiplayer',
+          },
+        ]}
+      />,
+    )
+
+    expect(html).toContain('data-active="true"')
+    expect(html).toContain('>Ready</span>')
+  })
 })

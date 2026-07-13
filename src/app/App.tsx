@@ -354,7 +354,7 @@ function PracticeGameSwitcher({
   readonly defaultGoPuzzleCount: GoPuzzleCount
   readonly defaultHardMode: boolean
   readonly keyboardDisabled?: boolean
-  readonly onMultiplayerChange: (state: MultiplayerState) => void
+  readonly onMultiplayerChange: (state: MultiplayerState) => void | Promise<{ readonly error?: string }>
   readonly onCompetitiveMultiplayerChange: (state: MultiplayerCompetitiveState) => void
   readonly onGameComplete: (input: CompletedGameInput) => void
   readonly onPracticeModeChange: (mode: PracticeMode) => void
@@ -710,7 +710,7 @@ function RoutePanel({
   readonly guestProgress: ReturnType<typeof loadGuestProgress>
   readonly keyboardDisabled?: boolean
   readonly onGameComplete: (input: CompletedGameInput) => void
-  readonly onMultiplayerChange: (state: MultiplayerState) => void
+  readonly onMultiplayerChange: (state: MultiplayerState) => void | Promise<{ readonly error?: string }>
   readonly onCompetitiveMultiplayerChange: (state: MultiplayerCompetitiveState) => void
   readonly onDashboardAction: (target: DashboardActionTarget) => void
   readonly onResetProgress: () => void
@@ -1873,7 +1873,8 @@ function AppInner() {
     })
     settleTrustedRankedGames(snapshotState)
   }, [cacheMultiplayerProgress, persistActiveMultiplayerState, persistActiveProgress, settleTrustedRankedGames])
-  const handleMultiplayerChange = useCallback((multiplayer: MultiplayerState) => {
+  const handleMultiplayerChange = useCallback(async (multiplayer: MultiplayerState) => {
+    const previousMultiplayer = multiplayerRef.current
     multiplayerRef.current = multiplayer
     setMultiplayer(multiplayer)
     setGuestProgress((currentProgress) => {
@@ -1881,17 +1882,30 @@ function AppInner() {
       persistActiveProgress(nextProgress)
       return nextProgress
     })
-    void multiplayerRepositoryRef.current.save(multiplayer).then((snapshot) => {
+    try {
+      const snapshot = await multiplayerRepositoryRef.current.save(multiplayer)
       settleTrustedRankedGames(snapshot.state)
-    }).catch(() => {
+      return {}
+    } catch {
       if (authState.status === 'authenticated') {
-        void multiplayerRepositoryRef.current.load().then((snapshot) => {
+        try {
+          const snapshot = await multiplayerRepositoryRef.current.load()
           applyRemoteMultiplayerSnapshot(snapshot.state, authenticatedMultiplayerUserId)
-        })
-        return
+        } catch {
+          multiplayerRef.current = previousMultiplayer
+          setMultiplayer(previousMultiplayer)
+          persistActiveMultiplayerState(previousMultiplayer)
+          setGuestProgress((currentProgress) => {
+            const restoredProgress = cacheMultiplayerProgress(currentProgress, previousMultiplayer)
+            persistActiveProgress(restoredProgress)
+            return restoredProgress
+          })
+        }
+      } else {
+        persistActiveMultiplayerState(multiplayer)
       }
-      persistActiveMultiplayerState(multiplayer)
-    })
+      return { error: 'Unable to save this multiplayer update. The durable game was reloaded; please try again.' }
+    }
   }, [applyRemoteMultiplayerSnapshot, authState.status, authenticatedMultiplayerUserId, cacheMultiplayerProgress, persistActiveMultiplayerState, persistActiveProgress, settleTrustedRankedGames])
   const handleCompetitiveMultiplayerChange = useCallback((competitiveMultiplayer: MultiplayerCompetitiveState) => {
     setGuestProgress((currentProgress) => {

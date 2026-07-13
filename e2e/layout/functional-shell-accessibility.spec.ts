@@ -73,4 +73,54 @@ test.describe('Functional shell characterization @layout', () => {
       await deleteE2eUser(user)
     }
   })
+
+  test('collapses the notification center after Open routes to its target', async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.clear())
+    await page.setViewportSize({ height: 844, width: 390 })
+    await page.goto('/')
+
+    const summary = page.locator('.brrrdle-notification-summary')
+    await summary.click()
+    const panel = page.getByRole('region', { name: /^In-app notifications$/i })
+    await expect(panel).toBeVisible()
+    const open = panel.getByRole('button', { name: /^Open$/i }).first()
+    await expect(open).toBeVisible()
+    await open.click()
+
+    await expect(summary).toHaveAttribute('aria-expanded', 'false')
+    await expect(panel).toHaveCount(0)
+  })
+
+  test('keeps the notification center open for local read and hide actions', async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.clear())
+    await page.goto('/')
+
+    const summary = page.locator('.brrrdle-notification-summary')
+    await summary.click()
+    const panel = page.getByRole('region', { name: /^In-app notifications$/i })
+    await panel.getByRole('button', { name: /^Mark read$/i }).first().click()
+    await expect(panel).toBeVisible()
+    await expect(summary).toHaveAttribute('aria-expanded', 'true')
+
+    const hide = panel.getByRole('button', { name: /^Hide$/i }).first()
+    if (await hide.count()) {
+      await hide.click()
+      await expect(panel).toBeVisible()
+      await expect(summary).toHaveAttribute('aria-expanded', 'true')
+    }
+  })
+
+  test('keeps the notification center open after Mark all read', async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.clear())
+    await page.goto('/')
+
+    const summary = page.locator('.brrrdle-notification-summary')
+    await summary.click()
+    const panel = page.getByRole('region', { name: /^In-app notifications$/i })
+    await panel.getByRole('button', { name: /^Mark all read$/i }).click()
+
+    await expect(panel).toBeVisible()
+    await expect(summary).toHaveAttribute('aria-expanded', 'true')
+  })
+
 })

@@ -65,7 +65,7 @@ export interface CalendarPanelProps {
   readonly onResumeCapture: (capture: ResumeCapture) => void
   readonly onSoloCloudMutation?: (mutation: SoloCloudMutation) => void
   readonly onSpendCoins: (amount: number, operationId?: string) => boolean | Promise<boolean>
-  readonly onMultiplayerChange: (state: MultiplayerState) => void
+  readonly onMultiplayerChange: (state: MultiplayerState) => void | Promise<{ readonly error?: string }>
   readonly onCompetitiveMultiplayerChange?: (state: MultiplayerCompetitiveState) => void
   readonly onMarkPastDailyUnlocked: (mode: GameMode, dateKey: string) => void
   readonly onUpdateSettings: (patch: Partial<GuestProgress['settings']>) => void

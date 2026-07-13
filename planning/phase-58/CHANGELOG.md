@@ -59,3 +59,20 @@ The governed Review Candidate GitHub Backup, hosted/manual review, final accepta
 - The repaired mixer matches TypeScript unsigned-32 behavior across boundary vectors and no longer overflows.
 - The exact migration was applied once and its generated ledger version was reconciled only after byte and object equivalence proof.
 - Post-apply parity, privacy, catalog, authority, advisor, temporary-account, cross-browser, full-regression, and cleanup gates are clean.
+
+## Post-Review Follow-Up
+
+- Hardened ordinary Multiplayer updates with exact affected-row acknowledgment. A participant-owned forfeit that loses its compare-and-swap now re-reads canonical state, reapplies the existing cancellation/forfeit rule, and retries exactly once.
+- Preserved generic turn, join, timeout, and cancellation conflict behavior; the bounded retry is for the initiating participant's forfeit only.
+- Merged acknowledged canonical rows back into the local snapshot. If both attempts conflict, the app reloads the durable game and shows a stable non-secret retry message instead of presenting an optimistic terminal state as saved.
+- Added real temporary-account OG and GO post-turn forfeit coverage, an older-compatible projection conflict recovery, and a double-conflict failure case.
+- Added one generic dark, opaque selected-badge treatment for numeric and `Ready` attention badges while preserving unselected tone colors.
+- Notification `Open` now closes the center before preserving its existing route action. Mark read, Mark all read, and Hide continue to leave the center expanded.
+- No migration, Supabase schema change, dependency, framework, deployment, Git, GitHub, phase closure, checkpoint, or redesign-repository action was required or performed.
+
+## Post-Review Verification
+
+- Lint passed; 147 unit files and 1,044 tests passed; production build and app/API typechecks passed.
+- The final fresh authority-enabled Chromium run passed 95/95 with one worker, including all fresh/conflict forfeit cases, ranked/private/Daily regressions, refresh-readiness lanes, notification behavior, and mobile layout.
+- Exact local/remote migration equality remains 41/41. Protected mixer and spectator digests are unchanged, private mixer browser grants remain zero, public ranked-Daily answer leaks remain zero, and no Phase 58 security/performance advisor finding appeared.
+- Temporary E2E Auth users, profiles, and game projections are zero after cleanup. Local-only desktop/mobile badge and mobile notification evidence is recorded under `test-results/visual-review/phase-58-post-review-follow-up/`.
